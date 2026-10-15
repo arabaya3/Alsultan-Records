@@ -44,12 +44,13 @@ export async function addContractVersion(_p: ActionResult, fd: FormData): Promis
   if (total === null || deposit === null) return fail("المبالغ غير صالحة.");
   if (deposit > total) return fail("العربون أكبر من قيمة العقد.");
   const sb = await createClient();
+  // Withdraw from the customer BEFORE the new version exists, so an unreviewed version can never be approved.
+  const withdraw = await sb.from("contracts").update({ status: "draft" }).eq("id", contractId).eq("status", "sent");
+  if (withdraw.error) return fail(dbMessage(withdraw.error));
   const { error } = await sb
     .from("contract_versions")
     .insert({ contract_id: contractId, body: body.slice(0, 100000), total, deposit_required: deposit } as VersionInsert);
   if (error) return fail(dbMessage(error, { "42501": "لا يمكن إضافة نسخة لعقد معتمد أو ملغى." }));
-  // A new version needs fresh approval: back to draft if it was sent.
-  await sb.from("contracts").update({ status: "draft" }).eq("id", contractId).eq("status", "sent");
   refresh();
   return ok("حُفظت نسخة جديدة وأصبحت الحالية. أرسلها للعميل عند الجاهزية.");
 }

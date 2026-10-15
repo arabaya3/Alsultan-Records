@@ -1011,7 +1011,7 @@ isOneToOne: false
                            },
 "event_financials":
 { Args: { "p_event_id": string }; Returns: {
-              "balance": number,"contracted": number,"currency": string,"event_id": string,"expenses": number,"paid": number,"refunded": number
+              "balance": number,"balance_basis": string,"contracted": number,"currency": string,"event_id": string,"expenses": number,"paid": number,"quoted": number,"refunded": number
             }[]
                            },
 "public_submit_booking":

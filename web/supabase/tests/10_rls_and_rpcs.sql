@@ -56,7 +56,7 @@ select is((select count(*)::int from public.quotes where customer_id <> app.cust
 select is((select count(*)::int from public.payments where customer_id <> app.customer_id()), 0, 'A cannot read B payments');
 select is((select count(*)::int from public.contracts where customer_id <> app.customer_id()), 0, 'A cannot read B contracts');
 select is((select count(*)::int from storage.objects where name like 'events/00000000-0000-4000-8000-0000000000e3/%'), 0, 'A cannot read B storage objects');
-select is((select count(*)::int from storage.objects where name like 'events/00000000-0000-4000-8000-0000000000e1/%'), 1, 'A reads own storage objects');
+select is((select count(*)::int from storage.objects where name = 'events/00000000-0000-4000-8000-0000000000e1/zz/display.jpg'), 1, 'A reads own storage object');
 select is((select count(*)::int from public.deliverables), 1, 'A sees own deliverable only');
 
 update public.events set title = 'hacked' where id = '00000000-0000-4000-8000-0000000000e3';

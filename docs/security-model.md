@@ -118,7 +118,7 @@ All RPCs are `SECURITY DEFINER`, use `set search_path = ''`, and have EXECUTE re
 | `customer_approve_contract(p_version_id, p_content_hash)` | void | owning customer | Contract `sent`; version is current; hash matches exactly. |
 | `customer_request_revision(p_deliverable_id, p_note)` | void | owning customer | Deliverable in `review`. Notifies admins. |
 | `record_payment(p_customer_id, p_amount, p_method, p_idempotency_key, p_kind='payment', p_event_id?, p_contract_id?, p_received_at=now(), p_reference?, p_currency='ILS')` | uuid | owner | Amount > 0; event/contract belong to the customer. An exact replay returns the existing id; the same key with a different payload raises 23505. |
-| `event_financials(p_event_id)` | table(event_id, currency, contracted, paid, refunded, expenses, balance) | admin, or owning customer (`expenses` is null for customers) | |
+| `event_financials(p_event_id)` | table(event_id, currency, contracted, paid, refunded, expenses, balance, quoted, balance_basis) | admin, or owning customer (`expenses` is null for customers) | `balance = basis − paid + refunded`. The basis is the approved contract total if one exists (`balance_basis='contract'`), else the accepted quote total (`'quote'`), else 0 (`'none'`, so a deposit shows as a negative balance, i.e. credit). |
 | `admin_financial_summary(p_from date, p_to date)` | table(currency, contracted, paid, refunded, expenses, net_cash, outstanding) | admin/owner | |
 | `staff_mfa_required()` | bool | authenticated | Used by `requireAal2ForStaff()`. |
 
@@ -206,3 +206,8 @@ Anon cannot call these RPCs at all, so the Turnstile check cannot be bypassed an
   - After removing the objects through the Storage API with the admin client, the app calls `complete_storage_cleanup(p_ids uuid[])`, which returns the count marked done.
   - Both RPCs are admin/owner only (42501 otherwise).
   - This closes the "public copies survive consent revoke" gap once a worker runs: a cron job or an admin action after `set_publication_consent`.
+
+## 12. Addendum (migration 0009)
+
+- Column defaults run as the invoking role. The audit found three that call `app.random_code()`: `quotes.quote_no`, `booking_requests.tracking_code` and `support_requests.tracking_code`. `random_code` is now SECURITY DEFINER with EXECUTE granted to authenticated and service_role; it is harmless and returns random text. Trigger functions are exempt from EXECUTE checks, and the app.* helpers they call as the invoker were already granted.
+- `event_financials` adds `quoted` and `balance_basis` (see section 5).
