@@ -1,0 +1,20 @@
+{
+  "name": "ستوديو وتسجيلات السلطان",
+  "short_name": "Sultan Studio",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050504",
+  "theme_color": "#050504",
+  "lang": "ar",
+  "dir": "rtl",
+  "description": "ستوديو وتسجيلات السلطان — تصوير مناسبات وفيديو 4K وإعلانات وDJ، مع تنظيم الخصوصية ومسار عميل خاص.",
+  "icons": [
+    {
+      "src": "/assets/logo-round.webp",
+      "sizes": "512x512",
+      "type": "image/webp",
+      "purpose": "any maskable"
+    }
+  ]
+}

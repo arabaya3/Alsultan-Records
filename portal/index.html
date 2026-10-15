@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+<head>
+<meta content="Sultan StudioOS V27" name="generator"/>
+<meta charset="utf-8"/>
+<base href="/"/><meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="noindex,nofollow" name="robots"/>
+<title>بوابة العميل | ستوديو وتسجيلات السلطان</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="/assets/site.css" rel="stylesheet"/>
+<link href="/assets/v25.css" rel="stylesheet"/><link href="/assets/v26.css" rel="stylesheet"/><link href="/assets/v27-content.css" rel="stylesheet"/><link href="/assets/logo-round.webp" rel="icon"/>
+<link href="/manifest.webmanifest" rel="manifest"/>
+</head>
+<body class="site-v20" data-studioos-version="27">
+<section class="portal">
+<div class="portal-login card" id="portalLogin" style="padding:28px">
+<img alt="" src="/assets/logo-round.webp" style="width:150px;margin:auto"/>
+<h1>بوابة العميل</h1>
+<p class="muted">نسجل دخولك برابط آمن يُرسل إلى بريدك. الحساب يُفعّل من الاستوديو.</p>
+<input id="portalEmail" placeholder="البريد الإلكتروني" type="email"/>
+<div class="actions" style="margin-top:12px"><button class="btn gold" id="portalSend">إرسال رابط الدخول</button></div>
+<p class="muted" id="portalMsg"></p>
+</div>
+<div class="container" id="portalApp" style="display:none">
+<div class="section-head"><div><div class="eyebrow">CLIENT PORTAL</div><h1 class="section-title">ملفك مع ستوديو السلطان</h1></div><button class="btn soft" id="portalLogout">تسجيل خروج</button></div>
+<div class="portal-grid">
+<section class="portal-section card"><h3>الحجوزات</h3><div class="portal-list" id="pBookings"></div></section>
+<section class="portal-section card"><h3>العروض/الاتفاقات الأولية</h3><div class="portal-list" id="pQuotes"></div></section>
+<section class="portal-section card"><h3>العقود</h3><div class="portal-list" id="pContracts"></div></section>
+<section class="portal-section card"><h3>الدفعات</h3><div class="portal-list" id="pPayments"></div></section>
+<section class="portal-section card" style="grid-column:1/-1"><div class="v26-client-gallery-head"><div><h3>المعرض الخاص واختيار صور الألبوم</h3><small class="muted">الصور الخاصة لا تظهر للعامة. اضغط «اختيار» لإضافتها لقائمة الألبوم.</small></div><div>مختار: <b id="pSelectionCount">0</b></div></div><div class="v26-client-gallery" id="pClientGallery"></div></section>
+<section class="portal-section card"><h3>التسليمات</h3><div class="portal-list" id="pDeliverables"></div></section>
+<section class="portal-section card"><h3>الشكاوى والمتابعة</h3><div class="portal-list" id="pComplaints"></div></section>
+<section class="portal-section card">
+<h3>طلب تعديل على تسليم</h3>
+<form id="portalRevisionForm"><select id="portalDeliverableSelect"></select><textarea id="portalRevisionText" placeholder="اكتب التعديل المطلوب" required=""></textarea><button class="btn gold" style="margin-top:8px">إرسال طلب التعديل</button></form>
+<p class="muted" id="portalRevisionMsg"></p>
+</section>
+<section class="portal-section card">
+<h3>تقييم التجربة</h3>
+<form id="portalReviewForm"><select id="portalRating"><option value="5">5 نجوم</option><option value="4">4 نجوم</option><option value="3">3 نجوم</option><option value="2">نجمتان</option><option value="1">نجمة</option></select><textarea id="portalReviewText" placeholder="اكتب تقييمك" required=""></textarea><button class="btn gold" style="margin-top:8px">إرسال التقييم</button></form>
+<p class="muted">التقييم لا يظهر للعامة إلا بعد مراجعة الإدارة.</p>
+</section>
+</div>
+</div>
+</section>
+<script src="/assets/supabase-config.js"></script>
+<script type="module">
+import {createClient} from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
+const cfg=window.SULTAN_CMS||{}, msg=document.getElementById("portalMsg");
+const esc=(v="")=>String(v).replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"}[m]));
+if(!cfg.supabaseUrl || cfg.supabaseUrl.includes("REPLACE_")) msg.textContent="البوابة جاهزة بالكود وتنتظر ربط قاعدة البيانات.";
+else{
+ const sb=createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
+ document.getElementById("portalSend").onclick=async()=>{const email=document.getElementById("portalEmail").value.trim();if(!email)return;msg.textContent="جاري الإرسال...";const {error}=await sb.auth.signInWithOtp({email,options:{emailRedirectTo:location.href,shouldCreateUser:false}});msg.textContent=error?error.message:"تم إرسال رابط الدخول إذا كان الحساب مفعلاً.";};
+ document.getElementById("portalLogout").onclick=()=>sb.auth.signOut();
+ sb.auth.onAuthStateChange(async(_e,s)=>{if(s)await load();else{document.getElementById("portalLogin").style.display="block";document.getElementById("portalApp").style.display="none";}});
+ const {data:{session}}=await sb.auth.getSession(); if(session) await load();
+ async function load(){
+   const {data:p}=await sb.from("profiles").select("customer_id,role,is_active").single();
+   if(!p?.is_active || p.role!=="customer"){msg.textContent="هذا الحساب غير مفعّل كبوابة عميل.";return;}
+   document.getElementById("portalLogin").style.display="none";document.getElementById("portalApp").style.display="block";
+   const [b,q,c,pay,d,cmp,med,sel]=await Promise.all([
+     sb.from("bookings").select("reference_no,event_type,event_date,stage,venue,city").order("created_at",{ascending:false}),
+     sb.from("quotes").select("id,quote_no,title,status,total,currency,valid_until,quote_items(description,quantity,unit_price,line_total)").order("created_at",{ascending:false}),
+     sb.from("contracts").select("id,contract_no,title,status,total_value,currency,approved_at").order("created_at",{ascending:false}),
+     sb.from("payments").select("amount,currency,payment_type,paid_at,reference").order("paid_at",{ascending:false}),
+     sb.from("deliverables").select("id,title,deliverable_type,status,due_at,delivered_at,current_revision,bucket_id,storage_path").order("created_at",{ascending:false}),
+     sb.from("complaints").select("tracking_code,subject,status,priority,created_at").order("created_at",{ascending:false}),
+     sb.from("media").select("id,file_name,bucket_id,storage_path,public_url,mime_type,caption,media_role,event_id,created_at").eq("customer_id",p.customer_id).in("media_role",["gallery","hero","poster","after"]).order("created_at",{ascending:false}).limit(120),
+     sb.from("media_selections").select("media_id,is_selected,note")
+   ]);
+   document.getElementById("pBookings").innerHTML=(b.data||[]).map(x=>`<div class="portal-row"><b>${esc(x.reference_no||"")} — ${esc(x.event_type||"")}</b><br><small>${esc(x.event_date||"")} • ${esc(x.stage||"")}</small></div>`).join("")||"لا يوجد";
+   document.getElementById("pQuotes").innerHTML=(q.data||[]).map(x=>{
+     const items=(x.quote_items||[]).map(i=>`${esc(i.description)} × ${Number(i.quantity||0)}`).join("، ");
+     return `<div class="portal-row"><b>${esc(x.quote_no||"")} — ${esc(x.title||"")}</b><br><small>${esc(x.status||"")}${x.valid_until?` • صالح حتى ${esc(x.valid_until)}`:""}</small><br>${items?`<small>${items}</small><br>`:""}<b>${Number(x.total||0)} ${esc(x.currency||"ILS")}</b>${x.status==="sent"?`<br><button class="btn gold" onclick="acceptQuote('${x.id}')">قبول العرض</button>`:""}</div>`;
+   }).join("")||"لا يوجد";
+   document.getElementById("pContracts").innerHTML=(c.data||[]).map(x=>`<div class="portal-row"><b>${esc(x.contract_no||"")} — ${esc(x.title||"")}</b><br><small>${esc(x.status||"")}</small>${x.status==="sent"?`<br><button class="btn gold" onclick="approveContract('${x.id}')">موافقة</button>`:""}</div>`).join("")||"لا يوجد";
+   document.getElementById("pPayments").innerHTML=(pay.data||[]).map(x=>`<div class="portal-row"><b>${Number(x.amount||0)} ${esc(x.currency||"")}</b><br><small>${esc(x.payment_type||"")} • ${x.paid_at?new Date(x.paid_at).toLocaleDateString("ar"):""}</small></div>`).join("")||"لا يوجد";
+   document.getElementById("pDeliverables").innerHTML=(d.data||[]).map(x=>`<div class="portal-row"><b>${esc(x.title||"")}</b><br><small>${esc(x.status||"")} • مراجعات: ${Number(x.current_revision||0)}</small>${["ready","delivered"].includes(x.status)&&x.storage_path?`<br><button class="btn gold" onclick="openDeliverable('${x.id}')">فتح الملف</button>`:""}</div>`).join("")||"لا يوجد";
+   const selected=new Set((sel.data||[]).filter(x=>x.is_selected).map(x=>x.media_id));
+   window._portalSelected=selected;document.getElementById("pSelectionCount").textContent=String(selected.size);
+   const gallery=document.getElementById("pClientGallery");const media=(med.data||[]).filter(x=>(x.mime_type||"").startsWith("image/"));
+   if(!media.length)gallery.innerHTML='<div class="v26-client-empty">لا توجد صور خاصة متاحة في البوابة حالياً.</div>';else{
+     gallery.innerHTML=media.map(x=>`<article class="v26-client-media" data-media="${x.id}"><div class="v26-client-empty" data-thumb="${x.id}">جاري تجهيز المعاينة…</div><div class="v26-media-overlay"><small>${esc(x.caption||x.file_name||"صورة")}</small><button class="${selected.has(x.id)?'selected':''}" onclick="toggleMediaSelection('${x.id}',this)">${selected.has(x.id)?'✓ مختارة':'اختيار'}</button></div></article>`).join('');
+     media.forEach(async x=>{const {data,error}=await sb.functions.invoke("customer-media-url",{body:{media_id:x.id}});const mount=document.querySelector(`[data-thumb="${x.id}"]`);if(error||!data?.url){if(mount)mount.textContent='المعاينة غير متاحة';return}if(mount)mount.outerHTML=`<img src="${esc(data.url)}" alt="${esc(x.caption||x.file_name||'صورة')}">`});
+   }
+   document.getElementById("portalDeliverableSelect").innerHTML=(d.data||[]).map(x=>`<option value="${x.id||""}">${esc(x.title||"")}</option>`).join("");
+   document.getElementById("pComplaints").innerHTML=(cmp.data||[]).map(x=>`<div class="portal-row"><b>${esc(x.tracking_code||"")} — ${esc(x.subject||"")}</b><br><small>${esc(x.status||"")}</small></div>`).join("")||"لا يوجد";
+ }
+
+ document.getElementById("portalRevisionForm").addEventListener("submit",async(e)=>{
+   e.preventDefault();
+   const deliverable_id=document.getElementById("portalDeliverableSelect").value,request_text=document.getElementById("portalRevisionText").value.trim();
+   if(!deliverable_id||!request_text)return;
+   const {error}=await sb.rpc("customer_request_revision",{p_deliverable_id:deliverable_id,p_request_text:request_text});
+   document.getElementById("portalRevisionMsg").textContent=error?error.message:"تم إرسال طلب التعديل.";
+ });
+ document.getElementById("portalReviewForm").addEventListener("submit",async(e)=>{
+   e.preventDefault();
+   const rating=+document.getElementById("portalRating").value,review_text=document.getElementById("portalReviewText").value.trim();
+   const {data:profile}=await sb.from("profiles").select("customer_id,full_name").single();
+   const {error}=await sb.from("reviews").insert({customer_id:profile.customer_id,rating,review_text,reviewer_name:profile.full_name||"عميل",source:"portal"});
+   if(error)alert(error.message);else{alert("تم استلام تقييمك للمراجعة.");e.target.reset();}
+ });
+
+ window.approveContract=async(id)=>{if(!confirm("هذه موافقة إلكترونية على العقد المعروض. متابعة؟"))return;const {error}=await sb.rpc("customer_approve_contract",{p_contract_id:id});if(error)alert(error.message);else location.reload();};
+ window.acceptQuote=async(id)=>{if(!confirm("قبول العرض الحالي؟"))return;const {error}=await sb.rpc("customer_accept_quote",{p_quote_id:id});if(error)alert(error.message);else location.reload();};
+ window.toggleMediaSelection=async(id,btn)=>{const selected=window._portalSelected||new Set();if(selected.has(id)){const {error}=await sb.from("media_selections").delete().eq("media_id",id);if(error)return alert(error.message);selected.delete(id);btn.classList.remove("selected");btn.textContent="اختيار"}else{const {data:p}=await sb.from("profiles").select("customer_id").single();const {error}=await sb.from("media_selections").upsert({customer_id:p.customer_id,media_id:id,is_selected:true},{onConflict:"customer_id,media_id"});if(error)return alert(error.message);selected.add(id);btn.classList.add("selected");btn.textContent="✓ مختارة"}document.getElementById("pSelectionCount").textContent=String(selected.size)};
+ window.openDeliverable=async(id)=>{const {data,error}=await sb.functions.invoke("customer-file-url",{body:{deliverable_id:id}});if(error||!data?.url){alert("الملف غير متاح حالياً.");return;}window.open(data.url,"_blank","noopener");};
+}
+</script>
+</body></html>

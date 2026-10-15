@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+<head>
+<meta content="Sultan StudioOS V28" name="generator"/>
+<meta charset="utf-8"/>
+<base href="/"/><meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="index,follow" name="robots"/>
+<meta content="أرسل شكوى أو اقتراحاً أو ملاحظة إلى ستوديو وتسجيلات السلطان وتابعها برقم متابعة." name="description"/>
+<title>الشكاوى والملاحظات | ستوديو وتسجيلات السلطان</title>
+<link href="https://wild-mode-be8c.noor-rabaya-1997-nr.workers.dev/support" rel="canonical"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="/assets/site.css" rel="stylesheet"/>
+<link href="/assets/v25.css" rel="stylesheet"/><link href="/assets/v26.css" rel="stylesheet"/><link href="/assets/v27-content.css" rel="stylesheet"/><link href="/assets/logo-round.webp" rel="icon"/>
+<link href="/manifest.webmanifest" rel="manifest"/>
+<link href="/assets/v28-authority.css" rel="stylesheet"/>
+</head>
+<body class="site-v20" data-studioos-version="28">
+<header class="site-header" id="siteHeader">
+<div class="container nav">
+<a class="brand" href="/"><img alt="" src="/assets/logo-main.webp"/><span><b>ستوديو وتسجيلات السلطان</b><small>SULTAN RECORDS STUDIO</small></span></a>
+<nav class="menu" id="menu"><a href="/">الرئيسية</a><a href="/services">الخدمات</a><a href="/portfolio">الأعمال</a><a href="/events">المناسبات</a><a href="/guide">دليل العرسان</a><a href="/faq">الأسئلة</a><a href="/contact">طلب تغطية</a></nav>
+<div class="header-actions"><a class="btn gold" href="https://wa.me/message/I4OXKEUV7DX6L1" rel="noopener" target="_blank">واتساب</a></div>
+<button aria-controls="menu" aria-expanded="false" aria-label="فتح القائمة" class="mobile-toggle" id="mobileToggle" type="button"><span></span><span></span></button>
+</div>
+</header>
+<main>
+<section class="page-hero"><div class="container reveal"><div class="eyebrow">SUPPORT</div><h1>شكوى، اقتراح أو ملاحظة.</h1><p>كل طلب يحصل على رقم متابعة. الشكوى لا تضيع داخل المحادثات، وتنتقل داخل النظام حتى يتم إغلاقها.</p></div></section>
+<section class="section"><div class="container contact-grid">
+<aside class="contact-info card reveal">
+<div class="eyebrow">آلية المتابعة</div><h2 class="mini-title">من الاستلام حتى الحل</h2>
+<div class="checks"><div class="check">رقم متابعة مستقل.</div><div class="check">تصنيف: شكوى / اقتراح / شكر / أخرى.</div><div class="check">تحديد الأولوية والمسؤول عن المتابعة.</div><div class="check">سجل للحالة والردود حتى الإغلاق.</div></div>
+<p class="muted">الحالات: جديدة ← مراجعة ← تم التواصل ← بانتظار العميل ← جاري الحل ← تم الحل ← مغلقة.</p>
+</aside>
+<form class="contact-form card reveal" id="complaintForm">
+<div class="form-grid">
+<div class="field"><label>الاسم</label><input id="cName" required=""/></div>
+<div class="field"><label>الهاتف</label><input id="cPhone" required=""/></div>
+<div class="field"><label>البريد الإلكتروني</label><input id="cEmail" type="email"/></div>
+<div class="field"><label>النوع</label><select id="cType"><option value="complaint">شكوى</option><option value="suggestion">اقتراح</option><option value="praise">شكر</option><option value="other">أخرى</option></select></div>
+<div class="field"><label>الأولوية</label><select id="cPriority"><option value="normal">عادية</option><option value="high">عالية</option><option value="urgent">عاجلة</option><option value="low">منخفضة</option></select></div>
+<div class="field"><label>العنوان</label><input id="cSubject" required=""/></div>
+<div class="field full"><label>التفاصيل</label><textarea id="cDetails" required=""></textarea></div>
+<div class="field full" id="complaintTurnstile"></div>
+</div>
+<div class="actions" style="margin-top:16px"><button class="btn gold" type="submit">إرسال</button></div>
+<p class="muted" id="complaintResult"></p>
+</form>
+</div></section>
+<section class="section dark"><div class="container contact-grid">
+<aside class="contact-info card reveal"><div class="eyebrow">TRACKING</div><h2 class="mini-title">تتبع الشكوى أو الملاحظة</h2><p class="muted">أدخل رقم المتابعة ورقم الهاتف نفسه المستخدم عند الإرسال.</p></aside>
+<form class="contact-form card reveal" id="trackComplaintForm">
+<div class="form-grid"><div class="field"><label>رقم المتابعة</label><input id="tcCode" placeholder="CMP-2026-00000" required=""/></div><div class="field"><label>رقم الهاتف</label><input id="tcPhone" required=""/></div></div>
+<div id="trackComplaintTurnstile" style="margin-top:12px"></div><div class="actions" style="margin-top:14px"><button class="btn gold">تتبع</button></div>
+<div class="muted" id="trackComplaintResult" style="margin-top:14px"></div>
+</form>
+</div></section>
+</main>
+<footer><div class="container footer-bottom"><span>© ستوديو وتسجيلات السلطان</span><span><a href="/privacy">الخصوصية</a> · <a href="/terms">الشروط</a></span></div></footer>
+<script src="/assets/supabase-config.js"></script><script src="/assets/site.js"></script>
+<script src="/assets/v26-media.js"></script>
+</body></html>

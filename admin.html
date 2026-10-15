@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+
+<html dir="rtl" lang="ar">
+<head>
+<meta content="Sultan StudioOS V28" name="generator"/>
+<meta charset="utf-8"/>
+<base href="/"/><meta content="width=device-width,initial-scale=1" name="viewport"/>
+<meta content="noindex,nofollow" name="robots"/>
+<title>StudioOS | ستوديو السلطان</title>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@400;500;600;700;800&amp;family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="/assets/admin.css" rel="stylesheet"/>
+<link href="/assets/v27-content.css" rel="stylesheet"/><link href="/assets/v28-authority.css" rel="stylesheet"/>
+</head>
+<body class="admin-body" data-studioos-version="28">
+<section class="login-screen" id="loginScreen">
+<form class="login-box" onsubmit="login(event)">
+<img alt="" src="/assets/logo-round.webp"/><h1>StudioOS</h1><p>لوحة الإدارة الخاصة بستوديو وتسجيلات السلطان.</p>
+<input autocomplete="username" id="email" placeholder="البريد الإلكتروني" required="" type="email"/>
+<input autocomplete="current-password" id="password" placeholder="كلمة المرور" required="" type="password"/>
+<button class="admin-btn primary" style="width:100%;margin-top:8px">تسجيل الدخول</button>
+<button class="admin-btn" onclick="sendMagicLink()" style="width:100%;margin-top:8px" type="button">إرسال رابط دخول إلى البريد</button>
+<p class="notice" id="loginMsg">للحسابات الإدارية نوصي برابط الدخول الآمن ثم التحقق بخطوتين MFA.</p>
+</form>
+</section>
+<section class="login-screen" id="mfaScreen" style="display:none">
+<div class="login-box"><img alt="" src="/assets/logo-round.webp"/><h1>التحقق بخطوتين</h1>
+<p id="mfaText">الحسابات الإدارية تتطلب MFA.</p><div id="mfaQr"></div>
+<input id="mfaCode" inputmode="numeric" placeholder="رمز من 6 أرقام"/>
+<button class="admin-btn primary" onclick="verifyMfa()" style="width:100%">تحقق</button>
+<p class="notice" id="mfaMsg"></p></div>
+</section>
+<section class="admin-shell" id="adminShell" style="display:none">
+<aside class="admin-sidebar">
+<img alt="" src="/assets/logo-main.webp"/><h2>StudioOS</h2>
+<div class="notice" style="margin-bottom:14px">مرحباً <b id="adminName"></b><br/>الصلاحية: <span id="adminRole"></span></div>
+<nav class="admin-nav">
+<button class="active" onclick="openView('dashboardView',this)">لوحة التحكم</button>
+<button onclick="openView('customersView',this)">العملاء CRM</button>
+<button onclick="openView('bookingsView',this)">الحجوزات</button>
+<button data-role="super_admin,admin" onclick="openView('quotesView',this)">العروض السعرية</button>
+<button onclick="openView('calendarView',this)">التقويم والتعارضات</button>
+<button onclick="openView('eventsView',this)">المناسبات</button>
+<button onclick="openView('mediaView',this)">الصور والملفات</button>
+<button data-role="super_admin,admin" onclick="openView('servicesView',this)">الخدمات</button>
+<button data-role="super_admin,admin" onclick="openView('offersView',this)">العروض</button>
+<button data-role="super_admin,admin" onclick="openView('contractsView',this)">العقود</button>
+<button data-role="super_admin,admin" onclick="openView('financeView',this)">المالية والجرد</button>
+<button onclick="openView('staffView',this)">الموظفون والطاقم</button>
+<button onclick="openView('equipmentView',this)">المعدات</button>
+<button onclick="openView('deliverablesView',this)">المونتاج والتسليمات</button>
+<button onclick="openView('complaintsView',this)">الشكاوى والملاحظات</button>
+<button onclick="openView('reviewsView',this)">التقييمات</button>
+<button data-role="super_admin,admin" onclick="openView('settingsView',this)">إعدادات الموقع</button>
+<button data-role="super_admin" onclick="openView('usersView',this)">المستخدمون</button>
+<button data-role="super_admin,admin" onclick="openView('backupView',this)">النسخ الاحتياطي</button>
+<button data-role="super_admin,admin" onclick="openView('auditView',this)">سجل النشاط</button>
+<button onclick="logout()">تسجيل خروج</button>
+</nav>
+</aside>
+<main class="admin-main">
+<div class="admin-view active" id="dashboardView">
+<div class="admin-top"><div><h1>لوحة التحكم</h1><div class="admin-muted">الموقع، الحجوزات، التشغيل والمالية من مكان واحد.</div></div><a class="admin-btn" href="/" target="_blank">فتح الموقع العام</a></div>
+<div class="admin-grid"><div class="metric"><b id="mCustomers">0</b><span>عميل</span></div><div class="metric"><b id="mBookings">0</b><span>حجز/طلب</span></div><div class="metric"><b id="mEvents">0</b><span>مناسبة</span></div><div class="metric"><b id="mComplaints">0</b><span>شكوى مفتوحة</span></div></div>
+<div class="admin-card"><h3>المراحل التشغيلية</h3><div class="pipeline" id="pipeline"></div></div>
+<div class="admin-card"><h3>بحث شامل</h3><div class="admin-form"><div class="full"><label>ابحث بالاسم، الهاتف، رقم الحجز أو المناسبة</label><input id="globalSearch" placeholder="ابدأ الكتابة..."/></div></div><div class="admin-muted" id="globalSearchResults" style="margin-top:12px"></div></div>
+<div class="admin-card"><h3>تنبيهات</h3><div class="admin-muted" id="dashboardAlerts">جاري التحميل...</div></div>
+<div class="admin-card"><h3>إشعارات النظام</h3><div class="admin-muted" id="notificationRows">جاري التحميل...</div></div>
+</div>
+<div class="admin-view" id="customersView">
+<div class="admin-top"><h1>العملاء CRM</h1></div>
+<form class="admin-card" onsubmit="saveCustomer(event)"><input id="customerId" type="hidden"/><div class="admin-form"><div><label>الاسم</label><input id="customerName" required=""/></div><div><label>الهاتف</label><input id="customerPhone"/></div><div><label>البريد</label><input id="customerEmail" type="email"/></div><div><label>المدينة</label><input id="customerCity"/></div><div class="full"><label>ملاحظات داخلية</label><textarea id="customerNotes"></textarea></div></div><div class="admin-actions"><button class="admin-btn primary">حفظ العميل</button></div></form>
+<div class="admin-card"><table class="admin-table"><thead><tr><th>الاسم</th><th>الهاتف</th><th>البريد</th><th>المدينة</th><th></th></tr></thead><tbody id="customersRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="bookingsView">
+<div class="admin-top"><h1>الحجوزات ومسار العميل</h1></div>
+<div class="admin-card"><table class="admin-table"><thead><tr><th>المرجع</th><th>العميل</th><th>المناسبة</th><th>التاريخ</th><th>المرحلة</th><th></th></tr></thead><tbody id="bookingsRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="quotesView">
+<div class="admin-top"><h1>العروض السعرية</h1></div>
+<form class="admin-card" onsubmit="saveQuote(event)">
+<div class="admin-form"><div><label>العميل</label><select id="quoteCustomer" required=""></select></div><div><label>الحجز</label><select id="quoteBooking"></select></div><div><label>المناسبة</label><select id="quoteEvent"></select></div><div><label>عنوان العرض</label><input id="quoteTitle" required=""/></div><div><label>صالح حتى</label><input id="quoteValid" type="date"/></div><div><label>خصم داخلي</label><input id="quoteDiscount" step="0.01" type="number" value="0"/></div><div class="full"><label>ملاحظات</label><textarea id="quoteNotes"></textarea></div></div>
+<h3>بنود العرض</h3><div id="quoteItems"></div><div class="admin-actions"><button class="admin-btn" onclick="addQuoteItemRow()" type="button">+ بند</button><button class="admin-btn primary">حفظ العرض</button></div>
+</form>
+<div class="admin-card"><table class="admin-table"><thead><tr><th>الرقم</th><th>العميل</th><th>العنوان</th><th>المجموع</th><th>الحالة</th><th></th></tr></thead><tbody id="quotesRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="calendarView">
+<div class="admin-top"><h1>التقويم والتعارضات</h1></div>
+<div class="admin-card"><div class="admin-form"><div><label>من تاريخ</label><input id="calFrom" type="date"/></div><div><label>إلى تاريخ</label><input id="calTo" type="date"/></div></div><div class="admin-actions"><button class="admin-btn primary" onclick="loadCalendar()">تحديث</button></div></div>
+<div class="admin-card"><table class="admin-table"><thead><tr><th>التاريخ</th><th>المناسبة</th><th>المكان</th><th>الحالة</th><th>تنبيه</th></tr></thead><tbody id="calendarRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="eventsView">
+<div class="admin-top"><h1>المناسبات</h1></div>
+<form class="admin-card" onsubmit="saveEvent(event)"><input id="eventId" type="hidden"/>
+<div class="admin-form"><div><label>العنوان</label><input id="eventTitle" required=""/></div><div><label>Slug</label><input id="eventSlug" required=""/></div><div><label>النوع</label><select id="eventType"><option>زفاف</option><option>خطوبة</option><option>سهرة</option><option>تخرج</option><option>مهرجان</option><option>إعلان</option></select></div><div><label>التاريخ</label><input id="eventDate" type="date"/></div><div><label>البلدة</label><input id="eventCity"/></div><div><label>المكان</label><input id="eventVenue"/></div><div><label>الخصوصية</label><select id="eventPrivacy"><option value="private">خاص</option><option value="partial">جزئي</option><option value="public">عام</option></select></div><div><label><input id="eventPermission" type="checkbox"/> موافقة نشر</label></div><div class="full"><label>الملخص</label><textarea id="eventSummary"></textarea></div><div class="full"><label>وصف كامل</label><textarea id="eventDescription"></textarea></div><div class="full"><label>YouTube</label><input id="eventYoutube"/></div>
+<div class="full v28-admin-sep"><b>ملف المشروع العام / Case Study</b><span>هذه المعلومات تظهر فقط عندما تكون المناسبة عامة ومنشورة مع موافقة نشر.</span></div>
+<div class="full"><label>الجملة الرئيسية للمشروع</label><input id="eventHighlight" placeholder="مثال: تغطية يوم كامل موزعة بين التجهيز والاستقبال والساحة"/></div>
+<div class="full"><label>الخدمات المستخدمة — خدمة بكل سطر</label><textarea id="eventServicesUsed" placeholder="تصوير فوتوغرافي
+فيديو
+DJ"></textarea></div>
+<div class="full"><label>نقاط التغطية — نقطة بكل سطر</label><textarea id="eventCoveragePoints" placeholder="التجهيز
+الاستقبال
+الساحة"></textarea></div>
+<div class="full"><label>المخرجات / التسليم — عنصر بكل سطر</label><textarea id="eventDeliverablesPublic" placeholder="مختارات صور معدلة
+برومو
+فيديو المناسبة"></textarea></div>
+<div class="full"><label>ملاحظة الإنتاج</label><textarea id="eventProductionNote" placeholder="معلومة مفيدة عن طريقة تنفيذ هذا المشروع بدون كشف تفاصيل خاصة"></textarea></div>
+<div class="full"><label>ملاحظة المعدات</label><input id="eventGearNote" placeholder="اختياري — مثال: توزيع عدسات طويلة وواسعة حسب نقاط التغطية"/></div>
+<div><label>ترتيب المشروع المميز</label><input id="eventFeaturedOrder" type="number" value="0"/></div>
+<div class="full"><label>SEO Title</label><input id="eventSeoTitle" maxlength="70"/></div>
+<div class="full"><label>SEO Description</label><textarea id="eventSeoDescription" maxlength="170"></textarea></div>
+<div><label><input id="eventFeatured" type="checkbox"/> مميزة</label></div><div><label><input id="eventPublished" type="checkbox"/> منشورة</label></div></div>
+<div class="admin-actions"><button class="admin-btn primary">حفظ المناسبة</button></div></form>
+<div class="admin-card"><table class="admin-table"><thead><tr><th>العنوان</th><th>النوع</th><th>التاريخ</th><th>الخصوصية</th><th>الحالة</th><th></th></tr></thead><tbody id="eventsRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="mediaView">
+<div class="admin-top"><h1>الصور والملفات</h1></div>
+<div class="v26-admin-note">V26 Media Engine: استخدم <b>Hero/Reel</b> للفيديو الرئيسي، و<b>Before/After</b> مع نفس Pair Key لإظهار مقارنة التلوين تلقائياً. الفيديو الطويل يفضل تسجيل رابط تشغيل خارجي/Stream بدلاً من رفع ملف ضخم.</div>
+<form class="admin-card" onsubmit="uploadMedia(event)"><div class="admin-form"><div><label>الملف</label><input accept="image/*,video/*" id="mediaFile" multiple="" required="" type="file"/></div><div><label>مناسبة</label><select id="mediaEvent"></select></div><div><label>الخصوصية</label><select id="mediaVisibility"><option value="public">عام</option><option value="private">خاص</option><option value="partial">جزئي</option></select></div><div><label>الدور البصري</label><select id="mediaRole"><option value="gallery">Gallery</option><option value="hero">Hero</option><option value="reel">Reel</option><option value="poster">Poster</option><option value="before">Before</option><option value="after">After</option><option value="delivery">Delivery</option></select></div><div><label>Pair Key قبل/بعد</label><input id="mediaPair" placeholder="color-01"/></div><div><label>Alt Text</label><input id="mediaAlt"/></div><div><label>Caption</label><input id="mediaCaption"/></div><div><label>المجلد</label><input id="mediaFolder" placeholder="weddings/2026"/></div><div><label>ترتيب البداية</label><input id="mediaSort" type="number" value="0"/></div><div><label><input checked="" id="mediaOptimize" type="checkbox"/> تحسين صور النشر للويب</label></div></div><div class="admin-actions"><button class="admin-btn primary">رفع الملفات</button></div><p class="admin-muted" id="mediaUploadStatus"></p></form>
+<form class="admin-card" onsubmit="registerExternalVideo(event)"><h3>تسجيل فيديو خارجي / Cloudflare Stream</h3><div class="admin-form"><div><label>المناسبة</label><select id="externalVideoEvent"></select></div><div><label>رابط التشغيل MP4/HLS</label><input id="externalVideoUrl" placeholder="https://.../manifest/video.m3u8" required="" type="url"/></div><div><label>Poster URL</label><input id="externalPosterUrl" type="url"/></div><div><label>Provider</label><select id="externalVideoProvider"><option value="cloudflare-stream">Cloudflare Stream</option><option value="supabase">Supabase</option><option value="external">External CDN</option></select></div><div><label>UID (اختياري)</label><input id="externalVideoUid"/></div><div><label>الدور</label><select id="externalVideoRole"><option value="reel">Reel</option><option value="hero">Hero</option><option value="gallery">Gallery</option></select></div><div><label>العنوان</label><input id="externalVideoCaption"/></div><div><label>المدة بالثواني</label><input id="externalVideoDuration" step="0.1" type="number"/></div></div><div class="admin-actions"><button class="admin-btn primary">تسجيل الفيديو</button></div></form>
+<div class="admin-card"><table class="admin-table"><thead><tr><th>معاينة</th><th>الاسم</th><th>الدور</th><th>الخصوصية</th><th>المناسبة</th><th></th></tr></thead><tbody id="mediaRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="servicesView">
+<div class="admin-top"><h1>الخدمات</h1></div>
+<form class="admin-card" onsubmit="saveService(event)"><input id="serviceId" type="hidden"/><div class="admin-form"><div><label>الاسم</label><input id="serviceName" required=""/></div><div><label>Slug</label><input id="serviceSlug" required=""/></div><div><label>التصنيف</label><input id="serviceCategory"/></div><div><label>الأيقونة</label><input id="serviceIcon"/></div><div class="full"><label>الملخص</label><textarea id="serviceSummary"></textarea></div><div class="full"><label>الوصف</label><textarea id="serviceDescription"></textarea></div><div><label>الترتيب</label><input id="serviceSort" type="number" value="0"/></div><div><label><input id="servicePublished" type="checkbox"/> منشورة</label></div></div><div class="admin-actions"><button class="admin-btn primary">حفظ</button></div></form>
+<div class="admin-card"><table class="admin-table"><tbody id="servicesRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="offersView">
+<div class="admin-top"><h1>العروض</h1></div>
+<form class="admin-card" onsubmit="saveOffer(event)"><input id="offerId" type="hidden"/><div class="admin-form"><div><label>العنوان</label><input id="offerTitle" required=""/></div><div><label>الشارة</label><input id="offerBadge"/></div><div class="full"><label>الملخص</label><textarea id="offerSummary"></textarea></div><div><label>البداية</label><input id="offerStart" type="date"/></div><div><label>النهاية</label><input id="offerEnd" type="date"/></div><div><label>الترتيب</label><input id="offerSort" type="number" value="0"/></div><div><label><input id="offerPublished" type="checkbox"/> منشور</label></div></div><div class="admin-actions"><button class="admin-btn primary">حفظ</button></div></form>
+<div class="admin-card"><table class="admin-table"><tbody id="offersRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="contractsView">
+<div class="admin-top"><h1>العقود</h1></div>
+<form class="admin-card" onsubmit="saveContract(event)"><div class="admin-form"><div><label>العميل</label><select id="contractCustomer" required=""></select></div><div><label>المناسبة</label><select id="contractEvent"></select></div><div><label>عنوان العقد</label><input id="contractTitle" required=""/></div><div><label>القيمة</label><input id="contractTotal" step="0.01" type="number"/></div><div><label>العربون المطلوب</label><input id="contractDeposit" step="0.01" type="number"/></div><div class="full"><label>نص العقد</label><textarea id="contractBody" required="" style="min-height:220px"></textarea></div></div><div class="admin-actions"><button class="admin-btn primary">إنشاء عقد</button></div></form>
+<div class="admin-card"><table class="admin-table"><thead><tr><th>الرقم</th><th>العنوان</th><th>الحالة</th><th>القيمة</th><th></th></tr></thead><tbody id="contractsRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="financeView">
+<div class="admin-top"><h1>المالية والجرد</h1></div>
+<div class="fin-grid"><div class="metric"><b id="weekIncome">0</b><span>دخل الأسبوع</span></div><div class="metric"><b id="weekExpense">0</b><span>مصاريف الأسبوع</span></div><div class="metric"><b id="monthIncome">0</b><span>دخل الشهر</span></div><div class="metric"><b id="monthExpense">0</b><span>مصاريف الشهر</span></div></div>
+<div class="admin-card"><h3>إضافة دفعة</h3><form class="admin-form" onsubmit="savePayment(event)"><div><label>المناسبة</label><select id="payEvent"></select></div><div><label>المبلغ</label><input id="payAmount" required="" step="0.01" type="number"/></div><div><label>النوع</label><select id="payType"><option value="deposit">عربون</option><option value="payment">دفعة</option><option value="refund">استرجاع</option></select></div><div><label>الطريقة</label><input id="payMethod"/></div><div class="full"><button class="admin-btn primary">حفظ الدفعة</button></div></form></div>
+<div class="admin-card"><h3>إضافة مصروف</h3><form class="admin-form" onsubmit="saveExpense(event)"><div><label>المناسبة</label><select id="expEvent"></select></div><div><label>التصنيف</label><input id="expCategory" required=""/></div><div><label>المبلغ</label><input id="expAmount" required="" step="0.01" type="number"/></div><div><label>المورد</label><input id="expVendor"/></div><div class="full"><button class="admin-btn primary">حفظ المصروف</button></div></form></div>
+<div class="admin-card"><h3>ربحية المناسبات</h3><div class="admin-actions"><button class="admin-btn" onclick="exportFinanceCsv()">تصدير Excel/CSV</button><button class="admin-btn" onclick="printFinanceReport()">طباعة / حفظ PDF</button><button class="admin-btn primary" onclick="createManualSnapshot('week')">إقفال الأسبوع الحالي</button><button class="admin-btn primary" onclick="createManualSnapshot('month')">إقفال الشهر الحالي</button></div><table class="admin-table"><thead><tr><th>المناسبة</th><th>الدخل</th><th>المصاريف</th><th>أجور الطاقم</th><th>الصافي</th></tr></thead><tbody id="financeRows"></tbody></table></div>
+<div class="admin-card"><h3>سجل الجرد الأسبوعي والشهري</h3><table class="admin-table"><thead><tr><th>الفترة</th><th>من</th><th>إلى</th><th>الدخل</th><th>المصاريف</th><th>الطاقم</th><th>الصافي</th><th>الحجوزات</th></tr></thead><tbody id="snapshotRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="staffView">
+<div class="admin-top"><h1>الموظفون والطاقم</h1></div>
+<form class="admin-card" onsubmit="saveStaff(event)"><div class="admin-form"><div><label>الاسم</label><input id="staffName" required=""/></div><div><label>الهاتف</label><input id="staffPhone"/></div><div><label>التخصص</label><input id="staffSpecialty" placeholder="فيديو / صور / DJ / مونتاج"/></div><div><label>الأجرة الافتراضية</label><input id="staffFee" type="number"/></div></div><div class="admin-actions"><button class="admin-btn primary">إضافة</button></div></form>
+<div class="admin-card"><table class="admin-table"><tbody id="staffRows"></tbody></table></div>
+<div class="admin-card"><h3>تعيين طاقم على مناسبة</h3>
+<form class="admin-form" onsubmit="assignStaff(event)">
+<div><label>المناسبة</label><select id="assignStaffEvent" required=""></select></div>
+<div><label>الموظف</label><select id="assignStaffMember" required=""></select></div>
+<div><label>الدور</label><input id="assignStaffRole" placeholder="فيديو / صور / DJ"/></div>
+<div><label>الأجرة المتفق عليها</label><input id="assignStaffFee" step="0.01" type="number"/></div>
+<div><label>وقت الحضور</label><input id="assignStaffCall" type="datetime-local"/></div>
+<div class="full"><button class="admin-btn primary">تعيين</button></div>
+</form></div>
+<div class="admin-card"><h3>تعيينات الطاقم</h3><table class="admin-table"><thead><tr><th>المناسبة</th><th>الموظف</th><th>الدور</th><th>الأجرة</th><th>الحالة</th></tr></thead><tbody id="staffAssignmentsRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="equipmentView">
+<div class="admin-top"><h1>المعدات</h1></div>
+<form class="admin-card" onsubmit="saveEquipment(event)"><div class="admin-form"><div><label>كود الأصل</label><input id="eqCode"/></div><div><label>الاسم</label><input id="eqName" required=""/></div><div><label>التصنيف</label><input id="eqCategory"/></div><div><label>الماركة / الموديل</label><input id="eqModel"/></div><div><label>Serial</label><input id="eqSerial"/></div><div><label>الحالة</label><select id="eqStatus"><option>available</option><option>assigned</option><option>maintenance</option><option>damaged</option><option>retired</option></select></div></div><div class="admin-actions"><button class="admin-btn primary">حفظ</button></div></form>
+<div class="admin-card"><table class="admin-table"><tbody id="equipmentRows"></tbody></table></div>
+<div class="admin-card"><h3>تسليم معدات لمناسبة</h3>
+<form class="admin-form" onsubmit="assignEquipment(event)">
+<div><label>المناسبة</label><select id="assignEqEvent" required=""></select></div>
+<div><label>المعدة</label><select id="assignEqItem" required=""></select></div>
+<div><label>الموظف المستلم</label><select id="assignEqStaff"></select></div>
+<div><label>موعد الإرجاع</label><input id="assignEqDue" type="datetime-local"/></div>
+<div class="full"><label>حالة المعدة عند الخروج</label><input id="assignEqCondition" placeholder="سليمة / ملاحظة..."/></div>
+<div class="full"><button class="admin-btn primary">تسليم</button></div>
+</form></div>
+<div class="admin-card"><h3>المعدات الخارجة</h3><table class="admin-table"><thead><tr><th>المعدة</th><th>المناسبة</th><th>المستلم</th><th>موعد الإرجاع</th><th></th></tr></thead><tbody id="equipmentAssignmentsRows"></tbody></table></div>
+<div class="admin-card"><h3>الصيانة والأعطال</h3><form class="admin-form" onsubmit="saveMaintenance(event)"><div><label>المعدة</label><select id="maintEquipment" required=""></select></div><div><label>نوع الصيانة</label><input id="maintType" placeholder="فحص / إصلاح / تنظيف..." required=""/></div><div><label>المورد/الفني</label><input id="maintVendor"/></div><div><label>التكلفة</label><input id="maintCost" step="0.01" type="number"/></div><div class="full"><label>ملاحظات</label><textarea id="maintNotes"></textarea></div><div class="full"><button class="admin-btn primary">فتح سجل صيانة</button></div></form><table class="admin-table"><thead><tr><th>المعدة</th><th>النوع</th><th>الحالة</th><th>التكلفة</th><th></th></tr></thead><tbody id="maintenanceRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="deliverablesView">
+<div class="admin-top"><h1>المونتاج والتسليمات</h1></div>
+<form class="admin-card" onsubmit="saveDeliverable(event)"><div class="admin-form"><div><label>المناسبة</label><select id="delEvent" required=""></select></div><div><label>العنوان</label><input id="delTitle" required=""/></div><div><label>النوع</label><select id="delType"><option>صور</option><option>فيديو كامل</option><option>برومو</option><option>طباعة</option><option>فلاشات</option><option>أخرى</option></select></div><div><label>موعد متوقع</label><input id="delDue" type="datetime-local"/></div><div><label>ملف التسليم (اختياري)</label><input id="delFile" type="file"/></div></div><div class="admin-actions"><button class="admin-btn primary">إضافة</button></div></form>
+<div class="admin-card"><table class="admin-table"><thead><tr><th>المناسبة</th><th>التسليم</th><th>الحالة</th><th>المراجعات</th><th></th></tr></thead><tbody id="deliverablesRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="complaintsView">
+<div class="admin-top"><h1>الشكاوى والملاحظات</h1></div>
+<div class="admin-card"><table class="admin-table"><thead><tr><th>الرقم</th><th>العميل</th><th>العنوان</th><th>الأولوية</th><th>الحالة</th></tr></thead><tbody id="complaintsRows"></tbody></table></div>
+<div class="admin-card"><h3>إضافة رد/ملاحظة على شكوى</h3>
+<form class="admin-form" onsubmit="addComplaintMessage(event)">
+<div><label>الشكوى</label><select id="complaintSelect" required=""></select></div>
+<div><label><input id="complaintInternal" type="checkbox"/> ملاحظة داخلية لا يراها العميل</label></div>
+<div class="full"><label>الرسالة</label><textarea id="complaintMessage" required=""></textarea></div>
+<div class="full"><button class="admin-btn primary">إضافة</button></div>
+</form></div>
+<div class="admin-card"><h3>آخر الردود</h3><table class="admin-table"><thead><tr><th>الشكوى</th><th>النوع</th><th>الرسالة</th><th>الوقت</th></tr></thead><tbody id="complaintMessagesRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="reviewsView">
+<div class="admin-top"><h1>التقييمات</h1></div>
+<div class="admin-card"><table class="admin-table"><thead><tr><th>الاسم</th><th>التقييم</th><th>النص</th><th>الحالة</th><th></th></tr></thead><tbody id="reviewsRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="settingsView">
+<div class="admin-top"><h1>إعدادات الموقع</h1></div>
+<form class="admin-card" onsubmit="saveSettings(event)"><div class="admin-form"><div><label>اسم النشاط</label><input id="setName"/></div><div><label>العبارة الرئيسية</label><input id="setTagline"/></div><div><label>Facebook</label><input id="setFacebook"/></div><div><label>YouTube</label><input id="setYoutube"/></div><div><label>WhatsApp</label><input id="setWhatsapp"/></div><div><label>Google</label><input id="setGoogle"/></div><div><label>رقم الهاتف</label><input id="setPhone"/></div><div><label>المدينة</label><input id="setCity"/></div><div><label>المنطقة</label><input id="setRegion"/></div><div><label>Google Analytics ID</label><input id="setAnalytics" placeholder="G-XXXXXXXXXX"/></div><div><label>Cloudflare Analytics Token/ID</label><input id="setCfAnalytics" placeholder="اختياري"/></div><div><label>شعار جديد (اختياري)</label><input accept="image/*" id="setLogoFile" type="file"/></div><div><label>غلاف جديد (اختياري)</label><input accept="image/*" id="setCoverFile" type="file"/></div><div><label>Hero Video URL (MP4 قصير للويب)</label><input id="setHeroVideo" placeholder="https://..." type="url"/></div><div><label>Hero Poster URL</label><input id="setHeroPoster" placeholder="اختياري" type="url"/></div></div><div class="admin-actions"><button class="admin-btn primary">حفظ الإعدادات</button></div></form>
+</div>
+<div class="admin-view" id="usersView">
+<div class="admin-top"><h1>المستخدمون والصلاحيات</h1></div>
+<form class="admin-card" onsubmit="inviteUser(event)"><div class="admin-form"><div><label>الاسم</label><input id="inviteName"/></div><div><label>البريد</label><input id="inviteEmail" required="" type="email"/></div><div><label>الدور</label><select id="inviteRole"><option value="staff">موظف</option><option value="admin">مدير</option><option value="customer">عميل</option></select></div><div><label>عميل مرتبط (اختياري)</label><select id="inviteCustomer"></select></div></div><div class="admin-actions"><button class="admin-btn primary">إرسال دعوة</button></div></form>
+<div class="admin-card"><p class="admin-muted">حماية إضافية: لا يمكن إيقاف الحساب المستخدم حالياً، وقاعدة البيانات تمنع تعطيل آخر Super Admin فعّال.</p><table class="admin-table"><thead><tr><th>الاسم</th><th>الدور</th><th>الحالة</th><th>الحماية</th><th></th></tr></thead><tbody id="usersRows"></tbody></table></div>
+</div>
+<div class="admin-view" id="backupView">
+<div class="admin-top"><h1>النسخ الاحتياطي</h1></div>
+<div class="admin-card"><p class="admin-muted">هذا التصدير يحفظ بيانات النظام وManifest للملفات. ملفات Storage نفسها تحتاج نسخة خارجية مستقلة؛ V26 لا يدّعي أن Snapshot JSON نسخة للصور والفيديو.</p><div class="admin-actions"><button class="admin-btn primary" onclick="exportBackup()">تصدير Snapshot JSON</button></div></div>
+</div>
+<div class="admin-view" id="auditView">
+<div class="admin-top"><h1>سجل النشاط</h1></div><div class="admin-card"><table class="admin-table"><thead><tr><th>الوقت</th><th>المستخدم</th><th>العملية</th><th>القسم</th><th>المعرف</th></tr></thead><tbody id="auditRows"></tbody></table></div>
+</div>
+</main>
+</section>
+<script src="/assets/supabase-config.js"></script><script src="/assets/admin-v3.js"></script><script src="/assets/v26-admin.js"></script>
+</body></html>

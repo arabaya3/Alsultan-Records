@@ -1,0 +1,25 @@
+StudioOS V20 — النشر على Cloudflare
+==================================
+
+الطريقة اليدوية من Dashboard:
+1) فك ضغط ملف V20_MANUAL_UPLOAD.
+2) افتح Cloudflare > Workers & Pages > royal-silence-4ad3.
+3) New deployment.
+4) اختر Folder.
+5) اختر المجلد PUBLIC_UPLOAD نفسه؛ يجب أن ترى داخله index.html وadmin.html وassets ومجلد admin.
+6) Deploy.
+7) اختبر:
+   /
+   /admin/
+   /admin.html
+   /portal/
+   /contact.html
+
+الطريقة الأفضل على المدى الطويل عبر Wrangler:
+1) استخدم حزمة V20_CLOUDFLARE.
+2) داخل المجلد الذي يحتوي wrangler.jsonc وpublic:
+   npx wrangler deploy
+3) اسم Worker مضبوط على royal-silence-4ad3 حتى يبقى workers.dev نفسه عند النشر إلى نفس الحساب.
+
+ملاحظة مهمة:
+TURNSTILE_SECRET لا يوضع داخل ملفات الموقع ولا داخل ZIP. يبقى Secret داخل Supabase فقط.

@@ -1,0 +1,8 @@
+SULTAN RECORDS STUDIOOS V25
+
+ارفع محتويات مجلد PUBLIC_UPLOAD على نفس مشروع Cloudflare الحالي wild-mode-be8c.
+لا تنشئ Worker جديداً.
+
+V25 يوحد الروابط، يصلح Turnstile من جهة الكود، يصلح CMS media، ويحسن الموبايل والـSEO والـempty states.
+
+مهم: إعداد Cloudflare Turnstile نفسه يجب أن يسمح بالـ hostname الحالي أو الدومين النهائي.

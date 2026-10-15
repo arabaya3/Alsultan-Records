@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin/
+Disallow: /admin.html
+Disallow: /portal
+Disallow: /portal/
+Disallow: /portal.html
+Sitemap: https://wild-mode-be8c.noor-rabaya-1997-nr.workers.dev/sitemap.xml
