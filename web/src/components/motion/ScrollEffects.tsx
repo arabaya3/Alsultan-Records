@@ -27,7 +27,7 @@ export function MaskReveal({
         scrollTrigger: { trigger: el, start: "top 88%", once: true },
       },
     );
-  });
+  }, [], { scroll: true });
   return (
     <div ref={ref} className={className}>
       {children}
@@ -56,7 +56,7 @@ export function Parallax({
         scrollTrigger: { trigger: el.parentElement ?? el, start: "top top", end: "bottom top", scrub: true },
       },
     );
-  });
+  }, [], { scroll: true });
   return (
     <div ref={ref} className={className}>
       {children}

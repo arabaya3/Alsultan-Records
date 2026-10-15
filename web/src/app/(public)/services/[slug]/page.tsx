@@ -1,11 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { MediaFrame } from "@/components/media/MediaFrame";
 import { ButtonLink } from "@/components/ui/Button";
 import { Container, Section } from "@/components/ui/Layout";
-import { ErrorState, Skeleton } from "@/components/ui/States";
+import { ErrorState } from "@/components/ui/States";
 import { getServiceBySlug } from "@/features/public-content/queries";
 import { pageMetadata } from "@/features/public-content/seo";
 
@@ -44,7 +43,7 @@ async function ServiceView({ params }: { params: PageProps<"/services/[slug]">["
             </Link>
           </nav>
           <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
-            {s.title}
+            <bdi dir="auto">{s.title}</bdi>
             <span className="text-gold">.</span>
           </h1>
           {s.summary ? <p className="mt-4 max-w-2xl text-lg text-muted md:text-xl">{s.summary}</p> : null}
@@ -63,17 +62,10 @@ async function ServiceView({ params }: { params: PageProps<"/services/[slug]">["
   );
 }
 
-export default function ServicePage({ params }: PageProps<"/services/[slug]">) {
-  return (
-    <Suspense
-      fallback={
-        <Container className="py-16">
-          <Skeleton className="h-12 w-1/2" />
-          <Skeleton className="mt-6 h-40 w-full" />
-        </Container>
-      }
-    >
-      <ServiceView params={params} />
-    </Suspense>
-  );
+// Resolve the slug BEFORE streaming starts so unknown slugs get a real HTTP 404
+// (notFound() after the first streamed chunk would leave the status at 200).
+export const instant = false;
+
+export default async function Page({ params }: PageProps<"/services/[slug]">) {
+  return <ServiceView params={params} />;
 }

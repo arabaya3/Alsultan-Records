@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/types/database";
+import { publicSlugExists } from "@/features/public-content/slug-guard";
 
 /**
  * Refreshes the Supabase session cookie on authenticated areas only, so public pages stay
@@ -8,6 +9,21 @@ import type { Database } from "@/types/database";
  * re-checks the user server-side, and RLS enforces access in the database.
  */
 export async function proxy(request: NextRequest) {
+  // Real 404 for unknown public slugs: with Cache Components the shell streams 200 before notFound().
+  const slug = request.nextUrl.pathname.match(/^\/(work|services)\/([^/]+)\/?$/);
+  if (slug) {
+    let value: string;
+    try {
+      value = decodeURIComponent(slug[2]);
+    } catch {
+      value = "";
+    }
+    if (!(await publicSlugExists(slug[1] as "work" | "services", value))) {
+      return NextResponse.rewrite(new URL("/_not-found", request.url), { status: 404 });
+    }
+    return NextResponse.next();
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   let response = NextResponse.next({ request });
@@ -40,5 +56,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/portal/:path*", "/admin/:path*", "/login", "/auth/:path*"],
+  matcher: ["/work/:slug", "/services/:slug", "/portal/:path*", "/admin/:path*", "/login", "/auth/:path*"],
 };

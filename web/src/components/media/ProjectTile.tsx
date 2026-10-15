@@ -76,6 +76,10 @@ export function ProjectTile({
             unoptimized
             className="object-cover transition-transform duration-700 ease-[var(--ease-out)] motion-safe:group-hover:scale-[1.04]"
           />
+        ) : isVideo ? (
+          <div aria-hidden="true" className="absolute inset-0 grid place-items-center bg-ink">
+            <PlayBadge size={64} className="text-gold" />
+          </div>
         ) : (
           <PlaceholderMedia />
         )}
@@ -100,7 +104,7 @@ export function ProjectTile({
           <div className="flex min-w-0 items-center gap-4">
             <span className="min-w-0">
               <span className="block truncate font-display text-xl font-semibold md:text-[1.75rem]">
-                {title}
+                <bdi dir="auto">{title}</bdi>
               </span>
               {meta ? <span className="mt-1 block text-sm text-on-dark/75">{meta}</span> : null}
             </span>
@@ -109,7 +113,7 @@ export function ProjectTile({
             <span className="hidden text-sm opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100 md:inline">
               شاهد المشروع
             </span>
-            {isVideo ? <PlayBadge size={40} className="text-on-dark" /> : null}
+            {isVideo && still ? <PlayBadge size={40} className="text-on-dark" /> : null}
           </span>
         </div>
       </div>

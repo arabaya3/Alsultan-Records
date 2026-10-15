@@ -4,11 +4,18 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { useLayoutEffect, type RefObject } from "react";
 
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
+let scrollUsers = 0;
+
+/** Registers ScrollTrigger only when a scroll effect mounts with motion allowed. */
+function acquireScroll() {
+  if (scrollUsers++ === 0) gsap.registerPlugin(ScrollTrigger);
+}
+function releaseScroll() {
+  scrollUsers = Math.max(0, scrollUsers - 1);
+  if (scrollUsers === 0) ScrollTrigger.getAll().forEach((t) => t.kill());
 }
 
-export { gsap, ScrollTrigger };
+export { gsap };
 
 export const MOTION_OK = "(prefers-reduced-motion: no-preference)";
 
@@ -28,15 +35,26 @@ export function useMotion(
   scope: RefObject<HTMLElement | null>,
   setup: (el: HTMLElement) => void,
   deps: unknown[] = [],
+  opts: { scroll?: boolean } = {},
 ) {
   useLayoutEffect(() => {
     const el = scope.current;
     if (!el) return;
+    let used = false;
     const ctx = gsap.context(() => {
       const mm = gsap.matchMedia();
-      mm.add(MOTION_OK, () => setup(el));
+      mm.add(MOTION_OK, () => {
+        if (opts.scroll) {
+          acquireScroll();
+          used = true;
+        }
+        setup(el);
+      });
     }, el);
-    return () => ctx.revert();
+    return () => {
+      ctx.revert();
+      if (used) releaseScroll();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }

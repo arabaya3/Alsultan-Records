@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { MediaFrame } from "@/components/media/MediaFrame";
 import { Reveal } from "@/components/motion/Reveal";
 import { ButtonLink } from "@/components/ui/Button";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { Container, Section } from "@/components/ui/Layout";
-import { ErrorState, Skeleton } from "@/components/ui/States";
+import { ErrorState } from "@/components/ui/States";
 import { eventTypeLabel, formatDateAr } from "@/features/public-content/labels";
 import { getProjectBySlug } from "@/features/public-content/queries";
 import { pageMetadata, projectJsonLd } from "@/features/public-content/seo";
@@ -26,14 +25,6 @@ export async function generateMetadata({ params }: PageProps<"/work/[slug]">): P
   });
 }
 
-function Fallback() {
-  return (
-    <Container className="py-16">
-      <Skeleton className="h-12 w-2/3" />
-      <Skeleton className="mt-8 aspect-[16/9] w-full" />
-    </Container>
-  );
-}
 
 async function ProjectView({ params }: { params: PageProps<"/work/[slug]">["params"] }) {
   const { slug } = await params;
@@ -67,7 +58,7 @@ async function ProjectView({ params }: { params: PageProps<"/work/[slug]">["para
           </nav>
           <Reveal>
             <h1 data-reveal className="text-4xl font-bold tracking-tight md:text-6xl">
-              {p.title}
+              <bdi dir="auto">{p.title}</bdi>
               <span className="text-gold">.</span>
             </h1>
             {meta.length ? (
@@ -126,10 +117,10 @@ async function ProjectView({ params }: { params: PageProps<"/work/[slug]">["para
   );
 }
 
-export default function ProjectPage({ params }: PageProps<"/work/[slug]">) {
-  return (
-    <Suspense fallback={<Fallback />}>
-      <ProjectView params={params} />
-    </Suspense>
-  );
+// Resolve the slug BEFORE streaming starts so unknown slugs get a real HTTP 404
+// (notFound() after the first streamed chunk would leave the status at 200).
+export const instant = false;
+
+export default async function Page({ params }: PageProps<"/work/[slug]">) {
+  return <ProjectView params={params} />;
 }

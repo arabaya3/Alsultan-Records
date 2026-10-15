@@ -87,7 +87,11 @@ test("A6: refund recorded by owner reduces net totals correctly", async ({ brows
   const fmt = (m: number) => new Intl.NumberFormat("ar-PS", { style: "currency", currency: "ILS" }).format(m / 100).replace(/\s/g, "");
   await expect(cust.getByTestId("financials").locator("dd")).toHaveCount(4);
   const dds = (await cust.getByTestId("financials").locator("dd").allInnerTexts()).map((s) => s.replace(/\s/g, ""));
-  expect(dds).toEqual([after.contracted, after.paid, after.refunded, after.balance].map(fmt));
+  // Display follows balance_basis: agreed total = contract | accepted quote | "not agreed yet";
+  // a negative balance is shown as customer credit, and "—" when nothing is agreed.
+  const agreed = after.balance_basis === "contract" ? fmt(after.contracted) : after.balance_basis === "quote" ? fmt(after.quoted) : "لميُتفقبعد";
+  const last = after.balance < 0 ? fmt(-after.balance) : after.balance_basis === "none" ? "—" : fmt(after.balance);
+  expect(dds).toEqual([agreed, fmt(after.paid), fmt(after.refunded), last]);
   await page.context().close();
   await cust.context().close();
 });

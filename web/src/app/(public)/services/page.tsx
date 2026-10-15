@@ -34,7 +34,7 @@ export default async function ServicesPage() {
                   className="group grid items-center gap-6 py-8 md:grid-cols-[1fr_1.2fr] md:gap-12"
                 >
                   <div>
-                    <h2 className="text-3xl font-semibold transition-colors group-hover:text-gold-press">{s.title}</h2>
+                    <h2 className="text-3xl font-semibold transition-colors group-hover:text-gold-press" dir="auto">{s.title}</h2>
                     {s.summary ? <p className="mt-3 text-lg text-on-cream-muted">{s.summary}</p> : null}
                     <span className="mt-4 inline-block underline decoration-1 underline-offset-8 group-hover:decoration-gold">
                       التفاصيل

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import Script from "next/script";
-import { useActionState, useRef, useState, useTransition, type FormEvent } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition, type FormEvent } from "react";
 import { EVENT_TYPE_OPTIONS } from "@/features/public-content/labels";
 import { submitBooking } from "./actions";
 import { SERVICE_OPTIONS, type BookingState, type FieldErrors } from "./schema";
@@ -63,6 +63,15 @@ export function BookingForm() {
   const step1Ref = useRef<HTMLFieldSetElement>(null);
   // One idempotency key per form instance; kept across retries so a resend never duplicates.
   const keyRef = useRef<string | null>(null);
+  const step2HeadingRef = useRef<HTMLHeadingElement>(null);
+  const focusStep2 = useRef(false);
+
+  useEffect(() => {
+    if (step === 2 && focusStep2.current) {
+      focusStep2.current = false;
+      step2HeadingRef.current?.focus();
+    }
+  }, [step]);
 
   // If the server flags a step-1 field, bring the visitor back to step 1 (derived, no effect).
   if (state !== lastState) {
@@ -84,6 +93,7 @@ export function BookingForm() {
         return;
       }
     }
+    focusStep2.current = true;
     setStep(2);
   }
 
@@ -193,6 +203,9 @@ export function BookingForm() {
 
       <fieldset hidden={step !== 2} className="grid gap-6">
         <legend className="sr-only">تفاصيل إضافية (اختياري)</legend>
+        <h2 ref={step2HeadingRef} tabIndex={-1} className="text-2xl font-semibold focus:outline-none">
+          تفاصيل إضافية <span className="text-base font-normal text-on-cream-muted">(اختياري)</span>
+        </h2>
         <div className="grid gap-6 sm:grid-cols-2">
           <Field id="city" label="المدينة / البلدة" optional error={errors.city}>
             <input id="city" name="city" maxLength={80} autoComplete="address-level2" className="field" />

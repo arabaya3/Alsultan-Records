@@ -39,9 +39,11 @@
     line-height: 1.25;
     text-wrap: balance;
   }
+  /* Gold ring with an ink halo: >=3:1 on both cream and ink surfaces. */
   :focus-visible {
     outline: 2px solid var(--color-gold);
-    outline-offset: 3px;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 6px var(--color-ink);
     border-radius: 2px;
   }
   ::selection {
@@ -61,7 +63,7 @@
     border-radius: var(--radius-sm);
     padding: 0.625rem 0.875rem;
   }
-  .field:focus { outline: 2px solid var(--color-gold); outline-offset: 0; border-color: transparent; }
+  .field:focus { outline: 2px solid var(--color-on-cream); outline-offset: 0; box-shadow: 0 0 0 4px var(--color-gold); border-color: transparent; }
   .field[aria-invalid="true"] { border-color: var(--color-danger); }
   .prose-ar p { margin-block: 0 1rem; }
   .prose-ar h2 { font-size: 1.375rem; margin-block: 2rem 0.75rem; font-weight: 600; }

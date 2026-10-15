@@ -70,9 +70,9 @@ export default async function HomePage() {
           <div className="absolute inset-0 bg-linear-to-r from-transparent via-black/45 to-black/90 max-md:bg-linear-to-t max-md:from-black/95 max-md:via-black/70 max-md:to-black/20" />
         </div>
 
-        <Container className="flex min-h-[560px] flex-col justify-end pb-10 pt-40 md:min-h-[600px] md:justify-center md:pb-12 md:pt-20 lg:min-h-[540px]">
-          <Reveal className="max-w-[46rem]">
-            <h1 id="hero-title" data-reveal className="text-[2.75rem] font-bold leading-[1.15] tracking-tight sm:text-6xl lg:whitespace-nowrap lg:text-[4.75rem]">
+        <Container className="flex min-h-[560px] flex-col justify-end pb-10 pt-40 md:min-h-[600px] md:justify-center md:pb-12 md:pt-20 lg:min-h-[max(560px,64vh)]">
+          <Reveal className="max-w-[52rem]">
+            <h1 id="hero-title" data-reveal className="text-[2.75rem] font-bold leading-[1.15] tracking-tight sm:text-6xl lg:whitespace-nowrap lg:text-[clamp(4.75rem,6.4vw,6.5rem)]">
               {HERO.title}
               <span className="text-gold">.</span>
             </h1>
@@ -106,7 +106,7 @@ export default async function HomePage() {
               </Link>
             }
           />
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className={`grid gap-6 ${projectList.length === 1 ? "" : "md:grid-cols-2"}`}>
             {projectList.length > 0
               ? projectList.map((p, i) => (
                   <MaskReveal key={p.id} index={i % 2}>
@@ -116,6 +116,7 @@ export default async function HomePage() {
                       meta={[eventTypeLabel(p.event_type), p.city].filter(Boolean).join(" · ") || null}
                       media={p.cover}
                       priority={i < 2}
+                      ratioClassName={projectList.length === 1 ? "aspect-[4/3] md:aspect-[21/9]" : undefined}
                     />
                   </MaskReveal>
                 ))

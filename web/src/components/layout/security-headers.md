@@ -47,3 +47,17 @@ images: {
 ```
 
 Once that is in place, the `unoptimized` prop can be removed from `MediaFrame` / `ProjectTile` / hero image.
+
+## Real 404 for unknown public slugs (proxy.ts, lead-owned)
+
+With Cache Components/PPR the shell streams with 200 before `notFound()` runs, so unknown slugs are soft 404s (they do carry `noindex`). Next 16 docs (`file-conventions/loading.md` → "Status codes") prescribe a Proxy check. Add to the existing `proxy.ts` before the auth logic:
+
+```ts
+import { publicSlugExists } from "@/features/public-content/slug-guard";
+
+const m = request.nextUrl.pathname.match(/^\/(work|services)\/([^/]+)\/?$/);
+if (m && !(await publicSlugExists(m[1] as "work" | "services", decodeURIComponent(m[2])))) {
+  return NextResponse.rewrite(new URL("/_not-found", request.url), { status: 404 });
+}
+```
+and include `/work/:slug*` and `/services/:slug*` in the matcher.

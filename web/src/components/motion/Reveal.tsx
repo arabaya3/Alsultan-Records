@@ -37,7 +37,7 @@ export function Reveal({
       clearProps: "transform,opacity,visibility",
       scrollTrigger: onScroll ? { trigger: el, start: "top 85%", once: true } : undefined,
     });
-  });
+  }, [onScroll], { scroll: onScroll });
   return (
     <div ref={ref} className={className}>
       {children}
