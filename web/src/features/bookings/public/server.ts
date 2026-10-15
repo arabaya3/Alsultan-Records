@@ -1,22 +1,21 @@
 import "server-only";
-import { createHash } from "node:crypto";
+import { createHmac } from "node:crypto";
 import { headers } from "next/headers";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import type { createAdminClient } from "@/lib/supabase/admin";
 
 /**
- * Service-role client for the public form RPCs (`public_submit_booking`, `public_track_booking`),
- * which the migrations grant to service_role ONLY. Used exclusively from server actions after
- * input validation + Turnstile verification.
- *
- * TODO(lead): switch to `@/lib/supabase/admin` once the backend publishes it.
+ * Secret-key client for the public form RPCs, which are granted to service_role ONLY.
+ * Called exclusively from server actions after input validation + Turnstile verification.
+ * Returns null when server env is missing so pages render the "unavailable" state.
  */
-export function getFormRpcClient(): SupabaseClient | null {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.SUPABASE_SECRET_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, {
-    auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
-  });
+export async function getFormRpcClient(): Promise<ReturnType<typeof createAdminClient> | null> {
+  try {
+    // Lazy import: the env module throws at load time when server env is missing.
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    return createAdminClient();
+  } catch {
+    return null;
+  }
 }
 
 export async function clientIp(): Promise<string> {
@@ -28,10 +27,11 @@ export async function clientIp(): Promise<string> {
   );
 }
 
-/** Salted hash; the raw IP is never stored. */
+/** Keyed HMAC of the IP; the raw IP is never stored. */
 export function hashIp(ip: string): string {
-  const salt = process.env.IP_HASH_SALT ?? "sultan-public-forms";
-  return createHash("sha256").update(`${salt}:${ip}`).digest("hex");
+  const key = process.env.IP_HASH_SECRET;
+  if (!key && process.env.NODE_ENV === "production") throw new Error("IP_HASH_SECRET is required");
+  return createHmac("sha256", key ?? "local-dev-only").update(ip).digest("hex");
 }
 
 /** Verifies a Turnstile token when a secret is configured; passes when it is not. */

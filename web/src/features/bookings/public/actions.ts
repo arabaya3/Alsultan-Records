@@ -43,7 +43,7 @@ export async function submitBooking(_prev: BookingState, fd: FormData): Promise<
     return { status: "error", message: "تعذّر التحقق من النموذج. أعد المحاولة." };
   }
 
-  const sb = getFormRpcClient();
+  const sb = await getFormRpcClient();
   if (!sb) {
     return { status: "error", message: "الخدمة غير متاحة حالياً. تواصل معنا مباشرة أو حاول لاحقاً." };
   }
@@ -55,13 +55,13 @@ export async function submitBooking(_prev: BookingState, fd: FormData): Promise<
     p_event_type: d.event_type,
     p_idempotency_key: idempotencyKey,
     p_ip_hash: hashIp(ip),
-    p_contact_email: d.contact_email,
-    p_event_date: d.event_date,
-    p_city: d.city,
-    p_venue: d.venue,
-    p_guests: d.guests,
-    p_services: d.services,
-    p_message: d.message,
+    p_contact_email: d.contact_email ?? undefined,
+    p_event_date: d.event_date ?? undefined,
+    p_city: d.city ?? undefined,
+    p_venue: d.venue ?? undefined,
+    p_guests: d.guests ?? undefined,
+    p_services: d.services ?? undefined,
+    p_message: d.message ?? undefined,
   });
 
   if (error) {
@@ -92,7 +92,7 @@ export async function trackBooking(_prev: TrackState, fd: FormData): Promise<Tra
   if (!parsed.success) {
     return { status: "error", message: parsed.error.issues[0]?.message ?? "تحقق من البيانات." };
   }
-  const sb = getFormRpcClient();
+  const sb = await getFormRpcClient();
   if (!sb) return { status: "error", message: "الخدمة غير متاحة حالياً. حاول لاحقاً." };
   const ip = await clientIp();
   const { data, error } = await sb.rpc("public_track_booking", {
