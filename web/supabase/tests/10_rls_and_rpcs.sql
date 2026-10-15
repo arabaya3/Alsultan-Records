@@ -52,9 +52,9 @@ select is((select count(*)::int from public.events), 2, 'A sees exactly own 2 ev
 select is((select count(*)::int from public.media_assets where event_id = '00000000-0000-4000-8000-0000000000e3'), 0, 'A cannot read B media');
 select is((select count(*)::int from public.media_assets where event_id = '00000000-0000-4000-8000-0000000000e1'), 202, 'A reads own event media (200 images + 2 videos)');
 select is((select count(*)::int from public.album_selections where id = '00000000-0000-4000-8000-0000000000d1'), 0, 'A cannot read B selection');
-select is((select count(*)::int from public.quotes), 0, 'A cannot read B quotes');
-select is((select count(*)::int from public.payments), 0, 'A cannot read B payments');
-select is((select count(*)::int from public.contracts), 0, 'A cannot read B contracts');
+select is((select count(*)::int from public.quotes where customer_id <> app.customer_id()), 0, 'A cannot read B quotes');
+select is((select count(*)::int from public.payments where customer_id <> app.customer_id()), 0, 'A cannot read B payments');
+select is((select count(*)::int from public.contracts where customer_id <> app.customer_id()), 0, 'A cannot read B contracts');
 select is((select count(*)::int from storage.objects where name like 'events/00000000-0000-4000-8000-0000000000e3/%'), 0, 'A cannot read B storage objects');
 select is((select count(*)::int from storage.objects where name like 'events/00000000-0000-4000-8000-0000000000e1/%'), 1, 'A reads own storage objects');
 select is((select count(*)::int from public.deliverables), 1, 'A sees own deliverable only');
@@ -185,7 +185,7 @@ select throws_ok($$select public.record_payment((select id from public.customers
 reset role;
 select throws_ok($$insert into public.payments (customer_id, amount, method, idempotency_key)
   select customer_id, 5, 'cash', 'owner-pay-0001' from public.payments limit 1$$, '23505', null, 'unique idempotency key enforced at table level');
-select is((select count(*)::int from public.audit_events where entity_type = 'payments'), 2, 'payments audited');
+select is((select count(*)::int from public.audit_events where entity_type = 'payments'), (select count(*)::int from public.payments), 'payments audited');
 
 -- ================================================================== bootstrap
 insert into private.bootstrap (id, token_hash)

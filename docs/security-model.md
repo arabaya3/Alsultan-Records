@@ -141,7 +141,7 @@ Anon cannot call these RPCs at all, so the Turnstile check cannot be bypassed an
 - Private paths must match `events/{event_id}/...`. `app.path_event_id()` parses the event id, and a malformed path matches no policy.
 - `media_assets` has a CHECK that private-media paths start with `events/{event_id}/`.
 - Downloads use short-lived signed URLs minted server-side after an RLS-checked query.
-- **Known gap:** objects already copied to `public-media` stay reachable by URL after consent is revoked. The app must delete or move them as part of the unpublish flow. The DB flips `media_assets.visibility` to `private` but cannot delete storage objects.
+- Public copies after consent revoke: the DB flips `media_assets.visibility` to `private` and enqueues the objects in `private.storage_cleanup_queue` (see section 11). The app worker deletes them.
 
 ## 7. MFA and disabled accounts
 
@@ -190,3 +190,19 @@ Anon cannot call these RPCs at all, so the Turnstile check cannot be bypassed an
 - **`IP_HASH_SECRET`:** Rotating resets rate-limit buckets, which is harmless.
 - **Bootstrap token:** Single use and consumed. Re-issuing it only works while no owner exists.
 - After any suspected leak, rotate the keys, check `audit_events` for the window, and disable affected accounts with `admin_set_user_disabled`.
+
+## 11. Addendum (migration 0008): backups bucket, cleanup queue, media ids
+
+- **`backups` bucket**:
+  - Private, 2 GiB, `application/zip` and `application/json` only.
+  - Only the owner (`app.is_owner()`, aal2) can read, write, update or delete.
+  - Backup objects go in bucket `backups` at `{run_id}/...`. Writing to `private-media/backups/*` is no longer used.
+  - private-media policies now require an `events/{uuid}/...` path for every operation, so any non-event path is unreachable for API roles, admins included.
+- **Media id**: `authenticated` may supply `media_assets.id` on insert. Uploaders use the same uuid for the storage folder: `events/{event_id}/{id}/original.*`, `thumb.webp`, `display.webp`. RLS is unchanged: admin, or assigned staff on private-media.
+- **Storage cleanup queue** (`private.storage_cleanup_queue`):
+  - When an event is unpublished (including through consent revoke), every public-media path of that event is enqueued: the original and every variant.
+  - When an event is deleted, every stored path of its media in either bucket is enqueued.
+  - The app processes the queue with `claim_storage_cleanup(p_limit int = 100)` (returns id, bucket, path, reason, enqueued_at). It marks rows as claimed; a claim older than 15 min can be claimed again; at most 1000 rows per call; rows locked by another worker are skipped.
+  - After removing the objects through the Storage API with the admin client, the app calls `complete_storage_cleanup(p_ids uuid[])`, which returns the count marked done.
+  - Both RPCs are admin/owner only (42501 otherwise).
+  - This closes the "public copies survive consent revoke" gap once a worker runs: a cron job or an admin action after `set_publication_consent`.

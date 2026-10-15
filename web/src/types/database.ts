@@ -992,6 +992,14 @@ isOneToOne: false
 "bootstrap_initial_owner":
 { Args: { "p_token": string }; Returns: undefined
                            },
+"claim_storage_cleanup":
+{ Args: { "p_limit"?: number }; Returns: {
+              "bucket": string,"enqueued_at": string,"id": string,"path": string,"reason": string
+            }[]
+                           },
+"complete_storage_cleanup":
+{ Args: { "p_ids": (string)[] }; Returns: number
+                           },
 "customer_accept_quote":
 { Args: { "p_quote_id": string }; Returns: undefined
                            },

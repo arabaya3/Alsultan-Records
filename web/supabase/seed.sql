@@ -110,3 +110,59 @@ begin
   insert into public.booking_requests (contact_name, contact_phone, event_type, event_date, city, message, customer_id, idempotency_key)
   values ('[DEV] Customer A', '0500000011', 'wedding', current_date + 30, '[DEV] City', '[DEV] booking', v_cust_a, 'dev-seed-booking-0001');
 end $$;
+
+-- =====================================================================
+--  [DEV] storage-independent fixtures for e2e specs.
+--  Rows only; objects are uploaded by a separate script at these paths:
+--    events/{event_id}/{asset_id}/original.{jpg|pdf}   (media_assets.path)
+--    events/{event_id}/{asset_id}/thumb.webp           (variants.thumb, images)
+--    events/{event_id}/{asset_id}/display.webp         (variants.display, images)
+--  Fixed ids:
+--    images on customer A event e2: 00000000-0000-4000-8000-0000000001a1 .. 01a5
+--    document on customer B event e3: 00000000-0000-4000-8000-0000000001b1
+--    quote (sent) for A/e1: 00000000-0000-4000-8000-0000000001c1
+--    contract (sent, 1 version) for A/e1: 00000000-0000-4000-8000-0000000001d1
+--    payment for A/e1: idempotency_key dev-seed-payment-0001
+-- =====================================================================
+do $$
+declare
+  v_cust_a uuid := (select id from public.customers where user_id = '00000000-0000-4000-8000-0000000000b1');
+  v_e1 uuid := '00000000-0000-4000-8000-0000000000e1';
+  v_e2 uuid := '00000000-0000-4000-8000-0000000000e2';
+  v_e3 uuid := '00000000-0000-4000-8000-0000000000e3';
+  v_id uuid;
+  i int;
+begin
+  for i in 1..5 loop
+    v_id := ('00000000-0000-4000-8000-0000000001a' || i)::uuid;
+    insert into public.media_assets (id, event_id, bucket, path, kind, mime, bytes, width, height, variants,
+                                     visibility, sort_order, upload_status, uploaded_by)
+    values (v_id, v_e2, 'private-media', format('events/%s/%s/original.jpg', v_e2, v_id), 'image', 'image/jpeg',
+            400000, 2048, 1365,
+            jsonb_build_object('thumb', format('events/%s/%s/thumb.webp', v_e2, v_id),
+                               'display', format('events/%s/%s/display.webp', v_e2, v_id)),
+            'private', i, 'ready', '00000000-0000-4000-8000-0000000000a2');
+  end loop;
+
+  v_id := '00000000-0000-4000-8000-0000000001b1';
+  insert into public.media_assets (id, event_id, bucket, path, kind, mime, bytes, visibility, upload_status, uploaded_by)
+  values (v_id, v_e3, 'private-media', format('events/%s/%s/original.pdf', v_e3, v_id), 'document', 'application/pdf',
+          120000, 'private', 'ready', '00000000-0000-4000-8000-0000000000a2');
+
+  insert into public.quotes (id, customer_id, event_id, status, valid_until)
+  values ('00000000-0000-4000-8000-0000000001c1', v_cust_a, v_e1, 'draft', current_date + 30);
+  insert into public.quote_items (quote_id, description, qty, unit_price, sort_order) values
+    ('00000000-0000-4000-8000-0000000001c1', '[DEV] Photography coverage', 1, 800000, 1),
+    ('00000000-0000-4000-8000-0000000001c1', '[DEV] Highlight film', 1, 450000, 2);
+  update public.quotes set status = 'sent' where id = '00000000-0000-4000-8000-0000000001c1';
+
+  insert into public.contracts (id, quote_id, customer_id, event_id)
+  values ('00000000-0000-4000-8000-0000000001d1', '00000000-0000-4000-8000-0000000001c1', v_cust_a, v_e1);
+  insert into public.contract_versions (contract_id, body, total, deposit_required)
+  values ('00000000-0000-4000-8000-0000000001d1', '[DEV] Sample contract body. Not a real agreement.', 1250000, 300000);
+  update public.contracts set status = 'sent' where id = '00000000-0000-4000-8000-0000000001d1';
+
+  insert into public.payments (customer_id, event_id, contract_id, amount, method, reference, idempotency_key, recorded_by)
+  values (v_cust_a, v_e1, '00000000-0000-4000-8000-0000000001d1', 300000, 'bank_transfer', '[DEV] deposit',
+          'dev-seed-payment-0001', '00000000-0000-4000-8000-0000000000a1');
+end $$;
