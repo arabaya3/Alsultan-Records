@@ -24,7 +24,7 @@ Status legend: ☐ todo · ◐ in progress · ☑ implemented · ✅ verified (e
 ## Phases
 1. ☑ Inventory, baseline commit, branch, scaffold Next 16 + deps, local Supabase, contract.
 2. ✅ Backend · ✅ Design system + public site + motion.
-3. ✅ Portal (auth, events, gallery >160, selection per event, review & submit snapshot, deliverables, video review w/ timecode per revision, quotes/contracts/payments) · ☐ Admin (overview, customers, bookings+calendar, events/publishing w/ consent, media upload w/ variants, quotes/contracts, production/deliverables, reviews moderation, finance, staff, equipment, support, users, settings, backups).
+3. ✅ Portal (auth, events, gallery >160, selection per event, review & submit snapshot, deliverables, video review w/ timecode per revision, quotes/contracts/payments) · ✅ Admin (overview, customers, bookings+calendar, events/publishing w/ consent, media upload w/ variants, quotes/contracts, production/deliverables, reviews moderation, finance, staff, equipment, support, users, settings, backups).
 4. ✅ Security headers/CSP, proxy auth gating, SEO polish, error/empty states.
 5. ✅ QA: e2e journeys, isolation via direct API, responsive matrix, reduced motion, secrets scan of `.next` bundles, console errors.
 6. ⛔ Staging: push migrations to `dyuixzxmmeiypvawzmty` and deploy preview — needs user-provided access token + DB password (never in chat).
