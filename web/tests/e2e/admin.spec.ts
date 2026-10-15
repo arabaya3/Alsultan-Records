@@ -7,7 +7,7 @@ import sharp from "sharp";
 
 /**
  * Admin e2e. Run against a dev server on a fresh local DB:
- *   npx supabase db reset && npx next dev -p 3300
+ *   npx supabase db reset && npm run seed:storage && npx next dev -p 3300
  *   BASE_URL=http://localhost:3300 npx playwright test tests/e2e/admin.spec.ts
  * Uses the dev users from supabase/seed.sql (local stack only).
  */
@@ -198,6 +198,7 @@ test("media upload of 2 images creates thumb + display variants", async ({ brows
   expect(data).toHaveLength(2);
   for (const a of data ?? []) {
     expect(a.upload_status).toBe("ready");
+    expect(a.path).toBe(`events/${EVENT_B1}/${a.id}/original.png`);
     expect(a.width).toBe(2400);
     const v = a.variants as { thumb: string; display: string };
     expect(v.thumb).toMatch(/thumb\.webp$/);
@@ -228,7 +229,8 @@ test("media upload of 2 images creates thumb + display variants", async ({ brows
   const consent = admin.getByTestId("consent-form");
   await consent.getByTestId("consent-select").selectOption("revoked");
   await consent.getByRole("button", { name: "تحديث الموافقة" }).click();
-  await expect(consent.getByTestId("action-msg")).toContainText("أُزيلت 1 نسخة عامة", { timeout: 60_000 });
+  // Cleanup queue ran right after the revoke: display + thumb objects removed.
+  await expect(consent.getByTestId("action-msg")).toContainText("حُذف 2 من 2", { timeout: 60_000 });
   const left = await db.from("media_assets").select("id").eq("event_id", EVENT_B1).eq("bucket", "public-media");
   expect(left.data).toHaveLength(0);
   expect((await db.storage.from("public-media").exists(pub.data![0].path)).data).toBe(false);
@@ -249,9 +251,19 @@ test("owner backup run completes with counts", async ({ browser }) => {
   expect(counts.media_assets).toBeGreaterThanOrEqual(202);
   expect(counts.events).toBe(4);
   expect((data?.object_counts as Record<string, number>)["private-media"]).toBeGreaterThanOrEqual(6);
-  const files = await db.storage.from("private-media").list(`backups/${data!.id}/tables`, { limit: 100 });
+  expect(data?.location).toBe(`backups/${data!.id}/`);
+  const files = await db.storage.from("backups").list(`${data!.id}/tables`, { limit: 100 });
   expect(files.data?.length).toBe(33);
   await page.screenshot({ path: path.join(SHOTS, "admin-backups-1440.png"), fullPage: true });
+  await page.context().close();
+});
+
+test("seeded media renders thumbnails (objects from seed:storage)", async ({ browser }) => {
+  const page = await login(browser, "admin");
+  await page.goto(`${BASE}/admin/events/00000000-0000-4000-8000-0000000000e2/media`);
+  const img = page.locator('[data-testid="media-item"] img').first();
+  await expect(img).toBeVisible({ timeout: 60_000 });
+  await expect.poll(() => img.evaluate((el) => (el as HTMLImageElement).naturalWidth), { timeout: 30_000 }).toBeGreaterThan(0);
   await page.context().close();
 });
 

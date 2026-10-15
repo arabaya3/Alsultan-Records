@@ -8,10 +8,10 @@ import { cleanSearch, one, pageOf, rangeOf, type SP } from "@/features/admin/que
 import { fmtBytes, fmtDate } from "@/features/admin/format";
 import { UPLOAD_STATUS } from "@/features/admin/labels";
 import { isUuid } from "@/features/admin/result";
-import { cleanupPublic } from "./actions";
+import { cleanupPublic, runStorageCleanup } from "./actions";
 import { deleteMediaItems, publishMediaItem, retryVariants, unpublishMediaItem } from "./media-actions";
 import { MediaUploader } from "./MediaUploader";
-import { signPaths, thumbPath } from "./signed";
+import { signMediaUrls } from "@/features/media/sign";
 
 const MEDIA_PAGE = 48;
 
@@ -36,7 +36,8 @@ export async function MediaIndex({ searchParams }: { searchParams: SP }) {
     for (const r of data ?? []) if (r.event_id) byEvent.set(r.event_id, { title: r.events?.title ?? "—", n: (byEvent.get(r.event_id)?.n ?? 0) + 1 });
     return (
       <>
-        <PageHeader title="نسخ عامة يجب إزالتها" lead="مناسبات توقف نشرها أو سُحبت موافقتها وما زالت لها ملفات في التخزين العام." back={{ href: "/admin/media", label: "الوسائط" }} />
+        <PageHeader title="نسخ عامة يجب إزالتها" lead="مناسبات توقف نشرها وما زالت لها سجلات نسخ عامة. «إزالة» يحذف السجلات ويشغّل قائمة حذف الملفات." back={{ href: "/admin/media", label: "الوسائط" }} />
+        <div className="mb-3"><ActionForm action={runStorageCleanup} submitLabel="تشغيل قائمة حذف الملفات" kind="ghost" /></div>
         {error ? <LoadError /> : (
           <Table head={["المناسبة", "عدد الملفات", ""]} empty={!byEvent.size}>
             {[...byEvent.entries()].map(([id, v]) => (
@@ -103,16 +104,18 @@ export async function EventMedia({ params, searchParams }: { params: Promise<{ i
       .eq("bucket", "private-media")
       .order("created_at", { ascending: false })
       .range(...rangeOf(page, MEDIA_PAGE)),
-    sb.from("media_assets").select("id, variants").eq("event_id", id).eq("bucket", "public-media"),
+    sb.from("media_assets").select("id, path").eq("event_id", id).eq("bucket", "public-media"),
   ]);
   if (assets.error) return <LoadError what="الوسائط" />;
   const publicBySource = new Map<string, string>();
   for (const p of pubs.data ?? []) {
-    const s = (p.variants as Record<string, unknown> | null)?.source_asset_id;
+    // public copy lives at events/{event}/{source asset id}/display.webp
+    const s = p.path.split("/")[2];
     if (typeof s === "string") publicBySource.set(s, p.id);
   }
   const imgs = (assets.data ?? []).filter((a) => a.kind === "image" && a.upload_status === "ready");
-  const urls = await signPaths(sb, imgs.map((a) => thumbPath(a.variants, a.path)));
+  const urls = new Map<string, string>();
+  for (const r of await signMediaUrls({ assetIds: imgs.map((a) => a.id), variant: "thumb" })) if (r.url) urls.set(r.key, r.url);
 
   return (
     <>
@@ -149,7 +152,7 @@ export async function EventMedia({ params, searchParams }: { params: Promise<{ i
         {assets.data?.length ? (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4" data-testid="media-grid">
             {assets.data.map((a) => {
-              const url = urls.get(thumbPath(a.variants, a.path));
+              const url = urls.get(a.id);
               const hasVariants = !!(a.variants as Record<string, unknown> | null)?.display;
               const publicId = publicBySource.get(a.id);
               return (

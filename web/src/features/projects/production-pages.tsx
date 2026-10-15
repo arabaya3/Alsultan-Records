@@ -10,7 +10,7 @@ import { DELIVERABLE_KIND, DELIVERABLE_STATUS, SELECTION_STATUS } from "@/featur
 import { isUuid } from "@/features/admin/result";
 import { Constants, type Json } from "@/types/database";
 import { addRevision, replyComment, setSelectionStatus, toggleComment, updateDeliverable } from "./production-actions";
-import { signPaths, thumbPath } from "./signed";
+import { signMediaUrls } from "@/features/media/sign";
 
 export async function ProductionList({ searchParams }: { searchParams: SP }) {
   const session = await guard(ALL_STAFF);
@@ -252,11 +252,10 @@ export async function AlbumSnapshot({ params }: { params: IdParams }) {
   const snap = s.data;
   const items = (Array.isArray(snap.items) ? snap.items : []) as { media_asset_id?: string; note?: string | null }[];
   const ids = items.map((i) => i.media_asset_id).filter(isUuid);
-  const assets = ids.length
-    ? await sb.from("media_assets").select("id, path, variants").in("id", ids.slice(0, 500))
-    : { data: [] as { id: string; path: string; variants: Json }[] };
-  const pathById = new Map((assets.data ?? []).map((a) => [a.id, thumbPath(a.variants, a.path)]));
-  const urls = await signPaths(sb, [...pathById.values()]);
+  const urls = new Map<string, string>();
+  for (let i = 0; i < Math.min(ids.length, 1000); i += 200) {
+    for (const r of await signMediaUrls({ assetIds: ids.slice(i, i + 200), variant: "thumb" })) if (r.url) urls.set(r.key, r.url);
+  }
   const sel = snap.album_selections;
 
   return (
@@ -281,8 +280,7 @@ export async function AlbumSnapshot({ params }: { params: IdParams }) {
       />
       <ul className="grid grid-cols-2 gap-3 sm:grid-cols-4 lg:grid-cols-6">
         {items.map((it, i) => {
-          const p = it.media_asset_id ? pathById.get(it.media_asset_id) : undefined;
-          const url = p ? urls.get(p) : undefined;
+          const url = it.media_asset_id ? urls.get(it.media_asset_id) : undefined;
           return (
             <li key={`${it.media_asset_id}-${i}`} className="overflow-hidden rounded-md border border-cream-line bg-[#fffdf8] text-xs">
               {url ? (

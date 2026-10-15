@@ -35,7 +35,7 @@ export async function prepareUploads(
       continue;
     }
     const rule = MIME_RULES[f.type];
-    const folderId = randomUUID();
+    const folderId = randomUUID(); // becomes the asset id
     const path = `events/${eventId}/${folderId}/original.${rule.ext}`;
     const row = {
       event_id: eventId,
@@ -47,11 +47,8 @@ export async function prepareUploads(
       upload_status: "pending" as const,
       visibility: "private" as const,
     };
-    // Prefer folder id == row id (convention events/{event_id}/{asset_id}/...). `id` is not
-    // in the column INSERT grant today, so fall back to a server-assigned id; the row's
-    // `path` stays the source of truth either way.
-    let ins = await sb.from("media_assets").insert({ ...row, id: folderId }).select("id").single();
-    if (ins.error?.code === "42501") ins = await sb.from("media_assets").insert(row).select("id").single();
+    // Client-chosen id (grant from migration 0008): storage folder uuid == media_assets.id.
+    const ins = await sb.from("media_assets").insert({ ...row, id: folderId }).select("id").single();
     if (ins.error || !ins.data) {
       items.push({ ok: false, name, message: dbMessage(ins.error) });
       continue;
@@ -191,7 +188,7 @@ export async function publishMediaItem(_p: ActionResult, fd: FormData): Promise<
     width: a.width,
     height: a.height,
     sort_order: a.sort_order,
-    variants: { display: pubDisplay, thumb: typeof v.thumb === "string" ? pubThumb : pubDisplay, source_asset_id: assetId },
+    variants: { display: pubDisplay, thumb: typeof v.thumb === "string" ? pubThumb : pubDisplay }, // paths only: every value is treated as a storage path by the cleanup queue
     visibility: "public",
     upload_status: "ready",
   });
@@ -230,7 +227,7 @@ export async function deleteMediaItems(_p: ActionResult, fd: FormData): Promise<
       continue;
     }
     // Public copies made from this asset go first.
-    const pub = await sb.from("media_assets").select("id").eq("bucket", "public-media").eq("event_id", eventId).contains("variants", { source_asset_id: id });
+    const pub = await sb.from("media_assets").select("id").eq("bucket", "public-media").eq("event_id", eventId).like("path", `events/${eventId}/${id}/%`);
     if (pub.data?.length) await cleanupPublicMedia(sb, eventId, pub.data.map((p) => p.id));
     const v = (row.variants ?? {}) as Record<string, unknown>;
     const paths = [row.path, v.thumb, v.display].filter((p): p is string => typeof p === "string");

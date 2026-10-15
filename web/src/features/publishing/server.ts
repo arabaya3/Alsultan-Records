@@ -1,6 +1,7 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/types/database";
+import { cleanupMessage, processStorageCleanup } from "./cleanup";
 
 type SB = SupabaseClient<Database>;
 
@@ -44,4 +45,16 @@ export async function cleanupPublicMedia(
     else removed++;
   }
   return { removed, failed };
+}
+
+/**
+ * Event stopped being public (unpublish / consent revoke / portal revoke):
+ * the DB trigger already enqueued every public-media path of the event in the
+ * cleanup queue. Here we drop the (now private) public-media rows and run the
+ * queue worker so the objects disappear immediately. Caller must be admin/owner.
+ */
+export async function retractEventPublicCopies(sb: SB, eventId: string): Promise<{ rows: number; message: string }> {
+  const del = await sb.from("media_assets").delete({ count: "exact" }).eq("event_id", eventId).eq("bucket", "public-media");
+  const r = await processStorageCleanup(100);
+  return { rows: del.count ?? 0, message: r.claimed ? cleanupMessage(r) : "" };
 }

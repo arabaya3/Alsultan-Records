@@ -4,6 +4,8 @@ import { Forbidden, guard, ALL_STAFF } from "./guard";
 import { Card, PageHeader, Stat, Table, RowLink, Badge, LoadError } from "./ui";
 import { fmtDate, isoInDays, todayISO } from "./format";
 import { formatMinor } from "./money";
+import { ActionForm } from "./ActionForm";
+import { runStorageCleanup } from "@/features/projects/actions";
 import { DELIVERABLE_STATUS, EVENT_STATUS, eventTypeLabel } from "./labels";
 
 /** Actionable alerts only, from real data. Counts use head:true (no rows transferred). */
@@ -83,7 +85,7 @@ export async function Overview() {
     { n: reviews.count ?? 0, label: "تقييمات بانتظار المراجعة", href: "/admin/reviews?status=pending" },
     { n: albums.count ?? 0, label: "اختيارات ألبوم مُرسلة", href: "/admin/production/albums" },
     { n: support.count ?? 0, label: "طلبات دعم مفتوحة", href: "/admin/support?status=open" },
-    { n: orphans.count ?? 0, label: "ملفات عامة يجب إزالتها", href: "/admin/media?orphans=1" },
+    { n: orphans.count ?? 0, label: "نسخ عامة لمناسبات لم تعد منشورة", href: "/admin/media?orphans=1" },
   ];
   const active = alerts.filter((a) => a.n > 0);
 
@@ -103,6 +105,12 @@ export async function Overview() {
           <Stat label="أرصدة غير مدفوعة على العقود المعتمدة" value={formatMinor(outstanding)} href="/admin/finance" tone="danger" />
         ) : null}
       </div>
+      <Card title="تنظيف التخزين" className="mb-6">
+        <p className="mb-3 text-sm text-on-cream-muted">
+          عند إيقاف نشر مناسبة أو سحب الموافقة أو حذف مناسبة تُوضع ملفاتها في قائمة حذف. يعمل التنظيف تلقائياً بعد إجراءات الإدارة، ويمكن تشغيله هنا (مثلاً بعد سحب العميل لموافقته من البوابة).
+        </p>
+        <ActionForm action={runStorageCleanup} submitLabel="تشغيل التنظيف الآن" kind="ghost" testId="cleanup-form" />
+      </Card>
       {upcoming.data?.length ? (
         <Card title="تسليمات قريبة">
           <ul className="divide-y divide-cream-line text-sm">

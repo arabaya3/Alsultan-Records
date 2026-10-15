@@ -7,7 +7,8 @@ import { createClient } from "@/lib/supabase/server";
 import { guard, ADMIN_ROLES, OWNER_ONLY } from "@/features/admin/guard";
 import { pick } from "@/features/admin/query";
 import { dbMessage, fail, FORBIDDEN, ok, optDate, optStr, str, uuid, type ActionResult } from "@/features/admin/result";
-import { cleanupPublicMedia } from "@/features/publishing/server";
+import { retractEventPublicCopies } from "@/features/publishing/server";
+import { cleanupMessage, processStorageCleanup } from "@/features/publishing/cleanup";
 import { Constants } from "@/types/database";
 
 const SLUG_RE = /^[a-z0-9]+(-[a-z0-9]+)*$/;
@@ -85,11 +86,11 @@ export async function deleteEvent(_p: ActionResult, fd: FormData): Promise<Actio
   const id = uuid(fd, "id");
   if (!id) return fail("طلب غير صالح.");
   const sb = await createClient();
-  // Remove public copies first so nothing stays reachable by URL.
-  await cleanupPublicMedia(sb, id);
   const { error, count } = await sb.from("events").delete({ count: "exact" }).eq("id", id);
   if (error) return fail(dbMessage(error, { "23503": "لا يمكن الحذف لوجود سجلات مرتبطة (عقود أو دفعات). غيّر الحالة إلى «مؤرشف» بدلاً من ذلك." }));
   if (!count) return fail("لم يُحذف شيء.");
+  // The delete trigger queued every stored object of the event; remove them now.
+  await processStorageCleanup(200);
   redirect("/admin/events");
 }
 
@@ -104,9 +105,8 @@ export async function setConsent(_p: ActionResult, fd: FormData): Promise<Action
   if (error) return fail(dbMessage(error));
   let extra = "";
   if (status !== "granted") {
-    const r = await cleanupPublicMedia(sb, id);
-    if (r.removed) extra = ` وأُزيلت ${r.removed} نسخة عامة.`;
-    if (r.failed) extra += ` تعذّر حذف ${r.failed} ملف عام؛ استخدم زر التنظيف.`;
+    const r = await retractEventPublicCopies(sb, id);
+    if (r.message) extra = ` ${r.message}`;
   }
   refresh();
   return ok(`حُدّثت حالة الموافقة.${extra}`);
@@ -137,9 +137,8 @@ export async function setPublication(_p: ActionResult, fd: FormData): Promise<Ac
     );
   let extra = "";
   if (!publish) {
-    const r = await cleanupPublicMedia(sb, id);
-    if (r.removed) extra = ` وأُزيلت ${r.removed} نسخة عامة.`;
-    if (r.failed) extra += ` تعذّر حذف ${r.failed} ملف عام؛ استخدم زر التنظيف.`;
+    const r = await retractEventPublicCopies(sb, id);
+    if (r.message) extra = ` ${r.message}`;
   }
   refresh();
   return ok(publish ? "نُشرت المناسبة في صفحة الأعمال." : `أُوقف النشر.${extra}`);
@@ -153,9 +152,9 @@ export async function cleanupPublic(_p: ActionResult, fd: FormData): Promise<Act
   const { data: ev } = await sb.from("events").select("is_published, publication_consent").eq("id", id).maybeSingle();
   if (ev?.is_published && ev.publication_consent === "granted")
     return fail("المناسبة منشورة حالياً؛ أوقف نشر الصور فرادى من صفحة الوسائط.");
-  const r = await cleanupPublicMedia(sb, id);
+  const r = await retractEventPublicCopies(sb, id);
   refresh();
-  return r.failed ? fail(`أُزيل ${r.removed}، وتعذّر حذف ${r.failed}. أعد المحاولة.`) : ok(`أُزيلت ${r.removed} نسخة عامة.`);
+  return ok(`أُزيلت ${r.rows} نسخة عامة من السجل. ${r.message}`.trim());
 }
 
 // ------------------------------------------------------------- staff assignments
@@ -251,4 +250,13 @@ export async function removeEquipmentAssignment(_p: ActionResult, fd: FormData):
   if (error) return fail(dbMessage(error));
   refresh();
   return ok("حُذف السجل.");
+}
+
+/** Manual run of the storage cleanup queue (owner/admin). */
+export async function runStorageCleanup(): Promise<ActionResult> {
+  if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
+  const r = await processStorageCleanup(100);
+  refresh();
+  const msg = cleanupMessage(r);
+  return r.error || r.failed.length ? fail(msg, { failed: r.failed }) : ok(msg);
 }

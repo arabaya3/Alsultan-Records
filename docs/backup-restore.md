@@ -9,8 +9,8 @@ When the owner clicks **بدء النسخ الآن**, the server action `runBack
 1. It re-checks the owner role (`requireRole('owner')` plus aal2 when MFA is required).
 2. It inserts a `backup_runs` row with `status = 'running'` through the owner's own client, so RLS attributes the row to the owner.
 3. It exports each of the 33 `public` tables page by page, 1,000 rows per `range()` call ordered by `id`, until a short page comes back. It reads with the secret-key client because RLS hides some data even from the owner (`customers.notes`, `events.production_note`/`equipment_note`, other users' `notifications`). This use of the secret key is documented in `actions.ts` and happens only after the owner check.
-4. It writes `private-media/backups/{run_id}/tables/{table}.zip`. Each archive is a standard ZIP that holds `{table}.json` = `{ table, exported_at, count, rows }`. The files are ZIP because the `private-media` bucket's MIME allow-list only accepts `application/zip` among non-media types.
-5. It lists every object in `public-media` and `private-media` (recursively, skipping `backups/`) into `private-media/backups/{run_id}/storage-manifest.zip`. Each entry records `bucket, path, size, mimetype, updated_at`. **The binaries themselves are not copied**, so storage needs its own backup (see below).
+4. It writes `backups/{run_id}/tables/{table}.zip (bucket `backups`)`. Each archive is a standard ZIP that holds `{table}.json` = `{ table, exported_at, count, rows }`. Files are written with the owner's own client into the owner-only `backups` bucket (migration 0008).
+5. It lists every object in `public-media` and `private-media` (recursively) into `backups/{run_id}/storage-manifest.zip`. Each entry records `bucket, path, size, mimetype, updated_at`. **The binaries themselves are not copied**, so storage needs its own backup (see below).
 6. It updates the run with these fields:
    - `table_counts` (rows per table)
    - `object_counts` (objects per bucket)
@@ -29,7 +29,7 @@ The manifest lists every object a full restore needs. Copy the binaries with the
 
 ```bash
 # Local stack: STORAGE_S3_URL and keys from `npx supabase status`. Cloud: Project Settings → Storage → S3.
-aws s3 sync s3://private-media ./storage/private-media --endpoint-url "$STORAGE_S3_URL" --exclude "backups/*"
+aws s3 sync s3://private-media ./storage/private-media --endpoint-url "$STORAGE_S3_URL"
 aws s3 sync s3://public-media  ./storage/public-media  --endpoint-url "$STORAGE_S3_URL"
 ```
 
@@ -45,7 +45,7 @@ Compare the result against `storage-manifest.json`. The counts must match `backu
 > Restore into a **fresh** project or a staging copy first. Never restore over production without a dump of its current state.
 
 1. **Schema.** Apply the migrations: `npx supabase db push` (cloud) or `npx supabase db reset` without seed (local). The migrations are the only source of schema.
-2. **Download the run.** Fetch `private-media/backups/{run_id}/tables/*.zip` and unzip. Each file gives `{table}.json`.
+2. **Download the run.** Fetch `bucket `backups`, `{run_id}/tables/*.zip`` and unzip. Each file gives `{table}.json`.
 3. **Auth users first.** `profiles.id` references `auth.users.id`. Restore `auth.users`/`auth.identities` from a platform backup or `db dump`, or re-invite users so the ids exist. Skip `profiles` rows whose user is gone.
 4. **Load data as `postgres` (SQL editor or psql), not through the API.** Guard triggers treat API roles specially, and several columns cannot be written through the API. Inside one transaction:
    ```sql
@@ -74,11 +74,11 @@ Compare the result against `storage-manifest.json`. The counts must match `backu
 
 ## Retention and access
 
-- Backups live under `private-media/backups/`, which has no public URL. Today, **admins (not only the owner) can read `private-media/*`** under the storage policy. A dedicated owner-only bucket is requested from the lead (see the admin report).
+- Backups live in the private bucket `backups`; only the owner (aal2) can read or write it (migration 0008).
 - Delete old runs manually from storage. Keep at least the last 7 completed runs.
 
 ## Media and video boundary (for reference)
 
 - Images: originals go to `private-media/events/{event_id}/{folder}/original.{ext}`, uploaded straight from the browser with a signed upload URL. The server then generates `thumb.webp` (about 480 px) and `display.webp` (about 1,600 px) next to it with sharp.
-- Publishing an image copies the display and thumb into `public-media`, and only while the event is published with consent. Unpublishing, revoking consent, or deleting the event removes the public copies (the app does this; the database only flips visibility).
+- Publishing an image copies the display and thumb into `public-media`, and only while the event is published with consent. Unpublishing, revoking consent, or deleting an event enqueues the affected objects in `private.storage_cleanup_queue` (DB triggers). The admin app runs the queue worker (`claim_storage_cleanup` → delete → `complete_storage_cleanup`) right after those actions, and an owner/admin can run it from the overview.
 - Video: only the original is stored, private. Public or streamed playback is out of scope here. The integration point is an external provider (for example Mux or Cloudflare Stream). It would be fed from a short-lived signed URL of the original, with the provider's asset/playback id stored in `media_assets.variants.stream` by a future migration or server route. No video bytes are ever copied to `public-media`.

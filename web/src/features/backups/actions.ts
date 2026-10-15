@@ -21,7 +21,7 @@ const BACKUP_TABLES: TableName[] = [
 ];
 const BUCKETS = ["public-media", "private-media"] as const;
 const PAGE = 1000;
-const BACKUP_BUCKET = "private-media";
+const BACKUP_BUCKET = "backups"; // owner-only bucket (migration 0008)
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -45,7 +45,6 @@ async function listBucket(admin: AdminClient, bucket: string, prefix = "", out: 
     for (const item of data ?? []) {
       const path = prefix ? `${prefix}/${item.name}` : item.name;
       if (item.id === null) {
-        if (bucket === BACKUP_BUCKET && path === "backups") continue; // do not back up backups
         await listBucket(admin, bucket, path, out);
       } else {
         const meta = (item.metadata ?? {}) as { size?: number; mimetype?: string };
@@ -60,8 +59,9 @@ async function listBucket(admin: AdminClient, bucket: string, prefix = "", out: 
 /**
  * Owner-only full export. Documented use of the secret-key client:
  *  - RLS hides some columns/rows even from the owner (customers.notes, events internal notes,
- *    other users' notifications) and storage policies forbid writing outside events/…,
- *    so a complete backup needs service-role reads + the backups/ prefix write.
+ *    other users' notifications), so a complete export needs service-role READS, and the
+ *    storage manifest lists every object in both media buckets.
+ *  - Files are WRITTEN with the owner's own client to the owner-only "backups" bucket.
  *  - The run itself is recorded through the OWNER's client (backup_runs RLS = owner), so
  *    every run is attributable; the action re-checks the owner role first.
  * Status: completed only if every table and the storage manifest succeeded.
@@ -72,7 +72,7 @@ export async function runBackup(): Promise<ActionResult> {
   const sb = await createClient();
   const { data: run, error: runErr } = await sb.from("backup_runs").insert({ kind: "manual-json", status: "running" }).select("id").single();
   if (runErr || !run) return fail("تعذّر بدء النسخة الاحتياطية.");
-  const location = `${BACKUP_BUCKET}/backups/${run.id}/`;
+  const location = `${BACKUP_BUCKET}/${run.id}/`;
   const admin = createAdminClient();
   const tableCounts: Record<string, number> = {};
   const objectCounts: Record<string, number> = {};
@@ -82,7 +82,7 @@ export async function runBackup(): Promise<ActionResult> {
     try {
       const rows = await exportTable(admin, table);
       const json = Buffer.from(JSON.stringify({ table, exported_at: new Date().toISOString(), count: rows.length, rows }), "utf8");
-      const up = await admin.storage.from(BACKUP_BUCKET).upload(`backups/${run.id}/tables/${table}.zip`, zip([{ name: `${table}.json`, data: json }]), {
+      const up = await sb.storage.from(BACKUP_BUCKET).upload(`${run.id}/tables/${table}.zip`, zip([{ name: `${table}.json`, data: json }]), {
         contentType: "application/zip",
         upsert: false,
       });
@@ -101,7 +101,7 @@ export async function runBackup(): Promise<ActionResult> {
       objectCounts[b] = manifest.length - before;
     }
     const data = Buffer.from(JSON.stringify({ generated_at: new Date().toISOString(), note: "Binary objects are NOT included; this lists what must be copied separately.", objects: manifest }), "utf8");
-    const up = await admin.storage.from(BACKUP_BUCKET).upload(`backups/${run.id}/storage-manifest.zip`, zip([{ name: "storage-manifest.json", data }]), {
+    const up = await sb.storage.from(BACKUP_BUCKET).upload(`${run.id}/storage-manifest.zip`, zip([{ name: "storage-manifest.json", data }]), {
       contentType: "application/zip",
       upsert: false,
     });
