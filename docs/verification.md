@@ -1,0 +1,109 @@
+# Verification (independent QA)
+
+Date: 2026-10-16. Local stack only (Supabase in Docker, `127.0.0.1:54321`). Main pass against the **production build** (`npm run build && npx next start -p 3400`).
+
+Setup used for every run: `npx supabase db reset && npm run seed:storage` (output: `208 media rows, 418 objects uploaded, 0 failed`).
+
+Re-run:
+```
+cd web
+npx supabase db reset && npm run seed:storage
+npm run build && npx next start -p 3400        # separate shell
+npx playwright test tests/e2e/qa-              # QA suite (chromium + mobile project)
+npx supabase db reset && npm run seed:storage
+npx playwright test tests/e2e/admin.spec.ts tests/e2e/portal.spec.ts tests/e2e/public.spec.ts --project=chromium
+```
+The QA suite and the older specs both mutate seed data (selection submit, contract approval), so run each on a fresh reset.
+
+## Q1: build, lint, types, pgTAP
+| Check | Result |
+|---|---|
+| `npx tsc --noEmit` | exit 0, no output |
+| `npm run lint` | exit 0, no findings |
+| `npm run build` | exit 0. Only warning: Next ignored a stray `C:\Users\UnclePC\package-lock.json` outside the repo (set `outputFileTracingRoot`) |
+| `npx supabase test db` right after reset | **PASS**: 3 files, 92 tests |
+| `npx supabase test db` after `seed:storage` | **FAIL** 1/74: `10_rls_and_rpcs.sql` test 10 "A reads own storage objects" has 403, wants 1. This is a fixture flaw: the test counts *all* objects under A's event and assumes it inserted the only one. It isn't a security failure, but the test should count its own object only. Not fixed (outside QA ownership). |
+
+## Q2: secrets scan of the build output
+I grepped `.next/static/**` and `.next/server/app/**/*.html|*.rsc` (57 HTML files):
+
+| Pattern | static | html/rsc |
+|---|---|---|
+| `SUPABASE_SECRET_KEY` value (41 chars) | 0 | 0 |
+| `IP_HASH_SECRET` value (64 chars) | 0 | 0 |
+| `service_role` | 0 | 0 |
+| env var names `SUPABASE_SECRET_KEY` / `IP_HASH_SECRET` | 0 | 0 |
+| `sb_secret_` | 1 | 0 |
+
+The one `sb_secret_` hit is supabase-js's key-prefix check (`e.startsWith("sb_publishable_")||e.startsWith("sb_secret_")`) in `chunks/0rbnq33bprnuu.js`. It isn't a key. **PASS.**
+
+## Results by matrix ID
+Spec files are in `web/tests/e2e/`. Final QA run: **44 passed, 1 failed** (the failure is the A4 quote-creation bug below). Older specs on a fresh reset against the prod build: **31/31 passed**.
+
+| ID | Verdict | Evidence |
+|---|---|---|
+| P1 | PASS (layout) / visual mismatches | `qa-responsive`: home has 0px overflow at 320/360/390/430/768/1024/1440. Screenshots in `docs/screenshots/qa-home-*.png`. Reference comparison below. |
+| P2 | PASS | `qa-journeys` P2: `/work` lists only `/work/dev-sample-published-project`. No other customer titles, phone numbers, emails or `customer_id` in the HTML. Anon REST `events` returns only that slug, and anon cannot select `customer_id` (`qa-security` S6). |
+| P3 | PASS with a note | Unknown service and project slugs render the 404 UI with `noindex`, but return **HTTP 200** (streamed PPR route). A truly unknown path returns 404. Soft 404, minor. |
+| P4 | PASS | Two steps. Success shows the tracking code and the "not a confirmed booking" copy. Two synchronous clicks on submit gave exactly **1** `booking_requests` row (DB check). A forced server-side error (per-phone rate limit) kept all 7 inputs. Can be completed keyboard-only. Turnstile is not configured locally, so it was not verified. |
+| P5 | PASS | Right code + last4 shows the status only (no name or phone). Wrong last4 shows a generic message. Rate limit exists in the RPC (20/h); I did not drive it to the limit. |
+| P6 | PASS | All public pages return 200 with `lang="ar" dir="rtl"`. Every form control on /book, /track, /contact and /login has a label. |
+| P7 | PASS | robots has `Disallow: /admin /portal /auth /login /api /track` and `Sitemap: http://localhost:3100/sitemap.xml`. Every sitemap `<loc>` starts with `NEXT_PUBLIC_SITE_URL` (it includes the published project, no private routes). Canonical = SITE_URL + path on /, /work, /book and the project page. No emails, phones, keys or other customers' data in `<head>`. |
+| M1 | PASS with a note | With reduced motion there are no inline transform/opacity/clip styles on /, /work or the project page, before or after scroll. With normal motion, h1 is fully opaque by about 1.17 s after `goto` (the first entrance animation is not blocking). Styles are stable once idle, and no inline motion styles linger after client navigation. Video: `docs/motion/home-motion.webm`. **Note:** about 65 rAF calls/s continue while idle on every public page, in both motion modes. This is ScrollTrigger's internal loop (`function t(){return i2&&requestAnimationFrame(t)}`), started because `gsap.ts` registers the plugin when the module loads. `/login` (no GSAP) has 0. GSAP is bundled, so `gsap.globalTimeline` is not reachable from the page. There are no `<video>` elements on the prod home (no media), so the "offscreen video paused" check was vacuous. |
+| S1 | PASS (pgTAP) | 92/92 on a fresh reset (see Q1 caveat). |
+| S2 | PASS | `qa-security`, direct API with A's session: no B rows in events, media_assets, album_selections, quotes, quote_items, contracts or payments. Positive controls pass. Writes to B's quote or selection are refused, `customer_accept_quote(B)` errors, and `event_financials(B event)` returns 42501. |
+| S3 | PASS | A cannot update `role` or `disabled`, call `admin_set_user_role`, or relink `customers.user_id`. The DB is unchanged afterwards. `full_name` update works. |
+| S4 | NOT VERIFIED | The dev seed disables `require_staff_mfa`. I did not test aal2. |
+| S5 | PASS | A cannot download, list or sign B's object. B can (control). Anon cannot download, and the public URL of the private bucket returns ≥400. A signed URL with a 2 s TTL returned 200 at first and ≥400 after 4 s. |
+| S6 | PASS | `set_event_publication` without consent errors. A direct `is_published` update errors, and the DB is unchanged. |
+| S7 | NOT VERIFIED directly | Covered only by pgTAP. |
+| C1 | PASS | Clearing cookies leads to `/login?next=/portal/events/…/files`. Logout removes all `sb-*` cookies, and back+reload stays on /login. A garbage cookie redirects to login. With `expires_at` set to the past and a valid refresh token, the session is refreshed: portal renders and the access token changes. |
+| C2 | PASS | `portal.spec` (2 own event cards, B's event shows not-found). |
+| C3 | PASS | All 200 tiles load. Every `<img>` has `complete && naturalWidth>0`, and every `currentSrc` is a signed `thumb.webp`. Lightbox keyboard nav and Esc focus restore work. Screenshot `qa-portal-gallery-1440.png`. |
+| C4 | PASS | 3 picks on A1 and 2 on A2 (DB counts). Submitting A1 leaves A2 as draft. The snapshot has `item_count=3`. Customer update/delete of the snapshot changes nothing, inserting an item into the submitted selection errors, and an admin update of the snapshot changes nothing. |
+| C5 | PASS | The real test video loads (duration >1 s), plays (currentTime >0.2) and seeks to 2.5 s. The comment saved with `timecode_ms=2500` on **revision 2**. Switching 13 times rapidly, then 3 times under 800 ms latency, always ends showing only the final revision's comments. |
+| C6 | PARTIAL | Signed URL expiry was proven at the API level. I did not verify the UI renewing URLs. |
+| C7 | PASS | Quote accepted (DB `accepted`). Contract approved through the UI, and `approved_version_id` equals the current version. A tampered hash, B approving A's contract, an old version, and a mismatched hash are all rejected. The portal totals equal `event_financials` exactly (formatted ar-PS). |
+| A1 | PASS | Overview at 7 widths, 0 overflow. Older admin spec passes. |
+| A2 | PASS (older spec) | Invalid booking transition is rejected. |
+| A3 | PASS (older spec) | Upload creates variants, and publish is blocked without consent. |
+| A4 | **FAIL** | **Admins cannot create quotes** (see Bug 1). Contract versioning passes: a new version moves the contract to draft, the customer can't approve while it's draft, the admin resends v2, approving v1 or a mismatched hash is rejected, v2 is approved and the admin page shows "النسخة 2". Versions can't be updated or deleted. |
+| A5 | PARTIAL | Only console-clean checks on /admin/production. |
+| A6 | PASS | A ₪1,000 refund recorded through the owner UI: `refunded +100000`, `paid` unchanged, `balance +100000`, summary `net_cash −100000`, and the portal shows the same totals. Staff get an error on `admin_financial_summary` and see no payments. Admin gets an error on `record_payment`. Idempotent payment is covered by the older spec. |
+| A7 | NOT VERIFIED | |
+| A8 | PASS | Staff are denied 8 admin URLs and allowed 4. Admin is denied /users and /backups. Owner is allowed all. A customer gets nothing on /admin/finance. Staff see A1 and none of B's events. |
+| B1 | PASS | Admin cannot download, list or sign in the `backups` bucket; owner can. The older spec's backup run completes. |
+| Q1 | PASS | See above. |
+| Q2 | PASS | See above. |
+
+## Console, CSP, failed requests
+`qa-console` covers 12 public pages, 9 portal pages, 17 owner admin pages and 4 staff pages: **0** console errors, CSP violations, failed requests or 5xx responses. One environment artifact is excluded explicitly: the prod CSP's `upgrade-insecure-requests` upgrades the prefetch redirect of the header's `/portal` link (307 to `/login`) to `https://localhost:3400`, which gives `ERR_SSL_PROTOCOL_ERROR`. This only happens when serving the prod build over plain http and cannot occur on https. The server log also prints supabase-ssr's `getSession()` insecurity warning repeatedly. No direct `getSession()` call exists in `src/`; the warning appears to come from library internals.
+
+## Accessibility
+`@axe-core/playwright` is not installed, and QA may not run `npm install`. So I wrote checks for labels, visible focus, keyboard-only booking, focus trap/restore (mobile menu and lightbox) and a WCAG contrast estimator for text on solid backgrounds (text over images or gradients is skipped). All passed. A full axe run is still outstanding.
+
+Observations:
+- The gold focus ring `rgb(233,185,73)` on cream fields probably falls below 3:1 non-text contrast. I did not measure it formally.
+- After "التالي", focus is not moved into step 2. Keyboard users must Tab from wherever focus was left.
+
+## Visual comparison: `qa-home-1440.png` vs `design/approved-reference.png`
+1. No hero photograph (flat black panel). Production hides placeholder media by design, so the page cannot match until real media is published.
+2. Selected works shows one tile in the right half with the left half empty. The reference has a full-width row of two equal tiles.
+3. The project tile has no image and no gold play badge next to its title.
+4. The tile title renders as `Sample published project [DEV]`: the LTR seed text is not bidi-isolated (needs `dir="auto"`/`<bdi>`).
+5. The hero is shorter relative to the reference, and the title is a little smaller relative to the viewport.
+
+The header, nav, CTA styles, hero copy and service chips match.
+
+## Bugs
+| # | Severity | Issue | Repro | Status |
+|---|---|---|---|---|
+| 1 | **Major** | `quotes.quote_no` defaults to `'Q-' \|\| app.random_code(8)`, but EXECUTE on `app.random_code` is granted to neither `authenticated` nor `service_role`. **Every quote insert through the API fails with 42501**, including `/admin/quotes/new` (`features/quotes/actions.ts:20` uses the user client). Contract-from-quote depends on it. | `qa-admin.spec.ts` "A4: admin can create a quote" | Not fixed. Needs a migration: `grant execute on function app.random_code(int) to authenticated, service_role;` (or a definer wrapper). |
+| 2 | Minor | Before a contract is approved, `event_financials.contracted=0`, so the portal shows a **negative remaining balance** (−₪3,000) after the deposit. | Fresh seed, portal → payments | Not fixed (semantics) |
+| 3 | Minor | Unknown `/work/[slug]` and `/services/[slug]` return HTTP 200 (soft 404, noindex present). | `curl -o /dev/null -w %{http_code} :3400/work/nope` | Not fixed |
+| 4 | Minor (perf) | ScrollTrigger's rAF loop runs at about 60 fps on idle pages, including with reduced motion. | `qa-motion` annotation | Not fixed |
+| 5 | Minor (test) | pgTAP test 10 is order-dependent on storage contents. | Run `seed:storage` then `supabase test db` | Not fixed |
+| 6 | Minor (a11y) | Focus is not moved to step 2 of the booking form. | Keyboard on /book | Not fixed |
+| 7 | Info | `addContractVersion` inserts the new version while the contract is still `sent`, then sets `draft`. That leaves a tiny window where v2 is approvable before it is re-sent. | `features/contracts/actions.ts:47-52` | Not fixed |
+
+No application code was changed by QA.

@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
 import path from "node:path";
+import { isKnownLocalHttpsArtifact } from "./qa-helpers";
 
 /**
  * Public-site smoke: screenshots, horizontal overflow, console errors.
@@ -44,7 +45,7 @@ for (const route of PAGES) {
       const page = await browser.newPage({ viewport: { width, height: 900 } });
       const errors: string[] = [];
       page.on("console", (m) => {
-        if (m.type() === "error") errors.push(m.text());
+        if (m.type() === "error" && !isKnownLocalHttpsArtifact(m.text())) errors.push(m.text());
       });
       page.on("pageerror", (e) => errors.push(String(e)));
       await page.goto(`${BASE}${route}`, { waitUntil: "networkidle" });
