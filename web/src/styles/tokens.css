@@ -1,0 +1,29 @@
+/*
+ * Sultan Records design tokens — single source of truth.
+ * Values come from docs/architecture.md ("Design tokens") and the approved reference.
+ */
+:root {
+  --color-ink: #0b0b0b;
+  --color-ink-2: #151413;
+  --color-ink-line: #2a2724;
+  --color-cream: #f8f4ec;
+  --color-cream-2: #efe8db;
+  --color-cream-line: #ddd4c3;
+  --color-gold: #e9b949;
+  --color-gold-press: #d6a63a;
+  --color-on-dark: #f5f1e8;
+  --color-muted: #b8b0a2;
+  --color-on-cream: #141210;
+  --color-on-cream-muted: #5c554b;
+  --color-danger: #b4432f;
+  --color-success: #3f7a4f;
+
+  --radius-sm: 4px;
+  --radius-md: 6px;
+
+  --header-h: 88px;
+  --gutter: clamp(1rem, 4vw, 3.5rem);
+  --content-max: 1440px;
+
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+}
