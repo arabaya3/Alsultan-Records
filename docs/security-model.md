@@ -284,3 +284,19 @@ Locally, `seed.sql` creates both secrets with the well-known `supabase start` de
 - Effect: deleting an account removes the link to the deleted person, but content, hashes, items and totals stay as they were. `audit_events.actor` has no FK and keeps the historical uuid.
 - Audit result: no other immutable table has this conflict. `payments`, `booking_stage_history`, `expenses`, `quotes` and `contracts` are not immutable, and their SET NULL cascades are allowed. Payments, quotes and contracts write an audit row for the change.
 - Tested in `tests/60_user_deletion.sql`.
+
+## 14. Addendum (migration 0012): test-fixture purge
+
+- `purge_test_fixtures(p_prefix text) returns jsonb` is SECURITY DEFINER and **service_role only**. Accepted prefixes are exactly `[STAGING-TEST]` and `[RESTORE-TEST]`; any other value raises 22023.
+- It deletes, in this order:
+  - prefixed events and everything attached to them: media rows, payments, expenses, contract versions and contracts, quotes, snapshots and selections, reviews, deliverables, assignments;
+  - prefixed customers that have no non-prefixed events left;
+  - prefixed staff_members, equipment, support_requests and booking_requests.
+- The media storage paths go to `private.storage_cleanup_queue` with reason `test_purge`, and the worker deletes them.
+- `audit_events` are never deleted. One summary row is written instead (`action = 'purge_test_fixtures'`), holding the counts.
+- The append-only guard (`app.block_mutation_except_null_fk`) allows a DELETE only when all of these hold:
+  1. the transaction-local GUC `app.purge_test_fixtures = 'on'` with `app.purge_prefix` set (only this function sets them);
+  2. the caller is not an API role;
+  3. the row belongs to a prefixed event, contract or customer (`app.purge_allows`).
+
+  Non-test rows stay immutable even when the GUC is set.

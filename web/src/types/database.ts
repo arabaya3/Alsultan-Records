@@ -1033,6 +1033,9 @@ isOneToOne: false
               "status": Database["public"]['Enums']["support_status"],"updated_at": string
             }[]
                            },
+"purge_test_fixtures":
+{ Args: { "p_prefix": string }; Returns: Json
+                           },
 "record_payment":
 { Args: { "p_amount": number,"p_contract_id"?: string,"p_currency"?: string,"p_customer_id": string,"p_event_id"?: string,"p_idempotency_key": string,"p_kind"?: Database["public"]['Enums']["payment_kind"],"p_method": string,"p_received_at"?: string,"p_reference"?: string }; Returns: string
                            },
