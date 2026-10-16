@@ -1,0 +1,883 @@
+{
+  "generatedAt": "2026-10-16T07:35:05.097Z",
+  "base": "http://localhost:3900",
+  "tags": [
+    "wcag2a",
+    "wcag2aa",
+    "wcag21a",
+    "wcag21aa",
+    "wcag22aa"
+  ],
+  "axe": "@axe-core/playwright 4.14.0",
+  "totals": {
+    "critical": 0,
+    "serious": 0,
+    "moderate": 0,
+    "minor": 0
+  },
+  "summary": [
+    {
+      "page": "home@1440",
+      "url": "/",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "work@1440",
+      "url": "/work",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "work-detail@1440",
+      "url": "/work/dev-sample-published-project",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "services@1440",
+      "url": "/services",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "faq@1440",
+      "url": "/faq",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "contact@1440",
+      "url": "/contact",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "login@1440",
+      "url": "/login",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "404@1440",
+      "url": "/this-page-does-not-exist",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "book-step1@1440",
+      "url": "/book",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "book-step2@1440",
+      "url": "/book",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "book-errors@1440",
+      "url": "/book",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "track-notfound@1440",
+      "url": "/track",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "home@390",
+      "url": "/",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "work@390",
+      "url": "/work",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "work-detail@390",
+      "url": "/work/dev-sample-published-project",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "services@390",
+      "url": "/services",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "faq@390",
+      "url": "/faq",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "contact@390",
+      "url": "/contact",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "login@390",
+      "url": "/login",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "404@390",
+      "url": "/this-page-does-not-exist",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "book-step1@390",
+      "url": "/book",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "book-step2@390",
+      "url": "/book",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "book-errors@390",
+      "url": "/book",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "track-notfound@390",
+      "url": "/track",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "portal-home",
+      "url": "/portal",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "portal-event",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "portal-video",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/7ab048e0-04d5-4295-b4cf-4a6a8afa3377",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "portal-contracts",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/contracts",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "portal-payments",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/payments",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "portal-gallery-lightbox",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/gallery",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "portal-selection-review",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/selection",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "admin-overview",
+      "url": "/admin",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "admin-customers",
+      "url": "/admin/customers",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "admin-booking",
+      "url": "/admin/bookings/a40a92fa-01b4-4283-bf11-de0abb85001d",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "admin-event",
+      "url": "/admin/events/00000000-0000-4000-8000-0000000000e1",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "admin-event-media",
+      "url": "/admin/events/00000000-0000-4000-8000-0000000000e1/media",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "admin-users",
+      "url": "/admin/users",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "admin-settings",
+      "url": "/admin/settings",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "admin-confirm-dialog",
+      "url": "/admin/events/00000000-0000-4000-8000-0000000000e1",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "admin-finance-errors",
+      "url": "/admin/finance",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    },
+    {
+      "page": "admin-overview-nav-open@390",
+      "url": "/admin",
+      "critical": 0,
+      "serious": 0,
+      "moderate": 0,
+      "minor": 0
+    }
+  ],
+  "scans": [
+    {
+      "page": "home@1440",
+      "url": "/",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 1,
+      "passes": 23
+    },
+    {
+      "page": "work@1440",
+      "url": "/work",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 1,
+      "passes": 23
+    },
+    {
+      "page": "work-detail@1440",
+      "url": "/work/dev-sample-published-project",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 23
+    },
+    {
+      "page": "services@1440",
+      "url": "/services",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 23
+    },
+    {
+      "page": "faq@1440",
+      "url": "/faq",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 24
+    },
+    {
+      "page": "contact@1440",
+      "url": "/contact",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 23
+    },
+    {
+      "page": "login@1440",
+      "url": "/login",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 24
+    },
+    {
+      "page": "404@1440",
+      "url": "/this-page-does-not-exist",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 19
+    },
+    {
+      "page": "book-step1@1440",
+      "url": "/book",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 28
+    },
+    {
+      "page": "book-step2@1440",
+      "url": "/book",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 27
+    },
+    {
+      "page": "book-errors@1440",
+      "url": "/book",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 28
+    },
+    {
+      "page": "track-notfound@1440",
+      "url": "/track",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 27
+    },
+    {
+      "page": "home@390",
+      "url": "/",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 1,
+      "passes": 24
+    },
+    {
+      "page": "work@390",
+      "url": "/work",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 1,
+      "passes": 24
+    },
+    {
+      "page": "work-detail@390",
+      "url": "/work/dev-sample-published-project",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 24
+    },
+    {
+      "page": "services@390",
+      "url": "/services",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 24
+    },
+    {
+      "page": "faq@390",
+      "url": "/faq",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 25
+    },
+    {
+      "page": "contact@390",
+      "url": "/contact",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 24
+    },
+    {
+      "page": "login@390",
+      "url": "/login",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 24
+    },
+    {
+      "page": "404@390",
+      "url": "/this-page-does-not-exist",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 19
+    },
+    {
+      "page": "book-step1@390",
+      "url": "/book",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 28
+    },
+    {
+      "page": "book-step2@390",
+      "url": "/book",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 27
+    },
+    {
+      "page": "book-errors@390",
+      "url": "/book",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 28
+    },
+    {
+      "page": "track-notfound@390",
+      "url": "/track",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 27
+    },
+    {
+      "page": "portal-home",
+      "url": "/portal",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 24
+    },
+    {
+      "page": "portal-event",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 24
+    },
+    {
+      "page": "portal-video",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/7ab048e0-04d5-4295-b4cf-4a6a8afa3377",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 1,
+      "passes": 25
+    },
+    {
+      "page": "portal-contracts",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/contracts",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 1,
+      "passes": 24
+    },
+    {
+      "page": "portal-payments",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/payments",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 25
+    },
+    {
+      "page": "portal-gallery-lightbox",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/gallery",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 2,
+      "passes": 24
+    },
+    {
+      "page": "portal-selection-review",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/selection",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 22
+    },
+    {
+      "page": "admin-overview",
+      "url": "/admin",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 22
+    },
+    {
+      "page": "admin-customers",
+      "url": "/admin/customers",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 26
+    },
+    {
+      "page": "admin-booking",
+      "url": "/admin/bookings/a40a92fa-01b4-4283-bf11-de0abb85001d",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 27
+    },
+    {
+      "page": "admin-event",
+      "url": "/admin/events/00000000-0000-4000-8000-0000000000e1",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 28
+    },
+    {
+      "page": "admin-event-media",
+      "url": "/admin/events/00000000-0000-4000-8000-0000000000e1/media",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 26
+    },
+    {
+      "page": "admin-users",
+      "url": "/admin/users",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 27
+    },
+    {
+      "page": "admin-settings",
+      "url": "/admin/settings",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 24
+    },
+    {
+      "page": "admin-confirm-dialog",
+      "url": "/admin/events/00000000-0000-4000-8000-0000000000e1",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 11
+    },
+    {
+      "page": "admin-finance-errors",
+      "url": "/admin/finance",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 2,
+      "passes": 28
+    },
+    {
+      "page": "admin-overview-nav-open@390",
+      "url": "/admin",
+      "counts": {
+        "critical": 0,
+        "serious": 0,
+        "moderate": 0,
+        "minor": 0
+      },
+      "violations": [],
+      "incomplete": 0,
+      "passes": 22
+    }
+  ]
+}

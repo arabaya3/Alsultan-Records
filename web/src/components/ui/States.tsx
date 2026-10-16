@@ -44,7 +44,7 @@ export function Skeleton({ className = "" }: { className?: string }) {
 
 export function TileGridSkeleton({ count = 2 }: { count?: number }) {
   return (
-    <div className="grid gap-6 md:grid-cols-2" aria-busy="true" aria-label="جارِ التحميل">
+    <div className="grid gap-6 md:grid-cols-2" role="status" aria-busy="true" aria-label="جارِ التحميل">
       {Array.from({ length: count }, (_, i) => (
         <Skeleton key={i} className="aspect-[4/3] md:aspect-[16/7]" />
       ))}

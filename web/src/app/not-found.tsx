@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "الصفحة غير موجودة", r
 
 export default function NotFound() {
   return (
-    <main id="main" className="grid flex-1 place-items-center bg-ink px-[var(--gutter)] py-20 text-on-dark">
+    <main id="main" tabIndex={-1} className="grid flex-1 place-items-center bg-ink px-[var(--gutter)] py-20 text-on-dark">
       <div className="max-w-lg text-center">
         <div className="flex justify-center">
           <Logo height={80} />

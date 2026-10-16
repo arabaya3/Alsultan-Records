@@ -10,6 +10,7 @@
   --color-cream-line: var(--color-cream-line);
   --color-gold: var(--color-gold);
   --color-gold-press: var(--color-gold-press);
+  --color-gold-text: var(--color-gold-text);
   --color-on-dark: var(--color-on-dark);
   --color-muted: var(--color-muted);
   --color-on-cream: var(--color-on-cream);
@@ -46,6 +47,8 @@
     box-shadow: 0 0 0 6px var(--color-ink);
     border-radius: 2px;
   }
+  /* Skip-link target: focus moves here programmatically; the ring would frame the whole page. */
+  main[tabindex="-1"]:focus { outline: none; box-shadow: none; }
   ::selection {
     background: var(--color-gold);
     color: var(--color-ink);

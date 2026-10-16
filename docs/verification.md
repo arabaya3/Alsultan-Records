@@ -47,7 +47,7 @@ Spec files are in `web/tests/e2e/`. Final QA run: **44 passed, 1 failed** (the f
 | P3 | PASS with a note | Unknown service and project slugs render the 404 UI with `noindex`, but return **HTTP 200** (streamed PPR route). A truly unknown path returns 404. Soft 404, minor. |
 | P4 | PASS | Two steps. Success shows the tracking code and the "not a confirmed booking" copy. Two synchronous clicks on submit gave exactly **1** `booking_requests` row (DB check). A forced server-side error (per-phone rate limit) kept all 7 inputs. Can be completed keyboard-only. Turnstile is not configured locally, so it was not verified. |
 | P5 | PASS | Right code + last4 shows the status only (no name or phone). Wrong last4 shows a generic message. Rate limit exists in the RPC (20/h); I did not drive it to the limit. |
-| P6 | PASS | All public pages return 200 with `lang="ar" dir="rtl"`. Every form control on /book, /track, /contact and /login has a label. |
+| P6 | PASS | All public pages return 200 with `lang="ar" dir="rtl"`. Every form control on /book, /track, /contact and /login has a label. **A11y:** axe (WCAG 2.0/2.1 A+AA, 2.2 AA) found 0 violations at any impact on 24 public scans (12 screens × 1440/390, including book step 2, book errors and track not-found). Keyboard-only booking, skip link, error focus, bidi and 200% zoom all pass. See "A11y (release blocker)". |
 | P7 | PASS | robots has `Disallow: /admin /portal /auth /login /api /track` and `Sitemap: http://localhost:3100/sitemap.xml`. Every sitemap `<loc>` starts with `NEXT_PUBLIC_SITE_URL` (it includes the published project, no private routes). Canonical = SITE_URL + path on /, /work, /book and the project page. No emails, phones, keys or other customers' data in `<head>`. |
 | M1 | PASS with a note | With reduced motion there are no inline transform/opacity/clip styles on /, /work or the project page, before or after scroll. With normal motion, h1 is fully opaque by about 1.17 s after `goto` (the first entrance animation is not blocking). Styles are stable once idle, and no inline motion styles linger after client navigation. Video: `docs/motion/home-motion.webm`. **Note:** about 65 rAF calls/s continue while idle on every public page, in both motion modes. This is ScrollTrigger's internal loop (`function t(){return i2&&requestAnimationFrame(t)}`), started because `gsap.ts` registers the plugin when the module loads. `/login` (no GSAP) has 0. GSAP is bundled, so `gsap.globalTimeline` is not reachable from the page. There are no `<video>` elements on the prod home (no media), so the "offscreen video paused" check was vacuous. |
 | S1 | PASS (pgTAP) | 92/92 on a fresh reset (see Q1 caveat). |
@@ -58,14 +58,14 @@ Spec files are in `web/tests/e2e/`. Final QA run: **44 passed, 1 failed** (the f
 | S6 | PASS | `set_event_publication` without consent errors. A direct `is_published` update errors, and the DB is unchanged. |
 | S6 consent withdrawal (2026-10-16) | PASS | Release blocker closed (migration 0010, `/m` route, `storage-cleanup` function). See "S6: consent withdrawal" below. |
 | S7 | NOT VERIFIED directly | Covered only by pgTAP. |
-| C1 | PASS | Clearing cookies leads to `/login?next=/portal/events/…/files`. Logout removes all `sb-*` cookies, and back+reload stays on /login. A garbage cookie redirects to login. With `expires_at` set to the past and a valid refresh token, the session is refreshed: portal renders and the access token changes. |
+| C1 | PASS (+ a11y) | **A11y:** axe found 0 violations on 7 portal scans (home, event, gallery with the lightbox open, selection review, video, contracts, payments). Keyboard login, the lightbox (RTL arrows, trap, Esc and focus return) and keyboard selection submit all pass. Clearing cookies leads to `/login?next=/portal/events/…/files`. Logout removes all `sb-*` cookies, and back+reload stays on /login. A garbage cookie redirects to login. With `expires_at` set to the past and a valid refresh token, the session is refreshed: portal renders and the access token changes. |
 | C2 | PASS | `portal.spec` (2 own event cards, B's event shows not-found). |
 | C3 | PASS | All 200 tiles load. Every `<img>` has `complete && naturalWidth>0`, and every `currentSrc` is a signed `thumb.webp`. Lightbox keyboard nav and Esc focus restore work. Screenshot `qa-portal-gallery-1440.png`. |
 | C4 | PASS | 3 picks on A1 and 2 on A2 (DB counts). Submitting A1 leaves A2 as draft. The snapshot has `item_count=3`. Customer update/delete of the snapshot changes nothing, inserting an item into the submitted selection errors, and an admin update of the snapshot changes nothing. |
 | C5 | PASS | The real test video loads (duration >1 s), plays (currentTime >0.2) and seeks to 2.5 s. The comment saved with `timecode_ms=2500` on **revision 2**. Switching 13 times rapidly, then 3 times under 800 ms latency, always ends showing only the final revision's comments. |
 | C6 | PARTIAL | Signed URL expiry was proven at the API level. I did not verify the UI renewing URLs. |
 | C7 | PASS | Quote accepted (DB `accepted`). Contract approved through the UI, and `approved_version_id` equals the current version. A tampered hash, B approving A's contract, an old version, and a mismatched hash are all rejected. The portal totals equal `event_financials` exactly (formatted ar-PS). |
-| A1 | PASS | Overview at 7 widths, 0 overflow. Older admin spec passes. |
+| A1 | PASS | Overview at 7 widths, 0 overflow. Older admin spec passes. **A11y:** axe found 0 violations on 10 admin scans (overview, customers, booking, event, event media, users, settings, the open confirm dialog, finance with a payment error, and 390 with the nav open). The confirm dialog is modal and labelled, Esc and "تراجع" return focus to the trigger, and the skip link works. |
 | A2 | PASS (older spec) | Invalid booking transition is rejected. |
 | A3 | PASS (older spec) | Upload creates variants, and publish is blocked without consent. |
 | A4 | **FAIL** | **Admins cannot create quotes** (see Bug 1). Contract versioning passes: a new version moves the contract to draft, the customer can't approve while it's draft, the admin resends v2, approving v1 or a mismatched hash is rejected, v2 is approved and the admin page shows "النسخة 2". Versions can't be updated or deleted. |
@@ -160,6 +160,27 @@ Observations:
 - The gold focus ring `rgb(233,185,73)` on cream fields probably falls below 3:1 non-text contrast. I did not measure it formally.
 - After "التالي", focus is not moved into step 2. Keyboard users must Tab from wherever focus was left.
 
+## A11y (release blocker)
+2026-10-16, local, production build on :3900, `@axe-core/playwright` 4.14.0. Details, the fix list and the human follow-up are in `docs/a11y/notes.md`. Raw results are in `docs/a11y/axe-results.json`.
+
+| Spec | Result |
+|---|---|
+| `a11y-axe.spec.ts` (41 scans: public 24, portal 7, admin 10) | **4/4 passed.** Before fixes: serious `color-contrast` ×8 nodes (home step numbers 2.04:1, at 1440 and 390), serious `scrollable-region-focusable` ×1 (admin tables), serious `aria-prohibited-attr` ×1 (lightbox loading div), critical `label` ×1 (selection note textarea), and serious `label-content-name-mismatch` ×1 (introduced and fixed during the pass). After fixes: **0 critical / 0 serious / 0 moderate / 0 minor**. |
+| `a11y-manual.spec.ts` | **10/10 passed**: lang/dir, skip link (public/portal/admin), keyboard booking with focus visible on every stop, server-error focus to the first invalid field with aria-invalid + describedby, track/login/payment errors announced, the portal lightbox and selection by keyboard, the admin confirm dialog (modal, labelled, trapped, Esc/تراجع restore focus), the public mobile-menu dialog, RTL icons and bidi isolation, 200% zoom on / and /book, and reduced motion with no transform animations. |
+
+Full regression after the a11y fixes (production build on :3900; `db reset` + `seed:storage` before each group):
+| Group | Result |
+|---|---|
+| 1: `qa-*.spec.ts` (chromium + mobile) | 45 passed, 0 failed |
+| 2: `public` + `portal` + `admin` | 31 passed, 0 failed |
+| 3: `a11y-axe` + `a11y-manual` + `consent-revocation` (with `supabase functions serve`) + `empty-states` (non-empty mode only; the stub-Supabase build was not made) + `mfa` | 29 passed, 3 skipped (the empty-states stub mode), 0 failed |
+| `npx supabase test db` (fresh reset, and again after `seed:storage`) | PASS, 6 files, 139 tests, both times. On a DB already mutated by the e2e suites it fails (`album_selections_event_id_key` duplicate in `10_*` and `60_*` fixtures): an order dependency in the fixtures, not an app defect |
+| `npx tsc --noEmit` | exit 0 |
+| `npm run lint` | 0 errors, 1 warning (`scripts/check-bundle-secrets.mjs:28`, existing) |
+| `npx vitest run src` | 1 file, 6 tests passed. A bare `npx vitest run` also collects the 15 Playwright specs, which fail under vitest; there is no vitest config to exclude `tests/e2e` |
+
+App fixes are listed in `docs/a11y/notes.md` ("Fixes made"). **No screen reader was run.** NVDA and VoiceOver passes are still needed (list in the notes).
+
 ## Visual comparison: `qa-home-1440.png` vs `design/approved-reference.png`
 1. No hero photograph (flat black panel). Production hides placeholder media by design, so the page cannot match until real media is published.
 2. Selected works shows one tile in the right half with the left half empty. The reference has a full-width row of two equal tiles.
@@ -190,7 +211,12 @@ Bugs fixed:
 
 No DB policy bug was found, so there is no new migration.
 
-Not proven:
+Leftovers, now covered by `mfa.spec.ts` tests 6 and 7 (2026-10-16, :3900). The global flag is set to `true` as postgres and restored to `false` in afterAll; it read `f` after the run. A new `staff`-role user is created through the auth admin API with a `staff_members` row assigned to B1:
+- aal1: `/admin`, `/admin/events/B1` and `/admin/production` all redirect to `step=mfa`. Through the API: `staff_mfa_required()` = true. No events beyond anon's, 0 `event_staff_assignments`, 0 B1 media, 0 deliverables. Insert of a deliverable on B1 gives **42501**. `media_assets` and `events` updates on B1 change 0 rows (re-checked in the DB as postgres).
+- After TOTP enrollment at aal2: the visible private events are exactly `[B1]`, and assignments are B1 only. A1 media is 0 and B1 media is >0. `admin_financial_summary` gives 42501, payments 0 rows, and `profiles` only the user's own row. The UI `/admin/finance` and `/admin/users` show `forbidden`. Positive control: the same deliverable insert on B1 now succeeds, while one on A1 is rejected. The user, staff row, assignment and test deliverable are deleted afterwards.
+- Server actions were still not POSTed directly. Writes were proven at the RLS layer instead.
+
+Previously not proven (kept for history):
 - The `app_settings.require_staff_mfa = true` path was not exercised end to end. Other suites share the DB, so the spec uses the per-profile flag (`mfa_required`) instead. `app.require_mfa()` ORs the two flags.
 - No assigned-staff (role `staff`) user was tested. The spec only uses admin.
 - Server actions were not called directly at aal1. They use the same `guard()`/`requireRole()`, and RLS denies the data.
@@ -204,7 +230,7 @@ Not proven:
 | 3 | Minor | Unknown `/work/[slug]` and `/services/[slug]` return HTTP 200 (soft 404, noindex present). | `curl -o /dev/null -w %{http_code} :3400/work/nope` | Not fixed |
 | 4 | Minor (perf) | ScrollTrigger's rAF loop runs at about 60 fps on idle pages, including with reduced motion. | `qa-motion` annotation | Not fixed |
 | 5 | Minor (test) | pgTAP test 10 is order-dependent on storage contents. | Run `seed:storage` then `supabase test db` | Not fixed |
-| 6 | Minor (a11y) | Focus is not moved to step 2 of the booking form. | Keyboard on /book | Not fixed |
+| 6 | Minor (a11y) | Focus is not moved to step 2 of the booking form. | Keyboard on /book | Fixed (the step-2 heading gets focus; asserted in `a11y-manual`) |
 | 7 | Info | `addContractVersion` inserts the new version while the contract is still `sent`, then sets `draft`. That leaves a tiny window where v2 is approvable before it is re-sent. | `features/contracts/actions.ts:47-52` | Not fixed |
 
 No application code was changed by QA.

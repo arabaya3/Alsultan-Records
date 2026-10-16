@@ -15,7 +15,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           <p className="mt-2 text-muted">صورك وأفلامك وعقودك في مكان واحد.</p>
         </div>
       </aside>
-      <main id="main" className="flex flex-1 items-center justify-center bg-cream px-4 py-12 text-on-cream md:px-10">
+      <main id="main" tabIndex={-1} className="flex flex-1 items-center justify-center bg-cream px-4 py-12 text-on-cream md:px-10">
         <div className="w-full max-w-md">{children}</div>
       </main>
     </div>

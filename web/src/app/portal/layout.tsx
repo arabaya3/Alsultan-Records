@@ -30,7 +30,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </div>
         </div>
       </header>
-      <main id="main" className="flex-1 bg-cream">
+      <main id="main" tabIndex={-1} className="flex-1 bg-cream">
         {children}
       </main>
     </>

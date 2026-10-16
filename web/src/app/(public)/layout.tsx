@@ -5,7 +5,7 @@ export default function PublicLayout({ children }: LayoutProps<"/">) {
   return (
     <>
       <Header />
-      <main id="main" className="flex-1">
+      <main id="main" tabIndex={-1} className="flex-1">
         {children}
       </main>
       <Footer />

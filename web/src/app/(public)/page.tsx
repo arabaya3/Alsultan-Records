@@ -219,7 +219,7 @@ export default async function HomePage() {
           <ol className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
             {STEPS.map((step, i) => (
               <li key={step.title} data-reveal className="border-t-2 border-on-cream pt-5">
-                <span className="font-display text-sm text-gold-press">{`0${i + 1}`}</span>
+                <span className="font-display text-sm text-gold-text">{`0${i + 1}`}</span>
                 <h3 className="mt-2 text-xl font-semibold">{step.title}</h3>
                 <p className="mt-2 text-on-cream-muted">{step.body}</p>
               </li>
@@ -236,7 +236,7 @@ export default async function HomePage() {
             {reviewList.map((r) => (
               <li key={r.id}>
                 <figure>
-                  <p className="text-gold-press" aria-label={`التقييم ${r.rating} من 5`}>
+                  <p role="img" className="text-gold-text" aria-label={`التقييم ${r.rating} من 5`}>
                     {"★".repeat(r.rating)}
                   </p>
                   <blockquote className="mt-3 text-lg leading-relaxed">{r.body}</blockquote>

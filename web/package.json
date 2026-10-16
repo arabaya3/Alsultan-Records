@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "seed:storage": "node scripts/seed-storage.mjs"
+    "seed:storage": "node scripts/seed-storage.mjs",
+    "test:unit": "vitest run",
+    "test:db": "supabase test db",
+    "test:e2e": "playwright test"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

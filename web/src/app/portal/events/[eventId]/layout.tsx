@@ -21,7 +21,7 @@ async function EventHeader({ params }: { params: Promise<{ eventId: string }> })
       </p>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-3xl font-bold md:text-4xl" data-testid="event-title">
-          {e.title}
+          <bdi dir="auto">{e.title}</bdi>
           <span className="text-gold">.</span>
         </h1>
         <p className="text-muted">

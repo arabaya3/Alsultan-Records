@@ -35,7 +35,7 @@ async function Files({ params }: { params: Promise<{ eventId: string }> }) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p>
                     <span className="text-on-cream-muted">{DELIVERABLE_KIND[d.kind]} · </span>
-                    <span className="font-semibold">{d.title}</span>
+                    <span className="font-semibold"><bdi dir="auto">{d.title}</bdi></span>
                   </p>
                   <StatusPill status={d.status} />
                 </div>

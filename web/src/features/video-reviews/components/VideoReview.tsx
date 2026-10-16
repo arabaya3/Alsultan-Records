@@ -269,7 +269,7 @@ export function VideoReview({ revisions, status }: { revisions: Rev[]; status: s
                   <span className="text-on-cream-muted">{c.mine ? "أنت" : "فريق الاستوديو"}</span>
                   {c.resolved ? <span className="ms-auto text-success">تمت المعالجة</span> : null}
                 </div>
-                <p className="whitespace-pre-line">{c.body}</p>
+                <p className="whitespace-pre-line"><bdi dir="auto">{c.body}</bdi></p>
               </li>
             ))}
           </ol>

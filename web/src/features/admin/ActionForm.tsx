@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useRef, type FormEvent, type ReactNode } from "react";
+import { startTransition, useActionState, useId, useRef, type FormEvent, type ReactNode } from "react";
 import type { ActionResult } from "./result";
 
 type Action = (prev: ActionResult, fd: FormData) => Promise<ActionResult>;
@@ -47,6 +47,8 @@ export function ActionForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  const bodyId = useId();
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(async (prev, fd) => {
     const r = await action(prev, fd);
     if (r.ok && resetOnSuccess) formRef.current?.reset();
@@ -101,14 +103,15 @@ export function ActionForm({
       {confirm ? (
         <dialog
           ref={dialogRef}
-          aria-labelledby="confirm-title"
+          aria-labelledby={titleId}
+          aria-describedby={confirm.body ? bodyId : undefined}
           className="m-auto w-[min(92vw,28rem)] rounded-md border border-cream-line bg-cream p-0 text-on-cream backdrop:bg-ink/60"
         >
           <div className="p-5">
-            <h2 id="confirm-title" className="text-lg font-semibold">
+            <h2 id={titleId} className="text-lg font-semibold">
               {confirm.title}
             </h2>
-            {confirm.body ? <p className="mt-2 text-sm text-on-cream-muted">{confirm.body}</p> : null}
+            {confirm.body ? <p id={bodyId} className="mt-2 text-sm text-on-cream-muted">{confirm.body}</p> : null}
             <div className="mt-5 flex flex-wrap justify-end gap-2">
               <button type="button" className={`${btnBase} ${KIND.ghost}`} onClick={() => dialogRef.current?.close()}>
                 تراجع

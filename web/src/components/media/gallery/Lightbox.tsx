@@ -149,7 +149,7 @@ export function Lightbox({
               className="absolute inset-0 h-full w-full object-contain transition-opacity duration-300"
             />
           ) : (
-            <div className="absolute inset-0 animate-pulse rounded-sm bg-ink-2" aria-label="جارِ التحميل" />
+            <div role="status" className="absolute inset-0 animate-pulse rounded-sm bg-ink-2" aria-label="جارِ التحميل" />
           )}
         </div>
 

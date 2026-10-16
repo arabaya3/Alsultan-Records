@@ -203,3 +203,133 @@ test("5. disabled staff with a valid aal2 session gets nothing (API + UI)", asyn
     psql(`update public.profiles set disabled = false where id = '${userId}';`);
   }
 });
+
+/**
+ * S4 leftovers: the GLOBAL flag app_settings.require_staff_mfa = true (set as postgres, restored to
+ * false afterwards) with a real `staff`-role user assigned to one seeded event (B1).
+ * Must not run concurrently with other suites (the global flag affects every staff login).
+ */
+test.describe("global require_staff_mfa + assigned staff", () => {
+  const S = { email: `mfa.staff.${STAMP}@dev.local`, password: `MfaStaff!${STAMP}` };
+  const ASSIGNED = "00000000-0000-4000-8000-0000000000e3"; // B1 (customer B)
+  const A1 = "00000000-0000-4000-8000-0000000000e1";
+  const STAFF_ROW = crypto.randomUUID();
+  const TITLE = `[MFA QA] ${STAMP}`;
+  let staffId = "";
+  let staffSecret = "";
+  let anonEventIds: string[] = [];
+
+  async function staff1(): Promise<SupabaseClient> {
+    const c = client();
+    const { error } = await c.auth.signInWithPassword(S);
+    if (error) throw error;
+    return c;
+  }
+  async function staff2(): Promise<SupabaseClient> {
+    const c = await staff1();
+    const { data } = await c.auth.mfa.listFactors();
+    const { error } = await c.auth.mfa.challengeAndVerify({ factorId: data!.totp[0].id, code: await freshTotp(staffSecret) });
+    if (error) throw error;
+    return c;
+  }
+  /** Event ids visible beyond what anon sees (the staff-only view). */
+  async function privateEvents(c: SupabaseClient) {
+    const ids = ((await c.from("events").select("id")).data ?? []).map((r) => r.id as string);
+    return ids.filter((id) => !anonEventIds.includes(id)).sort();
+  }
+  async function staffLogin(page: Page) {
+    await page.goto(`${BASE}/login?next=/admin`);
+    await page.locator("#email").fill(S.email);
+    await page.locator("#password").fill(S.password);
+    await page.getByRole("button", { name: "تسجيل الدخول" }).click();
+    await page.waitForURL((u) => u.pathname === "/login" && u.searchParams.get("step") === "mfa", { timeout: 60_000 });
+  }
+
+  test.beforeAll(async () => {
+    anonEventIds = ((await anon().from("events").select("id")).data ?? []).map((r) => r.id as string);
+    const { data, error } = await db.auth.admin.createUser({ ...S, email_confirm: true });
+    if (error) throw error;
+    staffId = data.user.id;
+    psql(
+      `update public.profiles set role = 'staff', mfa_required = false, full_name = 'MFA Staff QA' where id = '${staffId}';` +
+        `insert into public.staff_members (id, profile_id, full_name, specialty, phone) values ('${STAFF_ROW}', '${staffId}', '[MFA QA] Staff', 'photo', '0500000099');` +
+        `insert into public.event_staff_assignments (event_id, staff_id, role_label) values ('${ASSIGNED}', '${STAFF_ROW}', 'photographer');` +
+        `update public.app_settings set require_staff_mfa = true where id = 1;`,
+    );
+    expect(psql(`select require_staff_mfa from public.app_settings where id = 1;`)).toBe("t");
+  });
+
+  test.afterAll(async () => {
+    psql(`update public.app_settings set require_staff_mfa = false where id = 1;`);
+    psql(`delete from public.deliverables where title = '${TITLE}';`);
+    psql(`delete from public.event_staff_assignments where staff_id = '${STAFF_ROW}'; delete from public.staff_members where id = '${STAFF_ROW}';`);
+    if (staffId) {
+      const { error } = await db.auth.admin.deleteUser(staffId);
+      if (error) psql(`update public.profiles set disabled = true where id = '${staffId}';`);
+    }
+    expect(psql(`select require_staff_mfa from public.app_settings where id = 1;`)).toBe("f");
+  });
+
+  test("6. staff at aal1 (global flag): /admin goes to MFA; API returns no assigned-event data; writes rejected", async ({ page }) => {
+    await staffLogin(page);
+    expect(await jwtAal(page)).toBe("aal1");
+    for (const p of ["/admin", `/admin/events/${ASSIGNED}`, "/admin/production"]) {
+      await page.goto(`${BASE}${p}`);
+      await expect(page, p).toHaveURL(/[?&]step=mfa/, { timeout: 30_000 });
+    }
+
+    const c1 = await staff1();
+    expect((await c1.rpc("staff_mfa_required")).data).toBe(true);
+    expect(await privateEvents(c1)).toEqual([]);
+    expect((await c1.from("event_staff_assignments").select("event_id")).data ?? []).toEqual([]);
+    expect((await c1.from("media_assets").select("id").eq("event_id", ASSIGNED)).data ?? []).toEqual([]);
+    expect((await c1.from("deliverables").select("id")).data ?? []).toEqual([]);
+    // Writes the same user may do at aal2 (positive control in test 7) are rejected at aal1.
+    const ins = await c1.from("deliverables").insert({ event_id: ASSIGNED, kind: "video", title: TITLE }).select("id");
+    expect(ins.data ?? []).toEqual([]);
+    expect(ins.error?.code).toBe("42501");
+    const media = await c1.from("media_assets").update({ sort_order: 9999 }).eq("event_id", ASSIGNED).select("id");
+    expect(media.data ?? []).toEqual([]);
+    const ev = await c1.from("events").update({ venue: "[MFA QA]" }).eq("id", ASSIGNED).select("id");
+    expect(ev.data ?? []).toEqual([]);
+    expect(psql(`select count(*) from public.deliverables where title = '${TITLE}';`)).toBe("0");
+    expect(psql(`select count(*) from public.media_assets where event_id = '${ASSIGNED}' and sort_order = 9999;`)).toBe("0");
+  });
+
+  test("7. staff enrolls TOTP -> aal2: only the assigned event; still no finance or users", async ({ page }) => {
+    await staffLogin(page);
+    await page.getByRole("button", { name: "إعداد تطبيق المصادقة" }).click();
+    const secretEl = page.locator("code[dir=ltr]");
+    await expect(secretEl).toHaveText(/^[A-Z2-7]{16,}$/);
+    staffSecret = (await secretEl.textContent())!.trim();
+    await page.locator("#code").fill(await freshTotp(staffSecret));
+    await page.getByRole("button", { name: "تحقّق" }).click();
+    await page.waitForURL((u) => u.pathname.startsWith("/admin"), { timeout: 60_000 });
+    expect(await jwtAal(page)).toBe("aal2");
+    await page.goto(`${BASE}/admin/events/${ASSIGNED}`);
+    await expect(page.getByTestId("forbidden")).toHaveCount(0);
+    await expect(page.locator("main h1, main h2").first()).toBeVisible();
+    for (const p of ["/admin/finance", "/admin/users"]) {
+      await page.goto(`${BASE}${p}`);
+      await expect(page.getByTestId("forbidden"), p).toBeVisible({ timeout: 30_000 });
+    }
+
+    const c2 = await staff2();
+    expect(await privateEvents(c2)).toEqual([ASSIGNED]);
+    const assigned = ((await c2.from("event_staff_assignments").select("event_id")).data ?? []).map((r) => r.event_id);
+    expect([...new Set(assigned)]).toEqual([ASSIGNED]);
+    expect((await c2.from("media_assets").select("id").eq("event_id", A1)).data ?? []).toEqual([]);
+    expect(((await c2.from("media_assets").select("id").eq("event_id", ASSIGNED)).data ?? []).length).toBeGreaterThan(0);
+    const fin = await c2.rpc("admin_financial_summary", { p_from: "2000-01-01", p_to: "2100-01-01" });
+    expect(fin.error?.code).toBe("42501");
+    expect((await c2.from("payments").select("id")).data ?? []).toEqual([]);
+    const profiles = ((await c2.from("profiles").select("id")).data ?? []).map((r) => r.id);
+    expect(profiles.filter((id) => id !== staffId)).toEqual([]);
+    // Positive control: at aal2 the same write succeeds on the assigned event only.
+    const ins = await c2.from("deliverables").insert({ event_id: ASSIGNED, kind: "video", title: TITLE }).select("id");
+    expect(ins.error).toBeNull();
+    expect(ins.data?.length).toBe(1);
+    const other = await c2.from("deliverables").insert({ event_id: A1, kind: "video", title: TITLE }).select("id");
+    expect(other.data ?? []).toEqual([]);
+  });
+});

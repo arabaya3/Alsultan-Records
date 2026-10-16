@@ -4,7 +4,7 @@ import Link from "next/link";
 
 export default function ErrorPage({ retry }: { error: Error & { digest?: string }; retry: () => void }) {
   return (
-    <main id="main" className="grid flex-1 place-items-center bg-ink px-[var(--gutter)] py-20 text-on-dark">
+    <main id="main" tabIndex={-1} className="grid flex-1 place-items-center bg-ink px-[var(--gutter)] py-20 text-on-dark">
       <div className="max-w-lg text-center">
         <h1 className="text-4xl font-bold md:text-5xl">
           صار خلل مؤقت<span className="text-gold">.</span>

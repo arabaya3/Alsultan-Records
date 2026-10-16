@@ -1,73 +1,70 @@
 # Handoff — Sultan Records rebuild
 
 Branch `rebuild/nextjs` · original site preserved on `master` (commit `1477294`) and untouched at the repo root.
+Old Supabase project `peufggxvklpnaytyklgg` was never read or written. The new project `dyuixzxmmeiypvawzmty` has **not been written to yet**.
 
-## Status at a glance
+## Status at a glance (2026-10-16)
 
-| Layer | Implemented | Tested locally | Verified against new backend (`dyuixzxmmeiypvawzmty`) | Deployed |
-|---|---|---|---|---|
-| Database (9 migrations, RLS, RPCs, storage) | ✅ | ✅ pgTAP 100/100 | ⛔ blocked: no access token | — |
-| Public site + motion | ✅ | ✅ | ⛔ | — |
-| Client portal | ✅ | ✅ | ⛔ | — |
-| Administration | ✅ | ✅ | ⛔ | — |
-| Staging deploy | — | — | — | ⛔ not authorized/credentials missing |
+| Area | Implemented | Tested locally | Verified against new backend | Blocked by account access | Deployed |
+|---|---|---|---|---|---|
+| Database: 11 migrations, RLS, RPCs, storage, cron | ✅ | ✅ pgTAP 139/139 | ❌ | ✅ needs access token | — |
+| Public site, motion, empty states | ✅ | ✅ | ❌ | ✅ | ❌ not authorized |
+| Client portal | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Administration | ✅ | ✅ | ❌ | ✅ | ❌ |
+| Consent withdrawal (gated media + durable cleanup) | ✅ | ✅ | ❌ (Edge Function + Vault secrets) | ✅ | — |
+| MFA (enroll/challenge/logout/aal1 API denial) | ✅ | ✅ | ❌ (Auth TOTP + hook config) | ✅ | — |
+| Accessibility | ✅ | ✅ axe 0 violations, 41 scans | — | — | — |
+| Backup / restore | ✅ | ✅ isolated local restore 101/101 | ❌ cloud restore **pending** | ✅ | — |
+| Staging tooling | ✅ | ✅ dry-run safe; verify 68/68 locally | ❌ | ✅ | — |
 
-Old project `peufggxvklpnaytyklgg` was never read or written.
+## Release blockers — evidence
+| Blocker | Result | Evidence |
+|---|---|---|
+| Consent withdrawal | Public media is no longer served from a public bucket. `GET /m/{asset}/{variant}` re-checks consent + publication on every request (RLS + storage policy). Withdrawal unpublishes in the same transaction; **the same URL returns 404 `no-store` on the next request**. Cached 200s live at most **60 s** (`max-age=60, s-maxage=60`, `stale-while-revalidate=0`); a CDN purge of `/m/{asset}/` can shorten that. Admin/staff cannot re-grant consent or republish after a customer withdrawal (DB-enforced). Published copies are deleted by a durable queue: pg_cron every minute → `storage-cleanup` Edge Function with backoff, 5 attempts, dead-letter; plus an immediate best-effort call. Private originals are preserved. | pgTAP `40_consent_revocation.sql` (26), `consent-revocation.spec.ts` 6/6, `docs/security-model.md` §13 |
+| MFA | Enrollment, challenge, wrong code, correct code, logout in a real browser. aal1 staff/admin sessions: pages redirect to the MFA step; direct API reads return nothing private, admin RPCs 42501, writes rejected; same calls succeed at aal2. Global `require_staff_mfa` switch + real `staff` user verified. Disabled account denied even with an aal2 token. | `mfa.spec.ts` 7 tests, `verification.md` S4 |
+| Accessibility | axe (WCAG 2.0/2.1/2.2 A+AA) on 41 public/portal/admin scans → 0 violations at every impact after fixing 5 serious/critical. Keyboard, focus, dialogs, form errors, RTL, 200% zoom, reduced motion: 10/10 checks. | `a11y-axe.spec.ts`, `a11y-manual.spec.ts`, `docs/a11y/` |
+| Backup recovery | Restored into a second, isolated local Supabase stack: rows byte-identical, relationships and contract hashes intact, `event_financials` equal, passwords work, RLS still isolates customers, 418/418 storage objects with matching sha256, signed URLs work for owners only. Tampered restore → 6 failures, exit 1. | `docs/restore-report.json`, `docs/backup-restore.md`, `verification.md` B1 |
+| Production empty states | With no media/projects/reviews/services the homepage keeps the original logo, headline, booking action, services, process and contact; the works section is hidden, no placeholders or generated images render. | `empty-states.spec.ts` (stub run 3/3), `docs/screenshots/empty-home-*.png` |
 
-## Final verification (run by the lead on 2026-10-16, production build, fresh DB each suite)
-- `npx tsc --noEmit` → clean · `npm run lint` → clean · `npm run build` → success (61 pages).
-- `npx supabase db reset && npx supabase test db` → **4 files, 100 tests, PASS**.
-- `npm run seed:storage` → 208 media rows, 418 objects, 0 failed.
-- `BASE_URL=http://localhost:3400 npx playwright test tests/e2e/qa-` → **45/45 passed**.
-- `… tests/e2e/public.spec.ts portal.spec.ts admin.spec.ts` → **31/31 passed**.
-- HTTP: `/` `/work` `/services` `/book` 200; unknown `/work/*`, `/services/*`, unknown path 404; `/admin`, `/portal` unauthenticated → 307 to `/login?next=`.
-- Secret scan of `.next/static`: secret key value 0, IP hash secret 0, `service_role` 0.
-Full per-feature evidence: `docs/verification.md`. Screenshots: `docs/screenshots/` (home-1440-v2, qa-*, portal-*, admin-*). Motion recording: `docs/motion/home-motion.webm`.
+## Final regression (fresh DB before each group, production build)
+- `npx tsc --noEmit` exit 0 · `npm run lint` 0 errors (1 pre-existing warning) · `npm run build` OK · `npm run test:unit` 6/6.
+- `npx supabase test db` → **6 files, 139 tests, PASS** (on a fresh reset; the suite assumes seed state).
+- Playwright: `qa-*` **45 passed** · `public/portal/admin` **31 passed** · `a11y-*`, `consent-revocation`, `empty-states`, `mfa` **29 passed, 3 skipped** (the skipped 3 are empty-states stub mode, which needs a separate stub build; it passed 3/3 in its own run).
+- Secret scan of the client bundle (`scripts/check-bundle-secrets.mjs`): clean.
 
-## Agent workstreams
-| Agent | Result |
-|---|---|
-| Backend & security | 9 migrations, ~25 RPCs, owner-only backups bucket, storage cleanup queue, pgTAP 100 tests, `docs/security-model.md` |
-| Design system, public site & motion | Reference-matched homepage, 12 public routes, booking + tracking, SEO, GSAP motion with reduced-motion/save-data handling |
-| Client portal | Auth (password, magic link, reset, TOTP step), event-centred portal, 200+ image gallery, per-event selection + immutable snapshot, video review per revision/timecode, signed URL helper |
-| Administration | 31 admin pages, role guards, upload pipeline with WebP variants, publishing with consent, finance, staff/equipment, backups, cleanup worker |
-| QA | 8 independent suites; found 1 major bug (quote creation) + 7 minor — all fixed and re-verified |
+## Staging migration (ready, not run)
+Runbook: `docs/staging.md`. Minimum account steps for you:
+1. Create a personal access token at supabase.com/dashboard/account/tokens.
+2. Create `web/.env.staging.local` (gitignored — verified) with these **names** (values never in chat):
+   `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `SUPABASE_PROJECT_REF` (= `dyuixzxmmeiypvawzmty`), `STAGING_SITE_URL`.
+3. Tell me it exists. I will then run, in order: `staging-preflight.mjs` (read-only: verifies the ref, refuses the old project, reports remote state) → `staging-apply.mjs` dry run → `--apply` (migrations only, no seed; Auth site URL/redirects, access-token hook, TOTP; buckets check; Edge Function + secret + Vault; cron check; app env file) → owner bootstrap (you set `OWNER_EMAIL` in your shell; the one-shot token lives only in a gitignored file and is deleted after use) → `staging-verify.mjs --target staging` (authorization checks against the cloud with temporary `[STAGING-TEST]` data, then cleanup).
+4. Manual dashboard items that remain: custom SMTP (free plan only emails project members), Turnstile widget hostnames.
+Local results do not prove cloud configuration; staging is verified only when `staging-verify` passes against it.
+
+## Remaining limitations (honest)
+- No screen-reader pass (NVDA/VoiceOver) yet; some admin/portal tabs not axe-scanned (list in `docs/a11y/notes.md`).
+- CDN behaviour for consent withdrawal not tested behind a real CDN; bounded by the 60 s max-age.
+- Server actions at aal1 not POSTed directly; proven at the RLS layer and page guards.
+- Free plan: 50 MB global upload cap despite 2 GiB bucket limits; large videos need a paid tier or an external video provider (boundary documented, not integrated).
+- Deleting an event that has a submitted album selection is blocked on purpose (immutable record).
+- Edge Function uses the platform `SUPABASE_SERVICE_ROLE_KEY`; disabling legacy keys would break cleanup (`cron-verify` step detects it).
+- CSP keeps `'unsafe-inline'` for scripts (static rendering).
+- Privacy/terms copy is a draft pending legal review.
+- Real studio media is required before launch; nothing fictional is published.
 
 ## Run locally
 ```bash
 cd web
-npm ci
-npx playwright install chromium        # tests only
-npx supabase start                     # Docker required
+npm ci && npx playwright install chromium
+npx supabase start                     # Docker
 npx supabase db reset && npm run seed:storage
-cp .env.example .env.local             # fill from `npx supabase status -o env`; add IP_HASH_SECRET (32+ chars)
-npm run dev -- -p 3100                 # port 8080 is used by another project on this machine
+cp .env.example .env.local             # fill from `npx supabase status -o env`; IP_HASH_SECRET 32+ chars
+npm run dev -- -p 3100                 # port 8080 belongs to another project on this machine
+npx supabase functions serve           # for the consent cleanup function locally
 ```
-Dev logins are listed in comments at the top of `web/supabase/seed.sql` (local only).
-
-## Remaining blockers and exact steps for you
-1. **Push the schema to the new project** — create `web/.env.staging.local` with `SUPABASE_ACCESS_TOKEN` (supabase.com/dashboard/account/tokens) and `SUPABASE_DB_PASSWORD`. Never paste them in chat. Then (I can run these once the file exists):
-   ```bash
-   npx supabase link --project-ref dyuixzxmmeiypvawzmty
-   npx supabase db push            # migrations only; seed is NOT pushed
-   ```
-2. **Dashboard settings on the new project** (Authentication):
-   - Custom Access Token hook → `app.custom_access_token_hook`.
-   - Enable TOTP MFA.
-   - Site URL + redirect allowlist = the staging URL (and later the real domain).
-3. **First owner**: set the bootstrap token hash in `private.bootstrap` via SQL editor, sign up, call `bootstrap_initial_owner` once (procedure in `docs/security-model.md`).
-4. **Turnstile**: create a widget for the staging/real hostname; set `NEXT_PUBLIC_TURNSTILE_SITE_KEY` + `TURNSTILE_SECRET_KEY`.
-5. **Real media**: the site hides empty portfolio/hero sections in production. Upload real, consented work from `/admin/events/[id]/media` and publish.
-6. **Staging hosting**: choose Vercel or Cloudflare; I will not deploy or replace the production site without your explicit go-ahead.
-
-## Known gaps (honest)
-- Staff MFA (aal2) enforcement is pgTAP-tested but not e2e (seed disables MFA locally).
-- Storage cleanup is scheduled (pg_cron every minute -> `storage-cleanup` Edge Function). Staging needs the Vault secrets `storage_cleanup_url` and `storage_cleanup_key`, see security-model section 13.
-- Video streaming uses signed MP4 URLs; an external streaming provider boundary is documented in `docs/backup-restore.md` but not integrated.
-- Axe accessibility audit not run (`@axe-core/playwright` not installed); custom label/focus/contrast checks pass.
-- CSP keeps `'unsafe-inline'` for scripts (needed by static rendering); nonce-based CSP would disable static pages.
-- Privacy/terms copy is a draft pending local legal review.
-- Backups exclude `auth.*`; storage binaries are covered by a manifest + documented S3 sync (`docs/backup-restore.md`). Restore has not been rehearsed against an isolated cloud project.
+Dev logins: comments at the top of `web/supabase/seed.sql` (local only).
 
 ## Rollback
-The new app lives entirely in `web/`; the live site is untouched. Database rollback = restore from backup or `supabase db reset` on a non-production project; migrations are forward-only.
+The new app lives entirely in `web/`; the live site is untouched. On staging: pause the project, or reset it (destructive — explicit confirmation required). Migrations are forward-only; restore procedure in `docs/backup-restore.md`.
+
+No public hosting deploy and no replacement of the current website until you explicitly authorize it.

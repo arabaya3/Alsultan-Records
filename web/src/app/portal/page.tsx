@@ -28,7 +28,7 @@ async function Events() {
                 <p className="text-sm text-on-cream-muted">
                   {[eventTypeLabel(e.event_type), dateAr(e.event_date), e.city].filter(Boolean).join(" · ")}
                 </p>
-                <h2 className="mt-1 text-2xl font-bold">{e.title}</h2>
+                <h2 className="mt-1 text-2xl font-bold"><bdi dir="auto">{e.title}</bdi></h2>
               </div>
               <span className="shrink-0 rounded-sm bg-ink px-2.5 py-1 text-xs text-on-dark">{EVENT_STATUS[e.status] ?? e.status}</span>
             </div>
@@ -60,7 +60,7 @@ export default function PortalHome() {
       </h1>
       <Suspense
         fallback={
-          <div className="grid gap-6 md:grid-cols-2" aria-busy="true" aria-label="جارِ التحميل">
+          <div className="grid gap-6 md:grid-cols-2" role="status" aria-busy="true" aria-label="جارِ التحميل">
             <Skeleton className="h-64" />
             <Skeleton className="h-64" />
           </div>

@@ -65,6 +65,7 @@ export function BookingForm() {
   const keyRef = useRef<string | null>(null);
   const step2HeadingRef = useRef<HTMLHeadingElement>(null);
   const focusStep2 = useRef(false);
+  const alertRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (step === 2 && focusStep2.current) {
@@ -72,6 +73,13 @@ export function BookingForm() {
       step2HeadingRef.current?.focus();
     }
   }, [step]);
+
+  // On a server error, move focus to the first invalid field (else the error summary) so it is announced.
+  useEffect(() => {
+    if (state.status !== "error") return;
+    const invalid = formRef.current?.querySelector<HTMLElement>("[aria-invalid=\"true\"]");
+    (invalid ?? alertRef.current)?.focus();
+  }, [state]);
 
   // If the server flags a step-1 field, bring the visitor back to step 1 (derived, no effect).
   if (state !== lastState) {
@@ -83,7 +91,11 @@ export function BookingForm() {
 
   const errors = state.status === "error" ? (state.fieldErrors ?? {}) : {};
   const aria = (name: keyof FieldErrors) =>
-    errors[name] ? { "aria-invalid": true as const, "aria-describedby": `${name}-error` } : {};
+    errors[name]
+      ? { "aria-invalid": true as const, "aria-describedby": `${name}-error` }
+      : name === "contact_phone"
+        ? { "aria-describedby": "contact_phone-hint" }
+        : {};
 
   function goNext() {
     const inputs = step1Ref.current?.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input, select");
@@ -153,7 +165,7 @@ export function BookingForm() {
       </ol>
 
       {state.status === "error" ? (
-        <div role="alert" className="rounded-sm border border-danger/40 bg-danger/5 px-4 py-3 text-danger">
+        <div ref={alertRef} tabIndex={-1} role="alert" className="rounded-sm border border-danger/40 bg-danger/5 px-4 py-3 text-danger">
           {state.message}
         </div>
       ) : null}
@@ -208,10 +220,10 @@ export function BookingForm() {
         </h2>
         <div className="grid gap-6 sm:grid-cols-2">
           <Field id="city" label="المدينة / البلدة" optional error={errors.city}>
-            <input id="city" name="city" maxLength={80} autoComplete="address-level2" className="field" />
+            <input id="city" name="city" maxLength={80} autoComplete="address-level2" className="field" {...aria("city")} />
           </Field>
           <Field id="venue" label="مكان المناسبة" optional error={errors.venue}>
-            <input id="venue" name="venue" maxLength={120} className="field" />
+            <input id="venue" name="venue" maxLength={120} className="field" {...aria("venue")} />
           </Field>
           <Field id="guests" label="عدد الضيوف التقريبي" optional error={errors.guests}>
             <input id="guests" name="guests" type="number" min={1} max={5000} inputMode="numeric" className="field" {...aria("guests")} />
@@ -234,7 +246,7 @@ export function BookingForm() {
           </div>
         </fieldset>
         <Field id="message" label="شي بتحب نعرفه" optional error={errors.message}>
-          <textarea id="message" name="message" rows={4} maxLength={1000} className="field" />
+          <textarea id="message" name="message" rows={4} maxLength={1000} className="field" {...aria("message")} />
         </Field>
 
         {TURNSTILE_SITE_KEY ? (

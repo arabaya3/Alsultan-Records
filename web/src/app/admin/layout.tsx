@@ -30,10 +30,16 @@ async function AdminSidebar() {
 export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col bg-cream lg:flex-row">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-gold focus:px-4 focus:py-2 focus:text-ink"
+      >
+        تخطَّ إلى المحتوى
+      </a>
       <Suspense fallback={<div className="h-14 bg-ink lg:h-dvh lg:w-60" aria-hidden="true" />}>
         <AdminSidebar />
       </Suspense>
-      <main id="main" className="min-w-0 flex-1 px-4 py-6 md:px-8">
+      <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 md:px-8">
         <div className="mx-auto max-w-6xl">{children}</div>
       </main>
     </div>

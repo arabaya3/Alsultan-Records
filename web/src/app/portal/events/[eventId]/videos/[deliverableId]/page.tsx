@@ -28,7 +28,7 @@ async function Review({ params }: { params: Promise<{ eventId: string; deliverab
         </Link>
       </p>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="text-2xl font-bold">{d.title}</h2>
+        <h2 className="text-2xl font-bold"><bdi dir="auto">{d.title}</bdi></h2>
         <StatusPill status={d.status} />
       </div>
       <VideoReview

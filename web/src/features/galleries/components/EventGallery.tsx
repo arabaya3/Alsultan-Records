@@ -1,7 +1,7 @@
 "use client";
 
 import { goToLogin } from "@/features/portal/client-nav";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
 import { Lightbox, type LightboxItem } from "@/components/media/gallery/Lightbox";
 import { saveSelectionNote, submitSelection, toggleSelection } from "@/features/album-selections/actions";
 import { loadGalleryPage, signGalleryUrls } from "@/features/galleries/actions";
@@ -45,6 +45,14 @@ export function EventGallery({
   const [display, setDisplay] = useState<Record<string, { url: string | null; exp: number | null }>>({});
   const [submitting, setSubmitting] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  // Focus follows the confirm row (its buttons replace the one that was pressed).
+  const focusNext = useRef(false);
+  const focusOnMount = (el: HTMLButtonElement | null) => {
+    if (el && focusNext.current) {
+      focusNext.current = false;
+      el.focus();
+    }
+  };
 
   const listReq = useRef(0);
   const toggleSeq = useRef<Record<string, number>>({});
@@ -275,10 +283,18 @@ export function EventGallery({
                 className="min-h-11 rounded-sm bg-gold px-6 font-medium text-ink hover:bg-gold-press disabled:opacity-60"
                 onClick={submit}
                 disabled={submitting}
+                ref={focusOnMount}
               >
                 {submitting ? "جارِ الإرسال…" : "تأكيد الإرسال"}
               </button>
-              <button type="button" className="min-h-11 px-3 underline" onClick={() => setConfirming(false)}>
+              <button
+                type="button"
+                className="min-h-11 px-3 underline"
+                onClick={() => {
+                  focusNext.current = true;
+                  setConfirming(false);
+                }}
+              >
                 تراجع
               </button>
             </div>
@@ -288,8 +304,12 @@ export function EventGallery({
               <button
                 type="button"
                 className="min-h-11 rounded-sm bg-gold px-6 font-medium text-ink hover:bg-gold-press disabled:opacity-60"
-                onClick={() => setConfirming(true)}
+                onClick={() => {
+                  focusNext.current = true;
+                  setConfirming(true);
+                }}
                 disabled={count === 0}
+                ref={focusOnMount}
               >
                 إرسال الاختيار
               </button>
@@ -352,6 +372,7 @@ export function EventGallery({
                     }`}
                   >
                     {isSel ? "✓ مختارة" : "اختيار"}
+                    <span className="sr-only"> الصورة {i + 1}</span>
                   </button>
                 ) : null}
                 {selectable && st ? (
@@ -449,10 +470,12 @@ function NoteField({
 }) {
   const [value, setValue] = useState(initial);
   const dirty = value !== initial;
+  const id = useId();
   return (
     <div className="mt-3">
-      <label className="mb-1 block text-sm text-on-cream-muted">ملاحظة على الصورة (اختياري)</label>
+      <label htmlFor={id} className="mb-1 block text-sm text-on-cream-muted">ملاحظة على الصورة (اختياري)</label>
       <textarea
+        id={id}
         className="field min-h-20"
         maxLength={1000}
         value={value}

@@ -73,9 +73,10 @@ export function Badge({ children, tone = "neutral" }: { children: ReactNode; ton
   );
 }
 
-export function Table({ head, children, empty }: { head: string[]; children: ReactNode; empty?: boolean }) {
+export function Table({ head, children, empty, label }: { head: string[]; children: ReactNode; empty?: boolean; label?: string }) {
   return (
-    <div className="overflow-x-auto rounded-md border border-cream-line bg-[#fffdf8]">
+    // Focusable scroll region: keyboard users can scroll the table horizontally on narrow screens.
+    <div role="region" tabIndex={0} aria-label={label ?? `جدول: ${head.join("، ")}`} className="overflow-x-auto rounded-md border border-cream-line bg-[#fffdf8]">
       <table className="w-full min-w-[640px] border-collapse text-sm">
         <thead>
           <tr className="border-b border-cream-line bg-cream-2 text-start text-xs text-on-cream-muted">
@@ -98,7 +99,7 @@ export function Table({ head, children, empty }: { head: string[]; children: Rea
 export function RowLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link href={href} className="font-medium underline decoration-cream-line underline-offset-4 hover:decoration-gold">
-      {children}
+      <bdi dir="auto">{children}</bdi>
     </Link>
   );
 }
@@ -294,7 +295,7 @@ export function LoadError({ what = "البيانات" }: { what?: string }) {
 
 export function PageSkeleton() {
   return (
-    <div aria-busy="true" aria-label="جارِ التحميل" className="space-y-4">
+    <div role="status" aria-busy="true" aria-label="جارِ التحميل" className="space-y-4">
       <div className="h-8 w-48 animate-pulse rounded-sm bg-cream-line/70" />
       <div className="h-40 animate-pulse rounded-md bg-cream-line/50" />
       <div className="h-64 animate-pulse rounded-md bg-cream-line/40" />

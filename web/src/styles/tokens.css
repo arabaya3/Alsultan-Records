@@ -11,6 +11,8 @@
   --color-cream-line: #ddd4c3;
   --color-gold: #e9b949;
   --color-gold-press: #d6a63a;
+  /* Gold for small TEXT on cream surfaces: 4.8:1 on --color-cream (gold/gold-press are below 4.5:1 there). */
+  --color-gold-text: #8a6514;
   --color-on-dark: #f5f1e8;
   --color-muted: #b8b0a2;
   --color-on-cream: #141210;
