@@ -273,3 +273,11 @@ Locally, `seed.sql` creates both secrets with the well-known `supabase start` de
 **Known limits.**
 - A CDN or browser that cached a 200 can serve it for up to 60 s. To get a 0 s window, purge the CDN by URL prefix `/m/{assetId}/` on withdrawal, or lower `MAX_AGE` in the route.
 - Re-publishing an image before the worker deleted its old copy cancels the pending deletion of those paths (`media_cancel_pending_cleanup` trigger). The worker can still delete the new copy in the moment between the storage copy and the row insert. If that happens, the image returns 404 and the admin re-publishes it.
+
+## 13. Addendum (migration 0011): user deletion vs immutable rows
+
+- `album_selection_snapshots.submitted_by` and `contract_versions.created_by` use `ON DELETE SET NULL` to `profiles`. Their immutability guard is now `app.block_mutation_except_null_fk(<col>)`. The only update it allows is that column changing to NULL with every other column unchanged, and only for non-API callers (the FK cascade). Every other UPDATE and every DELETE is still rejected.
+- The `updated_at` triggers were dropped on these tables and on `audit_events`, so that cascade update touches nothing else.
+- Effect: deleting an account removes the link to the deleted person, but content, hashes, items and totals stay as they were. `audit_events.actor` has no FK and keeps the historical uuid.
+- Audit result: no other immutable table has this conflict. `payments`, `booking_stage_history`, `expenses`, `quotes` and `contracts` are not immutable, and their SET NULL cascades are allowed. Payments, quotes and contracts write an audit row for the change.
+- Tested in `tests/60_user_deletion.sql`.
