@@ -34,22 +34,3 @@ export function hashIp(ip: string): string {
   return createHmac("sha256", key ?? "local-dev-only").update(ip).digest("hex");
 }
 
-/** Verifies a Turnstile token when a secret is configured; passes when it is not. */
-export async function verifyTurnstile(token: string | null, ip: string): Promise<boolean> {
-  const secret = process.env.TURNSTILE_SECRET_KEY ?? process.env.TURNSTILE_SECRET;
-  if (!secret) return true;
-  if (!token) return false;
-  try {
-    const body = new URLSearchParams({ secret, response: token });
-    if (ip !== "unknown") body.set("remoteip", ip);
-    const res = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
-      method: "POST",
-      body,
-      cache: "no-store",
-    });
-    const json = (await res.json()) as { success?: boolean };
-    return json.success === true;
-  } catch {
-    return false;
-  }
-}

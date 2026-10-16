@@ -52,7 +52,8 @@ function Field({
   );
 }
 
-export function BookingForm() {
+/** `available` is false when bot protection is required but not configured (see turnstile-policy.ts). */
+export function BookingForm({ available = true }: { available?: boolean }) {
   const [state, dispatch, isPending] = useActionState<BookingState, FormData>(submitBooking, {
     status: "idle",
   });
@@ -145,6 +146,16 @@ export function BookingForm() {
             العودة للرئيسية
           </Link>
         </div>
+      </div>
+    );
+  }
+
+  if (!available) {
+    return (
+      <div role="status" className="grid gap-4 rounded-sm border border-cream-line bg-cream-2 px-5 py-6" data-testid="booking-unavailable">
+        <p className="font-semibold">نموذج الطلب غير متاح حالياً.</p>
+        <p className="text-on-cream-muted">احكِ لنا عن مناسبتك عبر الهاتف أو واتساب، ونرجع لك بأقرب وقت.</p>
+        <Link href="/contact" className="w-fit underline underline-offset-4">طرق التواصل</Link>
       </div>
     );
   }

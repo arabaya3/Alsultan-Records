@@ -419,3 +419,17 @@ enabled = true
 # The function authenticates the caller itself (bearer == service role key or STORAGE_CLEANUP_SECRET),
 # so it works with both legacy JWT keys and the new sb_secret_ keys.
 verify_jwt = false
+
+# Arabic RTL auth emails with token_hash links (verified server-side by /auth/callback → work on any device).
+# Same files are pushed to staging by scripts/staging-apply.mjs (auth-config step, requires custom SMTP on free tier).
+[auth.email.template.magic_link]
+subject = "رابط الدخول — ستوديو وتسجيلات السلطان"
+content_path = "./supabase/templates/magic_link.html"
+
+[auth.email.template.recovery]
+subject = "إعادة تعيين كلمة المرور — ستوديو وتسجيلات السلطان"
+content_path = "./supabase/templates/recovery.html"
+
+[auth.email.template.invite]
+subject = "دعوة إلى بوابة ستوديو وتسجيلات السلطان"
+content_path = "./supabase/templates/invite.html"

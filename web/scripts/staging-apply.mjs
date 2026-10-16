@@ -37,18 +37,8 @@ const EXPECTED_BUCKETS = {
 };
 const HOOK_URI = "pg-functions://postgres/app/custom_access_token_hook";
 
-/** Minimal RTL auth email (Go template placeholders are filled by Supabase Auth). */
-function emailTemplate(title, body, cta, href) {
-  return `<div dir="rtl" lang="ar" style="font-family:Tahoma,Arial,sans-serif;background:#f8f4ec;padding:24px;color:#141210">
-<div style="max-width:480px;margin:0 auto;background:#ffffff;border-radius:6px;padding:28px">
-<h1 style="font-size:20px;margin:0 0 12px">${title}</h1>
-<p style="font-size:15px;line-height:1.7;margin:0 0 20px">${body}</p>
-<p style="margin:0 0 20px"><a href="${href}" style="display:inline-block;background:#e9b949;color:#0b0b0b;text-decoration:none;font-weight:bold;padding:12px 22px;border-radius:4px">${cta}</a></p>
-<p style="font-size:12px;color:#5c554b;line-height:1.6;margin:0">إذا لم يعمل الزر، انسخ هذا الرابط في المتصفح:<br><span dir="ltr" style="word-break:break-all">${href}</span></p>
-</div>
-<p style="text-align:center;font-size:12px;color:#5c554b;margin-top:16px">ستوديو وتسجيلات السلطان</p>
-</div>`;
-}
+/** Auth email templates — single source shared with local config.toml (web/supabase/templates). */
+const tpl = (name) => readFileSync(resolve(WEB_ROOT, "supabase", "templates", `${name}.html`), "utf8");
 
 let env, m, siteUrl;
 
@@ -176,26 +166,11 @@ const steps = [
         // token_hash links: verified server-side by /auth/callback, so they work on any device/browser
         // (default ConfirmationURL links depend on the PKCE verifier cookie of the requesting browser).
         mailer_subjects_magic_link: "رابط الدخول — ستوديو وتسجيلات السلطان",
-        mailer_templates_magic_link_content: emailTemplate(
-          "رابط الدخول إلى بوابة العميل",
-          "اضغط الزر للدخول. الرابط صالح لمرة واحدة ولمدة قصيرة.",
-          "دخول",
-          "{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=magiclink&next=/portal",
-        ),
+        mailer_templates_magic_link_content: tpl("magic_link"),
         mailer_subjects_recovery: "إعادة تعيين كلمة المرور — ستوديو وتسجيلات السلطان",
-        mailer_templates_recovery_content: emailTemplate(
-          "إعادة تعيين كلمة المرور",
-          "وصلنا طلب لإعادة تعيين كلمة المرور. إن لم تطلب ذلك فتجاهل هذه الرسالة.",
-          "تعيين كلمة مرور جديدة",
-          "{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=recovery&next=/auth/reset",
-        ),
+        mailer_templates_recovery_content: tpl("recovery"),
         mailer_subjects_invite: "دعوة إلى بوابة ستوديو وتسجيلات السلطان",
-        mailer_templates_invite_content: emailTemplate(
-          "تمت دعوتك إلى البوابة",
-          "اضغط الزر لتفعيل حسابك ثم اختر كلمة مرور.",
-          "تفعيل الحساب",
-          "{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=invite&next=/auth/reset",
-        ),
+        mailer_templates_invite_content: tpl("invite"),
       };
       if (!cur.smtp_host) {
         // Supabase refuses template edits on free tier with the default mailer.

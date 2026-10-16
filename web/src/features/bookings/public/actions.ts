@@ -1,7 +1,8 @@
 "use server";
 
 import { bookingSchema, trackSchema, type BookingState, type FieldErrors, type TrackState } from "./schema";
-import { clientIp, getFormRpcClient, hashIp, verifyTurnstile } from "./server";
+import { clientIp, getFormRpcClient, hashIp } from "./server";
+import { turnstileMode, verifyTurnstile } from "./turnstile-policy";
 
 const GENERIC_ERROR = "تعذّر إرسال الطلب الآن. بياناتك محفوظة في النموذج، حاول مرة أخرى بعد قليل.";
 
@@ -37,6 +38,9 @@ export async function submitBooking(_prev: BookingState, fd: FormData): Promise<
     return { status: "error", message: "راجع الحقول المحددة.", fieldErrors };
   }
 
+  if (turnstileMode() === "unavailable") {
+    return { status: "error", message: "النموذج غير متاح حالياً. تواصل معنا هاتفياً أو عبر واتساب." };
+  }
   const ip = await clientIp();
   const human = await verifyTurnstile(str(fd, "cf-turnstile-response") ?? null, ip);
   if (!human) {

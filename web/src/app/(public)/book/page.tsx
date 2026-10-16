@@ -1,5 +1,6 @@
 import { PageIntro, Section } from "@/components/ui/Layout";
 import { BookingForm } from "@/features/bookings/public/BookingForm";
+import { turnstileMode } from "@/features/bookings/public/turnstile-policy";
 import { pageMetadata } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -14,7 +15,7 @@ export default function BookPage() {
       <PageIntro title="احكِ لنا عن مناسبتك" lead="خطوتين قصار. الأساسيات أولاً، والباقي إذا حاب." />
       <Section>
         <div className="max-w-2xl">
-          <BookingForm />
+          <BookingForm available={turnstileMode() !== "unavailable"} />
         </div>
       </Section>
     </>

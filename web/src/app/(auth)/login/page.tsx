@@ -12,7 +12,7 @@ export const metadata: Metadata = { title: "تسجيل الدخول" };
 
 const NOTICES: Record<string, string> = {
   disabled: "هذا الحساب موقوف. تواصل مع الاستوديو للمساعدة.",
-  link: "انتهت صلاحية الرابط أو استُخدم من قبل. اطلب رابطاً جديداً.",
+  link: "تعذّر استخدام الرابط: ربما انتهت صلاحيته أو استُخدم من قبل، أو فُتح على جهاز أو متصفح غير الذي طُلب منه. اطلب رابطاً جديداً من هذا الجهاز، أو ادخل بكلمة المرور.",
 };
 
 async function LoginContent({ searchParams }: { searchParams: PageProps<"/login">["searchParams"] }) {
