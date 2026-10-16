@@ -31,7 +31,7 @@ if (URL_ !== `https://${EXPECTED_REF}.supabase.co` || FORBIDDEN_REFS.some((r) =>
   console.error(`✗ .env.staging.app.local does not point at ${EXPECTED_REF}. Refusing.`);
   process.exit(1);
 }
-const BASE = "http://localhost:3100";
+const BASE = process.env.BASE_URL ?? "http://localhost:3100";
 const REPORT = resolve(WEB_ROOT, "..", "docs", "staging-admin-report.json");
 const opts = { auth: { persistSession: false, autoRefreshToken: false } };
 const db = createClient(URL_, E.SUPABASE_SECRET_KEY, opts);

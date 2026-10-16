@@ -85,7 +85,8 @@ test("published media is served through /m with a bounded public cache", async (
   const r = await request.get(url);
   expect(r.status()).toBe(200);
   expect(r.headers()["content-type"]).toContain("image/webp");
-  expect(r.headers()["cache-control"]).toBe("public, max-age=60, s-maxage=60, stale-while-revalidate=0, stale-if-error=0");
+  expect(r.headers()["cache-control"]).toBe("private, max-age=60, stale-while-revalidate=0, stale-if-error=0");
+  expect(r.headers()["cdn-cache-control"]).toBe("no-store");
   expect((await r.body()).length).toBeGreaterThan(100);
   expect((await request.get(`${BASE}/m/${publicId}/thumb`)).status()).toBe(200);
   // The bucket itself is not public: the old direct URL shape never works.

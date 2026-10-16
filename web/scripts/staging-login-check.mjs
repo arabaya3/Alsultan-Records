@@ -6,7 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 const parse = (p) => Object.fromEntries(readFileSync(p, "utf8").split(/\r?\n/).filter((l) => l.includes("=") && !l.startsWith("#")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));
 const app = parse(".env.staging.app.local");
 if (!app.NEXT_PUBLIC_SUPABASE_URL.includes("dyuixzxmmeiypvawzmty")) throw new Error("not staging");
-const BASE = "http://localhost:3100";
+const BASE = process.env.BASE_URL ?? "http://localhost:3100";
 const admin = createClient(app.NEXT_PUBLIC_SUPABASE_URL, app.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
 const results = [];
 const check = (name, pass, note = "") => { results.push({ name, pass, note }); console.log(`${pass ? "✓" : "✗"} ${name}${note ? ` — ${note}` : ""}`); };

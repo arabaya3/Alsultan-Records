@@ -12,12 +12,13 @@ import { getPublicClient, MEDIA_VARIANTS, type MediaVariant } from "@/features/p
  *   3. streams the bytes (Range supported for video).
  * A withdrawn/unpublished asset answers 404 + `Cache-Control: no-store` from the next request on.
  *
- * Exposure window after withdrawal: browsers/CDNs may reuse a 200 they already hold for at most
- * MAX_AGE seconds (no stale-while-revalidate, no stale-if-error). next/image is not in the path
+ * Exposure window after withdrawal: only a visitor's OWN browser may reuse a 200 it already holds, for at
+ * most MAX_AGE seconds. Shared caches (Vercel CDN, proxies) never store these responses ("private" +
+ * CDN-Cache-Control/Vercel-CDN-Cache-Control: no-store), so the next request anywhere reaches this route. next/image is not in the path
  * (media is rendered `unoptimized`); images.minimumCacheTTL is pinned to the same value.
  */
 const MAX_AGE = 60;
-const CACHE_OK = `public, max-age=${MAX_AGE}, s-maxage=${MAX_AGE}, stale-while-revalidate=0, stale-if-error=0`;
+const CACHE_OK = `private, max-age=${MAX_AGE}, stale-while-revalidate=0, stale-if-error=0`;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function gone(): Response {
@@ -64,7 +65,12 @@ export async function GET(request: Request, ctx: { params: Promise<{ assetId: st
     return gone();
   }
 
-  const headers = new Headers({ "Cache-Control": CACHE_OK, "Accept-Ranges": "bytes" });
+  const headers = new Headers({
+    "Cache-Control": CACHE_OK,
+    "CDN-Cache-Control": "no-store",
+    "Vercel-CDN-Cache-Control": "no-store",
+    "Accept-Ranges": "bytes",
+  });
   for (const h of ["content-type", "content-length", "content-range", "etag", "last-modified"]) {
     const val = upstream.headers.get(h);
     if (val) headers.set(h, val);
