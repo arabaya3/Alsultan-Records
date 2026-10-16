@@ -1,0 +1,18 @@
+# Sultan Records — promo storyboard (28 s, 30 fps, silent) — revision 2
+
+Formats: **Landscape 1920×1080** and **Portrait 1080×1920** (re-laid-out, not cropped).
+Palette: charcoal `#0b0b0b`, ivory `#f8f4ec`, gold `#e9b949`. Fonts: Alexandria (display), IBM Plex Sans Arabic (body).
+All Arabic text is `dir="rtl"`, animated as whole lines (opacity / translate / clip-path mask) — letters are never split.
+Global layers: soft vignette + subtle static film grain overlay (deterministic, no flicker), no audio.
+
+| # | Time | Shot | Text | Motion / transition | Assets |
+|---|------|------|------|---------------------|--------|
+| 1 | 0.0–4.0 | Logo reveal on charcoal | «ستوديو وتسجيلات السلطان» | Logo fades + scales 0.92→1.0 behind a circular mask opening; gold hairline draws outward from centre; studio name rises in under the rule (mask reveal). Out: whole group fades/lifts 3.5–4.0 | `logo-main.webp` |
+| 2 | 4.0–9.0 | Tagline | «فرحتك إلها حكاية» + gold «.» ; then «نوثّق أجمل لحظاتكم بالصوت والصورة» | Line 1 masked reveal (clip from right, RTL) 4.2; gold full stop pops 5.0; line 2 fades up 6.0; slow push-in on whole card; blurred still (bY-HEOQVEZA) at 15% opacity drifting behind. Out: crossfade into shot 3 at 8.6–9.0 | thumb bY-HEOQVEZA |
+| 3 | 9.0–16.0 | Real stills + services | «تصوير فوتوغرافي» (in 9.4, out 10.7–11.0) / «أفلام أعراس ومناسبات» (in 11.9, out 13.2–13.5) / «DJ وتجهيز الأجواء» (in 14.4, out 15.35–15.65) | Wipes start 8.6 / 11.1 / 13.6 (0.75 s each); each title enters only after its wipe edge has passed (wipe start + 0.8 s) and leaves before the next wipe. Three full-bleed stills, Ken Burns push (1.02→1.14; portrait drift ±15 px, slide-2 portrait framed at 60% 45% so the subject's face stays whole) with opposing drift; transitions are diagonal clip-path wipes edged with a gold line; titles big (landscape 110 px, portrait 104 px) with small gold index «01/02/03» and darkening gradient; a smaller inset still parallaxes in landscape | thumbs A7Bby0aFuz0, 31fqUFYa_LI, LKpD2MqUoF0 (+ GTa4oM-TLw0, 1HyF-9dPZno, gUhswny61EY landscape insets). DJ slide uses LKpD2MqUoF0 because the burned-in title on gUhswny61EY clashed with the service title |
+| 4 | 15.95–22.95 | Website scenes (real captures) | «شاهد أعمالنا» (mask reveal 16.3–17.3) then «واختَر اللي يناسب مناسبتك» (19.5–20.3) | Landscape: browser frame is the hero, 1240 px wide (65%), vertically centred (screen 1240×775 from 2× desktop captures), copy on the right (76 px / 50 px). Portrait: phone frame 560 px wide (2× mobile captures), copy above. 16.75 tap ring appears; 16.75–17.65 landscape push-in ×1.45 toward the chip; 16.85–17.55 ring travels to «حفلات الزفاف»; tap pulse 17.55; /work?cat=wedding crossfade 17.85; 18.15–18.95 push-in pans toward the card while ring travels; tap 19.0; 19.25–19.85 zoom back to full view while the video dialog scales in (19.3); /work/v/bY-HEOQVEZA page 21.1 with slow ×1.05 push. Address bar shows the matching real URL. Scene fades 22.55–22.95 | ui/*-work.png, *-cat.png, *-dialog.png, *-video.png |
+| 5 | 23.0–28.0 | End card | logo, «احكِ لنا عن مناسبتك», `+970598677477` (LTR), `sultan-records.vercel.app` | logo 23.0–23.7, rule 23.3–23.9, CTA 23.4–24.0, phone 23.65–24.15, URL 23.75–24.25 → everything static and fully opaque 24.25–28.0 (3.75 s hold) | logo-main.webp |
+
+Total duration: 28.0 s (840 frames). Landscape: text panels on the right (RTL start side), device on the left. Portrait: everything stacked and centred, safe margins 6% (65 px sides, 115 px top/bottom), minimum type 56 px.
+
+Cover frames: designed stills rendered with `--cover`: logo, «فرحتك إلها حكاية.», studio name and URL over a dimmed still (GTa4oM-TLw0).

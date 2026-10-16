@@ -20,7 +20,7 @@ export function AlbumCard({ album, priority = false }: { album: PhotoAlbum; prio
             alt=""
             loading={priority ? "eager" : "lazy"}
             decoding="async"
-            className="absolute inset-0 size-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            className="absolute inset-0 size-full object-cover object-[50%_18%] transition-transform duration-500 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         ) : null}
       </span>
