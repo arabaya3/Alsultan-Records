@@ -7,16 +7,16 @@ Old Supabase project `peufggxvklpnaytyklgg` was never read or written. The new p
 
 | Area | Implemented | Tested locally | Verified against new backend | Blocked by account access | Deployed |
 |---|---|---|---|---|---|
-| Database: 11 migrations, RLS, RPCs, storage, cron | ✅ | ✅ pgTAP 139/139 | ✅ 11/11 pushed; catalog + authorization 68/68 | — | — |
+| Database: 12 migrations, RLS, RPCs, storage, cron | ✅ | ✅ pgTAP 139/139 | ✅ 11/11 pushed; catalog + authorization 68/68 | — | — |
 | Public site, motion, empty states | ✅ | ✅ | ✅ local app on :3100 against staging | — | ❌ not authorized |
 | Client portal | ✅ | ✅ | ✅ login, portal consent withdrawal | — | ❌ |
-| Administration | ✅ | ✅ | ◑ owner reaches MFA gate; full admin flows not re-run on staging | — | ❌ |
+| Administration | ✅ | ✅ | ✅ 93/93 admin flows on cloud, zero residue | — | ❌ |
 | Consent withdrawal (gated media + durable cleanup) | ✅ | ✅ | ✅ same URL 404 immediately; cron deleted the copy | — | — |
 | MFA | ✅ | ✅ | ✅ aal1 denied / aal2 allowed (staff + admin); owner gate in browser | — | — |
 | Accessibility | ✅ | ✅ axe 0 violations, 41 scans | — | — | — |
-| Backup / restore | ✅ | ✅ isolated local restore 101/101 | ❌ cloud restore rehearsal not yet run | — | — |
-| Auth emails (magic link / reset) | ✅ callback + templates ready | ✅ | ◑ links verified via token_hash; delivery needs SMTP | ✅ SMTP (you) | — |
-| Turnstile | ✅ server-side verify | — | ❌ not configured | ✅ widget keys (you) | — |
+| Backup / restore | ✅ | ✅ local 101/101; cloud-tooling simulation 110/110 | ❌ cloud rehearsal needs a 2nd free project (your approval) | ✅ | — |
+| Auth emails (magic link / reset) | ✅ token_hash templates (cross-device, proven locally) | ✅ | ◑ same-browser links work on staging; cross-device needs templates, which need SMTP | ✅ SMTP (you) | — |
+| Turnstile | ✅ fail-closed: production without both keys refuses public forms | ✅ incl. Cloudflare test keys | ✅ staging form refused (not configured) | ✅ widget keys (you) | — |
 
 ## Release blockers — evidence
 | Blocker | Result | Evidence |
