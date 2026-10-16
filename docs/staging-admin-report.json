@@ -2,12 +2,12 @@
   "target": "staging",
   "host": "dyuixzxmmeiypvawzmty.supabase.co",
   "app": "http://localhost:3100",
-  "run_id": "mvaqbg9j5ccb",
-  "started_at": "2026-10-16T08:52:08.599Z",
-  "finished_at": "2026-10-16T08:56:13.649Z",
+  "run_id": "mvaqnxjc83cc",
+  "started_at": "2026-10-16T09:01:50.857Z",
+  "finished_at": "2026-10-16T09:05:59.499Z",
   "totals": {
-    "checks": 91,
-    "passed": 91,
+    "checks": 93,
+    "passed": 93,
     "failed": 0
   },
   "by_area": {
@@ -68,7 +68,7 @@
       "failed": 0
     },
     "cleanup": {
-      "passed": 3,
+      "passed": 5,
       "failed": 0
     }
   },
@@ -93,50 +93,50 @@
     "residue": [
       {
         "table": "contracts",
-        "id": "4eed213d-badc-46b0-926e-1e2173182d83",
+        "id": "900f4c5f-8a24-45e0-810a-37cb2d4673f5",
         "why": "contract_versions are append-only (DELETE blocked by trigger) and contract_versions.contract_id is ON DELETE RESTRICT"
       },
       {
         "table": "contract_versions",
-        "id": "d89e6596-54ad-4465-8b94-663e3b15585b",
+        "id": "309eea55-1e75-4a24-9c49-295fd7dd5443",
         "why": "append-only by design"
       },
       {
         "table": "contract_versions",
-        "id": "9f48812e-9c8c-45ef-bf6f-2481515e1867",
+        "id": "0741f271-05a8-4300-b835-5528542a7721",
         "why": "append-only by design"
       },
       {
         "table": "events",
-        "id": "f824ae77-0658-4f1e-a2a7-827db5a48271",
+        "id": "91fd3700-a2a0-4af9-8af5-3deb45d81c4c",
         "why": "album_selection_snapshots are append-only and cascade from events (event DELETE blocked)"
       },
       {
         "table": "album_selections",
-        "id": "9971a0ca-cad7-47d7-af27-db1fb7765779",
+        "id": "afc79551-44c4-4ec3-8e52-a9e0d9e35395",
         "why": "parent of immutable snapshot"
       },
       {
         "table": "album_selection_snapshots",
-        "id": "15941b41-e2bb-490c-8b71-8159fb43fe45",
+        "id": "4cf19625-4207-45b2-8014-a212c1c224ac",
         "why": "append-only by design"
       },
       {
         "table": "customers",
-        "id": "9b596456-3896-4c3b-8a06-78ea1deab3f5",
+        "id": "bcd67be3-336d-4ac8-a243-39cafd924a7b",
         "why": "contracts.customer_id and events.customer_id are ON DELETE RESTRICT (immutable contract + album event)"
       }
     ],
     "global_staging_test_rows": {
-      "customers": 3,
-      "events": 3,
-      "staff_members": 1,
-      "equipment": 1,
+      "customers": 0,
+      "events": 0,
+      "staff_members": 0,
+      "equipment": 0,
       "booking_requests": 0,
       "support_requests": 0,
       "reviews": 0
     },
-    "audit_rows_retained": 40,
+    "audit_rows_retained": 42,
     "cleanup_queue_pending_for_test_paths": 0,
     "owner": {
       "count_after": 1,
@@ -647,6 +647,18 @@
       "name": "residue limited to the documented immutable chain",
       "pass": true,
       "note": "contracts,contract_versions,contract_versions,events,album_selections,album_selection_snapshots,customers"
+    },
+    {
+      "area": "cleanup",
+      "name": "purge_test_fixtures removed the immutable test residue",
+      "pass": true,
+      "note": "{\"events\":1,\"quotes\":0,\"reviews\":0,\"expenses\":0,\"payments\":0,\"contracts\":1,\"customers\":1,\"equipment\":0,\"media_assets\":0,\"staff_members\":0,\"album_selections\":1,\"booking_requests\":0,\"support_requests\":0,\"contract_versions\":2,\"storage_paths_en"
+    },
+    {
+      "area": "cleanup",
+      "name": "no [STAGING-TEST] rows remain anywhere after purge",
+      "pass": true,
+      "note": "{\"customers\":0,\"events\":0,\"staff_members\":0,\"equipment\":0,\"booking_requests\":0,\"support_requests\":0,\"reviews\":0}"
     },
     {
       "area": "cleanup",

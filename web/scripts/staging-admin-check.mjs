@@ -895,11 +895,15 @@ async function cleanup() {
   check("zero leftovers except documented immutable residue", total === 0 && errs.length === 0, `${JSON.stringify(left)} ${errs.join("; ")}`);
   check("residue limited to the documented immutable chain", residue.every((r) => ["contracts", "contract_versions", "events", "album_selections", "album_selection_snapshots", "customers"].includes(r.table)) && (!F.Ealb || stillAlb === 1),
     residue.map((r) => r.table).join(","));
-  // global [STAGING-TEST] scan (other runs) for information
+  // Remove the immutable residue through the service-role-only purge (migration 0012), then require zero.
+  const purge = await db.rpc("purge_test_fixtures", { p_prefix: "[STAGING-TEST]" });
+  check("purge_test_fixtures removed the immutable test residue", !purge.error, purge.error ? purge.error.message : JSON.stringify(purge.data));
+  // global [STAGING-TEST] scan (other runs) — must be zero after the purge
   const glob = {};
   for (const [t, c] of [["customers", "full_name"], ["events", "title"], ["staff_members", "full_name"], ["equipment", "name"], ["booking_requests", "contact_name"], ["support_requests", "subject"], ["reviews", "body"]]) {
     glob[t] = (await db.from(t).select("id", { count: "exact", head: true }).like(c, "[STAGING-TEST]%")).count ?? null;
   }
+  check("no [STAGING-TEST] rows remain anywhere after purge", Object.values(glob).every((n) => n === 0), JSON.stringify(glob));
   const allIds = [...Object.values(created.users).map((u) => u.id), ...evIds, ...created.quotes, ...created.payments, ...created.contracts, ...created.staff, ...created.equipment, ...created.customers, ...created.bookings]
     .filter((x) => /^[0-9a-f-]{36}$/.test(x));
   const audit = allIds.length ? await sql(`select count(*)::int as n from public.audit_events where entity_id in (${allIds.map((i) => `'${i}'`).join(",")})`).catch(() => null) : null;
