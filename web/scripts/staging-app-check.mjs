@@ -89,23 +89,36 @@ try {
   }
   check("published copy deleted by scheduled cleanup", gone);
 
-  // Booking inquiry through the app (Turnstile not configured → server skips verification)
+  // Booking form: with Turnstile keys → full submission; without → production must refuse (fail closed).
+  const turnstileConfigured = !!(app.NEXT_PUBLIC_TURNSTILE_SITE_KEY && app.TURNSTILE_SECRET_KEY);
   const b = await chromium.launch();
   const bp = await (await b.newContext({ locale: "ar" })).newPage();
   await bp.goto(`${BASE}/book`);
-  await bp.locator("#contact_name").fill("[STAGING-TEST] booking");
-  await bp.locator("#contact_phone").fill(`059${String(stamp).slice(-7)}`);
-  await bp.locator("#event_type").selectOption({ index: 1 });
-  await bp.locator("#event_date").fill(new Date(Date.now() + 90 * 864e5).toISOString().slice(0, 10));
-  await bp.getByRole("button", { name: "التالي" }).click();
-  await bp.getByRole("button", { name: "أرسل الطلب" }).click();
-  await bp.getByRole("status").filter({ hasText: "رمز المتابعة" }).waitFor({ timeout: 30000 }).catch(() => {});
-  const code = await bp.locator("p[dir=ltr].select-all").innerText().catch(() => null);
-  check("booking inquiry submitted via app → tracking code", !!code);
-  await b.close();
-  const { data: rows } = await sk.from("booking_requests").select("id").eq("contact_name", "[STAGING-TEST] booking");
-  check("exactly one booking row created", (rows ?? []).length === 1, String((rows ?? []).length));
-  cleanup.push(() => sk.from("booking_requests").delete().eq("contact_name", "[STAGING-TEST] booking"));
+  if (!turnstileConfigured) {
+    const { count: before } = await sk.from("booking_requests").select("id", { count: "exact", head: true });
+    const unavailable = await bp.getByTestId("booking-unavailable").isVisible().catch(() => false);
+    const inputs = await bp.locator("#contact_name").count();
+    check("booking form refused without Turnstile keys (fail closed)", unavailable && inputs === 0, unavailable ? "form unavailable, no inputs" : "form still rendered");
+    await b.close();
+    const { count: after } = await sk.from("booking_requests").select("id", { count: "exact", head: true });
+    check("no booking row created by this run (existing real rows untouched)", after === before, `before=${before} after=${after}`);
+  } else {
+    await bp.locator("#contact_name").fill("[STAGING-TEST] booking");
+    await bp.locator("#contact_phone").fill(`059${String(stamp).slice(-7)}`);
+    await bp.locator("#event_type").selectOption({ index: 1 });
+    await bp.locator("#event_date").fill(new Date(Date.now() + 90 * 864e5).toISOString().slice(0, 10));
+    await bp.getByRole("button", { name: "التالي" }).click();
+    await bp.locator(".cf-turnstile iframe").waitFor({ timeout: 30000 }).catch(() => {});
+    await bp.waitForTimeout(4000); // widget issues its token
+    await bp.getByRole("button", { name: "أرسل الطلب" }).click();
+    await bp.getByRole("status").filter({ hasText: "رمز المتابعة" }).waitFor({ timeout: 30000 }).catch(() => {});
+    const code = await bp.locator("p[dir=ltr].select-all").innerText().catch(() => null);
+    check("booking inquiry with Turnstile → tracking code", !!code);
+    await b.close();
+    const { data: rows } = await sk.from("booking_requests").select("id").eq("contact_name", "[STAGING-TEST] booking");
+    check("exactly one booking row created", (rows ?? []).length === 1, String((rows ?? []).length));
+    cleanup.push(() => sk.from("booking_requests").delete().eq("contact_name", "[STAGING-TEST] booking"));
+  }
 } catch (e) {
   check("unexpected error", false, String(e?.message ?? e).slice(0, 200));
 } finally {

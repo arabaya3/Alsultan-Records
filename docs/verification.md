@@ -255,3 +255,18 @@ Not proven on staging:
 - Cloud backup/restore rehearsal (procedure in `docs/backup-restore.md`; not yet run against staging).
 - CDN behaviour (no CDN in front of localhost); cache window bounded by `max-age=60`.
 - Owner TOTP enrolment (left for the owner to do with their own authenticator).
+
+## Staging readiness round 2 — 2026-10-16
+
+| Area | Evidence | Result |
+|---|---|---|
+| Admin flows on cloud (customers, bookings + transitions + convert, calendar, events, staff/equipment + conflicts, media upload + variants, publishing + consent, quotes, contracts + exact-version approval, finance + idempotency + refund, owner-only users/settings/backups, support, reviews, album submissions, staff role limits) | `node scripts/staging-admin-check.mjs` → `docs/staging-admin-report.json` | **93/93**, zero `[STAGING-TEST]` rows left (service-role purge, migration 0012), real owner unchanged (1 verified factor) |
+| Test-fixture purge | pgTAP `70_test_purge.sql`; pushed to staging (12/12 migrations) | 156/156 locally; staging residue from earlier runs removed (3 events, 6 customers, 2 contracts, 4 versions, 3 snapshots) |
+| Login links | `scripts/staging-login-check.mjs` (temporary admin, never the owner) | 13/13 |
+| Cross-device links (local stack + Mailpit) | `tests/e2e/auth-links.spec.ts`, `docs/auth-links.md` | token_hash templates: other browser ✓ (magic link, reset + new password). Default PKCE: other browser ✗ (`/login?error=link`, clear notice), same browser ✓ |
+| Turnstile fail-closed | unit `turnstile-policy.test.ts` (6), `tests/e2e/turnstile.spec.ts`, staging rebuild | no keys + cloud → form disabled + server action refused, 0 rows; Cloudflare test keys: pass secret → 1 row, fail secret → refused, 0 rows; local-stack bypass logged once |
+| Staging app after rebuild | `scripts/staging-app-check.mjs` | 15/15; booking form refused on staging (no keys); one pre-existing real booking row left untouched |
+| Rate-limit IP | `clientIp()` | no longer trusts the client-controlled left-most `X-Forwarded-For`; uses `CLIENT_IP_HEADER` or the right-most entry |
+| Cloud restore rehearsal | `scripts/cloud-restore-rehearsal.mjs`, `docs/cloud-restore-report.json` | local simulation 110/110; cloud run PENDING (needs a second free project, see `docs/backup-restore.md`) |
+
+Still not proven: auth email delivery on staging (no SMTP), token_hash templates on staging (blocked by free tier until SMTP), Turnstile with real keys on a real hostname, cloud restore, CDN.
