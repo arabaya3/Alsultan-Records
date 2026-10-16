@@ -221,14 +221,14 @@ isOneToOne: false
                   ]
                 },"business_settings": {
                   Row: {
-                    "address": string | null,"canonical_base_url": string | null,"created_at": string,"email": string | null,"facebook": string | null,"hero_media_id": string | null,"id": number,"instagram": string | null,"name": string,"phone": string | null,"tagline": string | null,"updated_at": string,"whatsapp": string | null
+                    "address": string | null,"canonical_base_url": string | null,"created_at": string,"email": string | null,"facebook": string | null,"hero_media_id": string | null,"id": number,"instagram": string | null,"name": string,"phone": string | null,"tagline": string | null,"updated_at": string,"whatsapp": string | null,"whatsapp_url": string | null,"youtube_url": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"canonical_base_url"?: string | null,"created_at"?: string,"email"?: string | null,"facebook"?: string | null,"hero_media_id"?: string | null,"id"?: number,"instagram"?: string | null,"name"?: string,"phone"?: string | null,"tagline"?: string | null,"updated_at"?: string,"whatsapp"?: string | null
+                    "address"?: string | null,"canonical_base_url"?: string | null,"created_at"?: string,"email"?: string | null,"facebook"?: string | null,"hero_media_id"?: string | null,"id"?: number,"instagram"?: string | null,"name"?: string,"phone"?: string | null,"tagline"?: string | null,"updated_at"?: string,"whatsapp"?: string | null,"whatsapp_url"?: string | null,"youtube_url"?: string | null
                   }
                   Update: {
-                    "address"?: string | null,"canonical_base_url"?: string | null,"created_at"?: string,"email"?: string | null,"facebook"?: string | null,"hero_media_id"?: string | null,"id"?: number,"instagram"?: string | null,"name"?: string,"phone"?: string | null,"tagline"?: string | null,"updated_at"?: string,"whatsapp"?: string | null
+                    "address"?: string | null,"canonical_base_url"?: string | null,"created_at"?: string,"email"?: string | null,"facebook"?: string | null,"hero_media_id"?: string | null,"id"?: number,"instagram"?: string | null,"name"?: string,"phone"?: string | null,"tagline"?: string | null,"updated_at"?: string,"whatsapp"?: string | null,"whatsapp_url"?: string | null,"youtube_url"?: string | null
                   }
                   Relationships: [
                     {
@@ -843,6 +843,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"showcase_videos": {
+                  Row: {
+                    "category": string,"created_at": string,"description": string | null,"duration_seconds": number | null,"id": string,"is_promo": boolean,"is_published": boolean,"original_title": string | null,"published_at": string | null,"sort_order": number,"source": string,"source_url": string,"title": string,"updated_at": string,"updated_by": string | null,"verification_notes": string | null,"youtube_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "category": string,"created_at"?: string,"description"?: string | null,"duration_seconds"?: number | null,"id"?: string,"is_promo"?: boolean,"is_published"?: boolean,"original_title"?: string | null,"published_at"?: string | null,"sort_order"?: number,"source"?: string,"source_url": string,"title": string,"updated_at"?: string,"updated_by"?: string | null,"verification_notes"?: string | null,"youtube_id": string
+                  }
+                  Update: {
+                    "category"?: string,"created_at"?: string,"description"?: string | null,"duration_seconds"?: number | null,"id"?: string,"is_promo"?: boolean,"is_published"?: boolean,"original_title"?: string | null,"published_at"?: string | null,"sort_order"?: number,"source"?: string,"source_url"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"verification_notes"?: string | null,"youtube_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "showcase_videos_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"staff_members": {
                   Row: {
                     "active": boolean,"created_at": string,"full_name": string,"id": string,"phone": string | null,"profile_id": string | null,"specialty": string | null,"updated_at": string
@@ -972,6 +992,26 @@ isOneToOne: false
                         Relationships: [
                     
                   ]
+                },"showcase_video_admin_details": {
+                  Row: {
+                    "original_title": string | null,"source": string | null,"source_url": string | null,"updated_by": string | null,"verification_notes": string | null,"video_id": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                           "original_title"?: string | null,"source"?: string | null,"source_url"?: string | null,"updated_by"?: string | null,"verification_notes"?: string | null,"video_id"?: string | null
+                         }
+                        Update: {
+                           "original_title"?: string | null,"source"?: string | null,"source_url"?: string | null,"updated_by"?: string | null,"verification_notes"?: string | null,"video_id"?: string | null
+                         }
+                        Relationships: [
+                    {
+      foreignKeyName: "showcase_videos_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 }
           }
           Functions: {
@@ -1044,6 +1084,9 @@ isOneToOne: false
                            },
 "set_publication_consent":
 { Args: { "p_event_id": string,"p_status": Database["public"]['Enums']["consent_status"] }; Returns: undefined
+                           },
+"set_showcase_promo":
+{ Args: { "p_id": string }; Returns: undefined
                            },
 "staff_mfa_required":
 { Args: Record<PropertyKey, never>; Returns: boolean

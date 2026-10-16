@@ -10,7 +10,7 @@ export async function SettingsPage() {
   const isOwner = session.role === "owner";
   const sb = await createClient();
   const [biz, app] = await Promise.all([
-    sb.from("business_settings").select("name, tagline, phone, whatsapp, email, address, instagram, facebook, canonical_base_url").eq("id", 1).maybeSingle(),
+    sb.from("business_settings").select("name, tagline, phone, whatsapp, email, address, instagram, facebook, youtube_url, whatsapp_url, canonical_base_url").eq("id", 1).maybeSingle(),
     isOwner ? sb.from("app_settings").select("require_staff_mfa, turnstile_enabled, booking_rules").eq("id", 1).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
   if (biz.error || !biz.data) return <LoadError what="الإعدادات" />;
@@ -33,6 +33,8 @@ export async function SettingsPage() {
               {text("address", "العنوان")}
               {text("instagram", "رابط إنستغرام", true)}
               {text("facebook", "رابط فيسبوك", true)}
+              {text("youtube_url", "رابط قناة يوتيوب", true)}
+              {text("whatsapp_url", "رابط واتساب (wa.me)", true)}
               {text("canonical_base_url", "عنوان الموقع الأساسي", true)}
             </div>
           </ActionForm>

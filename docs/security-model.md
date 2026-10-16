@@ -300,3 +300,27 @@ Locally, `seed.sql` creates both secrets with the well-known `supabase start` de
   3. the row belongs to a prefixed event, contract or customer (`app.purge_allows`).
 
   Non-test rows stay immutable even when the GUC is set.
+
+## 15. Addendum (migrations 0013–0014): showcase videos + public contact links
+
+- `public.showcase_videos` holds public clips from the studio's own YouTube channel. Only the 11-char
+  video ID is rendered (CHECK `^[A-Za-z0-9_-]{11}$`); `source_url` must be https on youtube.com/youtu.be.
+  No HTML/iframe is ever stored: the admin form accepts only what `parseYouTubeId` (src/lib/youtube.ts)
+  returns, and the public player builds the youtube-nocookie embed URL from the ID.
+- Read surface: anon gets column grants on display fields only (id, youtube_id, title, description,
+  category, duration_seconds, published_at, is_promo, sort_order) and RLS limits rows to `is_published`.
+  Signed-in non-admins see the same rows (plus is_published/timestamps). The admin record
+  (source_url, original_title — may name grooms — source, verification_notes, updated_by) is not
+  column-granted; admins read it through the `showcase_video_admin_details` security-barrier view
+  (`where app.is_admin()`), same pattern as `customer_internal_notes`.
+- Writes: owner/admin with `app.is_admin()` (role + aal2 when MFA is required) only; staff/customers/anon
+  have no effective write path. `updated_by` is stamped from the JWT by trigger; rows are audited
+  (`app.audit_trigger`). A partial unique index allows one `is_promo` row; `set_showcase_promo(uuid)`
+  (SECURITY INVOKER, admin-checked) swaps the promo in one transaction.
+- 0014 grants `service_role` on the new objects (0005's blanket grant covered only tables existing then;
+  the hosted project does not auto-grant new tables to service_role). Used by `scripts/import-content.mjs`.
+- `business_settings.youtube_url` (https youtube.com/youtu.be) and `whatsapp_url` (https wa.me /
+  api.whatsapp.com) are CHECK-constrained, publicly readable like the rest of the row, admin-editable.
+- `scripts/import-content.mjs --target local|staging [--apply]` is dry-run by default, refuses a URL that
+  does not match the target (and the forbidden old project), only fills empty business_settings fields,
+  never sets email/instagram, and never modifies existing video rows (admin edits win).

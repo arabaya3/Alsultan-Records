@@ -24,6 +24,7 @@ export const NAV: NavGroup[] = [
       { href: "/admin/media", label: "الوسائط", roles: S },
       { href: "/admin/production", label: "الإنتاج والتسليم", roles: S },
       { href: "/admin/reviews", label: "التقييمات", roles: A },
+      { href: "/admin/videos", label: "الفيديوهات", roles: A },
     ],
   },
   {
