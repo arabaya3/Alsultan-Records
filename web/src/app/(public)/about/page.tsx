@@ -1,3 +1,4 @@
+import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { ButtonLink } from "@/components/ui/Button";
 import { PageIntro, Section } from "@/components/ui/Layout";
 import { ServiceStrip } from "@/components/ui/ServiceStrip";
@@ -34,7 +35,7 @@ export default function AboutPage() {
             <h2 className="text-xl font-semibold">ما نقدّمه</h2>
             <ServiceStrip className="mt-4" />
             <div className="mt-8 flex flex-col items-start gap-4">
-              <ButtonLink href="/book">احجز مناسبتك</ButtonLink>
+              <WhatsAppCta />
               <ButtonLink href="/work" variant="link" tone="light">
                 شاهد أعمالنا
               </ButtonLink>

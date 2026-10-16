@@ -1,3 +1,4 @@
+import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -55,7 +56,7 @@ async function ServiceView({ params }: { params: PageProps<"/services/[slug]">["
           {s.cover ? <MediaFrame media={s.cover} alt={s.title} ratio="4/3" playable /> : null}
         </div>
         <div className="mt-12">
-          <ButtonLink href="/book">احجز مناسبتك</ButtonLink>
+          <WhatsAppCta />
         </div>
       </Section>
     </article>

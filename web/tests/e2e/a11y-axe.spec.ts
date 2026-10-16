@@ -24,9 +24,12 @@ type Viol = { id: string; impact: string; help: string; nodes: Node[] };
 type Scan = { page: string; url: string; counts: Record<string, number>; violations: Viol[]; incomplete: number; passes: number };
 const scans: Scan[] = [];
 
-async function scan(page: Page, name: string): Promise<Viol[]> {
+async function scan(page: Page, name: string, exclude?: string): Promise<Viol[]> {
   await page.waitForTimeout(400);
-  const r = await new AxeBuilder({ page }).withTags(TAGS).analyze();
+  const b = new AxeBuilder({ page }).withTags(TAGS);
+  // Third-party player internals (YouTube iframe) are outside our control; our dialog chrome is scanned.
+  if (exclude) b.exclude(exclude);
+  const r = await b.analyze();
   const violations: Viol[] = r.violations.map((v) => ({
     id: v.id,
     impact: v.impact ?? "unknown",
@@ -93,39 +96,17 @@ for (const width of [1440, 390]) {
       bad.push(...fmt(await scan(page, `${name}@${width}`)));
     }
 
-    // /book step 1, step 2, and server-side field errors shown.
+    // /book is a WhatsApp page now (form removed from public rendering).
     await page.goto(`${BASE}/book`);
-    bad.push(...fmt(await scan(page, `book-step1@${width}`)));
-    await page.locator("#contact_name").fill("اختبار وصول");
-    await page.locator("#contact_phone").fill("0599000000");
-    await page.locator("#event_type").selectOption("wedding");
-    await page.locator("#event_date").fill("2027-06-01");
-    await page.getByRole("button", { name: "التالي" }).click();
-    await expect(page.getByRole("heading", { name: /تفاصيل إضافية/ })).toBeVisible();
-    bad.push(...fmt(await scan(page, `book-step2@${width}`)));
-    // Strip client constraints so the server reports field errors (as it would for a bypassed client).
-    await page.evaluate(() => {
-      const f = document.querySelector("form")!;
-      f.noValidate = true;
-      for (const el of Array.from(f.querySelectorAll("input,select"))) {
-        el.removeAttribute("required");
-        el.removeAttribute("pattern");
-        el.removeAttribute("minlength");
-      }
-    });
-    await page.locator("#contact_name").evaluate((el: HTMLInputElement) => (el.value = "x"));
-    await page.locator("#contact_phone").evaluate((el: HTMLInputElement) => (el.value = "12"));
-    await page.getByRole("button", { name: "أرسل الطلب" }).click();
-    await expect(page.locator("#contact_name-error")).toBeVisible({ timeout: 30_000 });
-    bad.push(...fmt(await scan(page, `book-errors@${width}`)));
+    bad.push(...fmt(await scan(page, `book@${width}`)));
 
-    // /track with a not-found result.
-    await page.goto(`${BASE}/track`);
-    await page.locator("#code").fill("ZZZZZZ99");
-    await page.locator("#last4").fill("1234");
-    await page.getByRole("button", { name: "اعرض الحالة" }).click();
-    await expect(page.getByText("لم نجد طلباً بهذه البيانات")).toBeVisible({ timeout: 30_000 });
-    bad.push(...fmt(await scan(page, `track-notfound@${width}`)));
+    // YouTube player dialog open.
+    await page.goto(`${BASE}/`);
+    await page.locator("[data-promo-trigger]").click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await page.waitForTimeout(600);
+    bad.push(...fmt(await scan(page, `youtube-dialog@${width}`, "[data-youtube-dialog] iframe")));
+    await page.keyboard.press("Escape");
 
     await page.context().close();
     expect(bad, bad.join("\n")).toEqual([]);

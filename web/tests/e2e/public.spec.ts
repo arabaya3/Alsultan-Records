@@ -9,7 +9,7 @@ import { isKnownLocalHttpsArtifact } from "./qa-helpers";
 const BASE = process.env.BASE_URL ?? "http://localhost:3100";
 const SHOTS = path.resolve(__dirname, "../../../docs/screenshots");
 const WIDTHS = [320, 360, 390, 430, 768, 1024, 1440];
-const PAGES = ["/", "/work", "/services", "/about", "/contact", "/book", "/track", "/faq", "/privacy", "/terms"];
+const PAGES = ["/", "/work", "/services", "/about", "/contact", "/book", "/faq", "/privacy", "/terms"];
 
 async function scrollThrough(page: import("@playwright/test").Page) {
   const h = await page.evaluate(() => document.body.scrollHeight);
@@ -86,17 +86,8 @@ test("mobile menu traps focus and closes on Escape", async ({ browser }) => {
   await page.close();
 });
 
-test("booking form: step 1 validates, inputs survive step changes", async ({ page }) => {
+test("/book is a WhatsApp page, not a form", async ({ page }) => {
   await page.goto(`${BASE}/book`);
-  await expect(page.getByText("ليس حجزاً مؤكداً").first()).toBeVisible();
-  await page.getByRole("button", { name: "التالي" }).click();
-  await expect(page.getByLabel("المدينة / البلدة")).toBeHidden(); // blocked by required fields
-  await page.getByLabel("الاسم").fill("اختبار");
-  await page.getByLabel("رقم الهاتف").fill("0599000000");
-  await page.getByLabel("نوع المناسبة").selectOption("wedding");
-  await page.getByLabel("تاريخ المناسبة").fill("2030-06-01");
-  await page.getByRole("button", { name: "التالي" }).click();
-  await expect(page.getByLabel("المدينة / البلدة")).toBeVisible();
-  await page.getByRole("button", { name: "رجوع" }).click();
-  await expect(page.getByLabel("الاسم")).toHaveValue("اختبار");
+  expect(await page.locator("main form, main input").count()).toBe(0);
+  await expect(page.locator("main a[data-whatsapp-cta]")).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);
 });

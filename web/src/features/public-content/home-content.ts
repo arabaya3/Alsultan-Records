@@ -3,11 +3,10 @@
 export const HERO = {
   title: "فرحتك إلها حكاية",
   sub: "نوثّق أعراسكم ومناسباتكم بالصوت والصورة.",
-  primary: "شاهد أعمالنا",
-  secondary: "احكِ لنا عن مناسبتك",
-  /** Used when no work is published yet. */
-  book: "احجز مناسبتك",
-  contact: "تواصل معنا",
+  primary: "احجز عبر واتساب",
+  secondary: "شاهد أعمالنا",
+  /** Caption under the promo thumbnail. The promo is a ~9-minute clip, not a "short promo". */
+  promoCaption: "مقطع من أعمالنا",
 };
 
 /** Used only when no services are published yet. */
@@ -26,9 +25,10 @@ export const FALLBACK_SERVICES = [
   },
 ] as const;
 
+/** Booking happens on WhatsApp only (no forms, no portal). */
 export const STEPS = [
-  { title: "احكِ لنا", body: "أرسل تفاصيل مناسبتك الأساسية: النوع والتاريخ والمكان." },
-  { title: "نتفق على التفاصيل", body: "نتواصل معك لنفهم ما تحتاجه ونرسل لك عرضاً واضحاً." },
+  { title: "راسلنا على واتساب", body: "اكتب نوع المناسبة وتاريخها ومكانها والخدمات اللي بتحتاجها." },
+  { title: "نتفق على التفاصيل", body: "نرد عليك على واتساب أو بالهاتف ونتفق على الموعد والتفاصيل." },
   { title: "يوم المناسبة", body: "فريقنا يكون حاضراً في الوقت ويوثّق اليوم كما هو." },
-  { title: "التسليم", body: "تستلم صورك وفيلمك عبر بوابة العميل." },
+  { title: "التسليم", body: "نتفق معك على طريقة وموعد استلام صورك وفيلمك." },
 ] as const;

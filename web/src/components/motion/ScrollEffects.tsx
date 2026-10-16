@@ -8,10 +8,13 @@ export function MaskReveal({
   children,
   className = "",
   index = 0,
+  onLoad = false,
 }: {
   children: ReactNode;
   className?: string;
   index?: number;
+  /** Reveal right away (above the fold) instead of on scroll. */
+  onLoad?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   useMotion(ref, (el) => {
@@ -22,12 +25,12 @@ export function MaskReveal({
         clipPath: "inset(0 0 0% 0)",
         duration: 0.9,
         ease: "power3.out",
-        delay: index * 0.12,
+        delay: onLoad ? 0.25 : index * 0.12,
         clearProps: "clipPath",
-        scrollTrigger: { trigger: el, start: "top 88%", once: true },
+        scrollTrigger: onLoad ? undefined : { trigger: el, start: "top 88%", once: true },
       },
     );
-  }, [], { scroll: true });
+  }, [onLoad], { scroll: !onLoad });
   return (
     <div ref={ref} className={className}>
       {children}

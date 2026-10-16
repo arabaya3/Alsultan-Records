@@ -1,3 +1,5 @@
+import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
+import { projectText } from "@/lib/whatsapp";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -110,7 +112,7 @@ async function ProjectView({ params }: { params: PageProps<"/work/[slug]">["para
       <Section>
         <div className="flex flex-col items-start gap-5 md:flex-row md:items-center md:justify-between">
           <p className="font-display text-2xl font-semibold">بدك نوثّق مناسبتك بنفس الطريقة؟</p>
-          <ButtonLink href="/book">احجز مناسبتك</ButtonLink>
+          <WhatsAppCta text={projectText(p.title)} />
         </div>
       </Section>
     </article>

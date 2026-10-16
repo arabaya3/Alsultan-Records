@@ -5,7 +5,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { NAV_LINKS } from "@/features/public-content/site";
 
 /** Accessible mobile menu: focus trap, Escape to close, focus returns to the toggle. */
-export function MobileMenu() {
+export function MobileMenu({ bookHref }: { bookHref: string | null }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -77,26 +77,22 @@ export function MobileMenu() {
       >
         <nav aria-label="القائمة الرئيسية" className="px-[var(--gutter)] py-6">
           <ul className="flex flex-col gap-1 font-display text-2xl">
-            {NAV_LINKS.map((l) => (
+            {[...NAV_LINKS, { href: "/contact", label: "تواصل معنا" }].map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className="block border-b border-ink-line py-4" onClick={() => setOpen(false)}>
                   {l.label}
                 </Link>
               </li>
             ))}
-            <li>
-              <Link href="/portal" className="block border-b border-ink-line py-4" onClick={() => setOpen(false)}>
-                بوابة العميل
-              </Link>
-            </li>
           </ul>
-          <Link
-            href="/book"
+          <a
+            href={bookHref ?? "/contact"}
+            {...(bookHref ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             onClick={() => setOpen(false)}
             className="mt-8 flex min-h-14 items-center justify-center rounded-sm bg-gold px-6 text-lg font-medium text-ink"
           >
-            احجز مناسبتك
-          </Link>
+            {bookHref ? "احجز عبر واتساب" : "تواصل معنا"}
+          </a>
         </nav>
       </div>
     </>

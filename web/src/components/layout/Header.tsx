@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { BrandEntrance } from "@/components/motion/Reveal";
-import { ButtonLink } from "@/components/ui/Button";
+import { WhatsAppLink } from "@/components/ui/WhatsAppCta";
+import { bookingHref } from "@/features/public-content/contact";
+import { getBusinessSettings } from "@/features/public-content/queries";
 import { NAV_LINKS } from "@/features/public-content/site";
 import { MobileMenu } from "./MobileMenu";
 
-export function Header() {
+export async function Header() {
+  const settings = await getBusinessSettings();
+  const book = bookingHref(settings.status === "ok" ? settings.data : null);
   return (
     <header className="relative z-40 bg-ink text-on-dark">
       <a
@@ -31,17 +35,18 @@ export function Header() {
           </ul>
         </nav>
 
-        <div className="ms-auto hidden items-center gap-10 lg:flex">
-          <ButtonLink href="/book" className="min-w-44">
-            احجز مناسبتك
-          </ButtonLink>
-          <Link href="/portal" className="py-2 text-[1.0625rem] transition-colors hover:text-gold">
-            بوابة العميل
-          </Link>
+        <div className="ms-auto hidden items-center lg:flex">
+          {book ? (
+            <WhatsAppLink href={book} className="min-w-44" />
+          ) : (
+            <Link href="/contact" className="py-2 text-[1.0625rem] transition-colors hover:text-gold">
+              تواصل معنا
+            </Link>
+          )}
         </div>
 
         <div className="ms-auto lg:hidden">
-          <MobileMenu />
+          <MobileMenu bookHref={book} />
         </div>
       </div>
     </header>

@@ -1,60 +1,79 @@
-import { ProjectTile } from "@/components/media/ProjectTile";
+import Link from "next/link";
+import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
 import { MaskReveal } from "@/components/motion/ScrollEffects";
-import { ButtonLink } from "@/components/ui/Button";
 import { PageIntro, Section } from "@/components/ui/Layout";
 import { EmptyState, ErrorState } from "@/components/ui/States";
-import { eventTypeLabel, formatDateAr } from "@/features/public-content/labels";
-import { getPublishedProjects } from "@/features/public-content/queries";
-import { pageMetadata } from "@/features/public-content/seo";
+import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
+import { durationLabel, formatDateAr, videoCategoryLabel } from "@/features/public-content/labels";
+import { getBusinessSettings, getShowcaseVideos } from "@/features/public-content/queries";
+import { pageMetadata, safeHttp } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
   title: "أعمالنا",
-  description: "مختارات من أعراس ومناسبات وثّقها ستوديو وتسجيلات السلطان، منشورة بموافقة أصحابها.",
+  description: "مقاطع من أعراس ومناسبات وثّقها ستوديو وتسجيلات السلطان، تُشاهد مباشرة داخل الموقع.",
   path: "/work",
 });
 
 export default async function WorkPage() {
-  const projects = await getPublishedProjects();
+  const [videos, settings] = await Promise.all([getShowcaseVideos(), getBusinessSettings()]);
+  const channel = settings.status === "ok" ? safeHttp(settings.data?.youtube_url ?? null) : null;
+  const list = videos.status === "ok" ? videos.data : [];
+  const promo = list.find((v) => v.is_promo) ?? null;
+  const rest = list.filter((v) => v !== promo);
+  const card = (v: (typeof list)[number]) => ({
+    youtubeId: v.youtube_id,
+    title: v.title,
+    duration: durationLabel(v.duration_seconds),
+    meta: [videoCategoryLabel(v.category), formatDateAr(v.published_at)].filter(Boolean).join(" · ") || null,
+  });
+
   return (
     <>
-      <PageIntro title="أعمالنا" lead="مناسبات وثّقناها، ننشرها بموافقة أصحابها." />
+      <PageIntro title="أعمالنا" lead="مقاطع من أعراس ومناسبات وثّقناها. اضغط على أي مقطع لمشاهدته هنا." />
       <Section>
-        {projects.status === "unavailable" ? (
-          <ErrorState action={<ButtonLink href="/contact">تواصل معنا</ButtonLink>} />
-        ) : projects.data.length === 0 ? (
+        {videos.status === "unavailable" ? (
+          <ErrorState action={<WhatsAppCta />} />
+        ) : list.length === 0 ? (
           <EmptyState
             title="نجهّز معرض الأعمال"
-            body="ننشر الأعمال بعد موافقة أصحابها. إلى ذلك الحين، يسعدنا أن نحكي معك عن مناسبتك."
-            action={
-              <div className="flex flex-wrap items-center justify-center gap-6">
-                <ButtonLink href="/book">احجز مناسبتك</ButtonLink>
-                <ButtonLink href="/contact" variant="link" tone="light">
-                  تواصل معنا
-                </ButtonLink>
-              </div>
-            }
+            body="ننشر مقاطع من أعمالنا هنا قريباً. إلى ذلك الحين، يسعدنا نحكي معك عن مناسبتك."
+            action={<WhatsAppCta />}
           />
         ) : (
-          <ul className="grid gap-6 md:grid-cols-2">
-            {projects.data.map((p, i) => (
-              <li key={p.id}>
-                <MaskReveal index={i % 2}>
-                  <ProjectTile
-                    href={`/work/${p.public_slug}`}
-                    title={p.title}
-                    meta={
-                      [eventTypeLabel(p.event_type), p.city, formatDateAr(p.event_date)]
-                        .filter(Boolean)
-                        .join(" · ") || null
-                    }
-                    media={p.cover}
-                    priority={i < 2}
-                    ratioClassName="aspect-[4/3]"
-                  />
+          <>
+            {promo ? (
+              <div className="mb-12 grid items-center gap-6 lg:grid-cols-[1.6fr_1fr] lg:gap-10">
+                <MaskReveal>
+                  <YouTubeCard video={card(promo)} priority sizes="(min-width: 1024px) 60vw, 100vw" />
                 </MaskReveal>
-              </li>
-            ))}
-          </ul>
+                <div>
+                  <p className="text-sm font-semibold text-gold-text">مقطع مختار</p>
+                  {promo.description ? <p className="mt-2 text-lg text-on-cream-muted">{promo.description}</p> : null}
+                </div>
+              </div>
+            ) : null}
+            <ul className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+              {rest.map((v, i) => (
+                <li key={v.id}>
+                  <MaskReveal index={i % 3}>
+                    <YouTubeCard video={card(v)} priority={!promo && i < 3} />
+                  </MaskReveal>
+                </li>
+              ))}
+            </ul>
+            {channel ? (
+              <p className="mt-10">
+                <Link
+                  href={channel}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex min-h-11 items-center underline decoration-1 underline-offset-8 hover:decoration-gold"
+                >
+                  المزيد على قناتنا في YouTube
+                </Link>
+              </p>
+            ) : null}
+          </>
         )}
       </Section>
     </>

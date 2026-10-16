@@ -1,3 +1,4 @@
+import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { ButtonLink } from "@/components/ui/Button";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { PageIntro, Section } from "@/components/ui/Layout";
@@ -5,23 +6,23 @@ import { pageMetadata } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
   title: "أسئلة شائعة",
-  description: "إجابات عن الحجز والتسليم وبوابة العميل لدى ستوديو وتسجيلات السلطان.",
+  description: "إجابات عن الحجز عبر واتساب والتسليم لدى ستوديو وتسجيلات السلطان.",
   path: "/faq",
 });
 
 // Answers describe the site's actual process; owner should review wording and policies.
 const FAQ = [
   {
-    q: "هل إرسال الطلب يعني أن الموعد محجوز؟",
-    a: "لا. الطلب استفسار فقط. نتواصل معك لنتأكد من توفر الموعد ونتفق على التفاصيل، ويُثبَّت الحجز بعد الاتفاق.",
+    q: "كيف أحجز؟",
+    a: "راسلنا على واتساب واكتب نوع المناسبة وتاريخها ومكانها والخدمات اللي بتحتاجها، أو اتصل بنا.",
   },
   {
-    q: "كيف أتابع طلبي؟",
-    a: "بعد إرسال الطلب يظهر لك رمز متابعة. من صفحة «تابع طلبك» أدخل الرمز وآخر أربعة أرقام من رقم هاتفك.",
+    q: "هل الرسالة تعني أن الموعد محجوز؟",
+    a: "لا. نتواصل معك لنتأكد من توفر الموعد ونتفق على التفاصيل، ويُثبَّت الحجز بعد الاتفاق.",
   },
   {
     q: "كيف أستلم الصور والفيديو؟",
-    a: "عبر بوابة العميل: تشاهد الصور، تختار صور الألبوم، وتتابع الفيلم وملاحظاتك عليه.",
+    a: "نتفق معك على طريقة وموعد التسليم عند الحجز.",
   },
   {
     q: "هل تنشرون صور مناسبتي؟",
@@ -29,7 +30,7 @@ const FAQ = [
   },
   {
     q: "هل تغطّون مناسبات خارج جنين؟",
-    a: "اذكر المدينة والمكان في الطلب، ونرد عليك بما يناسب.",
+    a: "اذكر المدينة والمكان في رسالتك، ونرد عليك بما يناسب.",
   },
 ];
 
@@ -63,7 +64,7 @@ export default function FaqPage() {
           ))}
         </div>
         <div className="mt-12 flex flex-wrap items-center gap-6">
-          <ButtonLink href="/book">احجز مناسبتك</ButtonLink>
+          <WhatsAppCta />
           <ButtonLink href="/contact" variant="link" tone="light">
             سؤالك مش هون؟ تواصل معنا
           </ButtonLink>

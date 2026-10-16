@@ -8,6 +8,8 @@ import {
   projectRow,
   reviewRow,
   serviceRow,
+  showcaseVideoRow,
+  type ShowcaseVideo,
   type BusinessSettings,
   type Loaded,
   type MediaAssetRow,
@@ -225,6 +227,29 @@ export async function getApprovedReviews(limit = 6): Promise<Loaded<ReviewRow[]>
       .limit(limit);
     if (error) throw error;
     return { status: "ok", data: parseRows(reviewRow, data) };
+  } catch {
+    return { status: "unavailable" };
+  }
+}
+
+const VIDEO_COLUMNS = "id, youtube_id, title, description, category, duration_seconds, published_at, is_promo, sort_order";
+
+/** Published showcase videos (promo first, then sort_order). Anon RLS returns published rows only. */
+export async function getShowcaseVideos(): Promise<Loaded<ShowcaseVideo[]>> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag("showcase-videos");
+  const sb = getPublicClient();
+  if (!sb) return { status: "unavailable" };
+  try {
+    // Rows are validated with Zod (the table may be newer than the generated types).
+    const { data, error } = await sb
+      .from("showcase_videos")
+      .select(VIDEO_COLUMNS) // RLS (showcase_public_read) returns published rows only; is_published is not anon-selectable.
+      .order("is_promo", { ascending: false })
+      .order("sort_order", { ascending: true });
+    if (error) throw error;
+    return { status: "ok", data: parseRows(showcaseVideoRow, data) };
   } catch {
     return { status: "unavailable" };
   }

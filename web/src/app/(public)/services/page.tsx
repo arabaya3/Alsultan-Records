@@ -1,6 +1,6 @@
+import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import Link from "next/link";
 import { MediaFrame } from "@/components/media/MediaFrame";
-import { ButtonLink } from "@/components/ui/Button";
 import { PageIntro, Section } from "@/components/ui/Layout";
 import { ErrorState } from "@/components/ui/States";
 import { FALLBACK_SERVICES } from "@/features/public-content/home-content";
@@ -56,7 +56,7 @@ export default async function ServicesPage() {
           </ul>
         )}
         <div className="mt-12">
-          <ButtonLink href="/book">احجز مناسبتك</ButtonLink>
+          <WhatsAppCta />
         </div>
       </Section>
     </>

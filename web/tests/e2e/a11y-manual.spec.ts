@@ -95,77 +95,32 @@ test("skip link is the first Tab stop and moves focus to <main> (public, portal,
   }
 });
 
-test("keyboard-only booking inquiry: focus visible, step-2 focus, errors focused and announced", async ({ browser }) => {
+test("keyboard-only booking via WhatsApp: /book has no form, WhatsApp + tel links reachable with visible focus", async ({ browser }) => {
   const page = await newPage(browser);
-  const log = focusLog();
   await page.goto(`${BASE}/book`);
-  expect(await tabUntil(page, activeIs(page, "document.activeElement?.id === 'contact_name'"), 40, log)).toBe(true);
-  // Phone hint is associated.
-  expect(await page.locator("#contact_phone").getAttribute("aria-describedby")).toBe("contact_phone-hint");
-  await page.keyboard.type("اختبار لوحة المفاتيح");
-  await page.keyboard.press("Tab");
-  await log.check(page);
-  await page.keyboard.type("0591112222");
-  await page.keyboard.press("Tab");
-  await log.check(page);
-  expect(await page.evaluate(() => document.activeElement?.id)).toBe("event_type");
-  await page.keyboard.press("ArrowDown");
-  await page.keyboard.press("Tab");
-  const d = new Date(Date.now() + 70 * 86400_000);
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  await page.keyboard.type(`${dd}${mm}${d.getFullYear()}`);
-  expect(await page.locator("#event_date").inputValue()).toBe(`${d.getFullYear()}-${mm}-${dd}`);
-  expect(await tabUntil(page, activeIs(page, "document.activeElement?.textContent?.trim() === 'التالي'"), 5, log)).toBe(true);
-  await page.keyboard.press("Enter");
-  // Focus moves into step 2 (its heading).
-  await expect(page.getByRole("heading", { name: /تفاصيل إضافية/ })).toBeFocused();
-  expect(await tabUntil(page, activeIs(page, "document.activeElement?.id === 'city'"), 5, log)).toBe(true);
-  await page.keyboard.type("جنين");
-  expect(await tabUntil(page, activeIs(page, "document.activeElement?.textContent?.trim() === 'أرسل الطلب'"), 30, log)).toBe(true);
-  await page.keyboard.press("Enter");
-  const ok = page.getByRole("status").filter({ hasText: "رمز المتابعة" });
-  await expect(ok).toBeVisible({ timeout: 30_000 });
-  await expect(ok).toHaveAttribute("aria-live", "polite");
-  expect(log.invisible, `focus not visible on: ${log.invisible.join(", ")}`).toEqual([]);
-  test.info().annotations.push({ type: "focus stops checked (booking)", description: String(log.seen.length) });
-
-  // Server-side field errors: focus goes to the first invalid field, which is aria-invalid + describedby the error.
-  await page.goto(`${BASE}/book`);
-  await page.locator("#contact_name").fill("ab");
-  await page.locator("#contact_phone").fill("0599000000");
-  await page.locator("#event_type").selectOption("wedding");
-  await page.locator("#event_date").fill("2027-06-01");
-  await page.getByRole("button", { name: "التالي" }).click();
-  await page.evaluate(() => {
-    for (const el of Array.from(document.querySelectorAll("form input, form select"))) {
-      el.removeAttribute("required");
-      el.removeAttribute("pattern");
-      el.removeAttribute("minlength");
-    }
-    (document.querySelector("#contact_name") as HTMLInputElement).value = "x";
-    (document.querySelector("#contact_phone") as HTMLInputElement).value = "12";
-  });
-  await page.getByRole("button", { name: "أرسل الطلب" }).click();
-  await expect(page.locator("#contact_name")).toBeFocused({ timeout: 30_000 });
-  await expect(page.locator("#contact_name")).toHaveAttribute("aria-invalid", "true");
-  await expect(page.locator("#contact_name")).toHaveAttribute("aria-describedby", "contact_name-error");
-  await expect(page.locator("#contact_name-error")).toHaveText(/\S/);
-  await expect(page.locator("#contact_phone")).toHaveAttribute("aria-describedby", "contact_phone-error");
-  await expect(page.getByRole("alert").first()).toBeVisible();
+  expect(await page.locator("main form").count()).toBe(0);
+  const seen: { href: string; focusVisible: boolean }[] = [];
+  for (let i = 0; i < 40 && seen.length < 60; i++) {
+    await page.keyboard.press("Tab");
+    const info = await page.evaluate(() => {
+      const el = document.activeElement as HTMLElement | null;
+      if (!el || el === document.body) return null;
+      const cs = getComputedStyle(el);
+      const ring = (cs.outlineStyle !== "none" && parseFloat(cs.outlineWidth) > 0) || cs.boxShadow !== "none";
+      return { href: (el as HTMLAnchorElement).href ?? "", focusVisible: ring };
+    });
+    if (info) seen.push(info);
+  }
+  const wa = seen.find((x) => x.href.startsWith("https://wa.me/970598677477"));
+  const tel = seen.find((x) => x.href.startsWith("tel:"));
+  expect(wa, "WhatsApp link reachable by Tab").toBeTruthy();
+  expect(tel, "tel: link reachable by Tab").toBeTruthy();
+  expect(wa!.focusVisible && tel!.focusVisible).toBe(true);
   await page.context().close();
 });
 
-test("other form errors are announced (track, login, admin payment)", async ({ browser }) => {
+test("form errors are announced (login, admin payment)", async ({ browser }) => {
   const page = await newPage(browser);
-  await page.goto(`${BASE}/track`);
-  await page.locator("#code").fill("ZZZZZZ99");
-  await page.locator("#last4").fill("1234");
-  await page.getByRole("button", { name: "اعرض الحالة" }).click();
-  const nf = page.getByText("لم نجد طلباً بهذه البيانات");
-  await expect(nf).toBeVisible({ timeout: 30_000 });
-  expect(await nf.evaluate((e) => e.closest("[aria-live]")?.getAttribute("aria-live"))).toBe("polite");
-
   await page.goto(`${BASE}/login`);
   await page.locator("#email").fill(USERS.a.email);
   await page.locator("#password").fill("wrong-password-1");
@@ -351,11 +306,14 @@ test("RTL: directional chevrons and bidi isolation of Latin user content", async
   await expect(page.locator("main h2 bdi[dir=auto]").first()).toBeVisible();
   await page.goto(`${BASE}/portal/events/${EV.A1}`);
   expect(await page.getByTestId("event-title").locator("bdi[dir=auto]").count()).toBe(1);
-  // Latin inputs (phone, email, codes) are dir=ltr.
+  // Phone numbers shown publicly read left-to-right (tel: links on /book and in the footer).
   await page.goto(`${BASE}/book`);
-  await expect(page.locator("#contact_phone")).toHaveAttribute("dir", "ltr");
-  await page.goto(`${BASE}/track`);
-  await expect(page.locator("#code")).toHaveAttribute("dir", "ltr");
+  const tels = page.locator('a[href^="tel:"]');
+  expect(await tels.count()).toBeGreaterThan(0);
+  for (let i = 0; i < (await tels.count()); i++) {
+    const ltr = await tels.nth(i).evaluate((e) => e.getAttribute("dir") === "ltr" || !!e.querySelector('[dir="ltr"]') || !!e.closest('[dir="ltr"]'));
+    expect(ltr, `tel link #${i} is LTR`).toBe(true);
+  }
   await page.context().close();
 });
 

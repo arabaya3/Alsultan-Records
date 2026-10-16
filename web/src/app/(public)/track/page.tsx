@@ -1,25 +1,7 @@
-import { PageIntro, Section } from "@/components/ui/Layout";
-import { TrackForm } from "@/features/bookings/public/TrackForm";
-import { pageMetadata } from "@/features/public-content/seo";
+import { permanentRedirect } from "next/navigation";
 
-export const metadata = {
-  ...pageMetadata({
-    title: "تابع طلبك",
-    description: "تابع حالة طلب الحجز برمز المتابعة.",
-    path: "/track",
-  }),
-  robots: { index: false, follow: true },
-};
-
+// Request tracking was form-based; booking is now WhatsApp-only. The TrackForm code is kept
+// (features/bookings/public) but no longer rendered. Old links land on the booking page.
 export default function TrackPage() {
-  return (
-    <>
-      <PageIntro title="تابع طلبك" lead="أدخل رمز المتابعة الذي ظهر لك بعد إرسال الطلب." />
-      <Section>
-        <div className="max-w-3xl">
-          <TrackForm />
-        </div>
-      </Section>
-    </>
-  );
+  permanentRedirect("/book");
 }

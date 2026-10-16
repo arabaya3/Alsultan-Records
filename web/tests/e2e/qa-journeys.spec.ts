@@ -54,7 +54,8 @@ test("P3/P6: unknown slugs render the not-found page (status documented)", async
   }
 });
 
-test("P4: booking inquiry end-to-end; double-click submit creates exactly ONE row", async ({ page }) => {
+// SKIPPED: Public booking form and tracking are not rendered in the approved WhatsApp-only scope (code kept, booking RPCs covered by pgTAP; form path covered by turnstile.spec in TURNSTILE_TEST_MODE).
+test.skip("P4: booking inquiry end-to-end; double-click submit creates exactly ONE row", async ({ page }) => {
   const name = `[QA] Booking ${Date.now()}`;
   await page.goto(`${BASE}/book`);
   await expect(page.getByText("وليس حجزاً مؤكداً").first()).toBeVisible();
@@ -80,7 +81,7 @@ test("P4: booking inquiry end-to-end; double-click submit creates exactly ONE ro
   expect(data![0].city).toBe("[QA] Ramallah");
 });
 
-test("P4: server error keeps every input (rate-limit forced for this phone)", async ({ page }) => {
+test.skip("P4: server error keeps every input (rate-limit forced for this phone)", async ({ page }) => {
   const phone = "0597654321";
   // Pre-load the per-phone daily bucket (5/day) so the next submit is rejected server-side.
   psql(`insert into private.rate_limits (bucket, key, window_start, hits)
@@ -105,7 +106,7 @@ test("P4: server error keeps every input (rate-limit forced for this phone)", as
   psql(`delete from private.rate_limits where bucket = 'booking_phone' and key = '${phone}';`);
 });
 
-test("P5: tracking with right last4 shows status; wrong last4 is generic not-found", async ({ page }) => {
+test.skip("P5: tracking with right last4 shows status; wrong last4 is generic not-found", async ({ page }) => {
   expect(trackingCode).not.toBe("");
   await page.goto(`${BASE}/track`);
   await page.locator("#code").fill(trackingCode);

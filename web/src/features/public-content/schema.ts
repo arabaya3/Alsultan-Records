@@ -15,6 +15,8 @@ export const businessSettingsRow = z.object({
   address: nullableText,
   instagram: nullableText,
   facebook: nullableText,
+  youtube_url: nullableText,
+  whatsapp_url: nullableText,
   hero_media_id: nullableText,
   canonical_base_url: nullableText,
 });
@@ -90,3 +92,19 @@ export type Service = ServiceRow & { cover: PublicMedia | null };
 
 /** Distinguishes "the service failed" from "there is nothing yet". */
 export type Loaded<T> = { status: "ok"; data: T } | { status: "unavailable" };
+
+export const VIDEO_CATEGORIES = ["wedding", "evening", "groom_prep", "folk", "engagement", "graduation", "festival", "dj", "other"] as const;
+
+/** Public projection of `showcase_videos`. The YouTube ID is re-validated before anything renders. */
+export const showcaseVideoRow = z.object({
+  id: z.string(),
+  youtube_id: z.string().regex(/^[A-Za-z0-9_-]{11}$/),
+  title: z.string().min(1),
+  description: nullableText,
+  category: z.enum(VIDEO_CATEGORIES).catch("other"),
+  duration_seconds: z.number().int().nonnegative().nullable().optional().transform((v) => v ?? null),
+  published_at: nullableText,
+  is_promo: z.boolean().nullable().optional().transform((v) => v ?? false),
+  sort_order: z.number().nullable().optional(),
+});
+export type ShowcaseVideo = z.infer<typeof showcaseVideoRow>;

@@ -75,7 +75,8 @@ test("P6 a11y: html lang/dir, every form control has an accessible label", async
   expect(misses).toEqual([]);
 });
 
-test("P4 a11y: booking form can be completed keyboard-only", async ({ page }) => {
+// SKIPPED: Public booking form and tracking are not rendered in the approved WhatsApp-only scope (code kept, booking RPCs covered by pgTAP; form path covered by turnstile.spec in TURNSTILE_TEST_MODE).
+test.skip("P4 a11y: booking form can be completed keyboard-only", async ({ page }) => {
   psql("delete from private.rate_limits;");
   await page.goto(`${BASE}/book`);
   await page.locator("body").focus();
