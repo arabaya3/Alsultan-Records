@@ -1,11 +1,12 @@
 import Link from "next/link";
+import { ProjectTile } from "@/components/media/ProjectTile";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
 import { MaskReveal } from "@/components/motion/ScrollEffects";
 import { PageIntro, Section } from "@/components/ui/Layout";
 import { EmptyState, ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
-import { durationLabel, formatDateAr, videoCategoryLabel } from "@/features/public-content/labels";
-import { getBusinessSettings, getShowcaseVideos } from "@/features/public-content/queries";
+import { durationLabel, eventTypeLabel, formatDateAr, videoCategoryLabel } from "@/features/public-content/labels";
+import { getBusinessSettings, getPublishedProjects, getShowcaseVideos } from "@/features/public-content/queries";
 import { pageMetadata, safeHttp } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -15,7 +16,7 @@ export const metadata = pageMetadata({
 });
 
 export default async function WorkPage() {
-  const [videos, settings] = await Promise.all([getShowcaseVideos(), getBusinessSettings()]);
+  const [videos, settings, projects] = await Promise.all([getShowcaseVideos(), getBusinessSettings(), getPublishedProjects()]);
   const channel = settings.status === "ok" ? safeHttp(settings.data?.youtube_url ?? null) : null;
   const list = videos.status === "ok" ? videos.data : [];
   const promo = list.find((v) => v.is_promo) ?? null;
@@ -76,6 +77,31 @@ export default async function WorkPage() {
           </>
         )}
       </Section>
+      {/* Published + consented event case studies (admin publishing); hidden when there are none. */}
+      {projects.status === "unavailable" ? (
+        <Section tone="cream-2">
+          <p role="status" className="text-on-cream-muted">تعذّر تحميل المشاريع المختارة الآن.</p>
+        </Section>
+      ) : projects.data.length > 0 ? (
+        <Section tone="cream-2" labelledBy="projects-title">
+          <h2 id="projects-title" className="mb-8 text-3xl font-bold tracking-tight md:text-[2.5rem]">مشاريع مختارة</h2>
+          <ul className="grid gap-6 md:grid-cols-2">
+            {projects.data.map((p, i) => (
+              <li key={p.id}>
+                <MaskReveal index={i % 2}>
+                  <ProjectTile
+                    href={`/work/${p.public_slug}`}
+                    title={p.title}
+                    meta={[eventTypeLabel(p.event_type), p.city, formatDateAr(p.event_date)].filter(Boolean).join(" · ") || null}
+                    media={p.cover}
+                    ratioClassName="aspect-[4/3]"
+                  />
+                </MaskReveal>
+              </li>
+            ))}
+          </ul>
+        </Section>
+      ) : null}
     </>
   );
 }

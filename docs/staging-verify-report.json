@@ -1,15 +1,15 @@
 {
   "target": "staging",
   "host": "dyuixzxmmeiypvawzmty.supabase.co",
-  "run_id": "mvaod1d3310a26",
-  "started_at": "2026-10-16T07:57:23.367Z",
-  "finished_at": "2026-10-16T07:58:26.708Z",
+  "run_id": "mvato3nudb8fe8",
+  "started_at": "2026-10-16T10:25:57.642Z",
+  "finished_at": "2026-10-16T10:26:52.744Z",
   "totals": {
     "checks": 68,
     "passed": 68,
     "failed": 0
   },
-  "public_tables": 33,
+  "public_tables": 34,
   "cleanup": {
     "leftovers": {
       "events": 0,
@@ -305,7 +305,7 @@
       "pass": true
     },
     {
-      "name": "anon column privileges limited to public columns of events/reviews",
+      "name": "anon column privileges limited to public columns of events/reviews/showcase_videos",
       "pass": true
     },
     {

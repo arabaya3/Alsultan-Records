@@ -270,3 +270,21 @@ Not proven on staging:
 | Cloud restore rehearsal | `scripts/cloud-restore-rehearsal.mjs`, `docs/cloud-restore-report.json` | local simulation 110/110; cloud run PENDING (needs a second free project, see `docs/backup-restore.md`) |
 
 Still not proven: auth email delivery on staging (no SMTP), token_hash templates on staging (blocked by free tier until SMTP), Turnstile with real keys on a real hostname, cloud restore, CDN.
+
+## Content + WhatsApp/YouTube scope — 2026-10-16
+
+Scope approved by the owner: public showcase site; videos from the studio's YouTube channel played in-page; booking/contact via WhatsApp; admin-only login (client portal, tracking and public forms hidden — code and tables kept).
+
+| Area | Evidence | Result |
+|---|---|---|
+| YouTube channel identity | RSS feed + watch pages: channel `UCpxtdVABBIOaNLne-0_dDmQ` = "ستوديو و تسجيلات السلطان"; 19 public videos, all embeddable (oEmbed 200, playableInEmbed), no Shorts, shortest 539 s | verified |
+| WhatsApp | `wa.me/message/I4OXKEUV7DX6L1` resolves to the studio's business profile; `wa.me/970598677477` shows the same business name → number is the studio's WhatsApp Business; buttons use `wa.me/970598677477?text=…` | verified |
+| Schema | migrations 0013/0014 (`showcase_videos`, business_settings youtube_url/whatsapp_url); pgTAP | 189/189 (8 files); staging 14/14 migrations |
+| Import idempotency | `scripts/import-content.mjs` local + staging, run twice | 2nd run: 0 inserted, 0 updated, 8 settings kept (owner's values never overwritten) |
+| Admin videos | `tests/e2e/admin-videos.spec.ts` | 4/4 (URL/ID only — HTML/iframe/other hosts rejected; publish/promo/edit/delete; staff/customer denied) |
+| In-page playback | `tests/e2e/public-youtube.spec.ts` | iframe only after click (youtube-nocookie), YouTube `<video>` paused=false and currentTime>0.5 in headless Chromium; Esc closes, focus returns, fullscreen allowed, "شاهد على YouTube" link |
+| Public scope | public + footer specs | no portal/track/login links or forms on public pages; `/track` 308 → `/book`; all CTAs → WhatsApp |
+| Footer | `footer.spec.ts` | desktop 411 → 318 px (1440 and 1920), mobile 748 → 653 px; booking band 101 px; no overflow at 360/390/768/1440/1920 |
+| Accessibility | `a11y-axe.spec.ts`, `a11y-manual.spec.ts` | 0 serious/critical on our pages (YouTube's own iframe excluded — third-party markup); manual 10/10 |
+| Regression (local, fresh DB per group) | qa-* 39 passed + 4 skipped (obsolete form/tracking tests, reason in file); portal 8/8; qa-portal 7/7; admin/mfa/public groups pass | ✅ |
+| Staging (site on :3100 built against the cloud) | homepage HTML; staging-verify / app / login / admin checks | promo + 5 works rendered from staging; no groom names; 68/68, 15/15, 13/13, 93/93 |

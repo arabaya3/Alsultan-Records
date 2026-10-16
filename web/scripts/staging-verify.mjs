@@ -265,6 +265,8 @@ async function run(F) {
   const ALLOWED_ANON_COLS = {
     events: "id title event_type event_date city status public_slug publication_consent is_published featured featured_order seo_title seo_description highlight coverage_notes created_at updated_at".split(" "),
     reviews: "id event_id display_name rating body status created_at".split(" "),
+    // display columns only — original_title, source_url, source, verification_notes, updated_by stay admin-only (migration 0013)
+    showcase_videos: "id youtube_id title description category duration_seconds published_at is_promo sort_order".split(" "),
   };
   const anonCols = await sql(`select c.relname, a.attname, p.priv from pg_class c join pg_namespace n on n.oid = c.relnamespace
       join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
@@ -272,7 +274,7 @@ async function run(F) {
       where n.nspname = 'public' and c.relkind in ('r','p','v','m') and has_column_privilege('anon', c.oid, a.attnum, p.priv)
         and not has_table_privilege('anon', c.oid, p.priv) order by 1, 2`);
   const extraC = anonCols.filter((r) => r.priv !== "SELECT" || !(ALLOWED_ANON_COLS[r.relname] ?? []).includes(r.attname));
-  check("anon column privileges limited to public columns of events/reviews", extraC.length === 0, extraC.map((r) => `${r.relname}.${r.attname}:${r.priv}`).join(", "));
+  check("anon column privileges limited to public columns of events/reviews/showcase_videos", extraC.length === 0, extraC.map((r) => `${r.relname}.${r.attname}:${r.priv}`).join(", "));
   const anonFns = await sql("select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1");
   check("anon can execute no public function", anonFns.length === 0, anonFns.map((r) => r.proname).join(", "));
   const hook = await sql("select has_function_privilege('supabase_auth_admin', 'app.custom_access_token_hook(jsonb)', 'EXECUTE') as auth_admin, has_function_privilege('authenticated', 'app.custom_access_token_hook(jsonb)', 'EXECUTE') as authn, has_function_privilege('anon', 'app.custom_access_token_hook(jsonb)', 'EXECUTE') as anon");

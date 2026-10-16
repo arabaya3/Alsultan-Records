@@ -96,9 +96,10 @@ try {
   await bp.goto(`${BASE}/book`);
   if (!turnstileConfigured) {
     const { count: before } = await sk.from("booking_requests").select("id", { count: "exact", head: true });
-    const unavailable = await bp.getByTestId("booking-unavailable").isVisible().catch(() => false);
-    const inputs = await bp.locator("#contact_name").count();
-    check("booking form refused without Turnstile keys (fail closed)", unavailable && inputs === 0, unavailable ? "form unavailable, no inputs" : "form still rendered");
+    // Approved scope: booking is via WhatsApp only — /book renders no form and links to the verified number.
+    const forms = await bp.locator("main form").count();
+    const wa = await bp.locator('main a[href^="https://wa.me/970598677477?text="]').count();
+    check("/book has no public form and offers WhatsApp booking", forms === 0 && wa > 0, `forms=${forms} whatsapp_links=${wa}`);
     await b.close();
     const { count: after } = await sk.from("booking_requests").select("id", { count: "exact", head: true });
     check("no booking row created by this run (existing real rows untouched)", after === before, `before=${before} after=${after}`);
