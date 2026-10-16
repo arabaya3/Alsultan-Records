@@ -1,0 +1,658 @@
+{
+  "target": "staging",
+  "host": "dyuixzxmmeiypvawzmty.supabase.co",
+  "app": "http://localhost:3100",
+  "run_id": "mvaqbg9j5ccb",
+  "started_at": "2026-10-16T08:52:08.599Z",
+  "finished_at": "2026-10-16T08:56:13.649Z",
+  "totals": {
+    "checks": 91,
+    "passed": 91,
+    "failed": 0
+  },
+  "by_area": {
+    "setup": {
+      "passed": 3,
+      "failed": 0
+    },
+    "login+mfa": {
+      "passed": 7,
+      "failed": 0
+    },
+    "customers": {
+      "passed": 5,
+      "failed": 0
+    },
+    "events": {
+      "passed": 3,
+      "failed": 0
+    },
+    "calendar": {
+      "passed": 1,
+      "failed": 0
+    },
+    "bookings": {
+      "passed": 6,
+      "failed": 0
+    },
+    "staff+equipment": {
+      "passed": 8,
+      "failed": 0
+    },
+    "media+publishing": {
+      "passed": 9,
+      "failed": 0
+    },
+    "quotes+contracts": {
+      "passed": 15,
+      "failed": 0
+    },
+    "finance": {
+      "passed": 7,
+      "failed": 0
+    },
+    "owner-only": {
+      "passed": 6,
+      "failed": 0
+    },
+    "support+reviews": {
+      "passed": 4,
+      "failed": 0
+    },
+    "album-submissions": {
+      "passed": 3,
+      "failed": 0
+    },
+    "staff-role": {
+      "passed": 11,
+      "failed": 0
+    },
+    "cleanup": {
+      "passed": 3,
+      "failed": 0
+    }
+  },
+  "cleanup": {
+    "leftovers": {
+      "customers": 0,
+      "events": 0,
+      "staff_members": 0,
+      "equipment": 0,
+      "booking_requests": 0,
+      "support_requests": 0,
+      "reviews": 0,
+      "payments": 0,
+      "quotes": 0,
+      "media_assets": 0,
+      "backup_runs": 0,
+      "auth_users": 0,
+      "auth_users_with_prefix": 0,
+      "storage_objects": 0
+    },
+    "errors": [],
+    "residue": [
+      {
+        "table": "contracts",
+        "id": "4eed213d-badc-46b0-926e-1e2173182d83",
+        "why": "contract_versions are append-only (DELETE blocked by trigger) and contract_versions.contract_id is ON DELETE RESTRICT"
+      },
+      {
+        "table": "contract_versions",
+        "id": "d89e6596-54ad-4465-8b94-663e3b15585b",
+        "why": "append-only by design"
+      },
+      {
+        "table": "contract_versions",
+        "id": "9f48812e-9c8c-45ef-bf6f-2481515e1867",
+        "why": "append-only by design"
+      },
+      {
+        "table": "events",
+        "id": "f824ae77-0658-4f1e-a2a7-827db5a48271",
+        "why": "album_selection_snapshots are append-only and cascade from events (event DELETE blocked)"
+      },
+      {
+        "table": "album_selections",
+        "id": "9971a0ca-cad7-47d7-af27-db1fb7765779",
+        "why": "parent of immutable snapshot"
+      },
+      {
+        "table": "album_selection_snapshots",
+        "id": "15941b41-e2bb-490c-8b71-8159fb43fe45",
+        "why": "append-only by design"
+      },
+      {
+        "table": "customers",
+        "id": "9b596456-3896-4c3b-8a06-78ea1deab3f5",
+        "why": "contracts.customer_id and events.customer_id are ON DELETE RESTRICT (immutable contract + album event)"
+      }
+    ],
+    "global_staging_test_rows": {
+      "customers": 3,
+      "events": 3,
+      "staff_members": 1,
+      "equipment": 1,
+      "booking_requests": 0,
+      "support_requests": 0,
+      "reviews": 0
+    },
+    "audit_rows_retained": 40,
+    "cleanup_queue_pending_for_test_paths": 0,
+    "owner": {
+      "count_after": 1,
+      "factors_before": 1,
+      "factors_after": 1,
+      "unchanged": true
+    }
+  },
+  "checks": [
+    {
+      "area": "setup",
+      "name": "exactly one real owner found (snapshot taken, not touched)",
+      "pass": true,
+      "note": "1 owner(s)"
+    },
+    {
+      "area": "setup",
+      "name": "test users created with roles admin/staff/owner(temp)/customer×2",
+      "pass": true
+    },
+    {
+      "area": "setup",
+      "name": "schema allows a temporary second owner (service-role role set, no trigger/constraint weakened)",
+      "pass": true,
+      "note": "2 owners now"
+    },
+    {
+      "area": "login+mfa",
+      "name": "admin: password login → MFA step",
+      "pass": true
+    },
+    {
+      "area": "login+mfa",
+      "name": "admin: TOTP enrolled in browser → /admin with aal2",
+      "pass": true,
+      "note": "aal=aal2"
+    },
+    {
+      "area": "login+mfa",
+      "name": "staff: password login → MFA step",
+      "pass": true
+    },
+    {
+      "area": "login+mfa",
+      "name": "staff: TOTP enrolled in browser → /admin with aal2",
+      "pass": true,
+      "note": "aal=aal2"
+    },
+    {
+      "area": "login+mfa",
+      "name": "owner: password login → MFA step",
+      "pass": true
+    },
+    {
+      "area": "login+mfa",
+      "name": "owner: TOTP enrolled in browser → /admin with aal2",
+      "pass": true,
+      "note": "aal=aal2"
+    },
+    {
+      "area": "login+mfa",
+      "name": "customer A: password login → /portal",
+      "pass": true
+    },
+    {
+      "area": "customers",
+      "name": "create customer via UI → row exists, no portal user",
+      "pass": true
+    },
+    {
+      "area": "customers",
+      "name": "search by run id lists the customer",
+      "pass": true
+    },
+    {
+      "area": "customers",
+      "name": "open customer detail from search",
+      "pass": true
+    },
+    {
+      "area": "customers",
+      "name": "internal note saved (DB customers.notes)",
+      "pass": true,
+      "note": "حُفظت الملاحظات الداخلية."
+    },
+    {
+      "area": "customers",
+      "name": "customer cannot read customers.notes column",
+      "pass": true,
+      "note": "42501"
+    },
+    {
+      "area": "events",
+      "name": "create 2 events via UI (customers A and B, same date)",
+      "pass": true
+    },
+    {
+      "area": "events",
+      "name": "edit event fields via UI → DB updated (city/venue/status/production note)",
+      "pass": true,
+      "note": "حُفظت المناسبة. {\"city\":\"Edited City\",\"venue\":\"Edited Hall\",\"status\":\"shooting\"} note=true "
+    },
+    {
+      "area": "events",
+      "name": "anon cannot see unpublished event",
+      "pass": true
+    },
+    {
+      "area": "calendar",
+      "name": "calendar month view renders the test event",
+      "pass": true,
+      "note": "2 link(s)"
+    },
+    {
+      "area": "bookings",
+      "name": "inquiry row inserted with secret key (public form is Turnstile-gated)",
+      "pass": true
+    },
+    {
+      "area": "bookings",
+      "name": "booking listed in admin with search",
+      "pass": true
+    },
+    {
+      "area": "bookings",
+      "name": "only valid transitions offered from 'new'",
+      "pass": true,
+      "note": "cancelled,contacted,declined"
+    },
+    {
+      "area": "bookings",
+      "name": "valid transition new→contacted applied (+history row)",
+      "pass": true,
+      "note": "حُدّثت مرحلة الطلب."
+    },
+    {
+      "area": "bookings",
+      "name": "forced invalid transition contacted→confirmed rejected (DB unchanged)",
+      "pass": true,
+      "note": "لا يمكن نقل الطلب إلى هذه المرحلة من مرحلته الحالية. db=contacted forced=confirmed"
+    },
+    {
+      "area": "bookings",
+      "name": "convert booking → new customer + event linked to booking",
+      "pass": true
+    },
+    {
+      "area": "staff+equipment",
+      "name": "create staff member via UI linked to staff login",
+      "pass": true,
+      "note": "أُضيف عضو الطاقم."
+    },
+    {
+      "area": "staff+equipment",
+      "name": "create equipment item via UI",
+      "pass": true,
+      "note": "حُفظت المعدّة."
+    },
+    {
+      "area": "staff+equipment",
+      "name": "assign staff to E1",
+      "pass": true,
+      "note": "أُضيف إلى طاقم المناسبة."
+    },
+    {
+      "area": "staff+equipment",
+      "name": "same-day staff conflict on E2 rejected with conflict message",
+      "pass": true,
+      "note": "تعارض: هذا الشخص مكلّف بمناسبة أخرى في نفس اليوم. إن كان الحجز المزدوج مقصوداً فاكتب سبب التجاوز ثم أعد الإرسال."
+    },
+    {
+      "area": "staff+equipment",
+      "name": "assign equipment to E1 (status → assigned)",
+      "pass": true,
+      "note": "سُجّل تسليم المعدّة. status=assigned"
+    },
+    {
+      "area": "staff+equipment",
+      "name": "overlapping equipment assignment on E2 rejected with overlap message",
+      "pass": true,
+      "note": "تعارض: هذه المعدّة مُسلّمة لمناسبة أخرى في فترة متداخلة. أرجعها أولاً أو اختر فترة أخرى."
+    },
+    {
+      "area": "staff+equipment",
+      "name": "record maintenance via UI (row + status maintenance, cost in minor units)",
+      "pass": true,
+      "note": "سُجّلت الصيانة وحالة المعدّة الآن «صيانة». cost=12000 status=maintenance"
+    },
+    {
+      "area": "staff+equipment",
+      "name": "finish maintenance via UI",
+      "pass": true,
+      "note": "(form replaced after submit)"
+    },
+    {
+      "area": "media+publishing",
+      "name": "upload 2 images via admin UI → rows ready + thumb/display variants in private-media",
+      "pass": true,
+      "note": "2 rows"
+    },
+    {
+      "area": "media+publishing",
+      "name": "save public slug",
+      "pass": true,
+      "note": "حُفظت المناسبة."
+    },
+    {
+      "area": "media+publishing",
+      "name": "publish blocked without consent (notice + disabled + forced submit refused)",
+      "pass": true,
+      "note": "لا يمكن النشر بدون موافقة العميل الممنوحة."
+    },
+    {
+      "area": "media+publishing",
+      "name": "media 'publish' button disabled while event not publishable",
+      "pass": true
+    },
+    {
+      "area": "media+publishing",
+      "name": "customer A grants publication consent",
+      "pass": true
+    },
+    {
+      "area": "media+publishing",
+      "name": "admin publishes event after consent",
+      "pass": true,
+      "note": "نُشرت المناسبة في صفحة الأعمال."
+    },
+    {
+      "area": "media+publishing",
+      "name": "publish one image → public-media copy + public row",
+      "pass": true,
+      "note": "نُشرت الصورة."
+    },
+    {
+      "area": "media+publishing",
+      "name": "/m/<id>/display serves the published image (200)",
+      "pass": true,
+      "note": "200"
+    },
+    {
+      "area": "media+publishing",
+      "name": "unpublish image → /m 404 + public row and object removed",
+      "pass": true,
+      "note": "أُزيلت الصورة من النشر وحُذفت نسختها العامة. status=404 cache=no-store"
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "create quote draft via UI",
+      "pass": true
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "quote items + discount → totals computed by backend (325050 − 5000 = 320050 minor)",
+      "pass": true,
+      "note": "{\"subtotal\":325050,\"discount\":5000,\"total\":320050,\"status\":\"draft\"}"
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "send quote → status sent",
+      "pass": true,
+      "note": "(form replaced after submit)"
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "customer A sees sent quote with backend total",
+      "pass": true
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "customer cannot alter quote amounts",
+      "pass": true
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "create contract from quote → v1 total = quote total",
+      "pass": true
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "send contract v1",
+      "pass": true,
+      "note": "(form replaced after submit)"
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "new version v2 becomes current and withdraws contract to draft",
+      "pass": true,
+      "note": "حُفظت نسخة جديدة وأصبحت الحالية. أرسلها للعميل عند الجاهزية."
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "customer cannot approve while contract is draft",
+      "pass": true,
+      "note": "22023"
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "send contract v2",
+      "pass": true,
+      "note": "(form replaced after submit)"
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "approval of old version v1 (own valid hash) rejected",
+      "pass": true,
+      "note": "22023"
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "approval of v2 with tampered/mismatched hash rejected",
+      "pass": true,
+      "note": "22023"
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "contract versions immutable even for service role",
+      "pass": true,
+      "note": "42501"
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "customer approves exact current version (v2) in portal",
+      "pass": true
+    },
+    {
+      "area": "quotes+contracts",
+      "name": "admin contract page shows approved version 2",
+      "pass": true
+    },
+    {
+      "area": "finance",
+      "name": "owner records payment twice with same idempotency key → exactly one row (100000 minor)",
+      "pass": true,
+      "note": "1 row(s)"
+    },
+    {
+      "area": "finance",
+      "name": "owner records refund",
+      "pass": true
+    },
+    {
+      "area": "finance",
+      "name": "event_financials paid/refunded equal payment rows; contracted = approved contract v2",
+      "pass": true,
+      "note": "{\"paid\":100000,\"refunded\":20000,\"contracted\":330000,\"balance\":250000,\"basis\":\"contract\"}"
+    },
+    {
+      "area": "finance",
+      "name": "event_financials balance = contracted − paid + refunded",
+      "pass": true,
+      "note": "balance=250000"
+    },
+    {
+      "area": "finance",
+      "name": "admin sees finance read-only (no payment form)",
+      "pass": true
+    },
+    {
+      "area": "finance",
+      "name": "admin (aal2) cannot record payments via API",
+      "pass": true,
+      "note": "42501"
+    },
+    {
+      "area": "finance",
+      "name": "admin (aal2) cannot insert payments directly",
+      "pass": true
+    },
+    {
+      "area": "owner-only",
+      "name": "owner disables a test user via /admin/users",
+      "pass": true,
+      "note": "عُطّل الحساب فوراً."
+    },
+    {
+      "area": "owner-only",
+      "name": "owner re-enables the test user",
+      "pass": true,
+      "note": "أُعيد تفعيل الحساب."
+    },
+    {
+      "area": "owner-only",
+      "name": "owner opens /admin/settings (no save performed: global config)",
+      "pass": true
+    },
+    {
+      "area": "owner-only",
+      "name": "admin forbidden on /admin/users",
+      "pass": true
+    },
+    {
+      "area": "owner-only",
+      "name": "admin forbidden on /admin/backups",
+      "pass": true
+    },
+    {
+      "area": "owner-only",
+      "name": "owner backup run completes",
+      "pass": true,
+      "note": "اكتملت النسخة: 33 جدولاً وقائمة الملفات. status=completed"
+    },
+    {
+      "area": "support+reviews",
+      "name": "support: admin reply saved as staff reply by admin + status updated",
+      "pass": true,
+      "note": "أُرسل الرد. status=pending"
+    },
+    {
+      "area": "support+reviews",
+      "name": "pending review not visible publicly (anon)",
+      "pass": true
+    },
+    {
+      "area": "support+reviews",
+      "name": "approve review via admin → visible publicly (anon RLS)",
+      "pass": true,
+      "note": "(form replaced after submit)"
+    },
+    {
+      "area": "support+reviews",
+      "name": "reject review → hidden from public again",
+      "pass": true,
+      "note": "(form replaced after submit)"
+    },
+    {
+      "area": "album-submissions",
+      "name": "customer submits album selection in portal → snapshot with 2 items",
+      "pass": true
+    },
+    {
+      "area": "album-submissions",
+      "name": "admin album list shows the submission",
+      "pass": true
+    },
+    {
+      "area": "album-submissions",
+      "name": "admin sees snapshot detail (2 photos)",
+      "pass": true
+    },
+    {
+      "area": "staff-role",
+      "name": "staff events list shows only the assigned event",
+      "pass": true,
+      "note": "assigned=1 others=0"
+    },
+    {
+      "area": "staff-role",
+      "name": "staff aal2 API: assigned event visible, other test events not",
+      "pass": true,
+      "note": "1 visible"
+    },
+    {
+      "area": "staff-role",
+      "name": "staff API: financial summary refused",
+      "pass": true,
+      "note": "42501"
+    },
+    {
+      "area": "staff-role",
+      "name": "staff opens assigned event detail (read-only, no edit form)",
+      "pass": true
+    },
+    {
+      "area": "staff-role",
+      "name": "staff cannot open an unassigned event by URL",
+      "pass": true,
+      "note": "HTTP 200"
+    },
+    {
+      "area": "staff-role",
+      "name": "staff forbidden on /admin/finance",
+      "pass": true
+    },
+    {
+      "area": "staff-role",
+      "name": "staff forbidden on /admin/users",
+      "pass": true
+    },
+    {
+      "area": "staff-role",
+      "name": "staff forbidden on /admin/customers",
+      "pass": true
+    },
+    {
+      "area": "staff-role",
+      "name": "staff forbidden on /admin/bookings",
+      "pass": true
+    },
+    {
+      "area": "staff-role",
+      "name": "staff forbidden on /admin/quotes",
+      "pass": true
+    },
+    {
+      "area": "staff-role",
+      "name": "staff forbidden on /admin/backups",
+      "pass": true
+    },
+    {
+      "area": "cleanup",
+      "name": "zero leftovers except documented immutable residue",
+      "pass": true,
+      "note": "{\"customers\":0,\"events\":0,\"staff_members\":0,\"equipment\":0,\"booking_requests\":0,\"support_requests\":0,\"reviews\":0,\"payments\":0,\"quotes\":0,\"media_assets\":0,\"backup_runs\":0,\"auth_users\":0,\"auth_users_with_prefix\":0,\"storage_objects\":0} "
+    },
+    {
+      "area": "cleanup",
+      "name": "residue limited to the documented immutable chain",
+      "pass": true,
+      "note": "contracts,contract_versions,contract_versions,events,album_selections,album_selection_snapshots,customers"
+    },
+    {
+      "area": "cleanup",
+      "name": "real owner still exists, unchanged (role, disabled, mfa_required, factor count, profile/auth updated_at)",
+      "pass": true,
+      "note": "factors 1→1, verified 1→1"
+    }
+  ]
+}

@@ -6,9 +6,6 @@ import { createClient } from "@supabase/supabase-js";
 const parse = (p) => Object.fromEntries(readFileSync(p, "utf8").split(/\r?\n/).filter((l) => l.includes("=") && !l.startsWith("#")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));
 const app = parse(".env.staging.app.local");
 if (!app.NEXT_PUBLIC_SUPABASE_URL.includes("dyuixzxmmeiypvawzmty")) throw new Error("not staging");
-const cred = readFileSync(".cache/owner-credentials.local.txt", "utf8");
-const ownerEmail = cred.match(/Email: (.+)/)[1].trim();
-const ownerPw = cred.match(/Temporary password: (.+)/)[1].trim();
 const BASE = "http://localhost:3100";
 const admin = createClient(app.NEXT_PUBLIC_SUPABASE_URL, app.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
 const results = [];
@@ -17,41 +14,40 @@ const check = (name, pass, note = "") => { results.push({ name, pass, note }); c
 const browser = await chromium.launch();
 const errors = [];
 try {
-  // 1. Owner: password login → MFA enrollment step (factor NOT enrolled by this script).
-  {
+  // 1. Temporary [STAGING-TEST] admin (never the real owner): password login → MFA enrollment step.
+  const tmpEmail = `staging-test-login-admin-${Date.now()}@example.com`;
+  const tmpPw = `Tmp-${crypto.randomUUID()}`;
+  const { data: tmpAdmin, error: taErr } = await admin.auth.admin.createUser({ email: tmpEmail, password: tmpPw, email_confirm: true, user_metadata: { full_name: "[STAGING-TEST] login admin" } });
+  if (taErr) throw taErr;
+  const roleSet = await admin.from("profiles").update({ role: "admin", mfa_required: true }).eq("id", tmpAdmin.user.id);
+  check("temporary admin created (MFA required)", !roleSet.error, roleSet.error?.message);
+  try {
     const ctx = await browser.newContext({ locale: "ar" });
     const page = await ctx.newPage();
     page.on("console", (m) => m.type() === "error" && errors.push(m.text().slice(0, 120)));
     await page.goto(`${BASE}/admin`);
     check("unauthenticated /admin → /login?next=", /\/login\?next=%2Fadmin/.test(page.url()));
-    await page.locator("#email").fill(ownerEmail);
-    await page.locator("#password").fill(ownerPw);
+    await page.locator("#email").fill(tmpEmail);
+    await page.locator("#password").fill(tmpPw);
     await page.getByRole("button", { name: "تسجيل الدخول" }).click();
     await page.waitForURL((u) => u.searchParams.get("step") === "mfa", { timeout: 60000 }).catch(async () => {
       await page.screenshot({ path: ".cache/login-fail.png" });
       const alert = await page.locator('[role="alert"]').allInnerTexts().catch(() => []);
       console.log("login did not reach MFA; alert:", alert.join(" | ").slice(0, 160));
     });
-    check("owner password login → MFA step", /step=mfa/.test(page.url()));
+    check("admin password login → MFA step", /step=mfa/.test(page.url()));
     const hasEnroll = await page.locator("svg, img, code").first().isVisible().catch(() => false);
     check("MFA step shows enrollment (QR/secret)", hasEnroll);
     await page.goto(`${BASE}/admin/finance`);
     const redirected = await page.waitForURL((u) => u.pathname === "/login", { timeout: 20000 }).then(() => true, () => false);
     if (!redirected) await page.screenshot({ path: ".cache/finance-aal1.png", fullPage: true });
     const leaked = await page.getByTestId("payment-form").count();
-    check("owner at aal1 cannot open /admin/finance", redirected && leaked === 0, redirected ? `${new URL(page.url()).pathname}?step=${new URL(page.url()).searchParams.get("step")}` : `stayed on ${new URL(page.url()).pathname}, payment form nodes: ${leaked}`);
+    check("admin at aal1 cannot open /admin/finance", redirected && leaked === 0, redirected ? `${new URL(page.url()).pathname}?step=${new URL(page.url()).searchParams.get("step")}` : `stayed on ${new URL(page.url()).pathname}, payment form nodes: ${leaked}`);
     const cookies = (await ctx.cookies()).filter((c) => c.name.startsWith("sb-"));
     check("session cookie scoped to localhost, httpOnly-or-secure as configured", cookies.length > 0, `${cookies.length} sb-* cookies`);
     await ctx.close();
-  }
-  // Remove the unverified TOTP factor the visit may have created, so the owner enrolls fresh.
-  {
-    const { data: list } = await admin.auth.admin.listUsers({ perPage: 200 });
-    const owner = list.users.find((u) => u.email?.toLowerCase() === ownerEmail.toLowerCase());
-    const { data: f } = await admin.auth.admin.mfa.listFactors({ userId: owner.id });
-    for (const factor of f?.factors ?? []) if (factor.status !== "verified") await admin.auth.admin.mfa.deleteFactor({ userId: owner.id, id: factor.id });
-    const { data: f2 } = await admin.auth.admin.mfa.listFactors({ userId: owner.id });
-    check("owner left with no verified factor (user enrolls own authenticator)", !(f2?.factors ?? []).some((x) => x.status === "verified"));
+  } finally {
+    await admin.auth.admin.deleteUser(tmpAdmin.user.id);
   }
   // 2. Recovery + magic links for a temporary [STAGING-TEST] customer, generated by the API (no email sent).
   const testEmail = `staging-test-login-${Date.now()}@example.com`;
@@ -86,7 +82,7 @@ try {
     const { data: list } = await admin.auth.admin.listUsers({ perPage: 200 });
     check("temporary login user deleted", !list.users.some((u) => u.email === testEmail));
   }
-  check("no console errors during owner login", errors.length === 0, errors.join(" | "));
+  check("no console errors during admin login", errors.length === 0, errors.join(" | "));
 } finally {
   await browser.close();
 }
