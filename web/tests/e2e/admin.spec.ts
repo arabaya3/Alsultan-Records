@@ -221,6 +221,9 @@ test("media upload of 2 images creates thumb + display variants", async ({ brows
   expect(pub.data).toHaveLength(1);
   const pubObj = await db.storage.from("public-media").exists(pub.data![0].path);
   expect(pubObj.data).toBe(true);
+  // Served same-origin through the consent-checking /m route (public-media is a private bucket).
+  const mUrl = `${BASE}/m/${pub.data![0].id}/display`;
+  expect((await page.request.get(mUrl)).status()).toBe(200);
   await page.context().close();
 
   // Consent revoke removes the public copy (row + storage object).
@@ -229,11 +232,18 @@ test("media upload of 2 images creates thumb + display variants", async ({ brows
   const consent = admin.getByTestId("consent-form");
   await consent.getByTestId("consent-select").selectOption("revoked");
   await consent.getByRole("button", { name: "تحديث الموافقة" }).click();
-  // Cleanup queue ran right after the revoke: display + thumb objects removed.
-  await expect(consent.getByTestId("action-msg")).toContainText("حُذف 2 من 2", { timeout: 60_000 });
+  await expect(consent.getByTestId("action-msg")).toContainText("حُدّثت حالة الموافقة", { timeout: 60_000 });
+  // Not served any more, immediately (same transaction as the revoke).
+  const gone = await admin.request.get(mUrl);
+  expect(gone.status()).toBe(404);
+  expect(gone.headers()["cache-control"]).toBe("no-store");
+  // Objects removed by whichever worker claimed the queue first (in-app runner or the
+  // storage-cleanup Edge Function kicked by the DB): display + thumb objects removed.
+  await expect
+    .poll(async () => (await db.storage.from("public-media").exists(pub.data![0].path)).data, { timeout: 60_000 })
+    .toBe(false);
   const left = await db.from("media_assets").select("id").eq("event_id", EVENT_B1).eq("bucket", "public-media");
   expect(left.data).toHaveLength(0);
-  expect((await db.storage.from("public-media").exists(pub.data![0].path)).data).toBe(false);
   await admin.context().close();
 });
 

@@ -62,7 +62,8 @@ export function projectJsonLd(p: Project): Record<string, unknown> {
   };
   if (p.seo_description ?? p.highlight) data.description = p.seo_description ?? p.highlight;
   if (p.event_date) data.dateCreated = p.event_date;
-  if (p.cover) data.image = p.cover.kind === "image" ? p.cover.src : (p.cover.poster ?? undefined);
+  const img = p.cover ? (p.cover.kind === "image" ? p.cover.src : p.cover.poster) : null;
+  if (img) data.image = new URL(img, siteUrl()).toString(); // /m/... is same-origin; JSON-LD needs absolute
   return data;
 }
 

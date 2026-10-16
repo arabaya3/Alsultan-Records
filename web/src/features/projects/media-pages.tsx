@@ -104,7 +104,7 @@ export async function EventMedia({ params, searchParams }: { params: Promise<{ i
       .eq("bucket", "private-media")
       .order("created_at", { ascending: false })
       .range(...rangeOf(page, MEDIA_PAGE)),
-    sb.from("media_assets").select("id, path").eq("event_id", id).eq("bucket", "public-media"),
+    sb.from("media_assets").select("id, path").eq("event_id", id).eq("bucket", "public-media").eq("visibility", "public"),
   ]);
   if (assets.error) return <LoadError what="الوسائط" />;
   const publicBySource = new Map<string, string>();

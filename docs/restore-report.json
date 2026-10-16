@@ -1,0 +1,2050 @@
+{
+  "generated_by": "web/scripts/verify-restore.mjs",
+  "cloud_restore": "PENDING: no staging access; only local isolated-stack restores verified",
+  "proofs": {
+    "A-app-json-run": {
+      "label": "A-app-json-run",
+      "mode": "app-json",
+      "verified_at": "2026-10-16T06:29:49.500Z",
+      "restored_stack": "http://127.0.0.1:55321",
+      "expected_from": ".cache\\restore-env\\backup\\5bb78afd-6bbf-417c-afde-8bdcc5cb3178",
+      "run": {
+        "id": "5bb78afd-6bbf-417c-afde-8bdcc5cb3178",
+        "status": "completed",
+        "started_at": "2026-10-16T06:17:39.434022+00:00",
+        "finished_at": "2026-10-16T06:18:05.013+00:00",
+        "table_counts": {
+          "events": 4,
+          "quotes": 1,
+          "reviews": 0,
+          "expenses": 0,
+          "payments": 2,
+          "profiles": 6,
+          "services": 0,
+          "contracts": 1,
+          "customers": 5,
+          "equipment": 0,
+          "backup_runs": 2,
+          "quote_items": 2,
+          "app_settings": 1,
+          "audit_events": 34,
+          "deliverables": 1,
+          "media_assets": 211,
+          "notifications": 0,
+          "staff_members": 1,
+          "video_comments": 2,
+          "album_selections": 2,
+          "booking_requests": 1,
+          "support_messages": 0,
+          "support_requests": 0,
+          "business_settings": 1,
+          "contract_versions": 1,
+          "service_categories": 8,
+          "album_selection_items": 5,
+          "booking_stage_history": 1,
+          "deliverable_revisions": 2,
+          "equipment_assignments": 0,
+          "equipment_maintenance": 0,
+          "event_staff_assignments": 1,
+          "album_selection_snapshots": 1
+        },
+        "object_counts": {
+          "public-media": 0,
+          "private-media": 425
+        }
+      },
+      "restore": {
+        "auth": {
+          "users": 5,
+          "identities": 5,
+          "mfa_factors": 0
+        },
+        "skipped": [
+          {
+            "table": "profiles",
+            "id": "4e46c53d-63df-4a38-9d0b-e50864425e8f",
+            "reason": "auth.users row missing from auth dump"
+          },
+          {
+            "table": "customers",
+            "column": "user_id",
+            "action": "set null (ON DELETE SET NULL)",
+            "rows": 1
+          },
+          {
+            "table": "customers",
+            "column": "created_by",
+            "action": "set null (ON DELETE SET NULL)",
+            "rows": 1
+          }
+        ],
+        "fk_checked": 58,
+        "fk_orphans": []
+      },
+      "tables": {
+        "business_settings": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "app_settings": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "service_categories": {
+          "expected": 8,
+          "restored": 8,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "profiles": {
+          "expected": 5,
+          "restored": 5,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "customers": {
+          "expected": 5,
+          "restored": 5,
+          "row_mismatches": 1,
+          "explained_by_skip": 2
+        },
+        "staff_members": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "media_assets": {
+          "expected": 211,
+          "restored": 211,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "services": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "booking_requests": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "booking_stage_history": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "events": {
+          "expected": 4,
+          "restored": 4,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "deliverables": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "deliverable_revisions": {
+          "expected": 2,
+          "restored": 2,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "video_comments": {
+          "expected": 2,
+          "restored": 2,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "album_selections": {
+          "expected": 2,
+          "restored": 2,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "album_selection_items": {
+          "expected": 5,
+          "restored": 5,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "album_selection_snapshots": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "quotes": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "quote_items": {
+          "expected": 2,
+          "restored": 2,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "contracts": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "contract_versions": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "payments": {
+          "expected": 2,
+          "restored": 2,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "expenses": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "event_staff_assignments": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "equipment": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "equipment_assignments": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "equipment_maintenance": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "support_requests": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "support_messages": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "reviews": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "notifications": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "audit_events": {
+          "expected": 34,
+          "restored": 34,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "backup_runs": {
+          "expected": 2,
+          "restored": 2,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        }
+      },
+      "financials": [
+        {
+          "event": "00000000-0000-4000-8000-0000000000e1",
+          "expected": {
+            "contracted": 0,
+            "paid": 300000,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": -300000,
+            "quoted": 0,
+            "balance_basis": "none"
+          },
+          "restored": {
+            "event_id": "00000000-0000-4000-8000-0000000000e1",
+            "currency": "ILS",
+            "contracted": 0,
+            "paid": 300000,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": -300000,
+            "quoted": 0,
+            "balance_basis": "none"
+          }
+        },
+        {
+          "event": "00000000-0000-4000-8000-0000000000e2",
+          "expected": {
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          },
+          "restored": {
+            "event_id": "00000000-0000-4000-8000-0000000000e2",
+            "currency": "ILS",
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          }
+        },
+        {
+          "event": "00000000-0000-4000-8000-0000000000e3",
+          "expected": {
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          },
+          "restored": {
+            "event_id": "00000000-0000-4000-8000-0000000000e3",
+            "currency": "ILS",
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          }
+        },
+        {
+          "event": "00000000-0000-4000-8000-0000000000e4",
+          "expected": {
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          },
+          "restored": {
+            "event_id": "00000000-0000-4000-8000-0000000000e4",
+            "currency": "ILS",
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          }
+        }
+      ],
+      "storage": {
+        "verified": false,
+        "reason": "source stack was reset by another agent before binaries could be captured; see proof B"
+      },
+      "summary": {
+        "checks": 92,
+        "passed": 92,
+        "failed": 0
+      },
+      "checks": [
+        {
+          "name": "count business_settings = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows business_settings identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count app_settings = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows app_settings identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count service_categories = 8",
+          "ok": true,
+          "detail": {
+            "restored": 8
+          }
+        },
+        {
+          "name": "rows service_categories identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count profiles = 5",
+          "ok": true,
+          "detail": {
+            "restored": 5
+          }
+        },
+        {
+          "name": "rows profiles identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count customers = 5",
+          "ok": true,
+          "detail": {
+            "restored": 5
+          }
+        },
+        {
+          "name": "rows customers identical to backup",
+          "ok": true,
+          "detail": {
+            "mismatched_ids": [
+              "ac1b6356-3d65-4466-8f84-c5eaf08446b4"
+            ],
+            "explained_by_skip": 2
+          }
+        },
+        {
+          "name": "count staff_members = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows staff_members identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count media_assets = 211",
+          "ok": true,
+          "detail": {
+            "restored": 211
+          }
+        },
+        {
+          "name": "rows media_assets identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count services = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows services identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count booking_requests = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows booking_requests identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count booking_stage_history = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows booking_stage_history identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count events = 4",
+          "ok": true,
+          "detail": {
+            "restored": 4
+          }
+        },
+        {
+          "name": "rows events identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count deliverables = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows deliverables identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count deliverable_revisions = 2",
+          "ok": true,
+          "detail": {
+            "restored": 2
+          }
+        },
+        {
+          "name": "rows deliverable_revisions identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count video_comments = 2",
+          "ok": true,
+          "detail": {
+            "restored": 2
+          }
+        },
+        {
+          "name": "rows video_comments identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count album_selections = 2",
+          "ok": true,
+          "detail": {
+            "restored": 2
+          }
+        },
+        {
+          "name": "rows album_selections identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count album_selection_items = 5",
+          "ok": true,
+          "detail": {
+            "restored": 5
+          }
+        },
+        {
+          "name": "rows album_selection_items identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count album_selection_snapshots = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows album_selection_snapshots identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count quotes = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows quotes identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count quote_items = 2",
+          "ok": true,
+          "detail": {
+            "restored": 2
+          }
+        },
+        {
+          "name": "rows quote_items identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count contracts = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows contracts identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count contract_versions = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows contract_versions identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count payments = 2",
+          "ok": true,
+          "detail": {
+            "restored": 2
+          }
+        },
+        {
+          "name": "rows payments identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count expenses = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows expenses identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count event_staff_assignments = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows event_staff_assignments identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count equipment = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows equipment identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count equipment_assignments = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows equipment_assignments identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count equipment_maintenance = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows equipment_maintenance identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count support_requests = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows support_requests identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count support_messages = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows support_messages identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count reviews = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows reviews identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count notifications = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows notifications identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count audit_events = 34",
+          "ok": true,
+          "detail": {
+            "restored": 34
+          }
+        },
+        {
+          "name": "rows audit_events identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count backup_runs = 2",
+          "ok": true,
+          "detail": {
+            "restored": 2
+          }
+        },
+        {
+          "name": "rows backup_runs identical to backup",
+          "ok": true
+        },
+        {
+          "name": "relationship: every event's customer exists",
+          "ok": true,
+          "detail": {
+            "violations": 0
+          }
+        },
+        {
+          "name": "relationship: every media asset's event exists",
+          "ok": true,
+          "detail": {
+            "violations": 0
+          }
+        },
+        {
+          "name": "relationship: selection items reference media of the same event",
+          "ok": true,
+          "detail": {
+            "violations": 0
+          }
+        },
+        {
+          "name": "relationship: contracts' current/approved versions belong to the contract",
+          "ok": true,
+          "detail": {
+            "violations": 0
+          }
+        },
+        {
+          "name": "relationship: profiles have an auth user",
+          "ok": true,
+          "detail": {
+            "violations": 0
+          }
+        },
+        {
+          "name": "event→customer links equal backup",
+          "ok": true,
+          "detail": {
+            "bad": []
+          }
+        },
+        {
+          "name": "media→event links equal backup (211)",
+          "ok": true,
+          "detail": {
+            "bad": []
+          }
+        },
+        {
+          "name": "contract_versions.content_hash intact (1)",
+          "ok": true,
+          "detail": {
+            "bad": []
+          }
+        },
+        {
+          "name": "restored auth: owner (owner@dev.local) can sign in with the original password",
+          "ok": true
+        },
+        {
+          "name": "event_financials 00000000-0000-4000-8000-0000000000e1 equals backup-derived totals",
+          "ok": true,
+          "detail": {
+            "want": {
+              "contracted": 0,
+              "paid": 300000,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": -300000,
+              "quoted": 0,
+              "balance_basis": "none"
+            },
+            "got": {
+              "event_id": "00000000-0000-4000-8000-0000000000e1",
+              "currency": "ILS",
+              "contracted": 0,
+              "paid": 300000,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": -300000,
+              "quoted": 0,
+              "balance_basis": "none"
+            }
+          }
+        },
+        {
+          "name": "event_financials 00000000-0000-4000-8000-0000000000e2 equals backup-derived totals",
+          "ok": true,
+          "detail": {
+            "want": {
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            },
+            "got": {
+              "event_id": "00000000-0000-4000-8000-0000000000e2",
+              "currency": "ILS",
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            }
+          }
+        },
+        {
+          "name": "event_financials 00000000-0000-4000-8000-0000000000e3 equals backup-derived totals",
+          "ok": true,
+          "detail": {
+            "want": {
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            },
+            "got": {
+              "event_id": "00000000-0000-4000-8000-0000000000e3",
+              "currency": "ILS",
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            }
+          }
+        },
+        {
+          "name": "event_financials 00000000-0000-4000-8000-0000000000e4 equals backup-derived totals",
+          "ok": true,
+          "detail": {
+            "want": {
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            },
+            "got": {
+              "event_id": "00000000-0000-4000-8000-0000000000e4",
+              "currency": "ILS",
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            }
+          }
+        },
+        {
+          "name": "RLS enabled on every public table",
+          "ok": true,
+          "detail": {
+            "tables_without_rls": []
+          }
+        },
+        {
+          "name": "restored auth: a (customer.a@dev.local) can sign in with the original password",
+          "ok": true
+        },
+        {
+          "name": "restored auth: b (customer.b@dev.local) can sign in with the original password",
+          "ok": true
+        },
+        {
+          "name": "customer A and B have customer rows in the backup",
+          "ok": true,
+          "detail": {
+            "aCust": "60ad1a7c-ca76-417e-9086-56da7fdcaa77",
+            "bCust": "984043ca-c22f-4c53-be92-68d16d406714"
+          }
+        },
+        {
+          "name": "customer A sees no private event of another customer",
+          "ok": true,
+          "detail": {
+            "leaks": []
+          }
+        },
+        {
+          "name": "customer A sees all own events (2)",
+          "ok": true
+        },
+        {
+          "name": "customer A cannot read customer B's customers row",
+          "ok": true,
+          "detail": {
+            "got": []
+          }
+        },
+        {
+          "name": "customer A cannot read customer B's payments",
+          "ok": true,
+          "detail": {
+            "got": 0
+          }
+        },
+        {
+          "name": "customer A cannot read media of customer B's private events",
+          "ok": true,
+          "detail": {
+            "got": 0
+          }
+        },
+        {
+          "name": "customer A cannot call event_financials for customer B's event",
+          "ok": true,
+          "detail": "not allowed"
+        },
+        {
+          "name": "anon sees exactly the published+consented events (1)",
+          "ok": true,
+          "detail": {
+            "want": [
+              "00000000-0000-4000-8000-0000000000e2"
+            ],
+            "got": [
+              "00000000-0000-4000-8000-0000000000e2"
+            ]
+          }
+        },
+        {
+          "name": "anon reads no customers",
+          "ok": true
+        },
+        {
+          "name": "anon media rows are public-media/public only",
+          "ok": true,
+          "detail": {
+            "n": 0
+          }
+        }
+      ]
+    },
+    "B-pg_dump-snapshot-with-storage": {
+      "label": "B-pg_dump-snapshot-with-storage",
+      "mode": "pg_dump",
+      "verified_at": "2026-10-16T06:33:09.489Z",
+      "restored_stack": "http://127.0.0.1:55321",
+      "expected_from": ".cache\\restore-env\\backup\\snapshot-b",
+      "run": null,
+      "restore": {
+        "auth": {
+          "users": 5,
+          "identities": 5,
+          "mfa_factors": 0
+        },
+        "skipped": [],
+        "fk_checked": 58,
+        "fk_orphans": []
+      },
+      "tables": {
+        "business_settings": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "app_settings": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "service_categories": {
+          "expected": 8,
+          "restored": 8,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "profiles": {
+          "expected": 5,
+          "restored": 5,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "customers": {
+          "expected": 2,
+          "restored": 2,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "staff_members": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "media_assets": {
+          "expected": 208,
+          "restored": 208,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "services": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "booking_requests": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "booking_stage_history": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "events": {
+          "expected": 4,
+          "restored": 4,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "deliverables": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "deliverable_revisions": {
+          "expected": 2,
+          "restored": 2,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "video_comments": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "album_selections": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "album_selection_items": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "album_selection_snapshots": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "quotes": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "quote_items": {
+          "expected": 2,
+          "restored": 2,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "contracts": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "contract_versions": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "payments": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "expenses": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "event_staff_assignments": {
+          "expected": 1,
+          "restored": 1,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "equipment": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "equipment_assignments": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "equipment_maintenance": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "support_requests": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "support_messages": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "reviews": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "notifications": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "audit_events": {
+          "expected": 19,
+          "restored": 19,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        },
+        "backup_runs": {
+          "expected": 0,
+          "restored": 0,
+          "row_mismatches": 0,
+          "explained_by_skip": 0
+        }
+      },
+      "financials": [
+        {
+          "event": "00000000-0000-4000-8000-0000000000e1",
+          "expected": {
+            "contracted": 0,
+            "paid": 300000,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": -300000,
+            "quoted": 0,
+            "balance_basis": "none"
+          },
+          "restored": {
+            "event_id": "00000000-0000-4000-8000-0000000000e1",
+            "currency": "ILS",
+            "contracted": 0,
+            "paid": 300000,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": -300000,
+            "quoted": 0,
+            "balance_basis": "none"
+          }
+        },
+        {
+          "event": "00000000-0000-4000-8000-0000000000e3",
+          "expected": {
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          },
+          "restored": {
+            "event_id": "00000000-0000-4000-8000-0000000000e3",
+            "currency": "ILS",
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          }
+        },
+        {
+          "event": "00000000-0000-4000-8000-0000000000e4",
+          "expected": {
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          },
+          "restored": {
+            "event_id": "00000000-0000-4000-8000-0000000000e4",
+            "currency": "ILS",
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          }
+        },
+        {
+          "event": "00000000-0000-4000-8000-0000000000e2",
+          "expected": {
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          },
+          "restored": {
+            "event_id": "00000000-0000-4000-8000-0000000000e2",
+            "currency": "ILS",
+            "contracted": 0,
+            "paid": 0,
+            "refunded": 0,
+            "expenses": 0,
+            "balance": 0,
+            "quoted": 0,
+            "balance_basis": "none"
+          }
+        }
+      ],
+      "storage": {
+        "verified": true,
+        "buckets": {
+          "private-media": {
+            "public": false,
+            "file_size_limit": 2147483648,
+            "allowed_mime_types": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "image/avif",
+              "image/heic",
+              "video/mp4",
+              "video/quicktime",
+              "video/webm",
+              "application/pdf",
+              "application/zip"
+            ],
+            "count": 418,
+            "bytes": 3163266
+          },
+          "backups": {
+            "public": false,
+            "file_size_limit": 2147483648,
+            "allowed_mime_types": [
+              "application/zip",
+              "application/json"
+            ],
+            "count": 0,
+            "bytes": 0
+          },
+          "public-media": {
+            "public": false,
+            "file_size_limit": 52428800,
+            "allowed_mime_types": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "image/avif",
+              "video/mp4",
+              "video/webm"
+            ],
+            "count": 0,
+            "bytes": 0
+          }
+        },
+        "restored_counts": {
+          "private-media": 418
+        },
+        "checksum_ok": 418,
+        "objects": 418,
+        "missing_media_paths": 0
+      },
+      "summary": {
+        "checks": 101,
+        "passed": 101,
+        "failed": 0
+      },
+      "checks": [
+        {
+          "name": "count business_settings = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows business_settings identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count app_settings = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows app_settings identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count service_categories = 8",
+          "ok": true,
+          "detail": {
+            "restored": 8
+          }
+        },
+        {
+          "name": "rows service_categories identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count profiles = 5",
+          "ok": true,
+          "detail": {
+            "restored": 5
+          }
+        },
+        {
+          "name": "rows profiles identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count customers = 2",
+          "ok": true,
+          "detail": {
+            "restored": 2
+          }
+        },
+        {
+          "name": "rows customers identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count staff_members = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows staff_members identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count media_assets = 208",
+          "ok": true,
+          "detail": {
+            "restored": 208
+          }
+        },
+        {
+          "name": "rows media_assets identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count services = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows services identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count booking_requests = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows booking_requests identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count booking_stage_history = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows booking_stage_history identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count events = 4",
+          "ok": true,
+          "detail": {
+            "restored": 4
+          }
+        },
+        {
+          "name": "rows events identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count deliverables = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows deliverables identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count deliverable_revisions = 2",
+          "ok": true,
+          "detail": {
+            "restored": 2
+          }
+        },
+        {
+          "name": "rows deliverable_revisions identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count video_comments = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows video_comments identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count album_selections = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows album_selections identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count album_selection_items = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows album_selection_items identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count album_selection_snapshots = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows album_selection_snapshots identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count quotes = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows quotes identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count quote_items = 2",
+          "ok": true,
+          "detail": {
+            "restored": 2
+          }
+        },
+        {
+          "name": "rows quote_items identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count contracts = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows contracts identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count contract_versions = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows contract_versions identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count payments = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows payments identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count expenses = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows expenses identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count event_staff_assignments = 1",
+          "ok": true,
+          "detail": {
+            "restored": 1
+          }
+        },
+        {
+          "name": "rows event_staff_assignments identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count equipment = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows equipment identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count equipment_assignments = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows equipment_assignments identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count equipment_maintenance = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows equipment_maintenance identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count support_requests = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows support_requests identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count support_messages = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows support_messages identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count reviews = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows reviews identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count notifications = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows notifications identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count audit_events = 19",
+          "ok": true,
+          "detail": {
+            "restored": 19
+          }
+        },
+        {
+          "name": "rows audit_events identical to backup",
+          "ok": true
+        },
+        {
+          "name": "count backup_runs = 0",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "rows backup_runs identical to backup",
+          "ok": true
+        },
+        {
+          "name": "auth.users count = 5",
+          "ok": true,
+          "detail": {
+            "restored": 5
+          }
+        },
+        {
+          "name": "relationship: every event's customer exists",
+          "ok": true,
+          "detail": {
+            "violations": 0
+          }
+        },
+        {
+          "name": "relationship: every media asset's event exists",
+          "ok": true,
+          "detail": {
+            "violations": 0
+          }
+        },
+        {
+          "name": "relationship: selection items reference media of the same event",
+          "ok": true,
+          "detail": {
+            "violations": 0
+          }
+        },
+        {
+          "name": "relationship: contracts' current/approved versions belong to the contract",
+          "ok": true,
+          "detail": {
+            "violations": 0
+          }
+        },
+        {
+          "name": "relationship: profiles have an auth user",
+          "ok": true,
+          "detail": {
+            "violations": 0
+          }
+        },
+        {
+          "name": "event→customer links equal backup",
+          "ok": true,
+          "detail": {
+            "bad": []
+          }
+        },
+        {
+          "name": "media→event links equal backup (208)",
+          "ok": true,
+          "detail": {
+            "bad": []
+          }
+        },
+        {
+          "name": "contract_versions.content_hash intact (1)",
+          "ok": true,
+          "detail": {
+            "bad": []
+          }
+        },
+        {
+          "name": "restored auth: owner (owner@dev.local) can sign in with the original password",
+          "ok": true
+        },
+        {
+          "name": "event_financials 00000000-0000-4000-8000-0000000000e1 equals backup-derived totals",
+          "ok": true,
+          "detail": {
+            "want": {
+              "contracted": 0,
+              "paid": 300000,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": -300000,
+              "quoted": 0,
+              "balance_basis": "none"
+            },
+            "got": {
+              "event_id": "00000000-0000-4000-8000-0000000000e1",
+              "currency": "ILS",
+              "contracted": 0,
+              "paid": 300000,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": -300000,
+              "quoted": 0,
+              "balance_basis": "none"
+            }
+          }
+        },
+        {
+          "name": "event_financials 00000000-0000-4000-8000-0000000000e3 equals backup-derived totals",
+          "ok": true,
+          "detail": {
+            "want": {
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            },
+            "got": {
+              "event_id": "00000000-0000-4000-8000-0000000000e3",
+              "currency": "ILS",
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            }
+          }
+        },
+        {
+          "name": "event_financials 00000000-0000-4000-8000-0000000000e4 equals backup-derived totals",
+          "ok": true,
+          "detail": {
+            "want": {
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            },
+            "got": {
+              "event_id": "00000000-0000-4000-8000-0000000000e4",
+              "currency": "ILS",
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            }
+          }
+        },
+        {
+          "name": "event_financials 00000000-0000-4000-8000-0000000000e2 equals backup-derived totals",
+          "ok": true,
+          "detail": {
+            "want": {
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            },
+            "got": {
+              "event_id": "00000000-0000-4000-8000-0000000000e2",
+              "currency": "ILS",
+              "contracted": 0,
+              "paid": 0,
+              "refunded": 0,
+              "expenses": 0,
+              "balance": 0,
+              "quoted": 0,
+              "balance_basis": "none"
+            }
+          }
+        },
+        {
+          "name": "RLS enabled on every public table",
+          "ok": true,
+          "detail": {
+            "tables_without_rls": []
+          }
+        },
+        {
+          "name": "restored auth: a (customer.a@dev.local) can sign in with the original password",
+          "ok": true
+        },
+        {
+          "name": "restored auth: b (customer.b@dev.local) can sign in with the original password",
+          "ok": true
+        },
+        {
+          "name": "customer A and B have customer rows in the backup",
+          "ok": true,
+          "detail": {
+            "aCust": "afd290be-844c-4702-b65a-863acbf8281e",
+            "bCust": "26ecc7cc-0ee2-4b6a-b62d-973e7cc31ec3"
+          }
+        },
+        {
+          "name": "customer A sees no private event of another customer",
+          "ok": true,
+          "detail": {
+            "leaks": []
+          }
+        },
+        {
+          "name": "customer A sees all own events (2)",
+          "ok": true
+        },
+        {
+          "name": "customer A cannot read customer B's customers row",
+          "ok": true,
+          "detail": {
+            "got": []
+          }
+        },
+        {
+          "name": "customer A cannot read customer B's payments",
+          "ok": true,
+          "detail": {
+            "got": 0
+          }
+        },
+        {
+          "name": "customer A cannot read media of customer B's private events",
+          "ok": true,
+          "detail": {
+            "got": 0
+          }
+        },
+        {
+          "name": "customer A cannot call event_financials for customer B's event",
+          "ok": true,
+          "detail": "not allowed"
+        },
+        {
+          "name": "anon sees exactly the published+consented events (1)",
+          "ok": true,
+          "detail": {
+            "want": [
+              "00000000-0000-4000-8000-0000000000e2"
+            ],
+            "got": [
+              "00000000-0000-4000-8000-0000000000e2"
+            ]
+          }
+        },
+        {
+          "name": "anon reads no customers",
+          "ok": true
+        },
+        {
+          "name": "anon media rows are public-media/public only",
+          "ok": true,
+          "detail": {
+            "n": 0
+          }
+        },
+        {
+          "name": "storage private-media: 418 objects",
+          "ok": true,
+          "detail": {
+            "restored": 418
+          }
+        },
+        {
+          "name": "storage backups: 0 objects",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "storage public-media: 0 objects",
+          "ok": true,
+          "detail": {
+            "restored": 0
+          }
+        },
+        {
+          "name": "storage checksums match (418/418)",
+          "ok": true,
+          "detail": {
+            "bad": []
+          }
+        },
+        {
+          "name": "every ready media_assets path/variant has a restored object",
+          "ok": true,
+          "detail": {
+            "missing": 0,
+            "sample": []
+          }
+        },
+        {
+          "name": "owner's signed URL works for private object events/00000000-0000-4000-8000-0000000000e1/00224540-adde-4f54-b29f-f817ec610e0c/display.jpg",
+          "ok": true,
+          "detail": {
+            "status": 200
+          }
+        },
+        {
+          "name": "another customer cannot sign that object",
+          "ok": true
+        },
+        {
+          "name": "private object is not publicly readable",
+          "ok": true,
+          "detail": {
+            "status": 400
+          }
+        }
+      ]
+    }
+  }
+}

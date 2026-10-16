@@ -1,6 +1,6 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -102,7 +102,14 @@ export async function setConsent(_p: ActionResult, fd: FormData): Promise<Action
   if (!id || !status) return fail("طلب غير صالح.");
   const sb = await createClient();
   const { error } = await sb.rpc("set_publication_consent", { p_event_id: id, p_status: status });
-  if (error) return fail(dbMessage(error));
+  if (error)
+    return fail(
+      dbMessage(error, {
+        "42501": "سحب العميل موافقته على النشر؛ لا يمكن إعادة منحها إلا من حساب العميل نفسه.",
+      }),
+    );
+  updateTag("projects");
+  updateTag("media");
   let extra = "";
   if (status !== "granted") {
     const r = await retractEventPublicCopies(sb, id);
@@ -135,6 +142,8 @@ export async function setPublication(_p: ActionResult, fd: FormData): Promise<Ac
         "22023": "أضف رابطاً عاماً للمناسبة واحفظه قبل النشر.",
       }),
     );
+  updateTag("projects");
+  updateTag("media");
   let extra = "";
   if (!publish) {
     const r = await retractEventPublicCopies(sb, id);

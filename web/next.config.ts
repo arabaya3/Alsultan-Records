@@ -39,16 +39,16 @@ const nextConfig: NextConfig = {
   partialPrefetching: true,
   poweredByHeader: false,
   images: {
-    remotePatterns: supabase
-      ? [
-          {
-            protocol: supabase.protocol.replace(":", "") as "http" | "https",
-            hostname: supabase.hostname,
-            port: supabase.port,
-            pathname: "/storage/v1/object/public/public-media/**",
-          },
-        ]
-      : [],
+    // Published media is served same-origin by app/m/[assetId]/[variant]/route.ts, which re-checks
+    // consent per request (public-media is a private bucket). Media components render it
+    // `unoptimized`, so the optimizer cache is not in the revocation path; if it ever is, its
+    // TTL is pinned to the route's max-age (60 s) so it cannot widen the documented window.
+    localPatterns: [
+      { pathname: "/m/**", search: "" },
+      { pathname: "/brand/**", search: "" },
+    ],
+    remotePatterns: [],
+    minimumCacheTTL: 60,
   },
   async headers() {
     return [

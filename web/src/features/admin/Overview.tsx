@@ -61,13 +61,15 @@ export async function Overview() {
   }
 
   const head = { count: "exact" as const, head: true };
-  const [newBookings, due, reviews, albums, support, orphans, summary, upcoming] = await Promise.all([
+  const [newBookings, due, reviews, albums, support, cleanup, summary, upcoming] = await Promise.all([
     sb.from("booking_requests").select("id", head).eq("status", "new"),
     dueQ,
     sb.from("reviews").select("id", head).eq("status", "pending"),
     sb.from("album_selections").select("id", head).eq("status", "submitted"),
     sb.from("support_requests").select("id", head).eq("status", "open"),
-    sb.from("media_assets").select("id", head).eq("bucket", "public-media").eq("visibility", "private").not("event_id", "is", null),
+    // Read-only queue counts (admin-only RPC, migration 0010). Deletion itself is done by the
+    // scheduled storage-cleanup Edge Function; this only surfaces backlog and dead-lettered items.
+    sb.rpc("storage_cleanup_pending"),
     sb.rpc("admin_financial_summary", { p_from: "2000-01-01", p_to: today }),
     sb
       .from("deliverables")
@@ -85,7 +87,8 @@ export async function Overview() {
     { n: reviews.count ?? 0, label: "تقييمات بانتظار المراجعة", href: "/admin/reviews?status=pending" },
     { n: albums.count ?? 0, label: "اختيارات ألبوم مُرسلة", href: "/admin/production/albums" },
     { n: support.count ?? 0, label: "طلبات دعم مفتوحة", href: "/admin/support?status=open" },
-    { n: orphans.count ?? 0, label: "نسخ عامة لمناسبات لم تعد منشورة", href: "/admin/media?orphans=1" },
+    { n: cleanup.data?.[0]?.pending ?? 0, label: "ملفات منشورة سابقاً بانتظار الحذف من التخزين", href: "/admin/media?orphans=1" },
+    { n: cleanup.data?.[0]?.dead ?? 0, label: "ملفات تعذّر حذفها بعد عدة محاولات", href: "/admin/media?orphans=1" },
   ];
   const active = alerts.filter((a) => a.n > 0);
 

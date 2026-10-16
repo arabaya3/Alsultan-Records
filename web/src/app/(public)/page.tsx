@@ -49,6 +49,13 @@ export default async function HomePage() {
       : FALLBACK_SERVICES.map((s) => ({ key: s.title, title: s.title, summary: s.summary, href: "/services" }));
   const reviewList = reviews.status === "ok" ? reviews.data : [];
   const heroStill = hero ? (hero.kind === "image" ? hero.src : hero.poster) : null;
+  const hasWork = projectList.length > 0;
+  const s = settings.status === "ok" ? settings.data : null;
+  // Only real business_settings fields; nothing invented.
+  const quickContacts = [
+    s?.phone ? { name: "هاتف", label: s.phone, href: `tel:${s.phone.replace(/\s/g, "")}`, ltr: true, external: false } : null,
+    s?.whatsapp ? { name: "واتساب", label: "راسلنا", href: `https://wa.me/${s.whatsapp.replace(/[^\d]/g, "")}`, ltr: false, external: true } : null,
+  ].filter((x) => x !== null);
 
   return (
     <>
@@ -65,9 +72,25 @@ export default async function HomePage() {
             <div className="absolute inset-y-0 start-[38%] end-0 max-md:start-0">
               <PlaceholderMedia />
             </div>
-          ) : null}
+          ) : (
+            /* No photography yet: typographic composition with the original round mark
+               (unchanged file, low opacity only) on a CSS ink texture. */
+            <div data-hero-mark className="ink-texture absolute inset-0">
+              <Image
+                src="/brand/logo-round.webp"
+                alt=""
+                width={700}
+                height={1244}
+                priority
+                sizes="(max-width: 768px) 60vw, 34vw"
+                className="pointer-events-none absolute end-[4%] top-1/2 h-[118%] w-auto -translate-y-1/2 select-none opacity-[0.09] max-md:end-[-18%] max-md:top-[38%] max-md:h-[78%] max-md:opacity-[0.07]"
+              />
+            </div>
+          )}
           {/* Scrim: darkest on the text (right) side, clearing toward the left. */}
-          <div className="absolute inset-0 bg-linear-to-r from-transparent via-black/45 to-black/90 max-md:bg-linear-to-t max-md:from-black/95 max-md:via-black/70 max-md:to-black/20" />
+          {heroStill || showPlaceholders ? (
+            <div className="absolute inset-0 bg-linear-to-r from-transparent via-black/45 to-black/90 max-md:bg-linear-to-t max-md:from-black/95 max-md:via-black/70 max-md:to-black/20" />
+          ) : null}
         </div>
 
         <Container className="flex min-h-[560px] flex-col justify-end pb-10 pt-40 md:min-h-[600px] md:justify-center md:pb-12 md:pt-20 lg:min-h-[max(560px,64vh)]">
@@ -80,16 +103,44 @@ export default async function HomePage() {
               {HERO.sub}
             </p>
             <div data-reveal className="mt-9 flex flex-col items-start gap-5">
-              <ButtonLink href="/work" size="lg" className="min-w-60 justify-between">
-                <span>{HERO.primary}</span>
-                <PlayBadge size={34} className="border-ink bg-ink text-gold" />
-              </ButtonLink>
-              <ButtonLink href="/book" variant="link" tone="dark" className="text-lg">
-                {HERO.secondary}
-              </ButtonLink>
+              {hasWork ? (
+                <>
+                  <ButtonLink href="/work" size="lg" className="min-w-60 justify-between">
+                    <span>{HERO.primary}</span>
+                    <PlayBadge size={34} className="border-ink bg-ink text-gold" />
+                  </ButtonLink>
+                  <ButtonLink href="/book" variant="link" tone="dark" className="text-lg">
+                    {HERO.secondary}
+                  </ButtonLink>
+                </>
+              ) : (
+                <>
+                  {/* No published work yet: booking leads; never link to an empty gallery from the hero. */}
+                  <ButtonLink href="/book" size="lg" className="min-w-60">
+                    {HERO.book}
+                  </ButtonLink>
+                  <ButtonLink href="/contact" variant="link" tone="dark" className="text-lg">
+                    {HERO.contact}
+                  </ButtonLink>
+                </>
+              )}
             </div>
           </Reveal>
-          <ServiceStrip className="mt-12 text-on-dark md:mt-16" />
+          <div className="mt-12 flex flex-col gap-6 md:mt-16 md:flex-row md:items-center md:justify-between">
+            <ServiceStrip className="text-on-dark" />
+            {quickContacts.length > 0 ? (
+              <ul aria-label="تواصل سريع" className="flex flex-wrap gap-x-6 gap-y-2 text-on-dark/90">
+                {quickContacts.map((c) => (
+                  <li key={c.name}>
+                    <a href={c.href} className="inline-flex min-h-11 items-center gap-2 underline decoration-1 underline-offset-8 hover:decoration-gold" {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}>
+                      <span className="text-muted">{c.name}</span>
+                      <span dir={c.ltr ? "ltr" : undefined}>{c.label}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
         </Container>
       </section>
 
@@ -206,9 +257,14 @@ export default async function HomePage() {
             </h2>
             <p className="mt-3 text-lg text-muted">احكِ لنا التفاصيل الأساسية، ونرجع لك لنتفق على الباقي.</p>
           </div>
-          <ButtonLink href="/book" size="lg" className="min-w-56">
-            احجز مناسبتك
-          </ButtonLink>
+          <div className="flex flex-col items-start gap-4">
+            <ButtonLink href="/book" size="lg" className="min-w-56">
+              احجز مناسبتك
+            </ButtonLink>
+            <ButtonLink href="/contact" variant="link" tone="dark">
+              أو تواصل معنا
+            </ButtonLink>
+          </div>
         </Container>
       </section>
     </>

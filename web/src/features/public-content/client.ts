@@ -23,9 +23,16 @@ export function getPublicClient(): SupabaseClient | null {
   });
 }
 
-export function publicMediaUrl(bucket: string, path: string): string | null {
-  const base = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  if (!base || bucket !== "public-media") return null;
-  const clean = path.split("/").map(encodeURIComponent).join("/");
-  return `${base.replace(/\/$/, "")}/storage/v1/object/public/public-media/${clean}`;
+export const MEDIA_VARIANTS = ["display", "thumb", "poster", "original"] as const;
+export type MediaVariant = (typeof MEDIA_VARIANTS)[number];
+
+/**
+ * Same-origin URL of a published asset: /m/{assetId}/{variant}. The route handler
+ * (app/m/[assetId]/[variant]/route.ts) re-checks on every request that the asset is still
+ * public (event published + consent granted + visibility public) before serving bytes, so a
+ * consent withdrawal stops serving immediately. Never a direct storage URL.
+ */
+export function publicMediaUrl(bucket: string, assetId: string, variant: MediaVariant): string | null {
+  if (bucket !== "public-media") return null;
+  return `/m/${encodeURIComponent(assetId)}/${variant}`;
 }

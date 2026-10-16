@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { DeliverableList, EventProgress, PanelSkeleton, Unavailable } from "@/features/portal/components/PortalUi";
 import { loadEventPage } from "@/features/portal/event-page";
+import { PortalConsent } from "@/features/publishing/PortalConsent";
 
 async function Overview({ params }: { params: Promise<{ eventId: string }> }) {
   const { overview, path, eventId } = await loadEventPage(params);
@@ -44,6 +45,7 @@ async function Overview({ params }: { params: Promise<{ eventId: string }> }) {
         <EventProgress status={overview.event.status} />
         <h3 className="mb-2 mt-6 text-base font-semibold">الأعمال المسلَّمة</h3>
         <DeliverableList items={deliverables} />
+        <PortalConsent eventId={eventId} />
       </aside>
     </div>
   );

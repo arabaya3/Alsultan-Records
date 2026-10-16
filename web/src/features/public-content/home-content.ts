@@ -5,6 +5,9 @@ export const HERO = {
   sub: "نوثّق أعراسكم ومناسباتكم بالصوت والصورة.",
   primary: "شاهد أعمالنا",
   secondary: "احكِ لنا عن مناسبتك",
+  /** Used when no work is published yet. */
+  book: "احجز مناسبتك",
+  contact: "تواصل معنا",
 };
 
 /** Used only when no services are published yet. */

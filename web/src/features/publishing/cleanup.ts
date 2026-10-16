@@ -15,8 +15,10 @@ const BUCKETS = new Set(["public-media", "private-media"]);
  * 2. Remove each claimed object with the secret-key client. Documented exception:
  *    queued paths include private-media objects of deleted events (their rows and
  *    events are gone, so no RLS policy can authorize the delete any more).
- * 3. complete_storage_cleanup(ids) ONLY for objects removed (or already absent).
- *    Failed items stay claimed and become claimable again after 15 minutes.
+ * 3. complete_storage_cleanup(ids) ONLY for objects removed (or already absent);
+ *    fail_storage_cleanup for the rest (backoff + dead-letter, migration 0010).
+ * The scheduled worker is the storage-cleanup Edge Function (pg_cron, every minute); this
+ * in-app runner is the manual "run now" button and the admin-flow fast path.
  */
 export async function processStorageCleanup(limit = 100): Promise<CleanupReport> {
   const sb = await createClient();
@@ -40,6 +42,10 @@ export async function processStorageCleanup(limit = 100): Promise<CleanupReport>
   if (done.length) {
     const c = await sb.rpc("complete_storage_cleanup", { p_ids: done });
     if (c.error) completeError = "complete";
+  }
+  // Failures: attempts+1 with backoff, dead-letter after 5 (same contract as the Edge Function).
+  for (const f of results.filter((r) => !r.ok)) {
+    await sb.rpc("fail_storage_cleanup", { p_ids: [f.id], p_error: f.error ?? "error" });
   }
   return { claimed: items.length, removed: done.length, failed: results.filter((r) => !r.ok), error: completeError };
 }

@@ -141,7 +141,7 @@ Anon cannot call these RPCs at all, so the Turnstile check cannot be bypassed an
 - Private paths must match `events/{event_id}/...`. `app.path_event_id()` parses the event id, and a malformed path matches no policy.
 - `media_assets` has a CHECK that private-media paths start with `events/{event_id}/`.
 - Downloads use short-lived signed URLs minted server-side after an RLS-checked query.
-- Public copies after consent revoke: the DB flips `media_assets.visibility` to `private` and enqueues the objects in `private.storage_cleanup_queue` (see section 11). The app worker deletes them.
+- Published copies: `public-media` is a **private** bucket since migration 0010 and is served only through `/m/{assetId}/{variant}` (see section 13).
 
 ## 7. MFA and disabled accounts
 
@@ -205,9 +205,71 @@ Anon cannot call these RPCs at all, so the Turnstile check cannot be bypassed an
   - The app processes the queue with `claim_storage_cleanup(p_limit int = 100)` (returns id, bucket, path, reason, enqueued_at). It marks rows as claimed; a claim older than 15 min can be claimed again; at most 1000 rows per call; rows locked by another worker are skipped.
   - After removing the objects through the Storage API with the admin client, the app calls `complete_storage_cleanup(p_ids uuid[])`, which returns the count marked done.
   - Both RPCs are admin/owner only (42501 otherwise).
-  - This closes the "public copies survive consent revoke" gap once a worker runs: a cron job or an admin action after `set_publication_consent`.
+  - Superseded by section 13 (immediate revocation + scheduled worker).
 
 ## 12. Addendum (migration 0009)
 
 - Column defaults run as the invoking role. The audit found three that call `app.random_code()`: `quotes.quote_no`, `booking_requests.tracking_code` and `support_requests.tracking_code`. `random_code` is now SECURITY DEFINER with EXECUTE granted to authenticated and service_role; it is harmless and returns random text. Trigger functions are exempt from EXECUTE checks, and the app.* helpers they call as the invoker were already granted.
 - `event_financials` adds `quoted` and `balance_basis` (see section 5).
+
+## 13. Consent withdrawal (migration 0010)
+
+**Guarantee.** Withdrawing consent stops public serving in the **same transaction**. No job is involved. The only remaining exposure is caches that already hold a 200 response, for at most **60 seconds**.
+
+**Serving model.**
+- The `public-media` bucket is private (`storage.buckets.public = false`).
+- Published media URLs are same-origin: `/m/{assetId}/{display|thumb|poster|original}` (`web/src/app/m/[assetId]/[variant]/route.ts`).
+- Each request is checked twice with the anonymous publishable key:
+  - The `media_public_read` RLS policy returns the row only if `visibility = public`, it is ready, and the event is published with consent granted.
+  - The `"public-media read live"` storage policy calls `app.public_object_is_live(name)`, which applies the same condition to the object.
+- The route then streams the bytes, with Range support.
+- A 200 carries `Cache-Control: public, max-age=60, s-maxage=60, stale-while-revalidate=0, stale-if-error=0`. A 404 carries `Cache-Control: no-store`.
+- Media components render with `unoptimized`, so the next/image optimizer cache is not in the path. `images.minimumCacheTTL` is pinned to 60 anyway, and `localPatterns` allows only `/m/**` and `/brand/**`.
+- No app code builds `/storage/v1/object/public/` URLs.
+
+**Sequence when the customer withdraws (portal "سحب الموافقة على النشر" → `set_publication_consent(event, 'revoked')`).**
+1. The `events_publication` BEFORE trigger sets `is_published = false` and `featured = false`, records `consent_at` and `consent_by`, and sets `consent_revoked_by_customer_at = now()`.
+2. The `events_unpublish_media` AFTER trigger:
+   - enqueues every public-media path of the event in `private.storage_cleanup_queue`;
+   - sets those rows to `visibility = private`;
+   - calls `app.invoke_storage_cleanup('unpublished')`, a pg_net request that is sent only after COMMIT.
+3. At COMMIT, RLS and the storage policy deny the rows and objects. The next `/m` request returns 404 `no-store`, and `/work/{slug}` returns 404 (proxy slug check).
+4. The server action calls `updateTag('projects')` and `updateTag('media')`, so the homepage and `/work` re-render without the project on the next request.
+5. Deletion runs separately and correctness does not depend on it. The `storage-cleanup` Edge Function is called right away (best effort) and every minute by pg_cron. It:
+   - claims due items;
+   - deletes the objects with the service role;
+   - calls `complete_storage_cleanup` for successes, which also deletes the now-private public-media rows;
+   - calls `fail_storage_cleanup` for failures. Each failure adds 1 to `attempts` and sets a backoff of 30s·2^n, capped at 1h. Items move to dead-letter (`dead_at`) after 5 attempts.
+6. The admin overview shows pending and dead counts from `storage_cleanup_pending()`, which is admin-only and read-only.
+
+Admin withdrawals and unpublishes follow steps 2 to 6. The in-app runner (`processStorageCleanup`) uses the same claim, complete and fail contract.
+
+**No republication after a customer withdrawal.** `consent_revoked_by_customer_at` is set only by the owning customer's revoke. While it is set:
+- any API caller who is not the owning customer is refused `granted` (42501), whether admin, owner, staff or service role. This is enforced both in `set_publication_consent` and in the trigger;
+- publishing is impossible, because it requires granted consent;
+- a CHECK constraint forbids `granted` while the flag is set;
+- the flag cannot be edited directly.
+
+Only the customer's own grant clears the flag, and `consent_at` and `consent_by` record who granted and when. Admins may still set `requested`.
+
+**Private originals.** Only `public-media` paths are enqueued on unpublish or withdrawal. Private-media originals and variants stay, and the customer can still get signed URLs for them (tested).
+
+**Operator setup (staging/production).** Never put these values in migrations.
+1. Deploy the function: `supabase functions deploy storage-cleanup --no-verify-jwt`. The function checks the bearer token itself.
+2. Create the Vault secrets in the SQL editor:
+   - `select vault.create_secret('https://<project-ref>.supabase.co/functions/v1/storage-cleanup', 'storage_cleanup_url');`
+   - `select vault.create_secret('<key>', 'storage_cleanup_key');`
+3. Choose `<key>`:
+   - the project's legacy service-role JWT, which the function compares to `SUPABASE_SERVICE_ROLE_KEY`;
+   - or, preferably, a random secret that you also set with `supabase secrets set STORAGE_CLEANUP_SECRET=<same value>`.
+4. Rotate by updating both. pg_cron and pg_net are enabled by the migration, and the job `storage-cleanup` runs every minute.
+5. Check that it works:
+   - `select * from cron.job_run_details order by start_time desc limit 5;`
+   - `select * from net._http_response order by id desc limit 5;`
+   - `select * from public.storage_cleanup_pending();` (run it as an admin)
+
+Locally, `seed.sql` creates both secrets with the well-known `supabase start` demo service-role JWT and `http://kong:8000/...`. The local edge runtime must serve the function: `npx supabase functions serve` (`supabase start` alone does not mount new functions).
+
+**Known limits.**
+- A CDN or browser that cached a 200 can serve it for up to 60 s. To get a 0 s window, purge the CDN by URL prefix `/m/{assetId}/` on withdrawal, or lower `MAX_AGE` in the route.
+- Re-publishing an image before the worker deleted its old copy cancels the pending deletion of those paths (`media_cancel_pending_cleanup` trigger). The worker can still delete the new copy in the moment between the storage copy and the row insert. If that happens, the image returns 404 and the admin re-publishes it.

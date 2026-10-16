@@ -20,7 +20,7 @@
  *
  * Variants: "thumb" falls back to "display" (never the original); "display" falls back to the
  * original path only for non-image media (videos/documents have no variants). ttlSeconds is
- * clamped to [30, 600]. public-media assets get their permanent public URL.
+ * clamped to [30, 600]. public-media assets get their /m/{id}/{variant} route URL.
  */
 import "server-only";
 import { connection } from "next/server";
@@ -105,11 +105,11 @@ export async function signMediaUrls(input: SignInput): Promise<SignedMedia[]> {
 
   const out: SignedMedia[] = wanted.map((w) => ({ key: w.key, assetId: w.assetId, path: w.path, url: null, expiresAt: null }));
 
-  // public bucket: permanent URLs
+  // published copies: same-origin /m/{id}/{variant} route (re-checks consent per request; the
+  // public-media bucket itself is private since migration 0010).
+  const variant = "assetIds" in input ? (input.variant ?? "display") : "display";
   wanted.forEach((w, i) => {
-    if (w.path && w.bucket === "public-media") {
-      out[i].url = supabase.storage.from("public-media").getPublicUrl(w.path).data.publicUrl;
-    }
+    if (w.path && w.assetId && w.bucket === "public-media") out[i].url = `/m/${w.assetId}/${variant}`;
   });
 
   const priv = [...new Set(wanted.filter((w) => w.path && w.bucket === "private-media").map((w) => w.path as string))];

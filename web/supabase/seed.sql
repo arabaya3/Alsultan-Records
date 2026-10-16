@@ -166,3 +166,14 @@ begin
   values (v_cust_a, v_e1, '00000000-0000-4000-8000-0000000001d1', 300000, 'bank_transfer', '[DEV] deposit',
           'dev-seed-payment-0001', '00000000-0000-4000-8000-0000000000a1');
 end $$;
+
+-- LOCAL ONLY: scheduler target for the storage-cleanup Edge Function (migration 0010).
+-- `kong` is the API gateway inside the local Docker network; the key is the well-known
+-- `supabase start` demo service-role JWT (public, local-only). Staging/production set these
+-- two Vault secrets by hand (docs/security-model.md, "Consent withdrawal"). Never commit real keys.
+select vault.create_secret('http://kong:8000/functions/v1/storage-cleanup', 'storage_cleanup_url',
+                           'LOCAL storage-cleanup function URL')
+where not exists (select 1 from vault.secrets where name = 'storage_cleanup_url');
+select vault.create_secret('eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU',
+                           'storage_cleanup_key', 'LOCAL demo service-role JWT (supabase start default)')
+where not exists (select 1 from vault.secrets where name = 'storage_cleanup_key');

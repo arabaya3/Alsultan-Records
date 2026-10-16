@@ -62,7 +62,7 @@ Dev logins are listed in comments at the top of `web/supabase/seed.sql` (local o
 
 ## Known gaps (honest)
 - Staff MFA (aal2) enforcement is pgTAP-tested but not e2e (seed disables MFA locally).
-- No scheduled worker for the storage cleanup queue: customer-side consent revoke is cleaned the next time an admin acts (overview shows an alert). Add a cron (Supabase scheduled function) before launch.
+- Storage cleanup is scheduled (pg_cron every minute -> `storage-cleanup` Edge Function). Staging needs the Vault secrets `storage_cleanup_url` and `storage_cleanup_key`, see security-model section 13.
 - Video streaming uses signed MP4 URLs; an external streaming provider boundary is documented in `docs/backup-restore.md` but not integrated.
 - Axe accessibility audit not run (`@axe-core/playwright` not installed); custom label/focus/contrast checks pass.
 - CSP keeps `'unsafe-inline'` for scripts (needed by static rendering); nonce-based CSP would disable static pages.

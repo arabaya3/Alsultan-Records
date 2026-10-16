@@ -25,15 +25,14 @@ const SERVICE_COLUMNS = "id, slug, title, summary, body, cover_media_id, sort_or
 
 function toPublicMedia(row: MediaAssetRow): PublicMedia | null {
   if (row.kind === "document") return null;
-  const displayPath = row.kind === "image" ? (row.variants?.display ?? row.path) : row.path;
-  const src = publicMediaUrl(row.bucket, displayPath);
+  const src = publicMediaUrl(row.bucket, row.id, row.kind === "image" && row.variants?.display ? "display" : "original");
   if (!src) return null;
-  const posterPath = row.variants?.poster ?? row.variants?.thumb ?? null;
+  const posterVariant = row.variants?.poster ? "poster" : row.variants?.thumb ? "thumb" : null;
   return {
     id: row.id,
     kind: row.kind,
     src,
-    poster: posterPath ? publicMediaUrl(row.bucket, posterPath) : null,
+    poster: posterVariant ? publicMediaUrl(row.bucket, row.id, posterVariant) : null,
     width: row.width ?? null,
     height: row.height ?? null,
   };

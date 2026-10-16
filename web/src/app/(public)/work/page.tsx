@@ -25,7 +25,14 @@ export default async function WorkPage() {
           <EmptyState
             title="نجهّز معرض الأعمال"
             body="ننشر الأعمال بعد موافقة أصحابها. إلى ذلك الحين، يسعدنا أن نحكي معك عن مناسبتك."
-            action={<ButtonLink href="/book">احجز مناسبتك</ButtonLink>}
+            action={
+              <div className="flex flex-wrap items-center justify-center gap-6">
+                <ButtonLink href="/book">احجز مناسبتك</ButtonLink>
+                <ButtonLink href="/contact" variant="link" tone="light">
+                  تواصل معنا
+                </ButtonLink>
+              </div>
+            }
           />
         ) : (
           <ul className="grid gap-6 md:grid-cols-2">

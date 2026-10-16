@@ -56,6 +56,7 @@ Spec files are in `web/tests/e2e/`. Final QA run: **44 passed, 1 failed** (the f
 | S4 | NOT VERIFIED | The dev seed disables `require_staff_mfa`. I did not test aal2. |
 | S5 | PASS | A cannot download, list or sign B's object. B can (control). Anon cannot download, and the public URL of the private bucket returns ≥400. A signed URL with a 2 s TTL returned 200 at first and ≥400 after 4 s. |
 | S6 | PASS | `set_event_publication` without consent errors. A direct `is_published` update errors, and the DB is unchanged. |
+| S6 consent withdrawal (2026-10-16) | PASS | Release blocker closed (migration 0010, `/m` route, `storage-cleanup` function). See "S6: consent withdrawal" below. |
 | S7 | NOT VERIFIED directly | Covered only by pgTAP. |
 | C1 | PASS | Clearing cookies leads to `/login?next=/portal/events/…/files`. Logout removes all `sb-*` cookies, and back+reload stays on /login. A garbage cookie redirects to login. With `expires_at` set to the past and a valid refresh token, the session is refreshed: portal renders and the access token changes. |
 | C2 | PASS | `portal.spec` (2 own event cards, B's event shows not-found). |
@@ -72,9 +73,82 @@ Spec files are in `web/tests/e2e/`. Final QA run: **44 passed, 1 failed** (the f
 | A6 | PASS | A ₪1,000 refund recorded through the owner UI: `refunded +100000`, `paid` unchanged, `balance +100000`, summary `net_cash −100000`, and the portal shows the same totals. Staff get an error on `admin_financial_summary` and see no payments. Admin gets an error on `record_payment`. Idempotent payment is covered by the older spec. |
 | A7 | NOT VERIFIED | |
 | A8 | PASS | Staff are denied 8 admin URLs and allowed 4. Admin is denied /users and /backups. Owner is allowed all. A customer gets nothing on /admin/finance. Staff see A1 and none of B's events. |
-| B1 | PASS | Admin cannot download, list or sign in the `backups` bucket; owner can. The older spec's backup run completes. |
+| B1 | PASS (local) / PENDING (cloud) | Admin cannot download, list or sign in the `backups` bucket; owner can. Backup recovery is proven into an isolated local stack: the in-app run passes 92/92 checks and the pg_dump + storage snapshot passes 101/101 (see "B1: backup recovery" below). Cloud restore has not been run yet because there is no staging access. |
 | Q1 | PASS | See above. |
 | Q2 | PASS | See above. |
+
+## S6: consent withdrawal (2026-10-16, local, production build on :3500)
+
+Setup: `npx supabase db reset && npm run seed:storage`, `npx supabase functions serve` (edge runtime serves `storage-cleanup`), `npm run build && npx next start -p 3500`.
+
+| Command | Result |
+|---|---|
+| `npx supabase test db` | **126/126 PASS**, 5 files. The new `40_consent_revocation.sql` has 26 tests: anon objects drop to 0 in the same transaction as the withdrawal; admin and owner cannot re-grant or publish (42501); only the customer can re-grant; 2 queue rows are created; private originals and variants are untouched; the service role claims work; items dead-letter after 5 failures; the cron job is scheduled. |
+| `BASE_URL=http://localhost:3500 npx playwright test tests/e2e/consent-revocation.spec.ts` | **6/6 PASS** |
+| same + `admin.spec.ts qa-security.spec.ts qa-journeys.spec.ts public.spec.ts` (one run, fresh reset) | **46/46 PASS** (3.2m) |
+| `npx tsc --noEmit` / `npm run lint` / `npm run build` | clean / clean / OK (`ƒ /m/[assetId]/[variant]`) |
+| `grep -rn "storage/v1/object/public\|getPublicUrl" web/src` | only a stale snippet in `components/layout/security-headers.md` (doc, not code) |
+
+What the spec proves:
+- Before: `GET /m/{id}/display` returns 200 `image/webp` with `Cache-Control: public, max-age=60, s-maxage=60, stale-while-revalidate=0, stale-if-error=0`, and the homepage links the project and its `/m` URL.
+- The customer clicks "سحب الموافقة على النشر" in the portal. The **same URL** returns **404 with `no-store`** on the next request, and so does a cache-busted copy (`?cb=`, `Cache-Control: no-cache`). The thumb also returns 404. `/work/{slug}` returns 404, and neither `/` nor `/work` lists the project.
+- The old direct URL `/storage/v1/object/public/public-media/...` fails, and an anon `storage.download` fails.
+- Admin `set_publication_consent(granted)` and `set_event_publication(true)` both fail with 42501.
+- `app.invoke_storage_cleanup()` triggers pg_net, which calls the Edge Function. The queue rows are done, both objects are gone and the stale row is removed. In this run, the immediate kick from the withdrawal trigger had already deleted the objects: the edge log shows `{"claimed":2,"completed":2}`.
+- Forced failure: a queue row was pointed at the bucket `public-media-wrong`. Result: `attempts=1`, `last_error` "invalid bucket…", `next_attempt_at` in the future, and the object still present. After the bucket was fixed and the backoff elapsed, the next run marked it done and the object was gone.
+- The private original, display and thumb still exist. Customer A's signed URL for the original returns 200. The customer re-grants in the portal, and the admin can publish again.
+
+CDN note: a shared cache that already holds a 200 for a `/m` URL may serve it for up to **60 s** after withdrawal. The origin returns 404 from the first request after the commit, and `no-store` means the 404 itself is never cached as a 200.
+
+## B1: backup recovery (2026-10-16, local)
+
+Procedure: `docs/backup-restore.md`. Machine report: `docs/restore-report.json`.
+
+The isolated stack was `web/.cache/restore-env`, with `project_id` `alsultan-restore` on ports 5532x and seed disabled. It ran next to the main stack, which was never stopped or reset by this work. It was torn down afterwards with `npx supabase stop --workdir .cache/restore-env --no-backup`, and main kept running.
+
+**Unit tests (failure honesty).** `npx vitest run src/features/backups` passes 6/6:
+- All tables succeed: `completed`.
+- An unknown table is injected: `partial`, with `errors=[table:no_such_table_for_test]`.
+- Only unknown tables: `failed`.
+- The manifest fails: `partial`.
+- Uploads fail: `failed`.
+
+`tsc --noEmit` and eslint are clean.
+
+**Proof A: in-app JSON run.**
+- The run used the app's own code path (`runBackupCore`) as the owner: `node --experimental-strip-types scripts/backup-run.mjs`. Run `5bb78afd-6bbf-417c-afde-8bdcc5cb3178` finished `completed` with 33/33 tables and 34 archives downloaded.
+- auth was taken with `pg_dump` from the source container (read-only): 5 users and 5 identities.
+- Restore: `backup-restore.mjs --auth-sql`.
+  - The **first attempt exited 1**, as designed. Profile `4e46c53d…` ("MFA QA", created and deleted by a QA spec) was in the export, but its user was already gone 11 s later when the auth dump ran.
+  - The rerun with `--skip-orphan-profiles` passed. It dropped that profile and set its 1 `customers` row's `user_id` and `created_by` to null, which replays the FK `ON DELETE SET NULL`. Both actions are recorded.
+  - Result: 33/33 counts and 58 FKs checked, with 0 orphans.
+- `verify-restore.mjs`: **92/92 passed**.
+  - Restored rows include 211 media, 5 album selection items, 2 payments and 34 audit events.
+  - Every row is deep-equal to the backup, except the explained customers row.
+  - The contract hash is intact.
+  - `event_financials` equals the backup-derived totals for all 4 events.
+  - Restored passwords work.
+  - RLS checks: A cannot read B's customer row, payments, private media or financials, and anon sees exactly the 1 published+consented event.
+- Storage for this run was **not** verified. Another agent reset and reseeded the main stack between the run and the storage copy. Only 16 of the run's 425 manifest paths still existed, and the run's archives in `backups` were wiped too.
+
+**Proof B: single `pg_dump` (public + auth) and storage copy taken back to back.**
+- The first restore **failed loudly** because of schema drift. Main had gained migration `20261016000010_consent_withdrawal` after the isolated stack was created (`column "consent_revoked_by_customer_at" … does not exist`). The restore script now refuses a target whose `schema_migrations` differ from the backup's `schema-migrations.txt`.
+- After syncing the migrations and running `db reset` on the isolated stack only:
+  - The restore matched 33/33 tables, with 5 auth users and 0 orphaned FKs.
+  - `restore-storage` uploaded 418/418 objects (3,163,266 bytes) and checksum-verified 418/418.
+- `verify-restore.mjs`: **101/101 passed**.
+  - Every row is byte-identical to the dump's COPY text.
+  - 418 objects in private-media (0 in public-media and backups), sha256 match 418/418, and every ready media path/variant resolves.
+  - Customer A's signed URL for `events/…e1/…/display.jpg` returns 200 with a matching hash. Customer B cannot sign it, and the public URL is refused.
+  - RLS, financials and auth checks are as in proof A.
+
+**Negative control.** In the restored DB, one `content_hash` was tampered, one payment deleted and RLS disabled on `reviews`. `verify-restore` then reported 86/92 with 6 FAILs and exited 1.
+
+Not proven:
+- Cloud/staging restore.
+- A storage restore that matches the same in-app run (proof A); only B covers storage.
+- `public-media` objects: the snapshot had 0, so the anon public-media check passed with no rows.
+- Restoring MFA factors: the source had 0.
 
 ## Console, CSP, failed requests
 `qa-console` covers 12 public pages, 9 portal pages, 17 owner admin pages and 4 staff pages: **0** console errors, CSP violations, failed requests or 5xx responses. One environment artifact is excluded explicitly: the prod CSP's `upgrade-insecure-requests` upgrades the prefetch redirect of the header's `/portal` link (307 to `/login`) to `https://localhost:3400`, which gives `ERR_SSL_PROTOCOL_ERROR`. This only happens when serving the prod build over plain http and cannot occur on https. The server log also prints supabase-ssr's `getSession()` insecurity warning repeatedly. No direct `getSession()` call exists in `src/`; the warning appears to come from library internals.
