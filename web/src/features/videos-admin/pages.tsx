@@ -22,7 +22,11 @@ import {
   updateVideo,
 } from "./actions";
 
-const COLS = "id, youtube_id, title, title_source, needs_review, description, duration_seconds, published_at, is_promo, sort_order, is_published";
+// title_source / needs_review are admin-only: column grants exclude them for the shared `authenticated`
+// role, so they are read from the admin-only view showcase_video_admin_details and merged by id.
+const COLS = "id, youtube_id, title, description, duration_seconds, published_at, is_promo, sort_order, is_published";
+const ADMIN_COLS = "video_id, title_source, needs_review";
+type AdminFlags = { video_id: string; title_source: string; needs_review: boolean };
 
 type VideoRow = {
   id: string;
@@ -133,15 +137,17 @@ export async function VideosPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const filter = one(sp.filter) === "review" ? "review" : "";
   const sb = await createClient();
-  let q = sb.from("showcase_videos").select(COLS).order("sort_order").order("created_at");
-  if (filter === "review") q = q.eq("needs_review", true);
-  const [{ data, error }, { cats, error: ce }, linksRes] = await Promise.all([
-    q,
+  const [{ data, error }, flagsRes, { cats, error: ce }, linksRes] = await Promise.all([
+    sb.from("showcase_videos").select(COLS).order("sort_order").order("created_at"),
+    sb.from("showcase_video_admin_details").select(ADMIN_COLS),
     loadCategories(sb),
     sb.from("showcase_video_categories").select("video_id, category_id, is_primary"),
   ]);
-  if (error || ce || linksRes.error) return <LoadError what="الفيديوهات" />;
-  const rows = (data ?? []) as VideoRow[];
+  if (error || flagsRes.error || ce || linksRes.error) return <LoadError what="الفيديوهات" />;
+  const flags = new Map(((flagsRes.data ?? []) as AdminFlags[]).map((f) => [f.video_id, f]));
+  const rows = ((data ?? []) as Omit<VideoRow, "title_source" | "needs_review">[])
+    .map((r) => ({ ...r, title_source: flags.get(r.id)?.title_source ?? "youtube", needs_review: flags.get(r.id)?.needs_review ?? false }))
+    .filter((r) => filter !== "review" || r.needs_review) as VideoRow[];
   const links = (linksRes.data ?? []) as Link_[];
   const catById = new Map(cats.map((c) => [c.id, c]));
   return (
@@ -252,14 +258,18 @@ export async function VideoEditPage({ params }: { params: IdParams }) {
     sb.from("showcase_videos").select(COLS).eq("id", id).maybeSingle(),
     sb
       .from("showcase_video_admin_details")
-      .select("original_title, source, verification_notes, youtube_title, youtube_description, review_note, reviewed_at")
+      .select("original_title, source, verification_notes, youtube_title, youtube_description, review_note, reviewed_at, title_source, needs_review")
       .eq("video_id", id)
       .maybeSingle(),
     loadCategories(sb),
     sb.from("showcase_video_categories").select("video_id, category_id, is_primary").eq("video_id", id),
   ]);
   if (row.error || !row.data) return <LoadError what="الفيديو" />;
-  const v = row.data as VideoRow;
+  const v = {
+    ...(row.data as Omit<VideoRow, "title_source" | "needs_review">),
+    title_source: details.data?.title_source ?? "youtube",
+    needs_review: details.data?.needs_review ?? false,
+  } as VideoRow;
   const d = details.data as Details | null;
   const canRestore = !!d?.youtube_title && (v.title_source !== "youtube" || v.title !== d.youtube_title);
   return (

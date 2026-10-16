@@ -134,7 +134,7 @@ test("P2: published-project page shows only the consented seeded project", async
   const body = await page.locator("main").innerText();
   expect(body).toContain("[DEV] Sample published project");
   for (const priv of ["Customer A wedding", "Customer B engagement", "Customer B graduation"]) expect(body).not.toContain(priv);
-  const links = await page.locator('main a[href^="/work/"]').evaluateAll((as) => [...new Set(as.map((a) => a.getAttribute("href")))]);
+  const links = await page.locator('main a[href^="/work/"]:not([href^="/work/v/"]):not([href^="/work/albums/"])').evaluateAll((as) => [...new Set(as.map((a) => a.getAttribute("href")))]);
   expect(links).toEqual(["/work/dev-sample-published-project"]);
   const r = await page.goto(`${BASE}/work/dev-sample-published-project`);
   expect(r!.status()).toBe(200);

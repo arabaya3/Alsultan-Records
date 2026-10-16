@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-16T09:55:16.898Z",
+  "generatedAt": "2026-10-16T16:28:47.650Z",
   "base": "http://localhost:3600",
   "tags": [
     "wcag2a",
@@ -258,7 +258,7 @@
     },
     {
       "page": "portal-video",
-      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/f7b3c4b5-7101-4a85-8758-72a3b766fc5f",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/3b2617ac-aab7-44f9-9504-cf20449154ab",
       "critical": 0,
       "serious": 0,
       "moderate": 0,
@@ -314,7 +314,7 @@
     },
     {
       "page": "admin-booking",
-      "url": "/admin/bookings/bba73716-bfd2-4746-9bb1-1d567366e3af",
+      "url": "/admin/bookings/38d714d9-b824-47ad-a312-85c4156caa44",
       "critical": 0,
       "serious": 0,
       "moderate": 0,
@@ -493,7 +493,7 @@
       },
       "violations": [],
       "incomplete": 1,
-      "passes": 24
+      "passes": 25
     },
     {
       "page": "work@1440",
@@ -506,7 +506,7 @@
       },
       "violations": [],
       "incomplete": 1,
-      "passes": 24
+      "passes": 25
     },
     {
       "page": "work-detail@1440",
@@ -610,7 +610,7 @@
       },
       "violations": [],
       "incomplete": 1,
-      "passes": 25
+      "passes": 26
     },
     {
       "page": "home@390",
@@ -623,7 +623,7 @@
       },
       "violations": [],
       "incomplete": 1,
-      "passes": 24
+      "passes": 25
     },
     {
       "page": "work@390",
@@ -636,7 +636,7 @@
       },
       "violations": [],
       "incomplete": 1,
-      "passes": 24
+      "passes": 25
     },
     {
       "page": "work-detail@390",
@@ -740,7 +740,7 @@
       },
       "violations": [],
       "incomplete": 1,
-      "passes": 25
+      "passes": 26
     },
     {
       "page": "portal-home",
@@ -770,7 +770,7 @@
     },
     {
       "page": "portal-video",
-      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/f7b3c4b5-7101-4a85-8758-72a3b766fc5f",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/3b2617ac-aab7-44f9-9504-cf20449154ab",
       "counts": {
         "critical": 0,
         "serious": 0,
@@ -844,7 +844,7 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 22
+      "passes": 23
     },
     {
       "page": "admin-customers",
@@ -857,11 +857,11 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 26
+      "passes": 27
     },
     {
       "page": "admin-booking",
-      "url": "/admin/bookings/bba73716-bfd2-4746-9bb1-1d567366e3af",
+      "url": "/admin/bookings/38d714d9-b824-47ad-a312-85c4156caa44",
       "counts": {
         "critical": 0,
         "serious": 0,
@@ -870,7 +870,7 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 27
+      "passes": 28
     },
     {
       "page": "admin-event",
@@ -883,7 +883,7 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 28
+      "passes": 29
     },
     {
       "page": "admin-event-media",
@@ -896,7 +896,7 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 26
+      "passes": 27
     },
     {
       "page": "admin-users",
@@ -909,7 +909,7 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 27
+      "passes": 28
     },
     {
       "page": "admin-settings",
@@ -922,7 +922,7 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 24
+      "passes": 25
     },
     {
       "page": "admin-confirm-dialog",

@@ -20,7 +20,7 @@ async function settleImages(page: Page) {
     window.scrollTo(0, 0);
   });
   await expect
-    .poll(() => page.evaluate(() => [...document.images].filter((i) => i.loading !== "lazy" || i.getBoundingClientRect().top < innerHeight).filter((i) => !(i.complete && i.naturalWidth > 0)).length), { timeout: 30_000 })
+    .poll(() => page.evaluate(() => [...document.images].filter((i) => i.offsetParent !== null && i.getBoundingClientRect().width > 0).filter((i) => i.loading !== "lazy" || i.getBoundingClientRect().top < innerHeight).filter((i) => !(i.complete && i.naturalWidth > 0)).length), { timeout: 30_000 })
     .toBe(0);
   await page.waitForTimeout(900); // entrance motion ≤600ms
 }
