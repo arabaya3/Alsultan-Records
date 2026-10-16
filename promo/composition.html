@@ -26,7 +26,7 @@ img{display:block}
 #s1 .inner{position:absolute;inset:0}
 #logo1{clip-path:circle(0% at 50% 50%)}
 /* S2 */
-#s2 .bg{position:absolute;inset:-60px;background-size:cover;background-position:center;filter:blur(16px) saturate(.8);opacity:.2}
+#s2 .bg{position:absolute;inset:0;background-size:cover;background-position:100% 0%;transform-origin:100% 0%;filter:saturate(.85);opacity:.2}
 #s2 .inner{position:absolute;inset:0}
 #dot{display:inline-block;transform-origin:50% 80%}
 #l2{font-weight:500;color:rgba(248,244,236,.88);margin:0}
@@ -77,7 +77,7 @@ img{display:block}
   </div></section>
 
   <!-- S2 tagline -->
-  <section class="scene" id="s2"><div class="bg" style="background-image:url(assets/thumbs/bY-HEOQVEZA.jpg)"></div><div class="inner center">
+  <section class="scene" id="s2"><div class="bg" style="background-image:url(assets/photos/1099398326172364.jpg)"></div><div class="inner center">
     <h2 class="disp mask" id="l1">فرحتك إلها حكاية<span id="dot" class="g">.</span></h2>
     <div class="rule" id="rule2"></div>
     <p id="l2" class="disp"></p>
@@ -98,7 +98,7 @@ img{display:block}
     <div id="url" dir="ltr">sultan-records.vercel.app</div>
   </div></section>
 
-  <section id="cover"><div class="bg" style="background-image:url(assets/thumbs/GTa4oM-TLw0.jpg)"></div><div class="shade"></div><div class="inner center" id="coverInner"></div></section>
+  <section id="cover"><div class="bg" id="coverBg"></div><div class="shade"></div><div class="inner center" id="coverInner"></div></section>
 
   <div id="vignette"></div><div id="grain"></div>
 </div>
@@ -130,18 +130,23 @@ css($('#phone'), { fontSize: (P ? 76 : 62) + 'px', marginBottom: (P ? 26 : 14) +
 css($('#url'), { fontSize: (P ? 58 : 42) + 'px' });
 
 // S3 slides
-const SLIDES = [
-  { id: 'A7Bby0aFuz0', inset: 'GTa4oM-TLw0', t: 'تصوير فوتوغرافي', pos: P ? '38% 50%' : '50% 40%' },
-  { id: '31fqUFYa_LI', inset: '1HyF-9dPZno', t: 'أفلام أعراس ومناسبات', pos: P ? '60% 45%' : '50% 40%' },
-  { id: 'LKpD2MqUoF0', inset: 'gUhswny61EY', t: 'DJ وتجهيز الأجواء', pos: P ? '45% 50%' : '50% 40%' },
+// Studio's own Facebook album photos (promo/assets/photos/<fbid>.jpg), watermarks kept
+const PH = id => `url(assets/photos/${id}.jpg)`;
+const SLIDES = P ? [
+  { panels: ['1088525793926284'], t: 'تصوير فوتوغرافي' },
+  { panels: ['1094340660011464'], t: 'أفلام أعراس ومناسبات' },
+  { panels: ['1099391022839761'], t: 'DJ وتجهيز الأجواء' },
+] : [
+  { panels: ['1088525793926284', '1086549614123902', '1094307913348072'], t: 'تصوير فوتوغرافي' },
+  { panels: ['1086563720789158'], t: 'أفلام أعراس ومناسبات' },
+  { panels: ['1099398326172364'], t: 'DJ وتجهيز الأجواء' },
 ];
 const s3 = $('#s3');
 SLIDES.forEach((s, k) => {
   const el = document.createElement('div'); el.className = 'slide'; el.id = 'sl' + k;
-  el.innerHTML = `<div class="ph" style="background-image:url(assets/thumbs/${s.id}.jpg);background-position:${s.pos}"></div>
-   <div class="shade" style="background:${P ? 'linear-gradient(180deg,rgba(11,11,11,.15) 40%,rgba(11,11,11,.92) 88%)' : 'linear-gradient(270deg,rgba(11,11,11,.85) 0%,rgba(11,11,11,.35) 45%,rgba(11,11,11,0) 70%),linear-gradient(0deg,rgba(11,11,11,.7),rgba(11,11,11,0) 45%)'}"></div>
-   ${P ? '' : `<div class="inset" style="background-image:url(assets/thumbs/${s.inset}.jpg);left:110px;top:120px;width:400px;height:225px"></div>`}
-   <div class="edge" style="left:100%"></div>
+  el.innerHTML = `<div class="ph" style="display:flex;gap:8px;background:#0b0b0b;transform-origin:100% 0%">${s.panels.map(id => `<div class="pn" style="flex:1;background-image:${PH(id)};background-size:cover;background-position:${s.panels.length > 1 ? '50% 20%' : (P ? '60% 0%' : '50% 0%')}"></div>`).join('')}</div>
+   <div class="shade" style="background:${P ? 'linear-gradient(180deg,rgba(11,11,11,.15) 40%,rgba(11,11,11,.92) 88%)' : 'linear-gradient(0deg,rgba(11,11,11,.92) 0%,rgba(11,11,11,.55) 28%,rgba(11,11,11,0) 55%)'}"></div>
+      <div class="edge" style="left:100%"></div>
    <div class="title" style="${P ? 'left:65px;right:65px;bottom:200px;text-align:center' : 'right:120px;bottom:130px;text-align:right'}">
      <div class="idx" style="font-size:${P ? 44 : 34}px">0${k + 1} / 03</div>
      <h3 class="t" style="font-size:${P ? 100 : 112}px">${s.t}</h3>
@@ -190,6 +195,8 @@ $('#coverInner').innerHTML = `
   <h1 class="disp" style="font-size:${P ? 110 : 112}px;font-weight:800">فرحتك إلها حكاية<span class="g">.</span></h1>
   <p class="disp" style="font-size:${P ? 60 : 50}px;font-weight:500;margin:${P ? 30 : 18}px 0 ${P ? 70 : 40}px;color:rgba(248,244,236,.9)">ستوديو وتسجيلات السلطان</p>
   <div dir="ltr" style="font-family:'IBM Plex Sans Arabic';font-weight:500;color:#e9b949;font-size:${P ? 56 : 40}px;letter-spacing:.03em">sultan-records.vercel.app</div>`;
+$('#coverBg').style.backgroundImage = PH(P ? '1099391022839761' : '1094307146681482');
+$('#coverBg').style.backgroundPosition = '100% 0%';
 if (q.get('cover')) $('#cover').style.display = 'block';
 
 /* ---------- master timeline (absolute seconds) ---------- */
@@ -206,7 +213,7 @@ tl.set('#s1', { opacity: 1 }, 0)
 // S2 4–9
 tl.fromTo('#s2', { opacity: 0 }, { opacity: 1, duration: .5 }, 3.9)
   .fromTo('#s2 .inner', { scale: 1 }, { scale: 1.06, duration: 5.2, ease: 'none' }, 3.9)
-  .fromTo('#s2 .bg', { x: 30 }, { x: -30, duration: 5.2, ease: 'none' }, 3.9)
+  .fromTo('#s2 .bg', { scale: 1 }, { scale: 1.06, duration: 5.2, ease: 'none' }, 3.9)
   .fromTo('#l1', { clipPath: 'inset(0 0 0 100%)' }, { clipPath: R, duration: 1.1, ease: 'power3.out' }, 4.2)
   .fromTo('#dot', { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: .45, ease: 'back.out(3)' }, 5.1)
   .to('#rule2', { scaleX: 1, duration: .8, ease: 'power3.inOut' }, 5.6)
@@ -221,11 +228,12 @@ SLIDES.forEach((s, k) => {
   tl.fromTo(el, { clipPath: 'polygon(130% 0%,130% 0%,130% 100%,115% 100%)' },
       { clipPath: 'polygon(-15% 0%,130% 0%,130% 100%,-30% 100%)', duration: .75, ease: 'power3.inOut' }, t0)
     .fromTo(el + ' .edge', { left: '115%', opacity: 1 }, { left: '-25%', duration: .75, ease: 'power3.inOut' }, t0)
-    .fromTo(el + ' .ph', { scale: 1.02, x: (k % 2 ? -1 : 1) * (P ? 15 : 30) }, { scale: 1.14, x: (k % 2 ? 1 : -1) * (P ? 15 : 30), duration: end - t0, ease: 'none' }, t0)
+    .fromTo(el + ' .ph', { scale: 1.0 }, { scale: 1.08, duration: end - t0, ease: 'none' }, t0)
     .fromTo(el + ' .title', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .7 }, t0 + .8)
     .fromTo(el + ' .t', { clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 -20% 0%)', duration: .8, ease: 'power3.out' }, t0 + .8)
     .fromTo(el + ' .bar', { scaleX: 0 }, { scaleX: 1, duration: .7 }, t0 + 1.1);
-  if (!P) tl.fromTo(el + ' .inset', { opacity: 0, y: 60 }, { opacity: 1, y: -20, duration: end - t0 - .3, ease: 'power1.out' }, t0 + .3);
+  if (s.panels.length > 1) tl.fromTo(el + ' .pn', { y: 60, opacity: .0 }, { y: 0, opacity: 1, duration: .9, stagger: .12, ease: 'power3.out' }, t0 + .1);
+  if (false) tl.fromTo(el + ' .inset', { opacity: 0, y: 60 }, { opacity: 1, y: -20, duration: end - t0 - .3, ease: 'power1.out' }, t0 + .3);
   if (k < 2) tl.to(el + ' .title', { opacity: 0, y: -20, duration: .3, ease: 'power1.in' }, starts[k + 1] - .4);
 });
 tl.to('#sl2 .title', { opacity: 0, y: -20, duration: .3, ease: 'power1.in' }, 15.35);
