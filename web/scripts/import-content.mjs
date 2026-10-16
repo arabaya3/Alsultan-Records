@@ -1,16 +1,32 @@
 #!/usr/bin/env node
 /**
- * Content import: business_settings defaults + showcase_videos from content/youtube-selection.json.
+ * Content import: business_settings defaults + video categories + showcase_videos (+ category links)
+ * from content/youtube-inventory.json (complete channel inventory). content/youtube-selection.json is
+ * only consulted for the sort_order / is_promo of a video when it is first inserted.
  *
  *   node scripts/import-content.mjs --target local|staging [--apply]
  *
- * Dry run by default. Never overwrites existing data:
- *  - business_settings (id=1): fills ONLY null/empty fields; email/instagram are never touched.
- *  - showcase_videos: inserts rows whose youtube_id is absent; existing rows are left as-is
- *    (admin edits win) and differences are only reported. is_promo is set on insert only when
- *    no promo exists yet.
- * Idempotent: a second --apply run inserts 0 and updates 0.
+ * Dry run by default. Idempotent: a second --apply run reports 0 inserts / 0 changes.
  * Uses the service-role key from the target env file; never prints secret values.
+ *
+ * POLICY (admin edits always win; also documented in docs/security-model.md §16)
+ *  - business_settings (id=1): fills ONLY null/empty fields; email/instagram are never touched.
+ *  - video_categories: matched by slug. Missing slugs are inserted (title/sort_order from the
+ *    inventory, published). An existing category's title / sort_order / is_published is never changed.
+ *  - showcase_videos, new youtube_id: inserted with title = original YouTube title verbatim
+ *    (title_source 'youtube'), youtube_title/youtube_description, duration, published_at,
+ *    needs_review + review_note from the inventory. is_published = true, except a needs_review video
+ *    with no category is inserted hidden. is_promo only if the selection marks it AND no promo exists.
+ *  - showcase_videos, existing row:
+ *      always refreshed: youtube_title, youtube_description, duration_seconds, published_at;
+ *      public `title` refreshed from the original title ONLY while title_source = 'youtube'
+ *      (never when an admin set it: 'manual');
+ *      never touched: is_published, sort_order, is_promo, description, category, title when manual;
+ *      needs_review: only ever set to true (with review_note) and only while reviewed_at IS NULL
+ *      (an admin who reviewed the row owns the flag); never cleared by the import.
+ *  - category links: missing (video, category) links from the inventory are added (primary only when
+ *    the video has no primary yet); links are NEVER removed — links in the DB but not in the inventory
+ *    are only reported (admin curation).
  */
 import { readFileSync, existsSync } from "node:fs";
 import { resolve } from "node:path";
@@ -70,10 +86,22 @@ const BUSINESS = {
   whatsapp_url: "https://wa.me/message/I4OXKEUV7DX6L1",
 };
 const ID = /^[A-Za-z0-9_-]{11}$/;
-const CATEGORIES = new Set(["wedding", "evening", "groom_prep", "folk", "engagement", "graduation", "festival", "dj", "other"]);
+const SLUG = /^[a-z0-9_]{2,30}$/;
+const LEGACY = new Set(["wedding", "evening", "groom_prep", "folk", "engagement", "graduation", "festival", "dj", "other"]);
 
-const counts = { settingsFilled: 0, settingsKept: 0, videosInserted: 0, videosUpdated: 0, videosUnchanged: 0, videosDiffering: 0 };
+const counts = {
+  settingsFilled: 0,
+  categoriesInserted: 0,
+  categoriesKept: 0,
+  videosInserted: 0,
+  videosChanged: 0,
+  videosUnchanged: 0,
+  linksInserted: 0,
+  linksExtra: 0,
+  dbVideosNotInInventory: 0,
+};
 const isEmpty = (v) => v === null || v === undefined || String(v).trim() === "";
+const clip = (s, n) => (s == null ? null : String(s).slice(0, n));
 
 async function importSettings() {
   console.log(`\nbusiness_settings (id=1)`);
@@ -85,88 +113,198 @@ async function importSettings() {
       patch[field] = value;
       counts.settingsFilled++;
       console.log(`  ${APPLY ? "filled" : "would fill"}  ${field}`);
-    } else {
-      counts.settingsKept++;
-      console.log(`  kept existing  ${field}`);
     }
   }
+  if (!Object.keys(patch).length) console.log("  all fields already set — kept");
   if (APPLY && Object.keys(patch).length) {
     const { error: e } = await sb.from("business_settings").update(patch).eq("id", 1);
     if (e) throw new Error(`business_settings update failed: ${e.message}`);
   }
 }
 
-function loadSelection() {
-  const sel = JSON.parse(readFileSync(resolve(WEB_ROOT, "content/youtube-selection.json"), "utf8"));
-  const method = sel.source?.method ?? "";
-  const verifiedAt = sel.source?.verified_at ?? "";
-  return sel.videos.map((v) => {
-    if (!ID.test(v.youtube_id)) throw new Error(`invalid youtube_id in selection: ${v.youtube_id}`);
-    if (!CATEGORIES.has(v.category)) throw new Error(`invalid category for ${v.youtube_id}: ${v.category}`);
-    const notes = [`Verified ${verifiedAt} via: ${method}`, v.unverified ? `Unverified/caveat: ${v.unverified}` : null].filter(Boolean).join("\n");
+function loadInventory() {
+  const inv = JSON.parse(readFileSync(resolve(WEB_ROOT, "content/youtube-inventory.json"), "utf8"));
+  const sel = existsSync(resolve(WEB_ROOT, "content/youtube-selection.json"))
+    ? JSON.parse(readFileSync(resolve(WEB_ROOT, "content/youtube-selection.json"), "utf8"))
+    : { videos: [] };
+  const selById = new Map(sel.videos.map((v) => [v.youtube_id, v]));
+  const categories = inv.categories.map((c) => {
+    if (!SLUG.test(c.slug)) throw new Error(`invalid category slug: ${c.slug}`);
+    return { slug: c.slug, title: String(c.title).trim(), sort_order: Number.isInteger(c.sort_order) ? c.sort_order : 100 };
+  });
+  const slugs = new Set(categories.map((c) => c.slug));
+  const videos = inv.videos.map((v) => {
+    if (!ID.test(v.youtube_id)) throw new Error(`invalid youtube_id in inventory: ${v.youtube_id}`);
+    const title = String(v.original_title ?? "").trim();
+    if (title.length < 2 || title.length > 200) throw new Error(`original_title length out of range for ${v.youtube_id}`);
+    const cats = (v.categories ?? []).filter((s) => slugs.has(s));
+    const primary = slugs.has(v.primary_category) ? v.primary_category : cats[0] ?? null;
+    if (primary && !cats.includes(primary)) cats.unshift(primary);
+    const s = selById.get(v.youtube_id);
     return {
       youtube_id: v.youtube_id,
-      source_url: `https://www.youtube.com/watch?v=${v.youtube_id}`,
-      original_title: v.original_title ?? null,
-      title: v.title,
-      description: v.description ?? null,
-      category: v.category,
-      duration_seconds: v.duration_seconds ?? null,
-      published_at: v.published_at ?? null,
-      is_promo: v.is_promo === true,
-      sort_order: v.sort_order ?? 100,
-      is_published: true,
-      source: "youtube_channel",
-      verification_notes: notes.slice(0, 2000),
+      title,
+      youtube_description: clip(v.description || null, 10000),
+      duration_seconds: Number.isInteger(v.duration_seconds) ? v.duration_seconds : null,
+      published_at: typeof v.published_at === "string" && /^\d{4}-\d{2}-\d{2}/.test(v.published_at) ? v.published_at.slice(0, 10) : null,
+      needs_review: v.needs_review === true,
+      review_note: v.needs_review === true ? clip(v.review_reason || "تحتاج مراجعة (من الاستيراد)", 2000) : null,
+      categories: cats,
+      primary,
+      notes: clip([v.classification_basis ? `basis: ${v.classification_basis}` : null, v.reason || null].filter(Boolean).join("\n") || null, 2000),
+      sel_sort: s?.sort_order ?? null,
+      sel_promo: s?.is_promo === true || v.is_promo === true,
     };
   });
+  return { categories, videos };
 }
 
-async function importVideos() {
-  console.log(`\nshowcase_videos`);
-  const wanted = loadSelection();
-  const { data: existing, error } = await sb.from("showcase_videos").select("*");
-  if (error) throw new Error(`cannot read showcase_videos: ${error.message}`);
-  const byId = new Map(existing.map((r) => [r.youtube_id, r]));
-  let promoTaken = existing.some((r) => r.is_promo);
-  const COMPARE = ["title", "description", "category", "duration_seconds", "published_at", "is_promo", "sort_order", "is_published", "original_title"];
-  for (const w of wanted) {
-    const cur = byId.get(w.youtube_id);
-    if (cur) {
-      const diffs = COMPARE.filter((k) => (cur[k] ?? null) !== (w[k] ?? null));
-      if (diffs.length) {
-        counts.videosDiffering++;
-        console.log(`  exists ${w.youtube_id} — kept admin version; differs from selection in: ${diffs.join(", ")}`);
-      } else {
-        counts.videosUnchanged++;
-        console.log(`  exists ${w.youtube_id} — identical, nothing to do`);
-      }
+async function importCategories(categories) {
+  console.log(`\nvideo_categories`);
+  const { data: existing, error } = await sb.from("video_categories").select("id, slug, title, sort_order, is_published");
+  if (error) throw new Error(`cannot read video_categories: ${error.message}`);
+  const bySlug = new Map(existing.map((c) => [c.slug, c]));
+  for (const c of categories) {
+    if (bySlug.has(c.slug)) {
+      counts.categoriesKept++;
+      console.log(`  exists ${c.slug} — kept admin version`);
       continue;
     }
-    const row = { ...w };
-    if (row.is_promo && promoTaken) {
-      row.is_promo = false;
-      console.log(`  note: ${w.youtube_id} is promo in selection but a promo already exists — inserting as non-promo`);
-    }
-    if (row.is_promo) promoTaken = true;
-    counts.videosInserted++;
-    console.log(`  ${APPLY ? "insert" : "would insert"} ${w.youtube_id} (${w.category}${row.is_promo ? ", promo" : ""}, sort ${w.sort_order})`);
+    counts.categoriesInserted++;
+    console.log(`  ${APPLY ? "insert" : "would insert"} ${c.slug} «${c.title}» sort ${c.sort_order}`);
     if (APPLY) {
-      const { error: e } = await sb.from("showcase_videos").insert(row);
-      if (e) throw new Error(`insert ${w.youtube_id} failed: ${e.message}`);
+      const { data, error: e } = await sb.from("video_categories").insert({ ...c, is_published: true }).select("id, slug").single();
+      if (e) throw new Error(`insert category ${c.slug} failed: ${e.message}`);
+      bySlug.set(c.slug, data);
+    }
+  }
+  for (const c of existing) if (!categories.some((x) => x.slug === c.slug)) console.log(`  note: DB category ${c.slug} is not in the inventory (kept)`);
+  return bySlug;
+}
+
+const same = (a, b) => (a ?? null) === (b ?? null);
+
+async function importVideos(videos, catBySlug) {
+  console.log(`\nshowcase_videos`);
+  const { data: rows, error } = await sb
+    .from("showcase_videos")
+    .select("id, youtube_id, title, title_source, youtube_title, youtube_description, duration_seconds, published_at, needs_review, review_note, reviewed_at, is_promo, is_published");
+  if (error) throw new Error(`cannot read showcase_videos: ${error.message}`);
+  const { data: links, error: le } = await sb.from("showcase_video_categories").select("video_id, category_id, is_primary");
+  if (le) throw new Error(`cannot read showcase_video_categories: ${le.message}`);
+  const byYt = new Map(rows.map((r) => [r.youtube_id, r]));
+  let promoTaken = rows.some((r) => r.is_promo);
+  const slugById = new Map([...catBySlug.values()].map((c) => [c.id, c.slug]));
+
+  for (const v of videos) {
+    let cur = byYt.get(v.youtube_id);
+    const line = [];
+    if (!cur) {
+      const hidden = v.needs_review && v.categories.length === 0;
+      const promo = v.sel_promo && !promoTaken;
+      if (promo) promoTaken = true;
+      const legacy = v.primary && LEGACY.has(v.primary) ? v.primary : "other";
+      const row = {
+        youtube_id: v.youtube_id,
+        source_url: `https://www.youtube.com/watch?v=${v.youtube_id}`,
+        original_title: clip(v.title, 300),
+        title: v.title,
+        title_source: "youtube",
+        youtube_title: clip(v.title, 300),
+        youtube_description: v.youtube_description,
+        category: legacy,
+        duration_seconds: v.duration_seconds,
+        published_at: v.published_at,
+        is_promo: promo,
+        sort_order: v.sel_sort ?? 100,
+        is_published: !hidden,
+        needs_review: v.needs_review,
+        review_note: v.review_note,
+        source: "youtube_channel",
+        verification_notes: v.notes,
+      };
+      counts.videosInserted++;
+      line.push(`${APPLY ? "insert" : "would insert"}${hidden ? " (hidden: needs review, no category)" : ""}${promo ? " promo" : ""}${v.needs_review ? " needs_review" : ""}`);
+      if (APPLY) {
+        const { data, error: e } = await sb.from("showcase_videos").insert(row).select("id").single();
+        if (e) throw new Error(`insert ${v.youtube_id} failed: ${e.message}`);
+        cur = { id: data.id };
+      }
+    } else {
+      const patch = {};
+      if (!same(cur.youtube_title, clip(v.title, 300))) patch.youtube_title = clip(v.title, 300);
+      if (!same(cur.youtube_description, v.youtube_description)) patch.youtube_description = v.youtube_description;
+      if (v.duration_seconds !== null && !same(cur.duration_seconds, v.duration_seconds)) patch.duration_seconds = v.duration_seconds;
+      if (v.published_at !== null && !same(cur.published_at, v.published_at)) patch.published_at = v.published_at;
+      if (cur.title_source === "youtube" && cur.title !== v.title) patch.title = v.title;
+      if (v.needs_review && !cur.needs_review && cur.reviewed_at === null) {
+        patch.needs_review = true;
+        patch.review_note = v.review_note;
+      }
+      const keys = Object.keys(patch);
+      if (keys.length) {
+        counts.videosChanged++;
+        line.push(`${APPLY ? "update" : "would update"} ${keys.join(", ")}${cur.title_source === "manual" ? " (title manual — kept)" : ""}`);
+        if (APPLY) {
+          const { error: e } = await sb.from("showcase_videos").update(patch).eq("id", cur.id);
+          if (e) throw new Error(`update ${v.youtube_id} failed: ${e.message}`);
+        }
+      } else {
+        counts.videosUnchanged++;
+        line.push(`unchanged${cur.title_source === "manual" ? " (title manual)" : ""}`);
+      }
+    }
+
+    // category links (add-only)
+    const mine = cur?.id ? links.filter((l) => l.video_id === cur.id) : [];
+    let hasPrimary = mine.some((l) => l.is_primary);
+    const added = [];
+    for (const slug of v.categories) {
+      const cat = catBySlug.get(slug);
+      if (!cat?.id) {
+        added.push(`${slug}(category pending)`);
+        counts.linksInserted++;
+        continue;
+      }
+      if (mine.some((l) => l.category_id === cat.id)) continue;
+      const is_primary = !hasPrimary && slug === v.primary;
+      if (is_primary) hasPrimary = true;
+      counts.linksInserted++;
+      added.push(`${slug}${is_primary ? "*" : ""}`);
+      if (APPLY && cur?.id) {
+        const { error: e } = await sb.from("showcase_video_categories").insert({ video_id: cur.id, category_id: cat.id, is_primary });
+        if (e) throw new Error(`link ${v.youtube_id}/${slug} failed: ${e.message}`);
+      }
+    }
+    if (added.length) line.push(`${APPLY ? "linked" : "would link"} ${added.join(",")}`);
+    const extra = mine.filter((l) => !v.categories.includes(slugById.get(l.category_id)));
+    if (extra.length) {
+      counts.linksExtra += extra.length;
+      line.push(`kept admin links not in inventory: ${extra.map((l) => slugById.get(l.category_id) ?? l.category_id).join(",")}`);
+    }
+    console.log(`  ${v.youtube_id}  ${line.join(" · ")}`);
+  }
+  for (const r of rows) {
+    if (!videos.some((v) => v.youtube_id === r.youtube_id)) {
+      counts.dbVideosNotInInventory++;
+      console.log(`  note: DB video ${r.youtube_id} is not in the inventory (kept)`);
     }
   }
 }
 
 console.log(`import-content → target=${TARGET} host=${host} mode=${APPLY ? "APPLY" : "dry-run"}`);
 try {
+  const inv = loadInventory();
   await importSettings();
-  await importVideos();
+  const catBySlug = await importCategories(inv.categories);
+  await importVideos(inv.videos, catBySlug);
 } catch (e) {
   console.error(`\nFAILED: ${e.message}`);
   process.exit(1);
 }
 console.log(
-  `\nsummary (${APPLY ? "applied" : "dry-run"}): business_settings filled ${counts.settingsFilled}, kept ${counts.settingsKept}; ` +
-    `showcase_videos inserted ${counts.videosInserted}, updated ${counts.videosUpdated}, unchanged ${counts.videosUnchanged}, differing-kept ${counts.videosDiffering}`,
+  `\nsummary (${APPLY ? "applied" : "dry-run"}): settings filled ${counts.settingsFilled}; ` +
+    `categories inserted ${counts.categoriesInserted}, kept ${counts.categoriesKept}; ` +
+    `videos inserted ${counts.videosInserted}, changed ${counts.videosChanged}, unchanged ${counts.videosUnchanged}; ` +
+    `links added ${counts.linksInserted}, admin-only links kept ${counts.linksExtra}; DB videos not in inventory ${counts.dbVideosNotInInventory}`,
 );

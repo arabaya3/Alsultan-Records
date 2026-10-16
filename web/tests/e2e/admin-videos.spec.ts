@@ -50,13 +50,18 @@ test("V3: create from URL, toggle publish, make promo, edit, delete", async ({ b
   const form = page.getByTestId("video-create");
   await form.locator('input[name="youtube"]').fill(`https://youtu.be/${TEST_ID}`);
   await form.locator('input[name="title"]').fill("فيديو اختبار");
-  await form.locator('select[name="category"]').selectOption("dj");
+  const cat = (await db.from("video_categories").select("id").order("sort_order").limit(2)).data ?? [];
+  for (const c of cat) await form.locator(`input[name="category_ids"][value="${c.id}"]`).check();
+  if (cat[1]) await form.locator(`input[name="primary_category"][value="${cat[1].id}"]`).check();
   await form.locator('input[name="sort_order"]').fill("999");
   await form.getByRole("button", { name: "إضافة" }).click();
   await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
   const row = () => db.from("showcase_videos").select("id, is_published, is_promo, title, source_url").eq("youtube_id", TEST_ID).single();
   const created = (await row()).data!;
   expect(created).toMatchObject({ is_published: true, is_promo: false, source_url: `https://www.youtube.com/watch?v=${TEST_ID}` });
+  const links = (await db.from("showcase_video_categories").select("category_id, is_primary").eq("video_id", created.id)).data ?? [];
+  expect(links).toHaveLength(cat.length);
+  if (cat[1]) expect(links.find((l) => l.is_primary)?.category_id).toBe(cat[1].id);
 
   // anon sees it while published
   expect((await anon().from("showcase_videos").select("id").eq("youtube_id", TEST_ID)).data).toHaveLength(1);
@@ -79,11 +84,64 @@ test("V3: create from URL, toggle publish, make promo, edit, delete", async ({ b
   await edit.getByRole("button", { name: "حفظ" }).click();
   await expect(edit.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
   expect((await row()).data!.title).toBe("فيديو اختبار معدّل");
+  expect((await db.from("showcase_videos").select("title_source").eq("id", created.id).single()).data!.title_source).toBe("manual");
+
+  // needs_review: set, filter, clear (clearing stamps reviewed_at)
+  await edit.locator('input[name="needs_review"]').check();
+  await edit.locator('textarea[name="review_note"]').fill("تحقق من التصنيف");
+  await edit.getByRole("button", { name: "حفظ" }).click();
+  await expect(edit.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+  await page.goto("/admin/videos?filter=review");
+  await expect(page.locator(`[data-testid=video-row][data-youtube-id="${TEST_ID}"]`)).toBeVisible();
+  await page.locator(`[data-testid=video-row][data-youtube-id="${TEST_ID}"]`).getByRole("button", { name: "تمت المراجعة" }).click();
+  await expect
+    .poll(async () => (await db.from("showcase_videos").select("needs_review, reviewed_at").eq("id", created.id).single()).data)
+    .toMatchObject({ needs_review: false });
+  expect((await db.from("showcase_videos").select("reviewed_at").eq("id", created.id).single()).data!.reviewed_at).not.toBeNull();
+
+  // restore YouTube title
+  await db.from("showcase_videos").update({ youtube_title: "عنوان يوتيوب الأصلي | العريس" }).eq("id", created.id);
+  await page.goto(`/admin/videos/${created.id}`);
+  await page.getByTestId("restore-title").getByRole("button", { name: "استعادة عنوان YouTube" }).click();
+  await expect.poll(async () => (await db.from("showcase_videos").select("title, title_source").eq("id", created.id).single()).data).toMatchObject({
+    title: "عنوان يوتيوب الأصلي | العريس",
+    title_source: "youtube",
+  });
 
   await page.getByRole("button", { name: "حذف الفيديو" }).click();
   await page.locator("dialog[open] [data-testid=confirm-yes]").click();
   await page.waitForURL((u) => u.pathname === "/admin/videos");
   expect((await db.from("showcase_videos").select("id").eq("youtube_id", TEST_ID)).data).toHaveLength(0);
+  await page.context().close();
+});
+
+test("V5: categories page — create, reorder, hide, delete", async ({ browser }) => {
+  await db.from("video_categories").delete().eq("slug", "e2e_cat");
+  const page = await newLoggedIn(browser, "admin", "/admin/videos/categories");
+  await expect(page.getByRole("heading", { level: 1, name: "تصنيفات الفيديو" })).toBeVisible();
+  const form = page.getByTestId("category-create");
+  await form.locator('input[name="title"]').fill("تصنيف اختبار");
+  await form.locator('input[name="slug"]').fill("e2e_cat");
+  await form.locator('input[name="sort_order"]').fill("99999");
+  await form.getByRole("button", { name: "إضافة" }).click();
+  await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+  const get = async () => (await db.from("video_categories").select("id, sort_order, is_published").eq("slug", "e2e_cat").single()).data!;
+  expect((await anon().from("video_categories").select("slug").eq("slug", "e2e_cat")).data).toHaveLength(1);
+
+  await page.reload();
+  const row = page.locator('[data-testid=category-row][data-slug="e2e_cat"]');
+  const before = (await get()).sort_order;
+  await row.getByRole("button", { name: "↑ أعلى" }).click();
+  await expect.poll(async () => (await get()).sort_order).not.toBe(before);
+  await page.reload();
+  await row.getByRole("button", { name: "إخفاء" }).click();
+  await expect.poll(async () => (await get()).is_published).toBe(false);
+  expect((await anon().from("video_categories").select("slug").eq("slug", "e2e_cat")).data).toHaveLength(0);
+
+  await page.reload();
+  await row.getByRole("button", { name: "حذف" }).click();
+  await page.locator("dialog[open] [data-testid=confirm-yes]").click();
+  await expect.poll(async () => (await db.from("video_categories").select("id").eq("slug", "e2e_cat")).data).toHaveLength(0);
   await page.context().close();
 });
 
@@ -103,4 +161,6 @@ test("V4: staff and customers are denied (UI + API)", async ({ browser }) => {
   }
   // anon never sees admin-only columns
   expect((await anon().from("showcase_videos").select("verification_notes")).error).not.toBeNull();
+  expect((await anon().from("showcase_videos").select("needs_review")).error).not.toBeNull();
+  expect((await anon().from("showcase_videos").select("review_note")).error).not.toBeNull();
 });

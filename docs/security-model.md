@@ -324,3 +324,65 @@ Locally, `seed.sql` creates both secrets with the well-known `supabase start` de
 - `scripts/import-content.mjs --target local|staging [--apply]` is dry-run by default, refuses a URL that
   does not match the target (and the forbidden old project), only fills empty business_settings fields,
   never sets email/instagram, and never modifies existing video rows (admin edits win).
+
+## 16. Addendum (migration 0015): video categories, original YouTube titles, photo albums
+
+**Owner decision.** The public video `title` is the original YouTube title verbatim, including grooms'
+names (these videos are already public on the studio's own channel). It is rendered as text only, never as HTML.
+
+**Video categories.**
+- `video_categories` (slug `^[a-z0-9_]{2,30}$`, title, sort_order, is_published) is linked many-to-many through
+  `showcase_video_categories` (PK video+category, cascade on both sides). A partial unique index allows at most one
+  `is_primary` link per video.
+- Anon reads published categories, and reads links only while both the video and the category are published. The
+  policies call SECURITY DEFINER helpers (`app.video_is_public`, `app.video_category_is_public`,
+  `app.album_is_public`) because anon has no column grant on `is_published`.
+- Admin (`app.is_admin()`, aal2 when MFA is required) writes everything. Staff, customers and anon cannot write.
+- The legacy `showcase_videos.category` column and its CHECK stay. It now defaults to `'other'` and is no longer meaningful.
+
+**New showcase_videos columns.** `youtube_title`, `youtube_description`, `title_source` (`youtube`|`manual`),
+`needs_review`, `review_note` and `reviewed_at` are admin-only. They have no anon grant and no authenticated SELECT
+grant; admins read them through `showcase_video_admin_details`. Anon column grants are unchanged. When an admin
+changes `needs_review`, the trigger `app.showcase_videos_review_stamp` sets `reviewed_at`. An admin who edits the
+title in the UI sets `title_source='manual'`. The action "استعادة عنوان YouTube" copies `youtube_title` back and
+sets the source to `youtube`.
+
+**Import policy (`scripts/import-content.mjs`, source `content/youtube-inventory.json`).** It is a dry run by
+default, it is idempotent, and admin edits always win. The import:
+- inserts missing categories by slug, and never changes the title, sort or publish state of an existing category;
+- inserts new videos by `youtube_id`. A needs_review video with no category is inserted hidden;
+- on existing videos, always refreshes `youtube_title`, `youtube_description`, duration and published_at;
+- refreshes the public `title` only while `title_source='youtube'`;
+- never touches is_published, sort_order, is_promo or description;
+- only ever sets `needs_review=true`, and only while `reviewed_at` is null;
+- only adds category links. Links in the DB that are not in the inventory are reported, never removed.
+
+**Photo albums.**
+- `photo_albums` is created with `is_published=false`. Anon reads only published rows and only these columns: id,
+  slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order. `rights_note` and
+  `updated_by` are admin-only.
+- `cover_photo_id` is a deferrable FK (`on delete set null`), and a constraint trigger requires the cover to belong
+  to the same album.
+- Anon reads `album_photos` rows only while the photo is published, `upload_status='ready'` and the album is
+  published. The readable columns are id, album_id, width, height, alt_text and sort_order. Paths, bytes, mime and
+  source_url are admin-only.
+- Paths follow `albums/{album_id}/{photo_id}/original.{jpg|png|webp|avif}`, which a CHECK enforces, with variants
+  `thumb.webp` (≈480) and `display.webp` (≈1600).
+
+**Storage `album-media`.**
+- The bucket is private, takes jpeg/png/webp/avif only, and limits each object to 25 MiB.
+- Admins write and delete. Anon/authenticated SELECT is allowed only through `app.album_object_is_public(name)`,
+  which is true while a published, ready photo of a published album references that exact object (original or
+  variant). This mirrors 0010's `public_object_is_live`.
+- A public route can therefore read the bytes with the publishable (anon) key, so no secret key is needed. Hiding a
+  photo or album denies the next read with no job involved.
+- To find the object path without granting path columns to anon, the route calls
+  `public.album_photo_object_path(photo_id, 'thumb'|'display'|'original')`. This is a SECURITY DEFINER function
+  that returns null unless the photo is public.
+- Deleting a photo, directly or through the album cascade, enqueues its objects in `private.storage_cleanup_queue`
+  (trigger `album_photos_delete_enqueue`). The admin actions also remove the objects right away.
+- Uploads go from the browser to the bucket through signed upload URLs. Server actions then generate the WebP
+  variants with sharp (`fit: inside`, never cropped). The original object is never rewritten, so watermarks stay intact.
+
+**Grants.** Each new table gets an explicit `REVOKE ALL` and then column grants. `service_role` gets `grant all` on
+the four tables (the lesson from 0014). Tests: `supabase/tests/90_categories_albums.sql`.

@@ -23,7 +23,27 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "album_selection_items": {
+            "album_photos": {
+                  Row: {
+                    "album_id": string,"alt_text": string | null,"bytes": number | null,"created_at": string,"height": number | null,"id": string,"is_published": boolean,"mime": string,"sort_order": number,"source_url": string | null,"storage_path_original": string,"updated_at": string,"upload_status": string,"variants": NonNullable<Json>,"width": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "album_id": string,"alt_text"?: string | null,"bytes"?: number | null,"created_at"?: string,"height"?: number | null,"id"?: string,"is_published"?: boolean,"mime": string,"sort_order"?: number,"source_url"?: string | null,"storage_path_original": string,"updated_at"?: string,"upload_status"?: string,"variants"?: NonNullable<Json>,"width"?: number | null
+                  }
+                  Update: {
+                    "album_id"?: string,"alt_text"?: string | null,"bytes"?: number | null,"created_at"?: string,"height"?: number | null,"id"?: string,"is_published"?: boolean,"mime"?: string,"sort_order"?: number,"source_url"?: string | null,"storage_path_original"?: string,"updated_at"?: string,"upload_status"?: string,"variants"?: NonNullable<Json>,"width"?: number | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "album_photos_album_id_fkey"
+      columns: ["album_id"]
+isOneToOne: false
+      referencedRelation: "photo_albums"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"album_selection_items": {
                   Row: {
                     "created_at": string,"id": string,"media_asset_id": string,"note": string | null,"selection_id": string,"updated_at": string
                   }
@@ -681,6 +701,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"photo_albums": {
+                  Row: {
+                    "cover_photo_id": string | null,"created_at": string,"description": string | null,"event_date": string | null,"id": string,"is_published": boolean,"rights_note": string | null,"slug": string,"sort_order": number,"source_label": string | null,"source_url": string | null,"title": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "cover_photo_id"?: string | null,"created_at"?: string,"description"?: string | null,"event_date"?: string | null,"id"?: string,"is_published"?: boolean,"rights_note"?: string | null,"slug": string,"sort_order"?: number,"source_label"?: string | null,"source_url"?: string | null,"title": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "cover_photo_id"?: string | null,"created_at"?: string,"description"?: string | null,"event_date"?: string | null,"id"?: string,"is_published"?: boolean,"rights_note"?: string | null,"slug"?: string,"sort_order"?: number,"source_label"?: string | null,"source_url"?: string | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "photo_albums_cover_fk"
+      columns: ["cover_photo_id"]
+isOneToOne: false
+      referencedRelation: "album_photos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "photo_albums_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"profiles": {
                   Row: {
                     "created_at": string,"disabled": boolean,"full_name": string | null,"id": string,"mfa_required": boolean,"phone": string | null,"role": Database["public"]['Enums']["app_role"],"updated_at": string
@@ -843,16 +889,48 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"showcase_videos": {
+                },"showcase_video_categories": {
                   Row: {
-                    "category": string,"created_at": string,"description": string | null,"duration_seconds": number | null,"id": string,"is_promo": boolean,"is_published": boolean,"original_title": string | null,"published_at": string | null,"sort_order": number,"source": string,"source_url": string,"title": string,"updated_at": string,"updated_by": string | null,"verification_notes": string | null,"youtube_id": string
+                    "category_id": string,"created_at": string,"is_primary": boolean,"video_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "category": string,"created_at"?: string,"description"?: string | null,"duration_seconds"?: number | null,"id"?: string,"is_promo"?: boolean,"is_published"?: boolean,"original_title"?: string | null,"published_at"?: string | null,"sort_order"?: number,"source"?: string,"source_url": string,"title": string,"updated_at"?: string,"updated_by"?: string | null,"verification_notes"?: string | null,"youtube_id": string
+                    "category_id": string,"created_at"?: string,"is_primary"?: boolean,"video_id": string
                   }
                   Update: {
-                    "category"?: string,"created_at"?: string,"description"?: string | null,"duration_seconds"?: number | null,"id"?: string,"is_promo"?: boolean,"is_published"?: boolean,"original_title"?: string | null,"published_at"?: string | null,"sort_order"?: number,"source"?: string,"source_url"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"verification_notes"?: string | null,"youtube_id"?: string
+                    "category_id"?: string,"created_at"?: string,"is_primary"?: boolean,"video_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "showcase_video_categories_category_id_fkey"
+      columns: ["category_id"]
+isOneToOne: false
+      referencedRelation: "video_categories"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "showcase_video_categories_video_id_fkey"
+      columns: ["video_id"]
+isOneToOne: false
+      referencedRelation: "showcase_video_admin_details"
+      referencedColumns: ["video_id"]
+    },{
+      foreignKeyName: "showcase_video_categories_video_id_fkey"
+      columns: ["video_id"]
+isOneToOne: false
+      referencedRelation: "showcase_videos"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"showcase_videos": {
+                  Row: {
+                    "category": string,"created_at": string,"description": string | null,"duration_seconds": number | null,"id": string,"is_promo": boolean,"is_published": boolean,"needs_review": boolean,"original_title": string | null,"published_at": string | null,"review_note": string | null,"reviewed_at": string | null,"sort_order": number,"source": string,"source_url": string,"title": string,"title_source": string,"updated_at": string,"updated_by": string | null,"verification_notes": string | null,"youtube_description": string | null,"youtube_id": string,"youtube_title": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "category"?: string,"created_at"?: string,"description"?: string | null,"duration_seconds"?: number | null,"id"?: string,"is_promo"?: boolean,"is_published"?: boolean,"needs_review"?: boolean,"original_title"?: string | null,"published_at"?: string | null,"review_note"?: string | null,"reviewed_at"?: string | null,"sort_order"?: number,"source"?: string,"source_url": string,"title": string,"title_source"?: string,"updated_at"?: string,"updated_by"?: string | null,"verification_notes"?: string | null,"youtube_description"?: string | null,"youtube_id": string,"youtube_title"?: string | null
+                  }
+                  Update: {
+                    "category"?: string,"created_at"?: string,"description"?: string | null,"duration_seconds"?: number | null,"id"?: string,"is_promo"?: boolean,"is_published"?: boolean,"needs_review"?: boolean,"original_title"?: string | null,"published_at"?: string | null,"review_note"?: string | null,"reviewed_at"?: string | null,"sort_order"?: number,"source"?: string,"source_url"?: string,"title"?: string,"title_source"?: string,"updated_at"?: string,"updated_by"?: string | null,"verification_notes"?: string | null,"youtube_description"?: string | null,"youtube_id"?: string,"youtube_title"?: string | null
                   }
                   Relationships: [
                     {
@@ -935,6 +1013,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"video_categories": {
+                  Row: {
+                    "created_at": string,"id": string,"is_published": boolean,"slug": string,"sort_order": number,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"is_published"?: boolean,"slug": string,"sort_order"?: number,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"is_published"?: boolean,"slug"?: string,"sort_order"?: number,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"video_comments": {
                   Row: {
                     "author_id": string | null,"body": string,"created_at": string,"id": string,"resolved": boolean,"revision_id": string,"timecode_ms": number,"updated_at": string
@@ -994,14 +1086,14 @@ isOneToOne: false
                   ]
                 },"showcase_video_admin_details": {
                   Row: {
-                    "original_title": string | null,"source": string | null,"source_url": string | null,"updated_by": string | null,"verification_notes": string | null,"video_id": string | null
+                    "needs_review": boolean | null,"original_title": string | null,"review_note": string | null,"reviewed_at": string | null,"source": string | null,"source_url": string | null,"title_source": string | null,"updated_by": string | null,"verification_notes": string | null,"video_id": string | null,"youtube_description": string | null,"youtube_title": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                           "original_title"?: string | null,"source"?: string | null,"source_url"?: string | null,"updated_by"?: string | null,"verification_notes"?: string | null,"video_id"?: string | null
+                           "needs_review"?: boolean | null,"original_title"?: string | null,"review_note"?: string | null,"reviewed_at"?: string | null,"source"?: string | null,"source_url"?: string | null,"title_source"?: string | null,"updated_by"?: string | null,"verification_notes"?: string | null,"video_id"?: string | null,"youtube_description"?: string | null,"youtube_title"?: string | null
                          }
                         Update: {
-                           "original_title"?: string | null,"source"?: string | null,"source_url"?: string | null,"updated_by"?: string | null,"verification_notes"?: string | null,"video_id"?: string | null
+                           "needs_review"?: boolean | null,"original_title"?: string | null,"review_note"?: string | null,"reviewed_at"?: string | null,"source"?: string | null,"source_url"?: string | null,"title_source"?: string | null,"updated_by"?: string | null,"verification_notes"?: string | null,"video_id"?: string | null,"youtube_description"?: string | null,"youtube_title"?: string | null
                          }
                         Relationships: [
                     {
@@ -1028,6 +1120,9 @@ isOneToOne: false
                            },
 "admin_set_user_role":
 { Args: { "p_role": Database["public"]['Enums']["app_role"],"p_user_id": string }; Returns: undefined
+                           },
+"album_photo_object_path":
+{ Args: { "p_photo_id": string,"p_variant": string }; Returns: string
                            },
 "bootstrap_initial_owner":
 { Args: { "p_token": string }; Returns: undefined

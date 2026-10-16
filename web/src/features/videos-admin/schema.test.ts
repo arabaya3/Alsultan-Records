@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { readVideoForm, whatsappLinkUrl, youtubeChannelUrl } from "./schema";
+import { readCategoryForm, readVideoForm, whatsappLinkUrl, youtubeChannelUrl } from "./schema";
 
 function fd(over: Record<string, string> = {}) {
   const f = new FormData();
-  const base = { youtube: "https://youtu.be/A7Bby0aFuz0", title: "حفل زفاف", category: "wedding", sort_order: "3", is_published: "on", ...over };
+  const base = { youtube: "https://youtu.be/A7Bby0aFuz0", title: "حفل زفاف", sort_order: "3", is_published: "on", ...over };
   for (const [k, v] of Object.entries(base)) f.set(k, v);
   return f;
 }
@@ -28,10 +28,45 @@ describe("readVideoForm", () => {
   });
   it("rejects bad title / category / sort", () => {
     expect(readVideoForm(fd({ title: "x" })).success).toBe(false);
-    expect(readVideoForm(fd({ title: "x".repeat(121) })).success).toBe(false);
-    expect(readVideoForm(fd({ category: "cats" })).success).toBe(false);
+    expect(readVideoForm(fd({ title: "x".repeat(201) })).success).toBe(false);
+    expect(readVideoForm(fd({ title: "استقبال العريس أحمد | تعليلة 2026 | الجديدة |" })).success).toBe(true);
     expect(readVideoForm(fd({ sort_order: "1.5" })).success).toBe(false);
     expect(readVideoForm(fd({ description: "x".repeat(501) })).success).toBe(false);
+  });
+});
+
+describe("video categories in the form", () => {
+  const A = "00000000-0000-4000-8000-0000000000c1";
+  const B = "00000000-0000-4000-8000-0000000000c2";
+  it("accepts ids and a primary among them", () => {
+    const f = fd({ primary_category: B });
+    f.append("category_ids", A);
+    f.append("category_ids", B);
+    f.set("needs_review", "on");
+    const r = readVideoForm(f);
+    expect(r.success).toBe(true);
+    expect(r.data).toMatchObject({ category_ids: [A, B], primary_category: B, needs_review: true });
+  });
+  it("rejects a primary that is not selected, and non-uuid ids", () => {
+    const f = fd({ primary_category: B });
+    f.append("category_ids", A);
+    expect(readVideoForm(f).success).toBe(false);
+    const g = fd();
+    g.append("category_ids", "1 or 1=1");
+    expect(readVideoForm(g).success).toBe(false);
+  });
+});
+
+describe("readCategoryForm", () => {
+  const cf = (o: Record<string, string>) => {
+    const f = new FormData();
+    for (const [k, v] of Object.entries(o)) f.set(k, v);
+    return f;
+  };
+  it("validates slug and title", () => {
+    expect(readCategoryForm(cf({ slug: "wedding", title: "أعراس", is_published: "on" })).data).toMatchObject({ slug: "wedding", is_published: true, sort_order: 100 });
+    expect(readCategoryForm(cf({ slug: "Bad-Slug", title: "أعراس" })).success).toBe(false);
+    expect(readCategoryForm(cf({ slug: "ok", title: "x" })).success).toBe(false);
   });
 });
 
