@@ -1,5 +1,24 @@
 # Staging runbook: Supabase project `dyuixzxmmeiypvawzmty`
 
+## Run log — 2026-10-16 (actual results)
+
+Site URL used for Auth: `http://localhost:3100` (local test origin only — **not** a deployment URL), passed as `STAGING_SITE_URL` in the shell; the operator's env file was not edited.
+
+| Step | Result |
+|---|---|
+| Preflight (read-only) | Project "Alsultan Records", ap-southeast-1, ACTIVE_HEALTHY. Remote **empty**: 0 public tables, no migration history, 0 buckets, 0 auth users. Token had the access needed; no extra scope requested. |
+| Dry run | 11 migrations planned; pg_cron/pg_net/btree_gist to be created by migrations; no destructive change. |
+| `--apply` | 11/11 migrations pushed (no seed); remote history == local. Extensions present. Auth: site_url, redirect allow-list, access-token hook, TOTP enroll/verify, password min 10 — verified by GET. Buckets `public-media`, `private-media`, `backups` all private. `storage-cleanup` deployed; secret + Vault set; cron `* * * * *` active; function 200 with secret, 401 without. App env written. Bootstrap armed. |
+| Email templates | **Not changed**: Supabase refuses template edits on the free tier with the default mailer. The script now skips them with a warning until custom SMTP exists. |
+| Owner bootstrap | Owner created with the operator's `OWNER_EMAIL`; random password written only to `web/.cache/owner-credentials.local.txt` (gitignored); role = owner, mfa_required = true; one-shot token file and hash row deleted. No TOTP factor enrolled by Claude — the owner enrols their own authenticator on first login. |
+| `staging-verify.mjs --target staging` | **68/68** (anon, customer isolation, escalation, MFA aal1/aal2, backups bucket, consent withdrawal at storage level, catalog: RLS on every table, anon grants, hook grants, private buckets). Zero leftovers. |
+| Scheduled cleanup | `cron.job_run_details` succeeded every minute; queue drained by the scheduled run (pending 0, dead 0). |
+| Local app → staging build | Bundle references `dyuixzxmmeiypvawzmty.supabase.co` only, 0 references to the local stack; `check-bundle-secrets` clean for both staging env files. CSP img/connect origin = the staging project. |
+| `staging-login-check.mjs` | **13/13**: unauthenticated /admin → login; owner password → MFA enrolment step; aal1 owner cannot open /admin/finance; recovery + magic-link (token_hash) land on /auth/reset and /portal with a session; redirect outside the allow-list refused; temp user deleted; no console errors. |
+| `staging-app-check.mjs` | **15/15**: published media via `/m/...` 200 (max-age 60); direct storage URL refused; customer withdraws in portal → same URL 404 `no-store` immediately, project page 404; scheduled cleanup deleted the copy; booking via the app → tracking code, exactly one row; full cleanup. |
+
+Incident during the run: the first `staging-app-check` run passed its 13 functional checks but its cleanup crashed (a coding error), leaving one `[STAGING-TEST]` event, customer, user and booking. They were removed by a cleanup pass (verified 0 test rows, 0 test users, storage empty), the bug was fixed, and the full check was re-run 15/15 including cleanup.
+
 Target is the **new** project only: `dyuixzxmmeiypvawzmty` (ap-southeast-1, free plan). Every script refuses any other ref, and refuses the old project `peufggxvklpnaytyklgg` explicitly.
 
 **Out of scope until explicitly authorized:** public hosting or deployment of the Next.js app, DNS changes, and anything that touches the live site. These scripts only prepare the database, auth, storage and the Edge Function, and write local env files for running the app against staging.
@@ -36,7 +55,18 @@ Target is the **new** project only: `dyuixzxmmeiypvawzmty` (ap-southeast-1, free
 
 Preflight exit codes: 0 means empty, 2 means not empty (review the report), 1 means error.
 
-To run the app locally against staging, load `web/.env.staging.app.local` in place of `.env.local`, for example by copying it to `.env.production.local` for `npm run build && npm start -- -p 3100`. Remove the copy afterwards.
+To run the app locally against staging without touching `.env.local` (process env wins over env files):
+
+```bash
+cd web
+(set -a; . ./.env.staging.app.local; set +a; npm run build)
+node scripts/check-bundle-secrets.mjs .env.staging.app.local
+set -a; . ./.env.staging.app.local; set +a; npx next start -p 3100
+# then, in another shell:
+node scripts/staging-login-check.mjs
+node scripts/staging-app-check.mjs
+```
+Rebuild without the staging env before running the local test suites again (the public Supabase URL is compiled into the build).
 
 ### `staging-apply.mjs` steps
 
@@ -80,7 +110,7 @@ The token works once only; the RPC also refuses while any owner exists. On the f
 
 ## 3. What remains manual in the dashboard
 
-- **SMTP (auth emails).** Without custom SMTP, the built-in mailer is heavily rate limited and only delivers to members of the project's team. Magic links and password resets for real customers need Auth → SMTP settings, for example a free tier of a transactional provider. Admin-created users (bootstrap, verify) do not need email.
+- **SMTP (auth emails).** Without custom SMTP, the built-in mailer is heavily rate limited and only delivers to members of the project's team. Magic links and password resets for real customers need Auth → SMTP settings, for example a free tier of a transactional provider. Admin-created users (bootstrap, verify) do not need email. **After SMTP is set**, run `node scripts/staging-apply.mjs --apply --only auth-config` to install the Arabic RTL email templates whose links use `token_hash` (verified server-side by `/auth/callback`, so they work when opened on another device). Until then, the default templates work only when the link is opened in the same browser that requested it (PKCE).
 - **Turnstile.** Create a widget for the staging hostname in Cloudflare and add `NEXT_PUBLIC_TURNSTILE_SITE_KEY` and `TURNSTILE_SECRET_KEY` to the app env. Without them, the public forms skip the Turnstile check.
 - **Legacy API keys.** The Edge Function talks to PostgREST and Storage with the platform-injected `SUPABASE_SERVICE_ROLE_KEY`. Do **not** disable the legacy JWT keys until the function is moved to a `sb_secret_` key; `cron-verify` would catch the breakage.
 - **Upload size (free plan).** The global storage upload limit is 50 MB, so private-media video originals and backup archives above 50 MB are rejected. Raising it requires a paid plan, which is not done here.

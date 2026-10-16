@@ -1,21 +1,22 @@
 # Handoff — Sultan Records rebuild
 
 Branch `rebuild/nextjs` · original site preserved on `master` (commit `1477294`) and untouched at the repo root.
-Old Supabase project `peufggxvklpnaytyklgg` was never read or written. The new project `dyuixzxmmeiypvawzmty` has **not been written to yet**.
+Old Supabase project `peufggxvklpnaytyklgg` was never read or written. The new project `dyuixzxmmeiypvawzmty` now holds the full schema (migrated 2026-10-16) and one owner account; no demo or seed data.
 
 ## Status at a glance (2026-10-16)
 
 | Area | Implemented | Tested locally | Verified against new backend | Blocked by account access | Deployed |
 |---|---|---|---|---|---|
-| Database: 11 migrations, RLS, RPCs, storage, cron | ✅ | ✅ pgTAP 139/139 | ❌ | ✅ needs access token | — |
-| Public site, motion, empty states | ✅ | ✅ | ❌ | ✅ | ❌ not authorized |
-| Client portal | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Administration | ✅ | ✅ | ❌ | ✅ | ❌ |
-| Consent withdrawal (gated media + durable cleanup) | ✅ | ✅ | ❌ (Edge Function + Vault secrets) | ✅ | — |
-| MFA (enroll/challenge/logout/aal1 API denial) | ✅ | ✅ | ❌ (Auth TOTP + hook config) | ✅ | — |
+| Database: 11 migrations, RLS, RPCs, storage, cron | ✅ | ✅ pgTAP 139/139 | ✅ 11/11 pushed; catalog + authorization 68/68 | — | — |
+| Public site, motion, empty states | ✅ | ✅ | ✅ local app on :3100 against staging | — | ❌ not authorized |
+| Client portal | ✅ | ✅ | ✅ login, portal consent withdrawal | — | ❌ |
+| Administration | ✅ | ✅ | ◑ owner reaches MFA gate; full admin flows not re-run on staging | — | ❌ |
+| Consent withdrawal (gated media + durable cleanup) | ✅ | ✅ | ✅ same URL 404 immediately; cron deleted the copy | — | — |
+| MFA | ✅ | ✅ | ✅ aal1 denied / aal2 allowed (staff + admin); owner gate in browser | — | — |
 | Accessibility | ✅ | ✅ axe 0 violations, 41 scans | — | — | — |
-| Backup / restore | ✅ | ✅ isolated local restore 101/101 | ❌ cloud restore **pending** | ✅ | — |
-| Staging tooling | ✅ | ✅ dry-run safe; verify 68/68 locally | ❌ | ✅ | — |
+| Backup / restore | ✅ | ✅ isolated local restore 101/101 | ❌ cloud restore rehearsal not yet run | — | — |
+| Auth emails (magic link / reset) | ✅ callback + templates ready | ✅ | ◑ links verified via token_hash; delivery needs SMTP | ✅ SMTP (you) | — |
+| Turnstile | ✅ server-side verify | — | ❌ not configured | ✅ widget keys (you) | — |
 
 ## Release blockers — evidence
 | Blocker | Result | Evidence |
@@ -32,7 +33,13 @@ Old Supabase project `peufggxvklpnaytyklgg` was never read or written. The new p
 - Playwright: `qa-*` **45 passed** · `public/portal/admin` **31 passed** · `a11y-*`, `consent-revocation`, `empty-states`, `mfa` **29 passed, 3 skipped** (the skipped 3 are empty-states stub mode, which needs a separate stub build; it passed 3/3 in its own run).
 - Secret scan of the client bundle (`scripts/check-bundle-secrets.mjs`): clean.
 
-## Staging migration (ready, not run)
+## Staging — done on 2026-10-16
+- Local site against the cloud project: `http://localhost:3100` (test origin only; run instructions in `docs/staging.md`).
+- Owner login: email = the `OWNER_EMAIL` you put in `web/.env.staging.local`; temporary password in `web/.cache/owner-credentials.local.txt` (gitignored, never printed). First login → enrol TOTP with your authenticator → `/admin`. Then change the password and delete that file.
+- Cloud results: authorization 68/68, login 13/13, app/media/consent/cron/booking 15/15. Details in `docs/verification.md` → "Staging (cloud) verification".
+- Remaining manual steps: custom SMTP (then `staging-apply.mjs --apply --only auth-config` for the token_hash email templates), Turnstile widget keys, cloud backup/restore rehearsal.
+
+## Staging migration (how it was run)
 Runbook: `docs/staging.md`. Minimum account steps for you:
 1. Create a personal access token at supabase.com/dashboard/account/tokens.
 2. Create `web/.env.staging.local` (gitignored — verified) with these **names** (values never in chat):

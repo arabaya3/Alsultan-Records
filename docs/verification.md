@@ -234,3 +234,24 @@ Previously not proven (kept for history):
 | 7 | Info | `addContractVersion` inserts the new version while the contract is still `sent`, then sets `draft`. That leaves a tiny window where v2 is approvable before it is re-sent. | `features/contracts/actions.ts:47-52` | Not fixed |
 
 No application code was changed by QA.
+
+## Staging (cloud) verification — project `dyuixzxmmeiypvawzmty`, 2026-10-16
+
+Run by the lead against the new Supabase project. Local app on `http://localhost:3100` (local test origin, not a deployment) built with `web/.env.staging.app.local`; the build references only `dyuixzxmmeiypvawzmty.supabase.co` (0 references to the local stack). Full step log: `docs/staging.md` → "Run log".
+
+| Area | Command | Result |
+|---|---|---|
+| Preflight | `node scripts/staging-preflight.mjs` | Remote empty before apply; ref verified; old project never targeted |
+| Schema | `staging-apply.mjs --apply` | 11/11 migrations; remote history == local; no seed pushed |
+| Authorization (direct API + catalog) | `staging-verify.mjs --target staging` | **68/68** → `docs/staging-verify-report.json` |
+| Login links + MFA gate (browser) | `scripts/staging-login-check.mjs` | **13/13** |
+| Media, consent withdrawal, cron, booking (through the app) | `scripts/staging-app-check.mjs` | **15/15** |
+| Scheduled job | `cron.job_run_details`, `private.storage_cleanup_queue` | runs every minute, succeeded; queue drained (pending 0, dead 0) |
+| Client bundle secrets | `check-bundle-secrets.mjs` with both staging env files | clean |
+
+Not proven on staging:
+- Auth emails actually delivered (no custom SMTP; free-tier default mailer only reaches project team members). Link handling was verified with API-generated `token_hash` links, which is what the custom templates will send once SMTP exists.
+- Turnstile (no widget configured; the booking form currently skips verification on staging).
+- Cloud backup/restore rehearsal (procedure in `docs/backup-restore.md`; not yet run against staging).
+- CDN behaviour (no CDN in front of localhost); cache window bounded by `max-age=60`.
+- Owner TOTP enrolment (left for the owner to do with their own authenticator).

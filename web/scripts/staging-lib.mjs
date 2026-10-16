@@ -70,6 +70,8 @@ export function loadStagingEnv(envPath) {
   if (ig === false) throw new StepError(`${envPath} is NOT gitignored. Stop.`);
   ok(ig ? "env file is gitignored" : "env file is outside the repository (not committable)");
   const env = parseEnvFile(envPath);
+  // Non-secret: the shell may supply the site URL (e.g. a local test origin) without editing the file.
+  if (process.env.STAGING_SITE_URL) env.STAGING_SITE_URL = process.env.STAGING_SITE_URL;
   const missing = REQUIRED.filter((k) => !env[k]);
   if (missing.length) throw new StepError(`missing variables: ${missing.join(", ")}`);
   ok(`required variables present: ${REQUIRED.join(", ")} (values not shown)`);
