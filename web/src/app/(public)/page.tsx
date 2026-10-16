@@ -1,17 +1,17 @@
-import Image from "next/image";
 import Link from "next/link";
-import { PromoPlayer } from "@/components/media/youtube/PromoPlayer";
+import { HeroIntro } from "@/components/home/HeroIntro";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
 import { Reveal } from "@/components/motion/Reveal";
 import { MaskReveal } from "@/components/motion/ScrollEffects";
 import { JsonLd } from "@/components/ui/JsonLd";
-import { Container, Section, SectionHeading } from "@/components/ui/Layout";
-import { ServiceStrip } from "@/components/ui/ServiceStrip";
-import { WhatsAppLink } from "@/components/ui/WhatsAppCta";
+import { Section, SectionHeading } from "@/components/ui/Layout";
 import { bookingHref, telHref } from "@/features/public-content/contact";
 import { FALLBACK_SERVICES, HERO, STEPS } from "@/features/public-content/home-content";
-import { durationLabel, videoCategoryLabel } from "@/features/public-content/labels";
-import { getBusinessSettings, getPublishedServices, getShowcaseVideos } from "@/features/public-content/queries";
+import { homeSelection, toCardVideo } from "@/features/public-content/gallery-model";
+import { getVideoGallery } from "@/features/public-content/gallery-queries";
+import { durationLabel } from "@/features/public-content/labels";
+import { getBusinessSettings, getPublishedServices } from "@/features/public-content/queries";
+import { CORE_SERVICES, SITE_NAME_AR } from "@/features/public-content/site";
 import { localBusinessJsonLd, pageMetadata, safeHttp } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -28,16 +28,18 @@ function ChevronStart() {
   );
 }
 
+const INTRO_ARM_SCRIPT = `try{if(matchMedia("(prefers-reduced-motion: no-preference)").matches)document.documentElement.classList.add("intro-armed")}catch(e){}`;
+
 const linkCls = "inline-flex min-h-11 items-center gap-2 underline decoration-1 underline-offset-8 hover:decoration-gold";
 
 export default async function HomePage() {
-  const [settings, videos, services] = await Promise.all([getBusinessSettings(), getShowcaseVideos(), getPublishedServices()]);
+  const [settings, gallery, services] = await Promise.all([getBusinessSettings(), getVideoGallery(), getPublishedServices()]);
 
   const s = settings.status === "ok" ? settings.data : null;
   const book = bookingHref(s);
-  const videoList = videos.status === "ok" ? videos.data : [];
-  const promo = videoList.find((v) => v.is_promo) ?? null;
-  const works = videoList.filter((v) => !v.is_promo).slice(0, 6);
+  const g = gallery.status === "ok" ? gallery.data : null;
+  const promo = g?.promo ?? null;
+  const works = g ? homeSelection(g, 6) : [];
   const channel = safeHttp(s?.youtube_url ?? null);
   const serviceList =
     services.status === "ok" && services.data.length
@@ -48,78 +50,23 @@ export default async function HomePage() {
     <>
       {s ? <JsonLd data={localBusinessJsonLd(s)} /> : null}
 
-      {/* HERO: headline + real promo + one primary action, all above the fold at 1440×900. */}
-      <section aria-labelledby="hero-title" className="ink-texture relative isolate overflow-hidden text-on-dark">
-        <Container className="grid items-center gap-8 py-10 md:py-12 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:py-14">
-          <Reveal>
-            <h1
-              id="hero-title"
-              className="text-[2.5rem] font-bold leading-[1.15] tracking-tight sm:text-5xl lg:text-[clamp(3.25rem,4.4vw,4.5rem)]"
-            >
-              {HERO.title.split(" ").map((w, i, all) => (
-                <span key={i} data-reveal className="inline-block">
-                  {w}
-                  {i < all.length - 1 ? " " : null}
-                </span>
-              ))}
-              <span data-reveal className="inline-block text-gold">
-                .
-              </span>
-            </h1>
-            <p data-reveal className="mt-4 text-lg text-on-dark/90 md:text-xl">
-              {HERO.sub}
-            </p>
-            <div data-reveal className="mt-7 flex flex-wrap items-center gap-x-8 gap-y-4">
-              {book ? (
-                <WhatsAppLink href={book} size="lg" className="min-w-60">
-                  {HERO.primary}
-                </WhatsAppLink>
-              ) : (
-                <Link href="/contact" className="inline-flex min-h-14 min-w-60 items-center justify-center rounded-sm bg-gold px-7 text-lg font-medium text-ink">
-                  تواصل معنا
-                </Link>
-              )}
-              {videoList.length ? (
-                <Link href="/work" className={`${linkCls} text-lg`}>
-                  {HERO.secondary}
-                </Link>
-              ) : null}
-            </div>
-            <div data-reveal className="mt-8 flex flex-wrap items-center gap-x-8 gap-y-3">
-              <ServiceStrip className="text-on-dark" />
-              {s?.phone ? (
-                <a href={telHref(s.phone)} className={`${linkCls} text-on-dark/90`}>
-                  <span className="text-muted">هاتف</span>
-                  <span dir="ltr">{s.phone}</span>
-                </a>
-              ) : null}
-            </div>
-          </Reveal>
-
-          {promo ? (
-            <MaskReveal onLoad>
-              <PromoPlayer
-                youtubeId={promo.youtube_id}
-                title={promo.title}
-                caption={HERO.promoCaption}
-                duration={durationLabel(promo.duration_seconds)}
-              />
-            </MaskReveal>
-          ) : (
-            <div aria-hidden="true" className="relative hidden h-full min-h-72 lg:block">
-              <Image
-                src="/brand/logo-round.webp"
-                alt=""
-                width={700}
-                height={1244}
-                priority
-                sizes="30vw"
-                className="pointer-events-none absolute inset-y-0 end-0 h-full w-auto select-none opacity-[0.09]"
-              />
-            </div>
-          )}
-        </Container>
-      </section>
+      {/* Inline, before the hero markup: arms the intro for the first paint (motion allowed only). */}
+      <script dangerouslySetInnerHTML={{ __html: INTRO_ARM_SCRIPT }} />
+      <HeroIntro
+        brand={SITE_NAME_AR}
+        title={HERO.title}
+        sub={HERO.sub}
+        services={CORE_SERVICES}
+        workHref={g && g.videos.length ? "/work" : null}
+        whatsappHref={book}
+        phone={s?.phone ? { label: s.phone, href: telHref(s.phone) } : null}
+        promo={
+          promo
+            ? { youtubeId: promo.youtube_id, title: promo.title, caption: HERO.promoCaption, duration: durationLabel(promo.duration_seconds) }
+            : null
+        }
+        strip={works.slice(0, 4).map((v) => ({ youtubeId: v.youtube_id, title: v.title }))}
+      />
 
       {/* WORK: published, non-promo YouTube videos */}
       <Section labelledBy="work-title">
@@ -140,7 +87,7 @@ export default async function HomePage() {
             </div>
           }
         />
-        {videos.status === "unavailable" ? (
+        {gallery.status === "unavailable" ? (
           <p role="status" className="text-on-cream-muted">
             تعذّر تحميل الفيديوهات الآن. جرّب مرة أخرى بعد قليل.
           </p>
@@ -151,16 +98,9 @@ export default async function HomePage() {
         ) : (
           <ul className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
             {works.map((v, i) => (
-              <li key={v.id}>
-                <MaskReveal index={i % 3}>
-                  <YouTubeCard
-                    video={{
-                      youtubeId: v.youtube_id,
-                      title: v.title,
-                      duration: durationLabel(v.duration_seconds),
-                      meta: videoCategoryLabel(v.category),
-                    }}
-                  />
+              <li key={v.id} className="h-full">
+                <MaskReveal index={i % 3} className="h-full">
+                  <YouTubeCard video={{ ...toCardVideo(v, durationLabel(v.duration_seconds)), categories: v.primary ? [v.primary] : [] }} />
                 </MaskReveal>
               </li>
             ))}

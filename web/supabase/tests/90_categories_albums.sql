@@ -71,9 +71,8 @@ select lives_ok($$select id, slug, title, description, event_date, source_label,
   'anon reads the public album columns');
 select lives_ok($$select id, album_id, width, height, alt_text, sort_order from public.album_photos$$, 'anon reads the public photo columns');
 select results_eq($$select name from storage.objects where bucket_id = 'album-media' order by name$$,
-  array['albums/00000000-0000-4000-8000-0000000009b1/00000000-0000-4000-8000-0000000009d1/original.jpg',
-        'albums/00000000-0000-4000-8000-0000000009b1/00000000-0000-4000-8000-0000000009d1/thumb.webp'],
-  'anon storage read only for published photo paths (original + variants)');
+  array['albums/00000000-0000-4000-8000-0000000009b1/00000000-0000-4000-8000-0000000009d1/thumb.webp'],
+  'anon storage read only for published photo VARIANTS (originals stay private, migration 0016)');
 select is(public.album_photo_object_path('00000000-0000-4000-8000-0000000009d1', 'thumb'),
   'albums/00000000-0000-4000-8000-0000000009b1/00000000-0000-4000-8000-0000000009d1/thumb.webp', 'path helper returns published variant');
 select is(public.album_photo_object_path('00000000-0000-4000-8000-0000000009d3', 'original'), null, 'path helper hides photos of hidden albums');
@@ -86,7 +85,7 @@ set local role authenticated;
 select is((select count(*)::int from public.photo_albums), 0, 'customer sees no album rows (public site reads with anon)');
 select throws_ok($$insert into public.photo_albums (slug, title) values ('cust-album', 'عنوان')$$, '42501', null, 'customer cannot insert albums');
 update public.video_categories set title = 'تعديل عميل';
-select is((select count(*)::int from storage.objects where bucket_id = 'album-media'), 2, 'customer storage read = published only');
+select is((select count(*)::int from storage.objects where bucket_id = 'album-media'), 1, 'customer storage read = published variants only (0016)');
 
 -- ---- staff (aal2)
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000a3","role":"authenticated","aal":"aal2"}', true);

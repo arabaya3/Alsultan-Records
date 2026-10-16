@@ -88,3 +88,12 @@
     scroll-behavior: auto !important;
   }
 }
+
+/* Homepage intro (components/home/HeroIntro.tsx). The inline arming script adds .intro-armed only when
+   motion is allowed; GSAP removes it as soon as its timeline owns the from-states. If scripts never run,
+   the failsafe animation reveals everything at 2.6 s. Only opacity changes: no layout shift. */
+@keyframes intro-failsafe { to { opacity: 1; } }
+html.intro-armed [data-hero-intro] [data-intro] {
+  opacity: 0;
+  animation: intro-failsafe 0.3s ease-out 2.6s forwards;
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 
 export type LightboxItem = { id: string; src: string | null; width: number | null; height: number | null; alt: string };
 
@@ -19,7 +19,10 @@ export function Lightbox({
   actions,
   status,
   label = "عارض الصور",
+  footer,
 }: {
+  /** Shown under the image (e.g. alt text + source credit). */
+  footer?: ReactNode;
   items: LightboxItem[];
   index: number;
   onIndexChange: (i: number) => void;
@@ -36,6 +39,8 @@ export function Lightbox({
   const touch = useRef<{ x: number; y: number } | null>(null);
   const item = items[index];
   const count = items.length;
+  const [failed, setFailed] = useState<Set<string>>(() => new Set());
+  const [loaded, setLoaded] = useState<Set<string>>(() => new Set());
 
   const go = useCallback(
     (delta: number) => {
@@ -135,19 +140,24 @@ export function Lightbox({
 
       <div className="relative flex min-h-0 flex-1 items-center justify-center px-2 pb-4 md:px-20">
         <div className="relative max-h-full w-full max-w-[min(100%,calc((100dvh-9rem)*1.5))]" style={{ aspectRatio: ratio }}>
-          {status === "error" || (!item.src && status !== "loading") ? (
-            <div className="absolute inset-0 grid place-items-center rounded-sm bg-ink-2 text-center text-muted">
+          {status === "error" || failed.has(item.id) || (!item.src && status !== "loading") ? (
+            <div role="alert" data-lightbox-error className="absolute inset-0 grid place-items-center rounded-sm bg-ink-2 text-center text-muted">
               <p>تعذّر عرض هذه الصورة الآن.</p>
             </div>
           ) : item.src ? (
-            // Signed, short-lived URL: plain <img> (next/image would cache it under a fixed key).
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              key={item.id}
-              src={item.src}
-              alt={item.alt}
-              className="absolute inset-0 h-full w-full object-contain transition-opacity duration-300"
-            />
+            <>
+              {!loaded.has(item.id) ? <div aria-hidden="true" className="absolute inset-0 animate-pulse rounded-sm bg-ink-2" /> : null}
+              {/* Signed / gated short-lived URL: plain <img> (next/image would cache it under a fixed key). */}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                key={item.id}
+                src={item.src}
+                alt={item.alt}
+                onLoad={() => setLoaded((s) => new Set(s).add(item.id))}
+                onError={() => setFailed((s) => new Set(s).add(item.id))}
+                className="absolute inset-0 h-full w-full object-contain transition-opacity duration-300"
+              />
+            </>
           ) : (
             <div role="status" className="absolute inset-0 animate-pulse rounded-sm bg-ink-2" aria-label="جارِ التحميل" />
           )}
@@ -172,6 +182,7 @@ export function Lightbox({
           <span aria-hidden="true">←</span>
         </button>
       </div>
+      {footer ? <div className="px-4 pb-4 text-center text-sm text-muted md:px-6">{footer}</div> : null}
     </div>
   );
 }

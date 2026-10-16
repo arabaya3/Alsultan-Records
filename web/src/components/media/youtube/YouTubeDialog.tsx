@@ -1,11 +1,19 @@
 "use client";
 
 import { useEffect, useId, useLayoutEffect, useRef, type RefObject } from "react";
+import Link from "next/link";
 import { createPortal } from "react-dom";
 import { gsap, MOTION_OK } from "@/components/motion/gsap";
 import { isYouTubeId, youTubeEmbedUrl, youTubeWatchUrl } from "@/lib/youtube";
 
-export type DialogVideo = { youtubeId: string; title: string };
+export type DialogVideo = {
+  youtubeId: string;
+  /** Original YouTube title, rendered verbatim as text. */
+  title: string;
+  categories?: { slug: string; title: string }[];
+  /** Video page (/work/v/<id>). */
+  href?: string | null;
+};
 
 const FOCUSABLE = 'a[href], button:not([disabled]), iframe, [tabindex]:not([tabindex="-1"])';
 
@@ -114,8 +122,8 @@ export function YouTubeDialog({
         data-youtube-dialog
         className="relative w-full max-w-5xl rounded-md bg-ink p-3 text-on-dark shadow-2xl sm:p-4"
       >
-        <div className="mb-2 flex items-center justify-between gap-4">
-          <h2 id={titleId} className="min-w-0 truncate text-base font-semibold sm:text-lg">
+        <div className="mb-2 flex items-start justify-between gap-4">
+          <h2 id={titleId} className="min-w-0 pt-2 text-base font-semibold break-words sm:text-lg">
             <bdi>{video.title}</bdi>
           </h2>
           <button
@@ -140,8 +148,29 @@ export function YouTubeDialog({
             className="absolute inset-0 size-full border-0"
           />
         </div>
-        <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-muted">
-          <span>الفيديو لا يعمل هنا؟</span>
+        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+          {video.categories?.map((c) => (
+            <Link
+              key={c.slug}
+              href={`/work?cat=${c.slug}`}
+              onClick={onClose}
+              data-dialog-category={c.slug}
+              className="inline-flex min-h-11 items-center text-on-dark underline decoration-1 underline-offset-4 hover:decoration-gold"
+            >
+              {c.title}
+            </Link>
+          ))}
+          {video.href ? (
+            <Link
+              href={video.href}
+              onClick={onClose}
+              data-dialog-details
+              className="inline-flex min-h-11 items-center text-on-dark underline decoration-1 underline-offset-4 hover:decoration-gold"
+            >
+              صفحة الفيديو
+            </Link>
+          ) : null}
+          <span className="ms-auto">الفيديو لا يعمل هنا؟</span>
           <a
             href={youTubeWatchUrl(video.youtubeId)}
             target="_blank"
@@ -150,7 +179,7 @@ export function YouTubeDialog({
           >
             شاهد على YouTube
           </a>
-        </p>
+        </div>
       </div>
     </div>,
     document.body,

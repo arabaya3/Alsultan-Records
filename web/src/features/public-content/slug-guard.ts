@@ -10,16 +10,28 @@
  * RLS limits rows to published+consented projects / published services.
  * Returns true on any infrastructure error (fail open → page renders its own states).
  */
-export async function publicSlugExists(kind: "work" | "services", slug: string): Promise<boolean> {
-  if (!/^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u.test(slug) || slug.length > 120) return false;
+export type PublicSlugKind = "work" | "services" | "video" | "album";
+
+export async function publicSlugExists(kind: PublicSlugKind, slug: string): Promise<boolean> {
+  if (kind === "video") {
+    if (!/^[A-Za-z0-9_-]{11}$/.test(slug)) return false;
+  } else if (kind === "album") {
+    if (!/^[a-z0-9][a-z0-9-]{1,79}$/.test(slug)) return false;
+  } else if (!/^[\p{L}\p{N}]+(?:-[\p{L}\p{N}]+)*$/u.test(slug) || slug.length > 120) return false;
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key =
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return true;
+  // video / album: anon RLS already limits rows to published ones (is_published is not anon-selectable).
+  const s = encodeURIComponent(slug);
   const q =
     kind === "work"
-      ? `events?select=id&public_slug=eq.${encodeURIComponent(slug)}&is_published=eq.true&publication_consent=eq.granted&limit=1`
-      : `services?select=id&slug=eq.${encodeURIComponent(slug)}&is_published=eq.true&limit=1`;
+      ? `events?select=id&public_slug=eq.${s}&is_published=eq.true&publication_consent=eq.granted&limit=1`
+      : kind === "services"
+        ? `services?select=id&slug=eq.${s}&is_published=eq.true&limit=1`
+        : kind === "video"
+          ? `showcase_videos?select=id&youtube_id=eq.${s}&limit=1`
+          : `photo_albums?select=id&slug=eq.${s}&limit=1`;
   try {
     const res = await fetch(`${url.replace(/\/$/, "")}/rest/v1/${q}`, {
       headers: { apikey: key, Authorization: `Bearer ${key}` },
