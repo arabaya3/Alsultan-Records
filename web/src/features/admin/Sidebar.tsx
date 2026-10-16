@@ -18,7 +18,13 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const isActive = (href: string) => (href === "/admin" ? pathname === "/admin" : pathname.startsWith(href));
+  // Only the most specific matching entry is current (e.g. /admin/videos/categories ≠ /admin/videos).
+  const matches = (href: string) => pathname === href || (href !== "/admin" && pathname.startsWith(`${href}/`));
+  const activeHref = groups
+    .flatMap((g) => g.items.map((i) => i.href))
+    .filter(matches)
+    .sort((a, b) => b.length - a.length)[0];
+  const isActive = (href: string) => href === activeHref;
 
   return (
     <>
