@@ -267,6 +267,11 @@ async function run(F) {
     reviews: "id event_id display_name rating body status created_at".split(" "),
     // display columns only — original_title, source_url, source, verification_notes, updated_by stay admin-only (migration 0013)
     showcase_videos: "id youtube_id title description category duration_seconds published_at is_promo sort_order".split(" "),
+    // migration 0015 — display columns only; rights_note, storage paths, variants, source/review fields stay admin-only
+    video_categories: "id slug title sort_order is_published".split(" "),
+    showcase_video_categories: "video_id category_id is_primary".split(" "),
+    photo_albums: "id slug title description event_date source_label source_url cover_photo_id sort_order".split(" "),
+    album_photos: "id album_id width height alt_text sort_order".split(" "),
   };
   const anonCols = await sql(`select c.relname, a.attname, p.priv from pg_class c join pg_namespace n on n.oid = c.relnamespace
       join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
@@ -274,9 +279,15 @@ async function run(F) {
       where n.nspname = 'public' and c.relkind in ('r','p','v','m') and has_column_privilege('anon', c.oid, a.attnum, p.priv)
         and not has_table_privilege('anon', c.oid, p.priv) order by 1, 2`);
   const extraC = anonCols.filter((r) => r.priv !== "SELECT" || !(ALLOWED_ANON_COLS[r.relname] ?? []).includes(r.attname));
-  check("anon column privileges limited to public columns of events/reviews/showcase_videos", extraC.length === 0, extraC.map((r) => `${r.relname}.${r.attname}:${r.priv}`).join(", "));
+  check("anon column privileges limited to public display columns (events, reviews, videos, categories, albums, photos)", extraC.length === 0, extraC.map((r) => `${r.relname}.${r.attname}:${r.priv}`).join(", "));
   const anonFns = await sql("select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1");
-  check("anon can execute no public function", anonFns.length === 0, anonFns.map((r) => r.proname).join(", "));
+  // Only exception: the /p photo route resolves thumb/display paths of PUBLISHED photos (migrations 0015 + 0016).
+  const ALLOWED_ANON_FNS = ["album_photo_object_path"];
+  const extraF = anonFns.filter((r) => !ALLOWED_ANON_FNS.includes(r.proname));
+  check("anon can execute no public function except album_photo_object_path", extraF.length === 0, extraF.map((r) => r.proname).join(", "));
+  const fnDef = await sql("select pg_get_functiondef('public.album_photo_object_path(uuid,text)'::regprocedure) as d");
+  const def = fnDef?.[0]?.d ?? "";
+  check("album_photo_object_path never returns originals (variants thumb/display only)", !def.includes("storage_path_original") && def.includes("p_variant in ('thumb', 'display')"));
   const hook = await sql("select has_function_privilege('supabase_auth_admin', 'app.custom_access_token_hook(jsonb)', 'EXECUTE') as auth_admin, has_function_privilege('authenticated', 'app.custom_access_token_hook(jsonb)', 'EXECUTE') as authn, has_function_privilege('anon', 'app.custom_access_token_hook(jsonb)', 'EXECUTE') as anon");
   check("access token hook: executable by supabase_auth_admin only", hook[0].auth_admin && !hook[0].authn && !hook[0].anon, JSON.stringify(hook[0]));
   const buckets = await sql("select id, public from storage.buckets where id in ('public-media','private-media','backups') order by 1");

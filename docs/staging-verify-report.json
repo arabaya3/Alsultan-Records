@@ -1,15 +1,15 @@
 {
   "target": "staging",
   "host": "dyuixzxmmeiypvawzmty.supabase.co",
-  "run_id": "mvaxi8zka42a9e",
-  "started_at": "2026-10-16T12:13:23.072Z",
-  "finished_at": "2026-10-16T12:14:23.798Z",
+  "run_id": "mvb7tmso7c6296",
+  "started_at": "2026-10-16T17:02:10.344Z",
+  "finished_at": "2026-10-16T17:03:10.169Z",
   "totals": {
-    "checks": 68,
-    "passed": 68,
+    "checks": 69,
+    "passed": 69,
     "failed": 0
   },
-  "public_tables": 34,
+  "public_tables": 38,
   "cleanup": {
     "leftovers": {
       "events": 0,
@@ -305,11 +305,15 @@
       "pass": true
     },
     {
-      "name": "anon column privileges limited to public columns of events/reviews/showcase_videos",
+      "name": "anon column privileges limited to public display columns (events, reviews, videos, categories, albums, photos)",
       "pass": true
     },
     {
-      "name": "anon can execute no public function",
+      "name": "anon can execute no public function except album_photo_object_path",
+      "pass": true
+    },
+    {
+      "name": "album_photo_object_path never returns originals (variants thumb/display only)",
       "pass": true
     },
     {

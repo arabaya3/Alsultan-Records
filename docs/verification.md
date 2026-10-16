@@ -304,3 +304,22 @@ Scope approved by the owner: public showcase site; videos from the studio's YouT
 | Authorization against the production DB | staging-verify 68/68 |
 | Residue | 0 test users/events/customers/bookings; owner unchanged; real bookings/customers untouched |
 | TTFB (from this machine) | home ≈0.9 s with functions in sin1 |
+
+## Gallery + albums + animated intro — production (2026-10-16, commit 361d822, dpl_HnHCF6akFfPBmPmVbTYjmvh9zSZh)
+
+| Check | Result |
+|---|---|
+| Channel inventory | 19/19 public videos (videos/streams/shorts tabs, uploads playlist w/o continuation, RSS, About = 19); 0 inaccessible; classification from title + description (no video watched); log `docs/youtube-import-log.md` |
+| Categories (multi-tag) | evening 13 · artists 6 · dabke 5 · wedding 3 · groom_prep 3 · zaffa 2; henna not created (no matching video); needs review: sqU0MDUOTBE |
+| Import idempotency | local and staging: 2nd run 0 inserted / 0 changed; 6 existing rows switched to original titles (title_source = youtube) |
+| Live titles | 19/19 `/work/v/<id>` pages 200 with h1 exactly equal to the YouTube title |
+| Live filters | `/work?cat=` first page counts match inventory (evening paginated 9 of 13) |
+| DB (pgTAP) | 238/238 (10 files) locally; staging 16/16 migrations |
+| Security fix found in review | 0015 let anon resolve/read album ORIGINALS → 0016 limits anon to thumb/display; pgTAP + staging-verify check |
+| staging-verify (production DB) | 69/69 |
+| Local regression (fresh DB) | gallery/photos/intro/public/player/footer/admin-videos/admin-albums 53+ passed; admin/mfa/a11y 28/28; qa-* 41 passed + 4 skipped (obsolete form tests) |
+| Live browser | desktop: intro, gallery, player, footer 12/12 + 18/18 (one transient navigation timeout on a first run, 2 reruns green); mobile 2/2 (real playback) |
+| Live admin / app | login 13/13, app (media + consent) 15/15 |
+| Live secrets | 15 JS files: none |
+| Intro perf (Pixel 7, 4× CPU, local) | LCP median 1556 ms, TBT ≈ 227 ms, CLS 0; intro ≈ 2.0 s, interactive from first frame |
+| Motion evidence | `docs/motion/intro-desktop.webm`, `intro-mobile.webm` (+ posters, reduced-motion still) — intro animation of logo + text, not a works montage |
