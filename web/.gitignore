@@ -46,3 +46,4 @@ next-env.d.ts
 # local scratch (db lock, isolated restore env, backup downloads)
 /.cache/
 /backups-local/
+!.env.example
