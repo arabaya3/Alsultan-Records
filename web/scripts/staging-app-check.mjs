@@ -124,11 +124,14 @@ try {
   check("unexpected error", false, String(e?.message ?? e).slice(0, 200));
 } finally {
   for (const fn of cleanup) { try { await fn(); } catch { /* best effort */ } }
+  // Rows the normal deletes can't remove (immutable/consent history) go through the service-role-only purge.
+  try { await sk.rpc("purge_test_fixtures", { p_prefix: "[STAGING-TEST]" }); } catch { /* reported by the checks below */ }
   const { data: list } = await sk.auth.admin.listUsers({ perPage: 200 });
   check("cleanup: no [STAGING-TEST] users left", !list.users.some((x) => x.email?.startsWith("staging-test-")));
   const { count: ev } = await sk.from("events").select("id", { count: "exact", head: true }).like("title", "[STAGING-TEST]%");
   const { count: bk } = await sk.from("booking_requests").select("id", { count: "exact", head: true }).like("contact_name", "[STAGING-TEST]%");
-  check("cleanup: no [STAGING-TEST] events/bookings left", (ev ?? 0) === 0 && (bk ?? 0) === 0, `events=${ev} bookings=${bk}`);
+  const { count: cu } = await sk.from("customers").select("id", { count: "exact", head: true }).like("full_name", "[STAGING-TEST]%");
+  check("cleanup: no [STAGING-TEST] events/bookings/customers left", (ev ?? 0) === 0 && (bk ?? 0) === 0 && (cu ?? 0) === 0, `events=${ev} bookings=${bk} customers=${cu}`);
 }
 const failed = results.filter((r) => !r.pass).length;
 console.log(`${results.length - failed}/${results.length} app checks passed`);
