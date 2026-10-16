@@ -42,3 +42,7 @@ next-env.d.ts
 
 /test-results/
 /playwright-report/
+
+# local scratch (db lock, isolated restore env, backup downloads)
+/.cache/
+/backups-local/
