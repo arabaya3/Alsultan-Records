@@ -150,6 +150,9 @@ Anon cannot call these RPCs at all, so the Turnstile check cannot be bypassed an
   - `app_settings.require_staff_mfa` defaults to **true**. The local dev seed turns it off.
   - Promotion to a staff role through `admin_set_user_role` sets `mfa_required`, as does bootstrap.
   - Staff privileges in RLS require `aal2`. The app's `requireAal2ForStaff()` redirects to `/login?step=mfa`.
+  - `requireRole()` runs the aal check before the role check. A staff session below aal2 is therefore sent to the MFA step on any staff page, including pages its role cannot open.
+  - `/login?step=mfa` enrolls TOTP when the user has no verified factor (QR plus a text secret) and otherwise shows a challenge. Customers and sessions that are already aal2 are redirected to their landing page.
+  - Verified end to end in `web/tests/e2e/mfa.spec.ts` (see `docs/verification.md`, S4).
   - TOTP enroll/verify is enabled in `config.toml`. On the cloud project it must also be enabled in Auth settings.
 
 ## 8. Bootstrap procedure (initial owner)

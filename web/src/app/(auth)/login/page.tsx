@@ -25,6 +25,9 @@ async function LoginContent({ searchParams }: { searchParams: PageProps<"/login"
 
   if (step === "mfa") {
     if (!session) redirect(`/login?next=${encodeURIComponent(safeNext(next, null))}`);
+    // Nothing to step up: customers never need MFA, and an aal2 session is already verified.
+    if (!STAFF_ROLES.includes(session.role)) redirect(safeNext(next, "customer"));
+    if (session.aal === "aal2") redirect(safeNext(next, "staff"));
     const supabase = await createClient();
     const { data } = await supabase.auth.mfa.listFactors();
     return (

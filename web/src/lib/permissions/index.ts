@@ -59,8 +59,10 @@ export const getSessionProfile = cache(async (): Promise<SessionProfile | null> 
 export async function requireRole(...roles: AppRole[]): Promise<SessionProfile> {
   const session = await getSessionProfile();
   if (!session) redirect("/login");
-  if (!roles.includes(session.role)) throw new PermissionError();
+  // Step-up first: a staff session below the required assurance level is sent to the MFA step
+  // on every staff-area page, including ones its role cannot open (no role leak before aal2).
   if (STAFF_ROLES.includes(session.role)) await requireAal2ForStaff(session);
+  if (!roles.includes(session.role)) throw new PermissionError();
   return session;
 }
 

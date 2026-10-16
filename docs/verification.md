@@ -53,7 +53,7 @@ Spec files are in `web/tests/e2e/`. Final QA run: **44 passed, 1 failed** (the f
 | S1 | PASS (pgTAP) | 92/92 on a fresh reset (see Q1 caveat). |
 | S2 | PASS | `qa-security`, direct API with A's session: no B rows in events, media_assets, album_selections, quotes, quote_items, contracts or payments. Positive controls pass. Writes to B's quote or selection are refused, `customer_accept_quote(B)` errors, and `event_financials(B event)` returns 42501. |
 | S3 | PASS | A cannot update `role` or `disabled`, call `admin_set_user_role`, or relink `customers.user_id`. The DB is unchanged afterwards. `full_name` update works. |
-| S4 | NOT VERIFIED | The dev seed disables `require_staff_mfa`. I did not test aal2. |
+| S4 | PASS (2026-10-16) | Enrollment, challenge, wrong code, logout, aal1 vs aal2 direct API, customer not forced, disabled account. See "S4: MFA" below. |
 | S5 | PASS | A cannot download, list or sign B's object. B can (control). Anon cannot download, and the public URL of the private bucket returns ≥400. A signed URL with a 2 s TTL returned 200 at first and ≥400 after 4 s. |
 | S6 | PASS | `set_event_publication` without consent errors. A direct `is_published` update errors, and the DB is unchanged. |
 | S6 consent withdrawal (2026-10-16) | PASS | Release blocker closed (migration 0010, `/m` route, `storage-cleanup` function). See "S6: consent withdrawal" below. |
@@ -168,6 +168,33 @@ Observations:
 5. The hero is shorter relative to the reference, and the title is a little smaller relative to the viewport.
 
 The header, nav, CTA styles, hero copy and service chips match.
+
+## S4: MFA (2026-10-16, local, production build on :3600)
+
+`web/tests/e2e/mfa.spec.ts`: **5/5 passed** (`BASE_URL=http://localhost:3600 npx playwright test tests/e2e/mfa.spec.ts --project=chromium`). The TOTP codes come from `web/tests/e2e/totp.ts`, an RFC 6238 implementation built on `node:crypto` that reproduces the RFC test vector (T=59 s gives `94287082`). The spec creates a new admin user through the auth admin API and sets `profiles.mfa_required = true` (as postgres). It deletes the user at the end.
+
+| Check | Result |
+|---|---|
+| Enrollment | Password login sends the user to `/login?step=mfa` with an aal1 cookie JWT. "إعداد تطبيق المصادقة" shows the QR code and the base32 secret as text. The test reads the secret and enters a computed code, and the user lands on `/admin` with JWT `aal=aal2`. |
+| Next login | The user gets a challenge, not a second enrollment (no setup button, no secret shown). A wrong code shows `الرمز غير صحيح أو انتهت صلاحيته.`, keeps `step=mfa`, and the JWT stays aal1. The correct code goes to `/admin`, and `/admin/finance` opens. An aal2 session that opens `/login?step=mfa` is sent on to `/admin`. |
+| aal1 pages | With aal1, `/admin`, `/admin/finance`, `/admin/bookings`, `/admin/users` and `/admin/settings` all redirect to the MFA step. |
+| Logout | The sidebar's "تسجيل الخروج" leaves no `sb-*` cookies. Back, or a direct `/admin/finance`, lands on the password login. |
+| Direct API at aal1 (password only, factor enrolled) | `staff_mfa_required()` returns true. `events` returns only the anon-visible rows, and `booking_requests` returns 0 rows. `admin_financial_summary` fails with 42501. `createSignedUrl` on a private-media object fails. An `app_settings` update changes 0 rows. |
+| Direct API at aal2 | The same calls succeed: more events than anon sees, bookings > 0, the financial summary, and a signed URL. |
+| Customer | Customer A logs in with aal1 and lands on `/portal`. `/login?step=mfa` redirects to `/portal`, so a customer is never forced into MFA. |
+| Disabled | The spec sets `disabled = true` while the user holds an aal2 API token and an aal2 browser session. The API then returns only anon events, 0 bookings, financial 42501 and no signed URL. `/admin/finance` bounces to `/login`. |
+
+Bugs fixed:
+- `web/src/lib/permissions/index.ts` (`requireRole`): the role check ran before the aal check. An aal1 admin who opened an owner-only page (for example `/admin/users`) got "forbidden" instead of the MFA step. The aal check now runs first, for every staff session. No data leaked, because RLS already denied it.
+- `web/src/app/(auth)/login/page.tsx`: `/login?step=mfa` showed the MFA form to customers and to sessions that were already aal2. Both are now redirected to their landing page.
+
+No DB policy bug was found, so there is no new migration.
+
+Not proven:
+- The `app_settings.require_staff_mfa = true` path was not exercised end to end. Other suites share the DB, so the spec uses the per-profile flag (`mfa_required`) instead. `app.require_mfa()` ORs the two flags.
+- No assigned-staff (role `staff`) user was tested. The spec only uses admin.
+- Server actions were not called directly at aal1. They use the same `guard()`/`requireRole()`, and RLS denies the data.
+- `admin.spec.ts` and `portal.spec.ts` were run on a DB that other agents and earlier runs had already changed: 11/12 passed together, and the one failure (admin "publish is blocked") passed alone. On reruns, portal "selection … submit" failed because A1's selection was already submitted by an earlier run in the same DB. Both depend on DB state and don't use MFA, since the seed keeps MFA off.
 
 ## Bugs
 | # | Severity | Issue | Repro | Status |
