@@ -288,3 +288,19 @@ Scope approved by the owner: public showcase site; videos from the studio's YouT
 | Accessibility | `a11y-axe.spec.ts`, `a11y-manual.spec.ts` | 0 serious/critical on our pages (YouTube's own iframe excluded — third-party markup); manual 10/10 |
 | Regression (local, fresh DB per group) | qa-* 39 passed + 4 skipped (obsolete form/tracking tests, reason in file); portal 8/8; qa-portal 7/7; admin/mfa/public groups pass | ✅ |
 | Staging (site on :3100 built against the cloud) | homepage HTML; staging-verify / app / login / admin checks | promo + 5 works rendered from staging; no groom names; 68/68, 15/15, 13/13, 93/93 |
+
+## Production on Vercel — https://sultan-records.vercel.app (2026-10-16, commit ed66278)
+
+| Check | Result |
+|---|---|
+| Routes | /, /work, /services, /about, /contact, /book, /faq, /privacy, /terms 200; /track 308→/book; /admin, /portal 307→/login?next=; unknown /work/* 404 |
+| Content | promo + 5 works from Supabase; WhatsApp `wa.me/970598677477?text=…`; canonical = production URL; no [DEV]/[STAGING-TEST]/placeholder text, no groom names, no portal/track/login links |
+| Secrets in published JS (14 files) | none (secret key, IP hash secret, access token, DB password, `sb_secret_`/service_role markers); no local-stack or old-project refs |
+| Security headers | CSP, HSTS, X-Frame-Options DENY, nosniff, Referrer-Policy present |
+| Desktop browser (public-youtube + footer) | 12/12 — real YouTube playback in-page, dialog focus/Esc, every work opens, WhatsApp CTAs, no portal/forms, footer compact, no overflow |
+| Mobile browser (Pixel-class, live-mobile.spec) | 2/2 — promo plays in-page, close button, every work opens, menu without portal, LTR phone, no overflow, no console errors |
+| Admin login (temporary admin, never the owner) | 13/13 — /admin → login → MFA step; aal1 blocked from finance; redirect allow-list enforced |
+| Media + consent withdrawal through the live app | 15/15 — same /m URL 404 `no-store` immediately (after CDN fix) |
+| Authorization against the production DB | staging-verify 68/68 |
+| Residue | 0 test users/events/customers/bookings; owner unchanged; real bookings/customers untouched |
+| TTFB (from this machine) | home ≈0.9 s with functions in sin1 |

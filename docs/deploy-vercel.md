@@ -1,6 +1,29 @@
-# Vercel deployment — preparation (not deployed)
+# Vercel deployment
 
-Status: **prepared, not deployed.** No Vercel project has been created and nothing is published. Deploying and attaching a domain need the owner's explicit go-ahead. The current production site and the old Supabase project are untouched.
+## Live (2026-10-16, approved by the owner)
+
+| Item | Value |
+|---|---|
+| URL | https://sultan-records.vercel.app |
+| Vercel account / project | `maithaloun-sooq` (Hobby) / `sultan-records` (`prj_ZX0Ny5Bna9cRqhKPxWMCUyyD2kgy`) — new, dedicated; no other project touched |
+| Production deployment | `dpl_8ZL7e5AxVHKp9moBMN6ACDaiM8L7` from commit `ed66278` (branch `rebuild/nextjs`), CLI deploy |
+| Previous production deployments | `dpl_FZLTagWE5kYVep4fJUPPsMRgqCvF` (commit `df45817`), `sultan-records-fru1evgiz…` (commit `6c8cfda`) |
+| Settings | Root Directory `web`, Next.js, `npm ci`, Node 22.x, functions region `sin1` (next to Supabase ap-southeast-1), Vercel Authentication on Preview only (production is public) |
+| Runtime env (Production) | NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, SUPABASE_SECRET_KEY (sensitive), IP_HASH_SECRET (sensitive), NEXT_PUBLIC_SITE_URL. **Not** uploaded: SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD, owner credentials (`.vercelignore` uploads only `web/` minus env files, .cache, local data) |
+| Supabase Auth | site_url = https://sultan-records.vercel.app; redirect allow-list has its /auth/callback and /auth/reset (localhost test entries kept) |
+| Plan note | Vercel Hobby is for non-commercial use; the owner chose Hobby knowingly. Upgrade to Pro if Vercel requires it. |
+
+Issue found and fixed during deployment: Vercel's CDN honoured `s-maxage=60` on `/m/…` media, so a withdrawn image stayed public for up to 60 s for everyone. The route now sends `private, max-age=60` + `CDN-Cache-Control: no-store` + `Vercel-CDN-Cache-Control: no-store`; verified on the live URL: the same URL returns 404 `no-store` immediately after withdrawal (only a browser that already loaded the image may reuse its own copy ≤60 s).
+
+## Rollback
+
+- **Instant:** Vercel dashboard → sultan-records → Deployments → pick an earlier production deployment → "Promote to Production" (or `npx vercel rollback <deployment-url>` / `npx vercel promote <deployment-url>` from the repo root). No rebuild, no DB change.
+- **Take the site offline:** Project → Settings → Deployment Protection → enable Vercel Authentication for all deployments, or remove the `sultan-records.vercel.app` alias.
+- **Code:** `git revert` on `rebuild/nextjs`, then `npx vercel deploy --prod` from the repo root.
+- Database changes are not tied to deploys (forward-only migrations; restore procedure in `docs/backup-restore.md`).
+- The old site and old Supabase project were never changed.
+
+## Original preparation notes
 
 ## Project settings
 
