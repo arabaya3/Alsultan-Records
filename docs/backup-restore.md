@@ -154,11 +154,81 @@ Use the same scripts with explicit opt-in. Never restore over production; restor
    - Do not run the seed.
    - Configure auth (custom access token hook, SMTP, MFA) in the dashboard.
 3. **Restore.** Run `backup-restore.mjs --db-url <target> --target-url <target> --i-understand-remote`. This needs `psql` on PATH and a role allowed to set `session_replication_role`. Then run `backup-storage.mjs restore-storage … --i-understand-remote`.
-4. **Verify.** `verify-restore.mjs` currently targets a local container. Running it against cloud needs a `--db-url` option, which has not been built yet.
+4. **Verify.** `verify-restore.mjs` now has a `--db-url` / `--api-url` mode (keys via `VERIFY_PUBLISHABLE_KEY` / `VERIFY_SECRET_KEY` env). Use the scripted rehearsal below rather than running it by hand.
 5. **Post-restore.**
    - Rotate keys if the restore followed an incident (`security-model.md` §10).
    - Keep `private.bootstrap` empty.
    - Re-enable `require_staff_mfa` if a dev dump was used.
+
+## Cloud restore rehearsal (staging → separate empty project)
+
+Script: `web/scripts/cloud-restore-rehearsal.mjs`. **Status: tooling ready and proven by a local simulation (110/110 checks, `docs/cloud-restore-report.json` → `proofs["local-simulation"]`). The cloud run is PENDING the user's approval of a second project.**
+
+It never creates, links, pauses or deletes projects, and never writes to staging except the optional `[RESTORE-TEST]` users (create + delete, both `--apply`). Every command is a dry run unless `--apply` is passed. It refuses when `RESTORE_PROJECT_REF` is missing, equals staging (`dyuixzxmmeiypvawzmty`), equals the old project (`peufggxvklpnaytyklgg`), or when the target database is not empty (`--allow-nonempty` overrides that last check; it can never reach staging because of the ref check). Secrets are masked in output and never put in argv: child processes get `PGPASSWORD`, `SUPABASE_ACCESS_TOKEN`, `SUPABASE_DB_PASSWORD`, `VERIFY_*_KEY` through the environment, and DB URLs carry no password.
+
+### Prerequisites (user decisions)
+
+1. **Approve a second FREE project** in the same organization, e.g. name `alsultan-restore-rehearsal`, region `ap-southeast-1` (same as staging). Alternatively reuse an existing **empty** free project. Create it yourself in the dashboard (the script will not). Note its database password.
+   - Cost: **$0** on the free plan as long as the org has at most **2 active free projects** (staging + this one). The org has 1 today.
+   - Free projects **auto-pause after ~7 days of inactivity**. A paused project must be restored in the dashboard before the script can use it (the script checks `ACTIVE_HEALTHY`).
+   - **Delete it after the rehearsal** (see Teardown). It holds a real copy of staging's auth users (password hashes) and data.
+2. **Access token.** The script reuses `SUPABASE_ACCESS_TOKEN` from `web/.env.staging.local`. A Supabase personal access token acts with the token owner's org role; that role must be **Owner or Administrator** in the org (Developer cannot change auth config or read secret API keys). If a scoped OAuth/fine-grained token is used instead, it needs on the rehearsal project: **Projects: read**, **Database: read + write** (pooler config, migrations), **Auth: read + write** (`/config/auth` PATCH for the hook + TOTP), and **Secrets: read** (`/api-keys?reveal=true`). Staging needs only **Database: read** for the backup (plus the staging DB password already in `.env.staging.local`).
+3. **Tools:** Docker running (the CLI runs `pg_dump` in Docker; `psql` runs as `docker run --rm postgres:17.6-alpine` when no `psql` is on PATH; override with `PSQL_IMAGE`). Node 22. The checkout must be at the commit whose `supabase/migrations` match staging's (the script refuses otherwise).
+
+### `web/.env.restore.local` (gitignored by `web/.gitignore` `.env*`; names only)
+
+| Variable | Required | Meaning |
+| --- | --- | --- |
+| `RESTORE_PROJECT_REF` | yes | the rehearsal project's ref |
+| `RESTORE_DB_PASSWORD` | yes | its database password |
+| `RESTORE_DB_URL` | no | override connection string **without password** (default: the project's session pooler from the Management API, port 5432, IPv4) |
+| `SUPABASE_ACCESS_TOKEN` | no | only if a different token than staging's should be used |
+
+Backups land in `web/.cache/cloud-rehearsal/<timestamp>/` (gitignored by `/.cache/`; verified with `git check-ignore`). Test-user passwords live only in `web/.cache/cloud-rehearsal/test-users.local.json`.
+
+### Commands, in order (from `web/`)
+
+```bash
+S=scripts/cloud-restore-rehearsal.mjs
+node $S seed-test-users            # dry run; then --apply: 2 "[RESTORE-TEST]" customers in STAGING, generated passwords → .cache only
+node $S backup --apply             # staging READ-ONLY: migrations, schema dump, ONE data-only dump (public+auth+storage), storage copy, counts, manifest
+node $S cleanup-test-users --apply # remove the [RESTORE-TEST] users from staging again (they stay in the backup)
+# user: create the project, write web/.env.restore.local
+node $S restore                    # dry run: guards + plan
+node $S restore --apply            # db push --db-url, data load, storage upload, owner metadata, Auth hook + TOTP
+node $S verify --apply             # → docs/cloud-restore-report.json
+node $S teardown                   # prints the pause/delete steps; deletes nothing
+```
+
+What `backup` runs: `npx supabase db dump --linked -s public` (schema, for comparison) and `npx supabase db dump --linked --data-only --use-copy -s public,auth,storage` (one `pg_dump` = one snapshot). From that it derives `db.sql` (auth `users`, `identities`, `mfa_factors` + the 33 public tables) and `storage-meta.json` (`storage.buckets`, `storage.objects` rows), then copies the storage binaries with `backup-storage.mjs backup` right after. It writes `schema-migrations.txt`, `counts.json` and `manifest.json` (sha256 of every file). It requires `supabase/.temp/project-ref` = staging.
+
+What `restore` runs: checks the manifest and that the checkout's migrations equal the backup's, resolves the target (project status, session pooler, API keys), refuses a non-empty target, then `npx supabase db push --db-url postgresql://<user>@<pooler>:5432/postgres --yes` (password via `PGPASSWORD`; the staging link in `supabase/.temp/project-ref` is checked before and after and never changed), then `backup-restore.mjs --pg-dump db.sql --db-url …` (one transaction, `session_replication_role = replica`, every FK re-checked), `backup-storage.mjs restore-storage` (upload + read-back sha256), copies `storage.objects.owner/owner_id` from the snapshot, and finally PATCHes the target's auth config: custom access token hook `pg-functions://postgres/app/custom_access_token_hook`, TOTP enroll/verify, `password_min_length` 10, `jwt_exp` 3600. `site_url`, redirect URLs and SMTP are deliberately left alone.
+
+What `verify` checks (`verify-restore.mjs --db-url` plus extra comparisons): per-table counts and byte-exact rows against the dump; relationships; `contract_versions.content_hash`; `event_financials` for every event (as the restored owner, impersonated in SQL because the owner's password/TOTP are staging's); RLS enabled everywhere; customer A cannot read B's customer row, payments, media or financials; anon sees only published+consented events; the access-token hook puts `app_role` in A's JWT; storage counts and sha256 for every object; every media path resolves; signed URLs (owner-signed when A owns a private object, otherwise a service-signed URL plus "A and B cannot sign" — recorded in `notes`); identical migrations, identical `public` schema dump, identical buckets and object metadata, auth identities/MFA counts, and `private.bootstrap` empty.
+
+### Teardown (destructive, needs explicit user confirmation)
+
+`node $S teardown` prints the steps: pause (Dashboard → Settings → General → Pause project, or `POST /v1/projects/<ref>/pause`) and then delete (Dashboard → Delete project, or `npx supabase projects delete <ref>`). Then delete `web/.env.restore.local`, `web/.cache/cloud-rehearsal/` and `test-users.local.json`, and re-run `cleanup-test-users` to confirm staging has no `[RESTORE-TEST]` users.
+
+### Local simulation (proven 2026-10-16)
+
+Same code path with `--sim`: source = the main local stack (read-only `db dump --db-url`), target = a second stack in `web/.cache/restore-sim` (project `alsultan-restore-sim`, ports 56320-56329/56383, seed off, started **without** migrations so `db push --db-url` is exercised).
+
+```bash
+node $S sim-up --sim --apply && node $S backup --sim --apply && node $S restore --sim --apply && node $S verify --sim --apply
+node $S sim-down --sim --apply   # stop + remove volumes; then delete web/.cache/restore-sim
+```
+
+Result: 11 migrations pushed; auth users 5, identities 5, MFA factors 0; 33/33 public tables match (252 non-seeded rows, e.g. media_assets 208, audit_events 19, events 4); 58 FKs checked, 0 orphans; storage 418/418 objects (3,164,442 bytes) uploaded and sha256-verified; **110/110 checks**. A tamper test (changed a content hash, disabled RLS on `reviews`) produced 4 failures and exit 1. A second restore into the populated sim was refused as non-empty. The CLI link stayed on staging throughout.
+
+### Known limits for the cloud run
+
+- **Free plan upload cap is 50 MB per object** regardless of bucket limits (the migrations set 2 GB for `private-media`/`backups`). `backup` warns and `restore` refuses if any object exceeds it.
+- **Egress:** the free plan includes 5 GB egress per month; the dump and the storage copy count against staging's egress, the read-back verification against the target's.
+- **Pooler:** direct `db.<ref>.supabase.co` is IPv6-only on free projects; the script uses the session pooler (IPv4). Statement timeouts on the pooler can bite very large loads; current data is tiny.
+- **Hosted privileges:** the load runs as `postgres` with `session_replication_role = replica` and inserts into `auth.*`. Both work locally and are what Supabase documents for restores, but they have not yet been exercised on a hosted project. If either is refused, the run stops inside one transaction (nothing half-loaded).
+- **Auth versions:** `auth.users` is loaded with an explicit column list; if the target's GoTrue is newer, additive columns are fine; a removed column would fail the load loudly.
+- Restored users keep staging's password hashes and TOTP secrets; the owner's MFA keeps working only because the TOTP secret is copied.
 
 ## Retention
 

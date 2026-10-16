@@ -129,3 +129,14 @@ Migrations are forward-only. For staging, the options are listed below.
 ## 5. Cost
 
 Everything above runs on the free tier: database, auth, storage, one Edge Function, pg_cron and pg_net. No paid add-ons are enabled, and no compute size, PITR, custom domain or branching changes are made. Free projects pause after about a week of inactivity, and pausing does not delete data.
+
+## 6. Cloud restore rehearsal
+
+Full runbook: [`backup-restore.md` → Cloud restore rehearsal](backup-restore.md#cloud-restore-rehearsal-staging--separate-empty-project). Script: `web/scripts/cloud-restore-rehearsal.mjs` (dry run by default, `--apply` to execute).
+
+- **Staging is only the source.** `backup` is read-only (`supabase db dump --linked`, storage download). The only staging writes are the optional `seed-test-users` / `cleanup-test-users` (two `[RESTORE-TEST]` customers, created before the backup and deleted right after).
+- **The target is a separate, empty project.** The user must approve creating a second **free** project in the same org (e.g. `alsultan-restore-rehearsal`, `ap-southeast-1`): $0 within the 2-active-free-projects limit, auto-pauses after inactivity, delete it afterwards. The script refuses `RESTORE_PROJECT_REF` when it is missing, equals `dyuixzxmmeiypvawzmty`, equals `peufggxvklpnaytyklgg`, or when the target DB is not empty.
+- **The CLI link stays on staging.** The restore uses `supabase db push --db-url` (password via `PGPASSWORD`) and checks `supabase/.temp/project-ref` before and after.
+- `web/.env.restore.local` (names only): `RESTORE_PROJECT_REF`, `RESTORE_DB_PASSWORD`, optional `RESTORE_DB_URL` (no password), optional `SUPABASE_ACCESS_TOKEN` (default: reuse this file's token; its owner needs Owner/Administrator in the org).
+- Order: `seed-test-users --apply` → `backup --apply` → `cleanup-test-users --apply` → (user creates project + env file) → `restore --apply` → `verify --apply` (→ `docs/cloud-restore-report.json`) → `teardown` (prints pause/delete steps; the user deletes the project).
+- Status: proven end-to-end on a local simulation (110/110 checks); the cloud run is pending approval.

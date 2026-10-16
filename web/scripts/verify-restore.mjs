@@ -8,36 +8,56 @@
 // role checks default to the LOCAL DEV seed accounts (override with --owner/--cust-a/--cust-b email:password).
 // Exit code: 0 only if every check passes. LOCAL ONLY (refuses non-local API URLs).
 import { createClient } from "@supabase/supabase-js";
-import { spawnSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
-import { BACKUP_TABLES, isLocalUrl, parseArgs, parseCopyDump, sha256, stackStatus, WEB_ROOT } from "./backup-lib.mjs";
+import { BACKUP_TABLES, isLocalUrl, parseArgs, parseCopyDump, runPsql, sha256, stackStatus, WEB_ROOT } from "./backup-lib.mjs";
 
+// REMOTE / --db-url mode (used by cloud-restore-rehearsal.mjs):
+//   node scripts/verify-restore.mjs --label L --db-url postgresql://USER@HOST:PORT/postgres --api-url https://REF.supabase.co \
+//        --expected DIR --pg-dump DIR/db.sql --storage DIR/storage --creds-file F --report ../docs/cloud-restore-report.json \
+//        [--i-understand-remote]
+//   Password/keys only through the environment (never argv): PGPASSWORD, VERIFY_PUBLISHABLE_KEY, VERIFY_SECRET_KEY.
+//   --creds-file: JSON { owner?: {email,password}, a: {...}, b: {...} }. Without an owner login, event_financials
+//   is checked through SQL by impersonating the restored owner (role authenticated + request.jwt.claims, aal2).
+//   Non-local API/DB URLs need --i-understand-remote; the staging and old production refs are always refused.
 const args = parseArgs();
-if (!args.workdir || !args.container || !args.expected) {
-  console.error("usage: verify-restore.mjs --label L --workdir W --container C --expected DIR [--pg-dump FILE] [--storage DIR | --no-storage]");
+const remoteMode = !!args["db-url"];
+if (!args.expected || (remoteMode ? !args["api-url"] : !args.workdir || !args.container)) {
+  console.error("usage: verify-restore.mjs --label L (--workdir W --container C | --db-url URL --api-url URL) --expected DIR [--pg-dump FILE] [--storage DIR | --no-storage]");
   process.exit(2);
 }
-if (args.container === "supabase_db_alsultan-records") { console.error("refusing: that is the main stack"); process.exit(2); }
-const st = stackStatus(args.workdir);
-if (!isLocalUrl(st.url)) { console.error(`refusing non-local ${st.url}`); process.exit(2); }
+if (args.container === "supabase_db_alsultan-records" || /:54322\//.test(args["db-url"] ?? "")) { console.error("refusing: that is the main stack"); process.exit(2); }
+const st = remoteMode
+  ? { url: String(args["api-url"]), publishable: process.env.VERIFY_PUBLISHABLE_KEY, secret: process.env.VERIFY_SECRET_KEY }
+  : stackStatus(args.workdir);
+if (remoteMode) {
+  if (!st.publishable || !st.secret) { console.error("set VERIFY_PUBLISHABLE_KEY and VERIFY_SECRET_KEY in the environment"); process.exit(2); }
+  const forbidden = ["dyuixzxmmeiypvawzmty", "peufggxvklpnaytyklgg"];
+  if (forbidden.some((r) => st.url.includes(r) || String(args["db-url"]).includes(r))) { console.error("refusing: staging / old production project"); process.exit(2); }
+  if (!isLocalUrl(st.url) && args["i-understand-remote"] !== true) { console.error(`refusing non-local ${st.url} without --i-understand-remote`); process.exit(2); }
+} else if (!isLocalUrl(st.url)) { console.error(`refusing non-local ${st.url}`); process.exit(2); }
 const label = String(args.label ?? "restore");
 const expDir = path.resolve(args.expected);
 const reportFile = path.resolve(args.report ?? path.join(WEB_ROOT, "..", "docs", "restore-report.json"));
 const cred = (s, d) => { const [email, ...p] = String(s ?? d).split(":"); return { email, password: p.join(":") }; };
-const USERS = {
-  owner: cred(args.owner, "owner@dev.local:DevOwner!2026"),
-  a: cred(args["cust-a"], "customer.a@dev.local:DevCustA!2026"),
-  b: cred(args["cust-b"], "customer.b@dev.local:DevCustB!2026"),
-};
+const credsFile = args["creds-file"] ? JSON.parse(fs.readFileSync(path.resolve(args["creds-file"]), "utf8")) : null;
+const USERS = credsFile
+  ? { owner: credsFile.owner ?? null, a: credsFile.a, b: credsFile.b }
+  : {
+      owner: cred(args.owner, "owner@dev.local:DevOwner!2026"),
+      a: cred(args["cust-a"], "customer.a@dev.local:DevCustA!2026"),
+      b: cred(args["cust-b"], "customer.b@dev.local:DevCustB!2026"),
+    };
 
+const dbTarget = remoteMode ? { dbUrl: String(args["db-url"]) } : { container: args.container, user: "supabase_admin" };
 function sql(q) {
-  const r = spawnSync("docker", ["exec", "-i", args.container, "psql", "-U", "supabase_admin", "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-X", "-q", "-At"], { input: q, encoding: "utf8", maxBuffer: 1 << 30 });
-  if (r.status !== 0) throw new Error(r.stderr);
+  const r = runPsql(dbTarget, q);
+  if (r.status !== 0) throw new Error(r.stderr || String(r.error));
   return r.stdout;
 }
 
 const checks = [];
+const notes = [];
 function check(name, ok, detail) {
   checks.push({ name, ok: !!ok, ...(detail === undefined ? {} : { detail }) });
   console.log(`${ok ? "PASS" : "FAIL"}  ${name}${detail !== undefined && !ok ? `  ${JSON.stringify(detail).slice(0, 400)}` : ""}`);
@@ -134,14 +154,27 @@ async function login(who) {
   const c = anonClient();
   const { data, error } = await c.auth.signInWithPassword(USERS[who]);
   check(`restored auth: ${who} (${USERS[who].email}) can sign in with the original password`, !error, error?.message);
-  return error ? null : { c, uid: data.user.id };
+  return error ? null : { c, uid: data.user.id, token: data.session.access_token };
 }
-const owner = await login("owner");
+const owner = USERS.owner ? await login("owner") : null;
+// Without owner credentials (cloud: the restored owner's password/TOTP are the source's), impersonate the
+// restored owner in SQL: same function, same RLS/authorization path, claims set like PostgREST does.
+const ownerId = USERS.owner ? null : sql("select id from public.profiles where role = 'owner' and not disabled order by created_at limit 1;").trim();
+if (!USERS.owner) check("restored DB has an active owner profile (for SQL-impersonated financials)", !!ownerId);
+async function financialsAsOwner(eventId) {
+  if (owner) return owner.c.rpc("event_financials", { p_event_id: eventId });
+  try {
+    const claims = JSON.stringify({ sub: ownerId, role: "authenticated", aal: "aal2" });
+    const out = sql(`begin; set local role authenticated; select set_config('request.jwt.claims', '${claims.replace(/'/g, "''")}', true);
+select coalesce(json_agg(to_jsonb(f)), '[]') from public.event_financials('${String(eventId).replace(/'/g, "")}'::uuid) f; rollback;`).trim();
+    return { data: JSON.parse(out.split("\n").filter(Boolean).at(-1)), error: null };
+  } catch (e) { return { data: null, error: { message: e.message.slice(0, 200) } }; }
+}
 const finReport = [];
-if (owner) {
+if (owner || ownerId) {
   for (const e of exp.events) {
     const want = expectedFinancials(String(e.id));
-    const { data, error } = await owner.c.rpc("event_financials", { p_event_id: e.id });
+    const { data, error } = await financialsAsOwner(e.id);
     const got = data?.[0];
     const same = !error && got && Object.entries(want).every(([k, v]) => (k === "balance_basis" ? got[k] === v : Number(got[k]) === v));
     finReport.push({ event: e.id, expected: want, restored: got ?? error?.message });
@@ -156,6 +189,12 @@ const isPublic = (e) => bool(e.is_published) && e.publication_consent === "grant
 const ca = await login("a");
 const cb = await login("b");
 const custOf = (uid) => exp.customers.find((c) => String(c.user_id) === uid)?.id;
+if (ca) {
+  // Custom access token hook configured on the target: the JWT carries app_role from public.profiles.
+  const claims = JSON.parse(Buffer.from(ca.token.split(".")[1], "base64url").toString("utf8"));
+  const role = sql(`select role from public.profiles where id = '${ca.uid.replace(/'/g, "")}';`).trim();
+  check(`access token hook: customer A JWT app_role = profiles.role (${role})`, claims.app_role === role, { app_role: claims.app_role ?? null });
+}
 if (ca && cb) {
   const aCust = custOf(ca.uid), bCust = custOf(cb.uid);
   check("customer A and B have customer rows in the backup", !!aCust && !!bCust, { aCust, bCust });
@@ -171,8 +210,9 @@ if (ca && cb) {
   const bEventIds = exp.events.filter((e) => String(e.customer_id) === String(bCust) && !isPublic(e)).map((e) => e.id);
   const { data: bMedia } = bEventIds.length ? await ca.c.from("media_assets").select("id").in("event_id", bEventIds) : { data: [] };
   check("customer A cannot read media of customer B's private events", (bMedia ?? []).length === 0, { got: bMedia?.length });
-  if (owner) {
-    const { error: fe } = await ca.c.rpc("event_financials", { p_event_id: bEventIds[0] ?? exp.events.find((e) => String(e.customer_id) === String(bCust))?.id });
+  const bEvent = bEventIds[0] ?? exp.events.find((e) => String(e.customer_id) === String(bCust))?.id;
+  if (bEvent) {
+    const { error: fe } = await ca.c.rpc("event_financials", { p_event_id: bEvent });
     check("customer A cannot call event_financials for customer B's event", !!fe, fe?.message);
   }
 }
@@ -217,7 +257,24 @@ if (!args["no-storage"] && args.storage) {
     const aCust = custOf(ca.uid);
     const aEvents = new Set(exp.events.filter((e) => String(e.customer_id) === String(aCust)).map((e) => String(e.id)));
     const obj = man.objects.find((o) => o.bucket === "private-media" && aEvents.has(o.path.split("/")[1]));
-    if (!obj) check("found a private object of customer A to sign", false);
+    const anyPrivate = man.objects.find((o) => o.bucket === "private-media");
+    if (!obj && anyPrivate && args["allow-no-owner-object"]) {
+      // Test users own no media (e.g. cloud rehearsal [RESTORE-TEST] customers): prove the negative half and that
+      // the restored object is servable through a signed URL (created with the secret key), and record the gap.
+      notes.push("owner-signed URL not exercised: customer A owns no private object in the source");
+      const { data: s } = await admin.storage.from("private-media").createSignedUrl(anyPrivate.path, 60);
+      const r = s?.signedUrl ? await fetch(s.signedUrl) : null;
+      const h = r?.ok ? sha256(Buffer.from(await r.arrayBuffer())) : null;
+      check(`service-signed URL serves restored private object ${anyPrivate.path} (sha256 equal)`, h === anyPrivate.sha256, { status: r?.status });
+      for (const [who, cl] of [["customer A", ca.c], ["customer B", cb.c]]) {
+        const { data: x } = await cl.storage.from("private-media").createSignedUrl(anyPrivate.path, 60);
+        check(`${who} (not the owner) cannot sign that object`, !x?.signedUrl);
+      }
+      const r2 = await fetch(`${st.url}/storage/v1/object/public/private-media/${anyPrivate.path}`);
+      check("private object is not publicly readable", r2.status >= 400, { status: r2.status });
+    } else if (!obj && !anyPrivate && args["allow-no-owner-object"]) {
+      notes.push("signed URL checks not exercised: the source has no private-media objects");
+    } else if (!obj) check("found a private object of customer A to sign", false);
     else {
       const { data: s, error } = await ca.c.storage.from("private-media").createSignedUrl(obj.path, 60);
       let h = null, status = null;
@@ -241,12 +298,13 @@ const entry = {
   run: fs.existsSync(path.join(expDir, "run.json")) ? (({ id, status, started_at, finished_at, table_counts, object_counts }) => ({ id, status, started_at, finished_at, table_counts, object_counts }))(JSON.parse(fs.readFileSync(path.join(expDir, "run.json"), "utf8")).run) : null,
   restore: restoreResult ? { auth: restoreResult.auth, skipped: restoreResult.skipped, fk_checked: restoreResult.fk_checked, fk_orphans: restoreResult.fk_orphans } : null,
   tables: tableReport, financials: finReport, storage: storageReport,
+  notes,
   summary: { checks: checks.length, passed: checks.length - failed.length, failed: failed.length },
   checks,
 };
 const all = fs.existsSync(reportFile) ? JSON.parse(fs.readFileSync(reportFile, "utf8")) : {};
 all.generated_by = "web/scripts/verify-restore.mjs";
-all.cloud_restore = "PENDING: no staging access; only local isolated-stack restores verified";
+if (!args.report) all.cloud_restore = "PENDING: no staging access; only local isolated-stack restores verified";
 all.proofs = { ...(all.proofs ?? {}), [label]: entry };
 fs.writeFileSync(reportFile, JSON.stringify(all, null, 2) + "\n");
 console.log(`\n${checks.length - failed.length}/${checks.length} checks passed -> ${reportFile}`);

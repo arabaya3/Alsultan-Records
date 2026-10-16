@@ -17,11 +17,10 @@
 // triggers do not fire and FK triggers are skipped; FK integrity is then re-checked explicitly for every
 // public foreign key. Exit code: 0 only if every table count equals the backup and no FK is orphaned.
 // In the local container the load runs as supabase_admin (setting session_replication_role needs it).
-import { spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { BACKUP_TABLES, assertTargetAllowed, parseArgs, parseCopyDump, psql, writeJson } from "./backup-lib.mjs";
+import { BACKUP_TABLES, assertTargetAllowed, parseArgs, parseCopyDump, runPsql, writeJson } from "./backup-lib.mjs";
 
 const args = parseArgs();
 if (!args.from || (!args.container && !args["db-url"])) {
@@ -35,15 +34,15 @@ if (args.container === MAIN_CONTAINER || /:54322\//.test(args["db-url"] ?? "")) 
 }
 if (args["db-url"]) assertTargetAllowed(args["db-url"].replace(/^postgres(ql)?:/, "http:"), { ...args, "target-url": args["target-url"]?.replace(/^postgres(ql)?:/, "http:") }, "backup-restore");
 
-const target = args.container ? { container: args.container } : { dbUrl: args["db-url"] };
-const asAdmin = args.container ? ["-U", "supabase_admin"] : [];
-// psql() in backup-lib connects as postgres; in the container we need supabase_admin.
-function sqlExec(sql) {
-  if (!target.container) return psql(target, sql);
-  const r = spawnSync("docker", ["exec", "-i", target.container, "psql", ...asAdmin, "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-X", "-q", "-At"], { input: sql, encoding: "utf8", maxBuffer: 1 << 30 });
+// Container: run as supabase_admin. --db-url: the URL's user; password only via PGPASSWORD env (never argv);
+// psql on PATH or a throwaway docker client (see backup-lib runPsql).
+const target = args.container ? { container: args.container, user: "supabase_admin" } : { dbUrl: args["db-url"] };
+function sqlRun(sql) {
+  const r = runPsql(target, sql);
   if (r.status !== 0) throw new Error(`psql failed (${r.status}): ${r.stderr || r.error}`);
-  return r.stdout;
+  return r;
 }
+const sqlExec = (sql) => sqlRun(sql).stdout;
 
 const from = path.resolve(args.from);
 const MIGRATION_SEEDED = new Set(["business_settings", "app_settings", "service_categories"]);
@@ -189,12 +188,7 @@ end $$;
 `;
 }
 sql += "commit;\n";
-const loadOut = pgDump ? { stdout: BACKUP_TABLES.map((t) => `${t}|${orig[t]}`).join("\n"), stderr: "" } : (() => {
-  if (!target.container) return { stdout: psql(target, sql), stderr: "" };
-  const r = spawnSync("docker", ["exec", "-i", target.container, "psql", ...asAdmin, "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-X", "-q", "-At"], { input: sql, encoding: "utf8", maxBuffer: 1 << 30 });
-  if (r.status !== 0) throw new Error(`psql failed (${r.status}): ${r.stderr || r.error}`);
-  return r;
-})();
+const loadOut = pgDump ? { stdout: BACKUP_TABLES.map((t) => `${t}|${orig[t]}`).join("\n"), stderr: "" } : sqlRun(sql);
 const inserted = Object.fromEntries(loadOut.stdout.trim().split("\n").filter(Boolean).map((l) => l.split("|")).map(([t, n]) => [t, Number(n)]));
 for (const line of loadOut.stderr.split("\n")) {
   const m = /SKIPFX\|public\.([^|]+)\|([^|]+)\|([^|]+)\|(\d+)|SKIPFX\|([^|]+)\|([^|]+)\|([^|]+)\|(\d+)/.exec(line);
@@ -234,13 +228,7 @@ begin
     raise notice 'FK|%|%|%|%', r.conname, r.child, r.parent, v;
   end loop;
 end $$;`;
-const fkOut = (() => {
-  const r = target.container
-    ? spawnSync("docker", ["exec", "-i", target.container, "psql", ...asAdmin, "-d", "postgres", "-v", "ON_ERROR_STOP=1", "-X", "-q", "-At"], { input: fkSql, encoding: "utf8" })
-    : spawnSync("psql", [target.dbUrl, "-v", "ON_ERROR_STOP=1", "-X", "-q", "-At"], { input: fkSql, encoding: "utf8" });
-  if (r.status !== 0) throw new Error(r.stderr);
-  return r.stderr;
-})();
+const fkOut = sqlRun(fkSql).stderr;
 let fkChecked = 0;
 for (const line of fkOut.split("\n")) {
   const m = /FK\|([^|]+)\|([^|]+)\|([^|]+)\|(\d+)/.exec(line);

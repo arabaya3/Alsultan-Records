@@ -64,7 +64,8 @@ export function assertTargetAllowed(url, args, what) {
 /** Resolve a local stack's URL + keys with `supabase status -o env` for a given workdir. */
 export function stackStatus(workdir) {
   const args = ["supabase", "status", "-o", "json"];
-  if (workdir) args.push("--workdir", workdir);
+  // relative to WEB_ROOT: on Windows the command goes through a shell and the repo path contains a space
+  if (workdir) args.push("--workdir", path.relative(WEB_ROOT, path.resolve(WEB_ROOT, workdir)).split(path.sep).join("/") || ".");
   const out = execFileSync("npx", args, { cwd: WEB_ROOT, encoding: "utf8", shell: process.platform === "win32", stdio: ["ignore", "pipe", "ignore"] });
   const j = JSON.parse(out.slice(out.indexOf("{")));
   return { url: j.API_URL, secret: j.SECRET_KEY, publishable: j.PUBLISHABLE_KEY, dbUrl: j.DB_URL };
@@ -101,13 +102,45 @@ export function unzip(buf) {
  * Run SQL against a Postgres either inside a local Supabase db container (`--container`)
  * or through psql on PATH (`--db-url`). Returns stdout; throws on non-zero exit.
  */
-export function psql({ container, dbUrl }, sql, extra = []) {
-  const base = ["-v", "ON_ERROR_STOP=1", "-X", "-q", "-At", ...extra];
-  const r = container
-    ? spawnSync("docker", ["exec", "-i", container, "psql", "-U", "postgres", "-d", "postgres", ...base], { input: sql, encoding: "utf8", maxBuffer: 1 << 30 })
-    : spawnSync("psql", [dbUrl, ...base], { input: sql, encoding: "utf8", maxBuffer: 1 << 30 });
+export function psql(target, sql, extra = []) {
+  const r = runPsql(target, sql, { extra });
   if (r.status !== 0) throw new Error(`psql failed (${r.status}): ${r.stderr || r.error}`);
   return r.stdout;
+}
+
+let hasLocalPsql;
+/**
+ * Spawns psql and returns the raw spawnSync result (stdout, stderr = notices, status).
+ *  - { container, user }: `docker exec` into a local Supabase db container.
+ *  - { dbUrl }: psql on PATH, or (when absent) a throwaway client container
+ *    (`docker run --rm`, image PSQL_IMAGE, default postgres:17.6-alpine). The URL must NOT contain the
+ *    password: it is read from PGPASSWORD in this process's environment and forwarded with `-e PGPASSWORD`
+ *    (name only), so it never appears in argv. 127.0.0.1/localhost is rewritten to host.docker.internal.
+ */
+export function runPsql({ container, dbUrl, user }, sql, { extra = [] } = {}) {
+  const base = ["-v", "ON_ERROR_STOP=1", "-X", "-q", "-At", ...extra];
+  const opts = { input: sql, encoding: "utf8", maxBuffer: 1 << 30 };
+  if (container) return spawnSync("docker", ["exec", "-i", container, "psql", "-U", user ?? "postgres", "-d", "postgres", ...base], opts);
+  if (/^postgres(ql)?:\/\/[^/@]*:[^/@]*@/.test(dbUrl)) throw new Error("refusing: db URL contains a password; pass it via PGPASSWORD");
+  hasLocalPsql ??= spawnSync("psql", ["--version"], { stdio: "ignore" }).status === 0;
+  if (hasLocalPsql) return spawnSync("psql", [dbUrl, ...base], opts);
+  const url = dbUrl.replace(/@(127\.0\.0\.1|localhost)([:/])/, "@host.docker.internal$2");
+  return spawnSync("docker", ["run", "--rm", "-i", "-e", "PGPASSWORD", "-e", "PGSSLMODE", "--add-host", "host.docker.internal:host-gateway",
+    process.env.PSQL_IMAGE || "postgres:17.6-alpine", "psql", url, ...base], opts);
+}
+
+/** COPY-block parser tolerant of `supabase db dump` quoting (COPY "public"."t" ("a", "b") FROM stdin;). */
+export function splitCopyBlocks(text) {
+  const blocks = [];
+  const lines = text.split("\n");
+  for (let i = 0; i < lines.length; i++) {
+    const m = /^COPY "?([a-z0-9_]+)"?\."?([a-z0-9_]+)"? \((.*)\) FROM stdin;$/.exec(lines[i]);
+    if (!m) continue;
+    const start = i;
+    while (lines[++i] !== "\\.") if (i >= lines.length) throw new Error(`unterminated COPY block for ${m[1]}.${m[2]}`);
+    blocks.push({ schema: m[1], table: m[2], cols: m[3].split(", ").map((c) => c.replace(/^"|"$/g, "")), rows: lines.slice(start + 1, i) });
+  }
+  return blocks;
 }
 
 export function writeJson(file, obj) {
