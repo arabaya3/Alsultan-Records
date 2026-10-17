@@ -4,6 +4,7 @@ import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
 import { Reveal } from "@/components/motion/Reveal";
 import { MaskReveal } from "@/components/motion/ScrollEffects";
 import { JsonLd } from "@/components/ui/JsonLd";
+import { PROMO_CAPTION, promoVideoJsonLd } from "@/components/media/promo/promo-seo";
 import { Section, SectionHeading } from "@/components/ui/Layout";
 import { bookingHref, telHref } from "@/features/public-content/contact";
 import { FALLBACK_SERVICES, HERO, STEPS } from "@/features/public-content/home-content";
@@ -38,7 +39,6 @@ export default async function HomePage() {
   const s = settings.status === "ok" ? settings.data : null;
   const book = bookingHref(s);
   const g = gallery.status === "ok" ? gallery.data : null;
-  const promo = g?.promo ?? null;
   const works = g ? homeSelection(g, 6) : [];
   const channel = safeHttp(s?.youtube_url ?? null);
   const serviceList =
@@ -49,6 +49,7 @@ export default async function HomePage() {
   return (
     <>
       {s ? <JsonLd data={localBusinessJsonLd(s)} /> : null}
+      <JsonLd data={promoVideoJsonLd()} />
 
       {/* Inline, before the hero markup: arms the intro for the first paint (motion allowed only). */}
       <script dangerouslySetInnerHTML={{ __html: INTRO_ARM_SCRIPT }} />
@@ -60,11 +61,7 @@ export default async function HomePage() {
         workHref={g && g.videos.length ? "/work" : null}
         whatsappHref={book}
         phone={s?.phone ? { label: s.phone, href: telHref(s.phone) } : null}
-        promo={
-          promo
-            ? { youtubeId: promo.youtube_id, title: promo.title, caption: HERO.promoCaption, duration: durationLabel(promo.duration_seconds) }
-            : null
-        }
+        promo={{ caption: PROMO_CAPTION }}
         strip={works.slice(0, 4).map((v) => ({ youtubeId: v.youtube_id, title: v.title }))}
       />
 

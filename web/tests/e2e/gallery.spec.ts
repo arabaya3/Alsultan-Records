@@ -89,7 +89,7 @@ test("unknown category shows an honest empty state; bad params are ignored", asy
 });
 
 test("pagination: 9 per page, «تحميل المزيد» keeps URL state, no iframe in the grid", async ({ page }) => {
-  const all = vids.filter((v) => !v.is_promo);
+  const all = vids; // the is_promo YouTube work is a normal grid item now (hero/feature use the self-hosted promo)
   await page.goto("/work");
   expect(await page.locator("iframe").count()).toBe(0);
   expect((await cardIds(page)).length).toBe(Math.min(9, all.length));

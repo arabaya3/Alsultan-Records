@@ -60,6 +60,12 @@ const nextConfig: NextConfig = {
           { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],
       },
+      {
+        // Studio promo: content-hashed filenames written by scripts/sync-promo.mjs (new file → new URL),
+        // so long-lived immutable caching is safe. Range requests are served by the static file server/CDN.
+        source: "/promo/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
     ];
   },
   turbopack: {

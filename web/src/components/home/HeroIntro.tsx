@@ -3,7 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useLayoutEffect, useRef } from "react";
-import { PromoPlayer } from "@/components/media/youtube/PromoPlayer";
+import { SitePromoPlayer } from "@/components/media/promo/SitePromoPlayer";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { gsap, MOTION_OK } from "@/components/motion/gsap";
 import { youTubeThumbUrl } from "@/lib/youtube";
@@ -17,12 +17,8 @@ export type HeroIntroProps = {
   workHref: string | null;
   whatsappHref: string | null;
   phone: { label: string; href: string } | null;
-  promo: {
-    youtubeId: string;
-    title: string;
-    caption: string;
-    duration: string | null;
-  } | null;
+  /** Self-hosted studio promo (static asset in /public/promo); null hides the card. */
+  promo: { caption: string } | null;
   /** The studio's own published YouTube works (i.ytimg thumbnails only). */
   strip: { youtubeId: string; title: string }[];
 };
@@ -309,12 +305,7 @@ export function HeroIntro(p: HeroIntroProps) {
         <div className="min-w-0">
           {p.promo ? (
             <div data-intro="media">
-              <PromoPlayer
-                youtubeId={p.promo.youtubeId}
-                title={p.promo.title}
-                caption={p.promo.caption}
-                duration={p.promo.duration}
-              />
+              <SitePromoPlayer caption={p.promo.caption} priority />
             </div>
           ) : null}
           {p.strip.length >= 3 ? (

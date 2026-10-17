@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
  */
 const BASE = process.env.BASE_URL ?? "http://localhost:3400";
 
-test("home on a phone: promo plays in-page, WhatsApp booking, menu without portal, no overflow @mobile", async ({ page }) => {
+test("home on a phone: self-hosted promo plays in-page, WhatsApp booking, menu without portal, no overflow @mobile", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
@@ -27,24 +27,16 @@ test("home on a phone: promo plays in-page, WhatsApp booking, menu without porta
   await expect(dialog.locator('a[href^="/portal"], a[href^="/track"], a[href^="/login"]')).toHaveCount(0);
   await page.keyboard.press("Escape");
 
-  // Promo: no iframe before tap; tap opens the dialog with the nocookie embed and YouTube plays.
-  expect(await page.locator("iframe").count()).toBe(0);
+  // Promo (self-hosted, /promo/*.mp4): no <video> before tap; tap opens the dialog with the portrait cut and it plays.
+  expect(await page.locator("iframe, video").count()).toBe(0);
   await page.getByRole("button", { name: /شاهد البرومو/ }).first().click();
-  const frame = page.locator('[role="dialog"] iframe');
-  await expect(frame).toHaveAttribute("src", /youtube-nocookie\.com\/embed\/y0-ajKb7Umw/);
-  const yt = page.frameLocator('[role="dialog"] iframe');
-  const playing = await expect
-    .poll(async () => yt.locator("video").evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime > 0.3).catch(() => false), { timeout: 30_000 })
-    .toBe(true)
-    .then(() => true, () => false);
-  if (!playing) {
-    await yt.locator(".ytp-large-play-button, button[aria-label*='Play']").first().click({ timeout: 10_000 }).catch(() => {});
-    await expect.poll(async () => yt.locator("video").evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime > 0.3).catch(() => false), { timeout: 30_000 }).toBe(true);
-  }
-  await expect(page.getByRole("link", { name: /شاهد على YouTube/ })).toHaveAttribute("href", "https://www.youtube.com/watch?v=y0-ajKb7Umw");
-  // On touch devices focus can be inside YouTube's iframe (Esc goes to YouTube), so close with the button.
+  const video = page.locator("[data-promo-dialog] video");
+  await expect(video).toHaveAttribute("src", /^\/promo\/sultan-promo-1080x1920\.[0-9a-f]{8}\.mp4$/);
+  await expect
+    .poll(async () => video.evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime > 0.3).catch(() => false), { timeout: 20_000 })
+    .toBe(true);
   await page.getByRole("button", { name: "إغلاق الفيديو" }).click();
-  await expect(page.locator('[role="dialog"] iframe')).toHaveCount(0);
+  await expect(page.locator("[data-promo-dialog]")).toHaveCount(0);
 
   // Footer: phone readable LTR, no overflow.
   const tel = page.locator('footer a[href^="tel:"]').first();

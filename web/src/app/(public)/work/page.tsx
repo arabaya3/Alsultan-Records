@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AlbumCard } from "@/components/media/gallery/AlbumCard";
 import { ProjectTile } from "@/components/media/ProjectTile";
+import { SitePromoPlayer } from "@/components/media/promo/SitePromoPlayer";
+import { PROMO_CAPTION } from "@/components/media/promo/promo-seo";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
 import { PageIntro, Section } from "@/components/ui/Layout";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/States";
@@ -76,9 +78,11 @@ async function Videos({ q }: { q: WorkQuery }) {
   }
   const channel = settings.status === "ok" ? safeHttp(settings.data?.youtube_url ?? null) : null;
   const active = q.cat ? (g.categories.find((c) => c.slug === q.cat) ?? null) : null;
-  const list = filterVideos(g, active ? active.slug : null);
+  // Unfiltered: every published YouTube work, including the one flagged is_promo (a real work, no
+  // longer featured; the highlight slot belongs to the self-hosted studio promo).
+  const list = active ? filterVideos(g, active.slug) : g.videos;
   const { shown, page, hasMore, total } = paginate(q.cat && !active ? [] : list, q.page);
-  const promo = !q.cat ? g.promo : null;
+  const featured = !q.cat && page === 1;
 
   return (
     <>
@@ -102,12 +106,12 @@ async function Videos({ q }: { q: WorkQuery }) {
         </nav>
       ) : null}
 
-      {promo && page === 1 ? (
-        <div className="mb-12 grid items-start gap-6 lg:grid-cols-[1.6fr_1fr] lg:gap-10">
-          <YouTubeCard video={toCardVideo(promo, durationLabel(promo.duration_seconds))} priority sizes="(min-width: 1024px) 60vw, 100vw" />
+      {featured ? (
+        <div data-work-promo className="mb-12 grid items-start gap-6 lg:grid-cols-[1.6fr_1fr] lg:gap-10">
+          <SitePromoPlayer label="فيديو تعريفي بالاستوديو" caption={PROMO_CAPTION} priority sizes="(min-width: 1024px) 60vw, 100vw" />
           <div>
-            <p className="text-sm font-semibold text-gold-text">مقطع مختار</p>
-            {promo.description ? <p className="mt-2 line-clamp-6 whitespace-pre-line text-lg text-on-cream-muted">{promo.description}</p> : null}
+            <p className="text-sm font-semibold text-gold-text">فيديو تعريفي بالاستوديو</p>
+            <p className="mt-2 text-lg text-on-cream-muted">لمحة سريعة عن شغلنا في الأعراس والمناسبات: تصوير، أفلام وDJ.</p>
           </div>
         </div>
       ) : null}
@@ -119,7 +123,7 @@ async function Videos({ q }: { q: WorkQuery }) {
         <ul data-video-grid className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
           {shown.map((v, i) => (
             <li key={v.id} className="h-full">
-              <YouTubeCard video={toCardVideo(v, durationLabel(v.duration_seconds))} priority={!promo && i < 3} />
+              <YouTubeCard video={toCardVideo(v, durationLabel(v.duration_seconds))} priority={!featured && i < 3} />
             </li>
           ))}
         </ul>

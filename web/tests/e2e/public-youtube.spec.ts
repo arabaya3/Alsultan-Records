@@ -27,11 +27,11 @@ async function playbackState(page: Page) {
   return video.evaluate((v: HTMLVideoElement) => ({ t: v.currentTime, paused: v.paused }));
 }
 
-test("no iframe before click; promo dialog opens, plays, closes and returns focus", async ({ page }) => {
-  await page.goto("/", { waitUntil: "networkidle" });
+test("no iframe before click; the former YouTube promo (now a normal work on /work) opens, plays, closes and returns focus", async ({ page }) => {
+  await page.goto("/work", { waitUntil: "networkidle" });
   expect(await page.locator("iframe").count(), "no iframe on load (no autoplay)").toBe(0);
 
-  const trigger = page.locator("[data-promo-trigger]");
+  const trigger = page.locator(`[data-video-grid] [data-youtube-card="${PROMO}"]`);
   await expect(trigger).toBeVisible();
   await trigger.click();
   const dialog = page.getByRole("dialog");
@@ -65,8 +65,8 @@ test("no iframe before click; promo dialog opens, plays, closes and returns focu
 });
 
 test("dialog traps keyboard focus", async ({ page }) => {
-  await page.goto("/");
-  await page.locator("[data-promo-trigger]").focus();
+  await page.goto("/work", { waitUntil: "networkidle" });
+  await page.locator(`[data-video-grid] [data-youtube-card="${PROMO}"]`).focus();
   await page.keyboard.press("Enter");
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByRole("button", { name: "إغلاق الفيديو" })).toBeFocused();
