@@ -208,6 +208,9 @@ export const packageSchema = z
     whatsapp_message: optText(600, "رسالة واتساب"),
     status: z.enum(["draft", "published", "hidden"]),
     featured: z.boolean(),
+    group_label: optText(40, "المجموعة"),
+    gift: optText(200, "الهدية"),
+    internal_note: optText(1000, "الملاحظة الداخلية"),
     items: z.array(reqText(120, "خدمة مشمولة")).max(30, "خدمات كثيرة (30 حداً أقصى)"),
   })
   .refine((v) => !v.show_price || v.price_minor !== null, { message: "أدخل السعر أو ألغِ «إظهار السعر»." });

@@ -203,6 +203,8 @@ export function offerPeriodLabel(o: Pick<OfferRow, "target_month" | "target_year
 export function offerPriceLabel(o: Pick<OfferRow, "show_price" | "display_price_minor" | "currency">): string | null {
   if (!o.show_price || o.display_price_minor == null) return null;
   const major = o.display_price_minor / 100;
+  // Shekel prices read «1,300 شيكل» (owner's wording), not the ₪ symbol.
+  if (o.currency === "ILS") return `${major.toLocaleString("en-US", { maximumFractionDigits: 2 })} شيكل`;
   try {
     return new Intl.NumberFormat("ar-PS", { style: "currency", currency: o.currency, maximumFractionDigits: major % 1 ? 2 : 0 }).format(major);
   } catch {
@@ -240,10 +242,23 @@ export const packageRow = z.object({
   whatsapp_message: text(600),
   featured: bool(false),
   sort_order: num(0),
+  group_label: text(40),
+  gift: text(200),
 });
 export type PackageRow = z.infer<typeof packageRow>;
 export const packageItemRow = z.object({ package_id: z.string(), label: z.string().min(1).transform((v) => v.slice(0, 120)), sort_order: num(0) });
 export type Package = PackageRow & { items: string[] };
+/** Groups in order of their first package (owner order); packages without a group go last. */
+export function groupPackages<T extends Pick<PackageRow, "group_label" | "sort_order">>(list: T[]): { label: string | null; items: T[] }[] {
+  const groups: { label: string | null; items: T[] }[] = [];
+  for (const p of sortPackages(list)) {
+    const label = p.group_label?.trim() || null;
+    const g = groups.find((x) => x.label === label);
+    if (g) g.items.push(p);
+    else groups.push({ label, items: [p] });
+  }
+  return [...groups.filter((g) => g.label), ...groups.filter((g) => !g.label)];
+}
 export const sortPackages = <T extends Pick<PackageRow, "sort_order">>(list: T[]): T[] => [...list].sort((a, b) => a.sort_order - b.sort_order);
 /** WhatsApp text always names the package (owner may write their own message). */
 export const packageWhatsappText = (p: Pick<PackageRow, "title" | "whatsapp_message">) =>

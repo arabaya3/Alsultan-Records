@@ -27,6 +27,11 @@ export function PackageCard({ pkg }: { pkg: Package }) {
           ))}
         </ul>
       ) : null}
+      {pkg.gift ? (
+        <p data-package-gift className="mt-3 text-sm">
+          <span className="font-semibold text-gold-press">الهدية:</span> {pkg.gift}
+        </p>
+      ) : null}
       <div className="mt-auto flex flex-wrap items-center gap-x-4 gap-y-3 pt-4">
         {price ? <span data-package-price className="text-lg font-semibold">{price}</span> : null}
         <WhatsAppCta text={packageWhatsappText(pkg)} label={`اسأل عن ${pkg.title}`} />

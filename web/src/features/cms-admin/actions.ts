@@ -432,6 +432,9 @@ function readPackage(fd: FormData) {
     whatsapp_message: str(fd, "whatsapp_message"),
     status,
     featured: bool(fd, "featured"),
+    group_label: str(fd, "group_label"),
+    gift: str(fd, "gift"),
+    internal_note: str(fd, "internal_note"),
     items: fd.getAll("items").map(String).map((s) => s.trim()).filter(Boolean),
   });
 }

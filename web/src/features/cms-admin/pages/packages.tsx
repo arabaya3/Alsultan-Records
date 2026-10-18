@@ -27,8 +27,12 @@ type PackageDb = {
   status: PackageStatus;
   featured: boolean;
   sort_order: number;
+  group_label: string | null;
+  gift: string | null;
+  internal_note: string | null;
 };
-const PACKAGE_COLS = "id, slug, title, description, image_photo_id, price_minor, currency, show_price, whatsapp_message, status, featured, sort_order";
+const PACKAGE_COLS =
+  "id, slug, title, description, image_photo_id, price_minor, currency, show_price, whatsapp_message, status, featured, sort_order, group_label, gift, internal_note";
 
 export async function PackagesPage({ searchParams }: { searchParams: SP }) {
   if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
@@ -93,6 +97,8 @@ function PackageRowView({ p }: { p: PackageDb }) {
         <Badge tone={b.tone}>{b.label}</Badge>
       </span>
       {p.featured ? <Badge tone="gold">مميّز</Badge> : null}
+      {p.group_label ? <span className="text-xs text-on-cream-muted" data-testid="package-group">{p.group_label}</span> : null}
+      {p.internal_note ? <span title={p.internal_note}><Badge tone="gold">ملاحظة داخلية</Badge></span> : null}
       <ActionForm action={setPackageFeatured} submitLabel={p.featured ? "إلغاء التمييز" : "تمييز"} kind="ghost" inline>
         <input type="hidden" name="id" value={p.id} />
         <input type="hidden" name="value" value={p.featured ? "0" : "1"} />
@@ -121,12 +127,14 @@ export async function PackageEditPage({ params, searchParams }: { params: IdPara
   const isNew = id === "new";
   if (!isNew && !isUuid(id)) return <CmsLoadError what="البكج" />;
   const sb = await cms();
-  const [row, items, photos, linked] = await Promise.all([
+  const [row, items, photos, linked, groupsRes] = await Promise.all([
     isNew ? Promise.resolve({ data: null, error: null }) : sb.from("packages").select(PACKAGE_COLS).eq("id", id).maybeSingle(),
     isNew ? Promise.resolve({ data: [] }) : sb.from("package_items").select("label, sort_order").eq("package_id", id).order("sort_order"),
     pickPhotos(sb),
     isNew ? Promise.resolve({ data: [] }) : sb.from("offers").select("id, title").eq("package_id", id).order("sort_order"),
+    sb.from("packages").select("group_label").not("group_label", "is", null),
   ]);
+  const groups = Array.from(new Set(((groupsRes.data ?? []) as { group_label: string }[]).map((g) => g.group_label)));
   if (row.error || (!isNew && !row.data)) return <CmsLoadError error={row.error} what="البكج" />;
   const p = row.data as PackageDb | null;
   const b = p ? packageBadge(p) : null;
@@ -168,6 +176,17 @@ export async function PackageEditPage({ params, searchParams }: { params: IdPara
             <Field label="الوصف" hint="حتى 1000 حرف." className="sm:col-span-2">
               <textarea name="description" rows={3} maxLength={1000} defaultValue={p?.description ?? ""} className={inputCls} />
             </Field>
+            <Field label="المجموعة (اختياري)" hint="عنوان تتجمّع تحته البكجات في الموقع، مثل: العرسان، مناسبات الرجال، السهرات، DJ.">
+              <input name="group_label" maxLength={40} list="package-groups" defaultValue={p?.group_label ?? ""} className={inputCls} />
+              <datalist id="package-groups">
+                {groups.map((g) => (
+                  <option key={g} value={g} />
+                ))}
+              </datalist>
+            </Field>
+            <Field label="الهدية (اختياري)" hint="سطر «الهدية: …» في البطاقة. حتى 200 حرف.">
+              <input name="gift" maxLength={200} defaultValue={p?.gift ?? ""} className={inputCls} />
+            </Field>
             <div className="sm:col-span-2">
               <ItemsEditor legend="الخدمات المشمولة" max={30} defaultValue={((items.data ?? []) as { label: string }[]).map((i) => i.label)} />
             </div>
@@ -190,6 +209,9 @@ export async function PackageEditPage({ params, searchParams }: { params: IdPara
             <div className="sm:col-span-2">
               <PhotoPicker name="image_photo_id" label="صورة البكج (اختياري)" photos={photos} defaultValue={p?.image_photo_id} />
             </div>
+            <Field label="ملاحظة داخلية (للإدارة فقط — لا تظهر للزوار)" hint="مثلاً سؤال مفتوح عن تفاصيل البكج. حتى 1000 حرف." className="sm:col-span-2">
+              <textarea name="internal_note" rows={2} maxLength={1000} defaultValue={p?.internal_note ?? ""} className={inputCls} data-testid="package-internal-note" />
+            </Field>
             <label className="flex min-h-10 items-center gap-2 text-sm sm:col-span-2">
               <input type="checkbox" name="featured" defaultChecked={p?.featured ?? false} /> بكج مميّز (إطار ذهبي وشارة «مميّز»)
             </label>

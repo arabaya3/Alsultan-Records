@@ -294,7 +294,8 @@ async function run(F) {
     // migration 0017 — ACTIVE announcements only (RLS); is_visible/updated_by stay admin-only
     announcements: "id template text link_kind link_offer_id link_page starts_on ends_on dismissible sort_order".split(" "),
     // migration 0019 — PUBLISHED packages only (RLS); raw price_minor/status/updated_by stay admin-only
-    packages: "id slug title description image_photo_id display_price_minor currency show_price whatsapp_message featured sort_order".split(" "),
+    // migration 0020 adds group_label + gift (internal_note stays admin-only)
+    packages: "id slug title description image_photo_id display_price_minor currency show_price whatsapp_message featured sort_order group_label gift".split(" "),
     // migration 0019 — items of published packages
     package_items: "id package_id label sort_order".split(" "),
     // migration 0018 — published album categories

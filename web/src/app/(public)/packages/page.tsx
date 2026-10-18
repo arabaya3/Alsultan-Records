@@ -3,6 +3,7 @@ import { PageIntro, Section } from "@/components/ui/Layout";
 import { EmptyState, ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { getPublishedPackages } from "@/features/public-content/cms-queries";
+import { groupPackages } from "@/features/public-content/cms-model";
 import { pageMetadata } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -26,16 +27,22 @@ export default async function PackagesPage() {
             action={<WhatsAppCta />}
           />
         ) : (
-          <>
-            <h2 className="sr-only">البكجات</h2>
-            <ul data-package-grid className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
-              {res.data.map((p) => (
-                <li key={p.id} className="h-full">
-                  <PackageCard pkg={p} />
-                </li>
-              ))}
-            </ul>
-          </>
+          <div className="space-y-16">
+            {groupPackages(res.data).map((g, gi) => (
+              <section key={g.label ?? `other-${gi}`} data-package-group={g.label ?? ""} aria-labelledby={`pkg-group-${gi}`}>
+                <h2 id={`pkg-group-${gi}`} className={g.label ? "mb-6 text-2xl font-bold md:text-3xl" : "sr-only"}>
+                  {g.label ?? "بكجات أخرى"}
+                </h2>
+                <ul data-package-grid className="grid gap-x-6 gap-y-12 sm:grid-cols-2 lg:grid-cols-3">
+                  {g.items.map((p) => (
+                    <li key={p.id} className="h-full">
+                      <PackageCard pkg={p} />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            ))}
+          </div>
         )}
       </Section>
     </>

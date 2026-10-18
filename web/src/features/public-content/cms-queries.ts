@@ -134,7 +134,7 @@ export async function getActiveOffers(): Promise<Loaded<Offer[]>> {
   }
 }
 
-const PACKAGE_COLUMNS = "id, slug, title, description, image_photo_id, display_price_minor, currency, show_price, whatsapp_message, featured, sort_order";
+const PACKAGE_COLUMNS = "id, slug, title, description, image_photo_id, display_price_minor, currency, show_price, whatsapp_message, featured, sort_order, group_label, gift";
 
 /** Published packages (anon RLS: status = 'published'), owner order, with their included services. */
 export async function getPublishedPackages(): Promise<Loaded<Package[]>> {

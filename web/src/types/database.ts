@@ -855,14 +855,14 @@ isOneToOne: false
                   ]
                 },"packages": {
                   Row: {
-                    "created_at": string,"currency": string,"description": string | null,"display_price_minor": number | null,"featured": boolean,"id": string,"image_photo_id": string | null,"price_minor": number | null,"show_price": boolean,"slug": string,"sort_order": number,"status": string,"title": string,"updated_at": string,"updated_by": string | null,"whatsapp_message": string | null
+                    "created_at": string,"currency": string,"description": string | null,"display_price_minor": number | null,"featured": boolean,"gift": string | null,"group_label": string | null,"id": string,"image_photo_id": string | null,"internal_note": string | null,"price_minor": number | null,"show_price": boolean,"slug": string,"sort_order": number,"status": string,"title": string,"updated_at": string,"updated_by": string | null,"whatsapp_message": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"featured"?: boolean,"id"?: string,"image_photo_id"?: string | null,"price_minor"?: number | null,"show_price"?: boolean,"slug": string,"sort_order"?: number,"status"?: string,"title": string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
+                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"featured"?: boolean,"gift"?: string | null,"group_label"?: string | null,"id"?: string,"image_photo_id"?: string | null,"internal_note"?: string | null,"price_minor"?: number | null,"show_price"?: boolean,"slug": string,"sort_order"?: number,"status"?: string,"title": string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"featured"?: boolean,"id"?: string,"image_photo_id"?: string | null,"price_minor"?: number | null,"show_price"?: boolean,"slug"?: string,"sort_order"?: number,"status"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
+                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"featured"?: boolean,"gift"?: string | null,"group_label"?: string | null,"id"?: string,"image_photo_id"?: string | null,"internal_note"?: string | null,"price_minor"?: number | null,"show_price"?: boolean,"slug"?: string,"sort_order"?: number,"status"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
                   }
                   Relationships: [
                     {

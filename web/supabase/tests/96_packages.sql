@@ -2,7 +2,7 @@
 -- admin-only writes, offer→package link never changes the package, target period columns, nav target.
 -- Users (LOCAL DEV seed): admin a2 (aal2), customer b1.
 begin;
-select plan(22);
+select plan(24);
 
 update public.app_settings set require_staff_mfa = true where id = 1;
 
@@ -28,6 +28,9 @@ select throws_ok($$insert into public.packages (slug, title, status) values ('pk
 select ok(app.is_site_target('packages'), 'packages is an allow-listed nav target');
 select is((select string_agg(target, ',' order by sort_order) from public.nav_items where is_visible), 'work,packages,offers,services,about',
   'visible nav order: أعمالنا | البكجات | العروض | الخدمات | من نحن');
+
+select ok(not has_column_privilege('anon', 'public.packages', 'internal_note', 'SELECT'), 'anon has no grant on packages.internal_note');
+select ok(has_column_privilege('anon', 'public.packages', 'gift', 'SELECT') and has_column_privilege('anon', 'public.packages', 'group_label', 'SELECT'), 'anon reads gift + group_label');
 
 -- ------------------------------------------------------------------ anon
 set local role anon;
