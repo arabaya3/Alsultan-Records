@@ -323,3 +323,12 @@ Scope approved by the owner: public showcase site; videos from the studio's YouT
 | Live secrets | 15 JS files: none |
 | Intro perf (Pixel 7, 4× CPU, local) | LCP median 1556 ms, TBT ≈ 227 ms, CLS 0; intro ≈ 2.0 s, interactive from first frame |
 | Motion evidence | `docs/motion/intro-desktop.webm`, `intro-mobile.webm` (+ posters, reduced-motion still) — intro animation of logo + text, not a works montage |
+
+## CMS round — live verification (2026-10-18, deploy cbdf878)
+`node web/scripts/live-cms-check.mjs` against https://sultan-records.vercel.app, temporary `[STAGING-TEST]` admin with TOTP (owner untouched). **16/16 passed**:
+identity tagline visible live in ~1.5 s without deploy (restored); service publish → /services (1.6 s) → hide → gone (3.4 s);
+offer publish → /offers (1.6 s); announcement links to the offer (1.4 s); offer end date set to yesterday (Asia/Hebron) → gone from /offers and /offers/<slug> 404;
+nav rename visible with URL `/services` unchanged (restored); pending photo processed by pg_cron → `/api/jobs/process-photos` with no browser in 62 s.
+Cleanup: 0 test rows/users/objects left. Real data after: 7 albums, 128 photos, 19 videos, 6 nav items, 1 user (owner).
+Local: pgTAP 309/309, vitest 57/57, tsc clean, lint 0 errors, admin/CMS/albums/pipeline/MFA e2e 35/35, qa-* 40 passed.
+Screenshots: `docs/screenshots/cms/`.

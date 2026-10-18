@@ -75,3 +75,8 @@ Dev logins: comments at the top of `web/supabase/seed.sql` (local only).
 The new app lives entirely in `web/`; the live site is untouched. On staging: pause the project, or reset it (destructive — explicit confirmation required). Migrations are forward-only; restore procedure in `docs/backup-restore.md`.
 
 No public hosting deploy and no replacement of the current website until you explicitly authorize it.
+
+## CMS (2026-10-18)
+Owner content management under `/admin/content/*` (identity, home, services, process, offers, announcements, nav) and `/admin/albums`, `/admin/videos`. Guide: `docs/admin-guide-ar.md`. Contract: `docs/cms-contract.md`. Live check: `web/scripts/live-cms-check.mjs`.
+Rollback: Vercel → Deployments → Promote the deployment before cbdf878 (migrations 17/18 are additive; the old code ignores the new tables), or `git revert` + `npx vercel deploy --prod --yes`.
+Backup: independent export (`web/scripts/backup-export.mjs`) tested and restored to an isolated local stack (checksums 434/434 + 384/384). No scheduled off-site copy yet (needs an owner-controlled destination).
