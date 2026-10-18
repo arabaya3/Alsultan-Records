@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Lightbox, type LightboxItem } from "./Lightbox";
 
@@ -13,6 +14,7 @@ function Thumb({ p, index, onOpen }: { p: AlbumGalleryPhoto; index: number; onOp
     const img = imgRef.current;
     if (img?.complete) setState(img.naturalWidth > 0 ? "ready" : "error");
   }, []);
+  // The tile keeps the photo's own aspect ratio (portrait stays portrait, landscape stays landscape).
   const ratio = p.width && p.height ? `${p.width} / ${p.height}` : "4 / 3";
   return (
     <button
@@ -21,15 +23,15 @@ function Thumb({ p, index, onOpen }: { p: AlbumGalleryPhoto; index: number; onOp
       aria-haspopup="dialog"
       aria-label={`عرض الصورة ${index + 1}${p.alt ? `: ${p.alt}` : ""}`}
       data-album-photo={p.id}
-      className="group relative block w-full overflow-hidden rounded-sm bg-cream-line"
+      className="group relative block w-full overflow-hidden rounded-lg border border-hairline-gold bg-night-deep transition-[border-color,box-shadow] duration-300 hover:border-gold hover:shadow-[0_10px_30px_-14px_rgb(233_185_73/0.5)]"
       style={{ aspectRatio: ratio }}
     >
       {state === "error" ? (
-        <span data-photo-error className="absolute inset-0 grid place-items-center p-2 text-center text-sm text-on-cream-muted">
+        <span data-photo-error className="absolute inset-0 grid place-items-center p-2 text-center text-sm text-ivory-muted">
           تعذّر تحميل الصورة
         </span>
       ) : (
-        // Gated same-origin bytes (/p route): plain <img>, lazy, fades in when decoded (progressive).
+        // Gated same-origin bytes (/p route): plain <img>, lazy, whole image (contain, never cropped), fades in.
         // eslint-disable-next-line @next/next/no-img-element
         <img
           ref={imgRef}
@@ -41,36 +43,91 @@ function Thumb({ p, index, onOpen }: { p: AlbumGalleryPhoto; index: number; onOp
           decoding="async"
           onLoad={() => setState("ready")}
           onError={() => setState("error")}
-          className={`absolute inset-0 size-full object-cover transition-[opacity,transform] duration-500 group-hover:scale-[1.02] motion-reduce:transition-none ${
+          className={`absolute inset-0 size-full object-contain transition-opacity duration-500 motion-reduce:transition-none ${
             state === "ready" ? "opacity-100" : "opacity-0"
           }`}
         />
       )}
-      {state === "loading" ? <span aria-hidden="true" className="absolute inset-0 animate-pulse bg-cream-line" /> : null}
+      {state === "loading" ? <span aria-hidden="true" className="absolute inset-0 animate-pulse bg-surface" /> : null}
+      {/* Expand hint (decorative) */}
+      <span
+        aria-hidden="true"
+        className="absolute end-2 top-2 grid size-8 place-items-center rounded-sm bg-black/55 text-ivory opacity-80 transition-opacity group-hover:opacity-100"
+      >
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <path d="M14 4h6v6M10 20H4v-6M20 4l-7 7M4 20l7-7" />
+        </svg>
+      </span>
     </button>
   );
 }
 
-/** Album grid (reserved aspect ratios from width/height) + fullscreen lightbox with source credit. */
+const actionCls =
+  "inline-flex min-h-11 items-center gap-2 rounded-sm border px-5 text-base font-medium transition-colors";
+
+function ShareButton({ title }: { title: string }) {
+  const [msg, setMsg] = useState<string | null>(null);
+  async function share() {
+    const url = window.location.href.split("?")[0];
+    try {
+      if (navigator.share) {
+        await navigator.share({ title, url });
+        return;
+      }
+      await navigator.clipboard.writeText(url);
+      setMsg("تم نسخ رابط الألبوم");
+    } catch (e) {
+      if ((e as Error)?.name === "AbortError") return;
+      setMsg("تعذّر النسخ، انسخ الرابط من شريط العنوان");
+    }
+    window.setTimeout(() => setMsg(null), 3000);
+  }
+  return (
+    <>
+      <button type="button" onClick={share} data-album-share className={`${actionCls} border-ivory/40 text-ivory hover:border-gold hover:text-gold`}>
+        <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8">
+          <circle cx="18" cy="5" r="3" />
+          <circle cx="6" cy="12" r="3" />
+          <circle cx="18" cy="19" r="3" />
+          <path d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4" />
+        </svg>
+        مشاركة
+      </button>
+      <span role="status" className="text-sm text-ivory-muted">
+        {msg}
+      </span>
+    </>
+  );
+}
+
+/**
+ * Album view: actions (back, slideshow, share), a masonry grid (CSS columns) where every tile keeps the photo's
+ * own ratio and shows it whole (contain; watermark visible), and a fullscreen lightbox (display variant only)
+ * with source credit and an optional slideshow.
+ * Props: photos, albumTitle, sourceLabel, sourceUrl, backHref? (shows «العودة للألبومات» when set).
+ */
 export function AlbumGallery({
   photos,
   albumTitle,
   sourceLabel,
   sourceUrl,
+  backHref,
 }: {
   photos: AlbumGalleryPhoto[];
   albumTitle: string;
   sourceLabel: string | null;
   sourceUrl: string | null;
+  backHref?: string;
 }) {
   const [open, setOpen] = useState<number | null>(null);
+  const [slideshow, setSlideshow] = useState(false);
   const items: LightboxItem[] = photos.map((p) => ({ id: p.id, src: p.display, width: p.width, height: p.height, alt: p.alt || albumTitle }));
   const current = open !== null ? photos[open] : null;
   const credit = sourceLabel ? (
     <span data-lightbox-credit>
       المصدر:{" "}
       {sourceUrl ? (
-        <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-on-dark underline underline-offset-4 hover:decoration-gold">
+        <a href={sourceUrl} target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center text-ivory underline underline-offset-4 hover:decoration-gold">
           {sourceLabel}
         </a>
       ) : (
@@ -80,10 +137,47 @@ export function AlbumGallery({
   ) : null;
   return (
     <>
-      <ul data-photo-grid className="grid grid-cols-2 gap-2 sm:grid-cols-3 sm:gap-3 lg:grid-cols-4">
+      <div data-album-actions className="mb-8 flex flex-wrap items-center justify-center gap-3">
+        {backHref ? (
+          <Link href={backHref} className={`${actionCls} border-ivory/40 text-ivory hover:border-gold hover:text-gold`}>
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+              {/* Points to the reading-start side (right in RTL) */}
+              <path d="M5 12h14M13 6l6 6-6 6" />
+            </svg>
+            العودة للألبومات
+          </Link>
+        ) : null}
+        {photos.length > 1 ? (
+          <button
+            type="button"
+            aria-haspopup="dialog"
+            data-album-slideshow
+            onClick={() => {
+              setSlideshow(true);
+              setOpen(0);
+            }}
+            className={`${actionCls} border-gold/70 text-gold hover:bg-gold hover:text-ink`}
+          >
+            <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+              <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z" />
+            </svg>
+            عرض الشرائح
+          </button>
+        ) : null}
+        <ShareButton title={albumTitle} />
+      </div>
+
+      <ul data-photo-grid className="columns-2 gap-2 sm:columns-3 sm:gap-4 lg:columns-4">
         {photos.map((p, i) => (
-          <li key={p.id}>
-            <Thumb p={p} index={i} onOpen={() => setOpen(i)} />
+          <li key={p.id} className="mb-2 break-inside-avoid sm:mb-4">
+            <Thumb
+              p={p}
+              index={i}
+              onOpen={() => {
+                setSlideshow(false);
+                setOpen(i);
+              }}
+            />
           </li>
         ))}
       </ul>
@@ -93,10 +187,11 @@ export function AlbumGallery({
           index={open}
           onIndexChange={setOpen}
           onClose={() => setOpen(null)}
+          slideshow={slideshow}
           label={`صور: ${albumTitle}`}
           footer={
             <div className="flex flex-col items-center gap-1">
-              {current.alt ? <p data-lightbox-alt className="text-on-dark/90">{current.alt}</p> : null}
+              {current.alt ? <p data-lightbox-alt className="text-ivory/90">{current.alt}</p> : null}
               {credit}
             </div>
           }

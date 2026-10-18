@@ -1,11 +1,17 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { isActivePath } from "./HeaderNav";
 
-/** Accessible mobile menu: focus trap, Escape to close, focus returns to the toggle. */
+/**
+ * Accessible mobile menu: focus trap, Escape to close, focus returns to the toggle.
+ * Smooth open/close via .menu-panel (globals.css) on the native [hidden] attribute; instant under reduced motion.
+ */
 export function MobileMenu({ bookHref, links }: { bookHref: string | null; links: { href: string; label: string }[] }) {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
   const panelId = useId();
   const toggleRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -54,14 +60,14 @@ export function MobileMenu({ bookHref, links }: { bookHref: string | null; links
         aria-controls={panelId}
         aria-label={open ? "إغلاق القائمة" : "فتح القائمة"}
         onClick={() => setOpen((o) => !o)}
-        className="relative z-50 grid size-11 place-items-center rounded-sm text-on-dark"
+        className="relative z-50 grid size-11 place-items-center rounded-sm text-ivory transition-colors hover:text-gold"
       >
         <span aria-hidden="true" className="relative block h-3.5 w-6">
           <span
-            className={`absolute inset-x-0 top-0 h-0.5 bg-current transition-transform ${open ? "translate-y-1.5 rotate-45" : ""}`}
+            className={`absolute inset-x-0 top-0 h-0.5 bg-current transition-transform duration-200 ${open ? "translate-y-1.5 rotate-45" : ""}`}
           />
           <span
-            className={`absolute inset-x-0 bottom-0 h-0.5 bg-current transition-transform ${open ? "-translate-y-1.5 -rotate-45" : ""}`}
+            className={`absolute inset-x-0 bottom-0 h-0.5 bg-current transition-transform duration-200 ${open ? "-translate-y-1.5 -rotate-45" : ""}`}
           />
         </span>
       </button>
@@ -72,14 +78,22 @@ export function MobileMenu({ bookHref, links }: { bookHref: string | null; links
         aria-modal="true"
         aria-label="القائمة"
         hidden={!open}
-        className="fixed inset-0 z-40 bg-ink pt-[var(--header-h)] text-on-dark"
+        className="menu-panel fixed inset-0 z-40 overflow-y-auto bg-night-deep pt-[var(--header-h)] text-ivory"
       >
-        <nav aria-label="القائمة الرئيسية" className="px-[var(--gutter)] py-6">
+        <nav aria-label="القائمة الرئيسية" className="border-t border-hairline px-[var(--gutter)] py-6">
           <ul className="flex flex-col gap-1 font-display text-2xl">
             {(links.some((l) => l.href === "/contact") ? links : [...links, { href: "/contact", label: "تواصل معنا" }]).map((l) => (
               <li key={l.href}>
-                <Link href={l.href} className="block border-b border-ink-line py-4" onClick={() => setOpen(false)}>
+                <Link
+                  href={l.href}
+                  aria-current={isActivePath(pathname, l.href) ? "page" : undefined}
+                  className={`flex min-h-14 items-center justify-between gap-4 border-b border-hairline py-3 transition-colors hover:text-gold ${
+                    isActivePath(pathname, l.href) ? "text-gold" : ""
+                  }`}
+                  onClick={() => setOpen(false)}
+                >
                   {l.label}
+                  {isActivePath(pathname, l.href) ? <span aria-hidden="true" className="h-0.5 w-8 rounded-full bg-gold" /> : null}
                 </Link>
               </li>
             ))}
@@ -88,7 +102,7 @@ export function MobileMenu({ bookHref, links }: { bookHref: string | null; links
             href={bookHref ?? "/contact"}
             {...(bookHref ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             onClick={() => setOpen(false)}
-            className="mt-8 flex min-h-14 items-center justify-center rounded-sm bg-gold px-6 text-lg font-medium text-ink"
+            className="mt-8 flex min-h-14 items-center justify-center rounded-sm bg-gold px-6 text-lg font-medium text-ink transition-colors hover:bg-gold-press active:bg-gold-press"
           >
             {bookHref ? "احجز عبر واتساب" : "تواصل معنا"}
           </a>

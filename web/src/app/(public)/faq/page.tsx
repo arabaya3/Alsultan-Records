@@ -1,7 +1,8 @@
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { ButtonLink } from "@/components/ui/Button";
 import { JsonLd } from "@/components/ui/JsonLd";
-import { PageIntro, Section } from "@/components/ui/Layout";
+import { Section } from "@/components/ui/Layout";
+import { PageHero } from "@/components/ui/PageHero";
 import { pageMetadata } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -48,24 +49,24 @@ export default function FaqPage() {
           })),
         }}
       />
-      <PageIntro title="أسئلة شائعة" />
+      <PageHero title="أسئلة شائعة" />
       <Section>
-        <div className="max-w-3xl divide-y divide-cream-line border-y border-cream-line">
+        <div className="mx-auto max-w-3xl divide-y divide-hairline border-y border-hairline">
           {FAQ.map((f) => (
             <details key={f.q} className="group py-2">
-              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 font-display text-lg font-semibold md:text-xl">
+              <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 font-display text-lg font-semibold transition-colors hover:text-gold md:text-xl">
                 {f.q}
-                <span aria-hidden="true" className="text-2xl text-gold-press transition-transform group-open:rotate-45">
+                <span aria-hidden="true" className="text-2xl text-gold transition-transform duration-200 group-open:rotate-45">
                   +
                 </span>
               </summary>
-              <p className="pb-5 text-lg text-on-cream-muted">{f.a}</p>
+              <p className="pb-5 text-lg text-ivory-muted">{f.a}</p>
             </details>
           ))}
         </div>
-        <div className="mt-12 flex flex-wrap items-center gap-6">
+        <div className="mx-auto mt-12 flex max-w-3xl flex-wrap items-center gap-4">
           <WhatsAppCta />
-          <ButtonLink href="/contact" variant="link" tone="light">
+          <ButtonLink href="/contact" variant="outline">
             سؤالك مش هون؟ تواصل معنا
           </ButtonLink>
         </div>

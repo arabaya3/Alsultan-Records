@@ -1,6 +1,6 @@
 import { CORE_SERVICES } from "@/features/public-content/site";
 
-/** "تصوير فوتوغرافي • أفلام أعراس • DJ" with gold dot separators. */
+/** "تصوير فوتوغرافي • أفلام أعراس • DJ" with gold dot separators. Props: items?, className?. Inherits text color. */
 export function ServiceStrip({
   items = CORE_SERVICES,
   className = "",

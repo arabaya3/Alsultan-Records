@@ -1,59 +1,85 @@
 import Link from "next/link";
-import { Logo } from "@/components/brand/Logo";
+import { activeLogoSrc, Logo } from "@/components/brand/Logo";
 import { Container } from "@/components/ui/Layout";
-import { WhatsAppIcon, WhatsAppLink } from "@/components/ui/WhatsAppCta";
-import { bookingHref, contactItems } from "@/features/public-content/contact";
+import { FacebookIcon, PhoneIcon, YouTubeIcon } from "@/components/ui/SocialIcons";
+import { WhatsAppIcon } from "@/components/ui/WhatsAppCta";
+import { contactItems } from "@/features/public-content/contact";
 import { getBusinessSettings } from "@/features/public-content/queries";
-import { SITE_NAME_AR } from "@/features/public-content/site";
 import { getSiteNav } from "@/features/public-content/cms-queries";
-import { activeLogoSrc } from "@/components/brand/Logo";
 
+// ≥44px touch targets everywhere (the footer test measures every link on mobile).
+const linkCls = "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 transition-colors duration-200 hover:text-gold";
 
-const linkCls = "inline-flex min-h-11 items-center transition-colors hover:text-gold md:min-h-8";
+const SOCIAL: Record<string, { label: string; icon: React.ReactNode }> = {
+  whatsapp: { label: "واتساب", icon: <WhatsAppIcon size={18} /> },
+  youtube: { label: "YouTube", icon: <YouTubeIcon /> },
+  facebook: { label: "Facebook", icon: <FacebookIcon /> },
+  phone: { label: "", icon: <PhoneIcon /> },
+};
 
 /**
- * Compact booking band + footer. Height comes from content only (no min-height / h-screen);
- * the band is a single row on desktop and the footer is three tight groups.
+ * Compact footer, as in the references: one dark band.
+ *   Row 1: © copyright (start) · original logo (center) · WhatsApp / YouTube / Facebook / phone (end).
+ *   Row 2: CMS footer links + privacy/terms, small and quiet.
+ * No booking band here (no huge CTA on every page). Height comes from content only.
  */
 export async function Footer() {
   const [settings, nav] = await Promise.all([getBusinessSettings(), getSiteNav()]);
   const s = settings.status === "ok" ? settings.data : null;
-  const book = bookingHref(s);
-  const contacts = contactItems(s);
+  const contacts = contactItems(s).filter((c) => c.href && c.key in SOCIAL);
+  const navHrefs = new Set(nav.footer.map((l) => l.href));
+  const legal = [
+    { href: "/privacy", label: "الخصوصية" },
+    { href: "/terms", label: "الشروط" },
+  ].filter((l) => !navHrefs.has(l.href));
 
   return (
-    <>
-      <section aria-labelledby="book-band-title" data-booking-band className="border-t border-ink-line bg-ink-2 text-on-dark">
-        <Container className="flex flex-col items-start gap-4 py-6 sm:flex-row sm:items-center sm:justify-between md:py-7">
-          <h2 id="book-band-title" className="text-xl font-bold md:text-2xl">
-            عندك مناسبة قريبة<span className="text-gold">؟</span>{" "}
-            <span className="text-base font-normal text-muted md:text-lg">احكِ لنا على واتساب.</span>
-          </h2>
-          {book ? (
-            <WhatsAppLink href={book} className="shrink-0" />
+    <footer data-site-footer className="border-t border-hairline bg-night-deep text-ivory">
+      <Container className="grid items-center justify-items-center gap-x-8 gap-y-3 py-6 md:justify-items-stretch md:grid-cols-[1fr_auto_1fr] md:py-5">
+        <p className="order-3 text-sm text-ivory-muted md:order-1 md:justify-self-start">© جميع الحقوق محفوظة</p>
+
+        <div className="order-1 flex flex-col items-center gap-1 md:order-2 md:justify-self-center">
+          <Logo height={64} src={activeLogoSrc(s?.active_logo_id)} />
+          {/* Owner-editable tagline (admin «الهوية»): the only public place it appears. */}
+          {s?.tagline ? <p data-footer-tagline className="max-w-xs text-center text-xs text-ivory-muted">{s.tagline}</p> : null}
+        </div>
+
+        <ul aria-label="تواصل" className="order-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-0 text-sm md:order-3 md:justify-self-end">
+          {contacts.length ? (
+            contacts.map((c) => (
+              <li key={c.key}>
+                <a
+                  href={c.href!}
+                  className={linkCls}
+                  {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                >
+                  {SOCIAL[c.key].icon}
+                  {c.key === "phone" ? (
+                    <>
+                      <span className="sr-only">{c.name}: </span>
+                      <span dir="ltr">{c.label}</span>
+                    </>
+                  ) : (
+                    <span>{SOCIAL[c.key].label}</span>
+                  )}
+                </a>
+              </li>
+            ))
           ) : (
-            <Link href="/contact" className="inline-flex min-h-11 items-center rounded-sm bg-gold px-6 font-medium text-ink">
-              تواصل معنا
-            </Link>
+            <li>
+              <Link href="/contact" className={linkCls}>
+                تواصل معنا
+              </Link>
+            </li>
           )}
-        </Container>
-      </section>
+        </ul>
+      </Container>
 
-      <footer data-site-footer className="bg-ink text-on-dark">
-        <Container className="grid gap-8 py-8 sm:grid-cols-2 md:grid-cols-[1.3fr_1fr_1.3fr] md:gap-10">
-          <div className="sm:col-span-2 md:col-span-1">
-            <Logo height={56} src={activeLogoSrc(s?.active_logo_id)} />
-            <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
-              {s?.tagline ?? "تصوير فوتوغرافي وأفلام أعراس ومناسبات وDJ."}
-            </p>
-          </div>
-
-          <nav aria-labelledby="footer-links-title">
-            <h2 id="footer-links-title" className="mb-2 text-sm font-semibold text-gold">
-              روابط مهمة
-            </h2>
-            <ul className="grid grid-cols-2 gap-x-6 md:grid-cols-2 md:gap-x-8">
-              {nav.footer.map((l) => (
+      <div className="border-t border-hairline">
+        <Container>
+          <nav aria-label="روابط الموقع">
+            <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-0 py-1 text-sm text-ivory-muted md:justify-start">
+              {[...nav.footer, ...legal.map((l) => ({ ...l, key: l.href }))].map((l) => (
                 <li key={l.key}>
                   <Link href={l.href} className={linkCls}>
                     {l.label}
@@ -62,54 +88,8 @@ export async function Footer() {
               ))}
             </ul>
           </nav>
-
-          <div>
-            <h2 className="mb-2 text-sm font-semibold text-gold">تواصل</h2>
-            {contacts.length ? (
-              <ul className="grid">
-                {contacts.map((c) => (
-                  <li key={c.key}>
-                    {c.href ? (
-                      <a
-                        href={c.href}
-                        className={`${linkCls} gap-2`}
-                        {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
-                      >
-                        {c.key === "whatsapp" ? <WhatsAppIcon size={16} /> : null}
-                        <span className="sr-only">{c.name}: </span>
-                        <span dir={c.ltr ? "ltr" : undefined}>{c.key === "whatsapp" ? "واتساب" : c.key === "facebook" ? "فيسبوك" : c.key === "youtube" ? "YouTube" : c.key === "instagram" ? "إنستغرام" : c.label}</span>
-                      </a>
-                    ) : (
-                      <p className="py-2 text-sm text-muted md:py-1">{c.label}</p>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <Link href="/contact" className={linkCls}>
-                تواصل معنا
-              </Link>
-            )}
-          </div>
         </Container>
-        <div className="border-t border-ink-line">
-          <Container className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 py-3 text-sm text-muted">
-            <p>© {SITE_NAME_AR}</p>
-            <ul className="flex gap-6">
-              <li>
-                <Link href="/privacy" className="inline-flex min-h-11 items-center hover:text-gold">
-                  الخصوصية
-                </Link>
-              </li>
-              <li>
-                <Link href="/terms" className="inline-flex min-h-11 items-center hover:text-gold">
-                  الشروط
-                </Link>
-              </li>
-            </ul>
-          </Container>
-        </div>
-      </footer>
-    </>
+      </div>
+    </footer>
   );
 }

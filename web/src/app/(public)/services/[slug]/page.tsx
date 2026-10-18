@@ -1,10 +1,10 @@
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MediaFrame } from "@/components/media/MediaFrame";
 import { ButtonLink } from "@/components/ui/Button";
-import { Container, Section } from "@/components/ui/Layout";
+import { Section } from "@/components/ui/Layout";
+import { PageHero } from "@/components/ui/PageHero";
 import { ErrorState } from "@/components/ui/States";
 import { AlbumCard } from "@/components/media/gallery/AlbumCard";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
@@ -50,33 +50,35 @@ async function ServiceView({ params }: { params: PageProps<"/services/[slug]">["
   const linkedAlbums = mine.filter((l) => l.kind === "album").flatMap((l) => albs.filter((a) => a.id === l.target_id));
   return (
     <article>
-      <div className="bg-ink text-on-dark">
-        <Container className="py-12 md:py-16">
-          <nav aria-label="مسار التصفح" className="mb-6 text-sm text-muted">
-            <Link href="/services" className="hover:text-gold">
-              الخدمات
-            </Link>
-          </nav>
-          <h1 className="text-4xl font-bold tracking-tight md:text-6xl">
+      <PageHero
+        align="start"
+        breadcrumb={[{ label: "الخدمات", href: "/services" }, { label: s.title }]}
+        title={
+          <>
             <bdi dir="auto">{s.title}</bdi>
             <span className="text-gold">.</span>
-          </h1>
-          {s.summary ? <p className="mt-4 max-w-2xl text-lg text-muted md:text-xl">{s.summary}</p> : null}
-        </Container>
-      </div>
+          </>
+        }
+        lead={s.summary ?? undefined}
+      />
       <Section>
-        <div className="grid gap-10 lg:grid-cols-[1.2fr_1fr]">
-          <div className="prose-ar max-w-2xl whitespace-pre-line text-lg">{s.body}</div>
+        <div className={`grid gap-10 ${s.coverPhotoSrc || s.cover ? "lg:grid-cols-[1.2fr_1fr]" : ""}`}>
+          <div className="prose-ar max-w-2xl whitespace-pre-line text-lg leading-loose text-ivory">{s.body}</div>
           {s.coverPhotoSrc ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={s.coverPhotoSrc} alt="" decoding="async" data-service-cover className="w-full rounded-sm object-cover" />
+            <div className="self-start overflow-hidden rounded-lg border border-hairline-gold bg-night-deep">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={s.coverPhotoSrc} alt="" decoding="async" data-service-cover className="mx-auto max-h-[80vh] w-auto max-w-full object-contain" />
+            </div>
           ) : s.cover ? (
-            <MediaFrame media={s.cover} alt={s.title} ratio="4/3" playable />
+            <div className="self-start overflow-hidden rounded-lg border border-hairline-gold">
+              <MediaFrame media={s.cover} alt={s.title} ratio="4/3" playable />
+            </div>
           ) : null}
         </div>
         {linkedVideos.length ? (
-          <section aria-labelledby="service-videos" className="mt-14">
-            <h2 id="service-videos" className="mb-6 text-2xl font-semibold">من أعمالنا في هذه الخدمة</h2>
+          <section aria-labelledby="service-videos" className="mt-16">
+            <h2 id="service-videos" className="text-h3 font-bold">من أعمالنا في هذه الخدمة</h2>
+            <span aria-hidden="true" className="gold-rule mt-3 mb-8" />
             <ul data-service-videos className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
               {linkedVideos.map((v) => (
                 <li key={v.id} className="h-full">
@@ -87,8 +89,9 @@ async function ServiceView({ params }: { params: PageProps<"/services/[slug]">["
           </section>
         ) : null}
         {linkedAlbums.length ? (
-          <section aria-labelledby="service-albums" className="mt-14">
-            <h2 id="service-albums" className="mb-6 text-2xl font-semibold">ألبومات صور</h2>
+          <section aria-labelledby="service-albums" className="mt-16">
+            <h2 id="service-albums" className="text-h3 font-bold">ألبومات صور</h2>
+            <span aria-hidden="true" className="gold-rule mt-3 mb-8" />
             <ul data-service-albums className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
               {linkedAlbums.map((a) => (
                 <li key={a.id} className="h-full">
@@ -98,8 +101,11 @@ async function ServiceView({ params }: { params: PageProps<"/services/[slug]">["
             </ul>
           </section>
         ) : null}
-        <div className="mt-12">
+        <div className="mt-14 flex flex-wrap gap-4">
           <WhatsAppCta />
+          <ButtonLink href="/packages" variant="outline">
+            البكجات
+          </ButtonLink>
         </div>
       </Section>
     </article>

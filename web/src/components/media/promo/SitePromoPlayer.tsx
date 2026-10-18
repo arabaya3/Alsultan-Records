@@ -46,7 +46,7 @@ export function SitePromoPlayer({
         onClick={() => setVariant(window.matchMedia(PORTRAIT_QUERY).matches ? "portrait" : "landscape")}
         aria-haspopup="dialog"
         data-promo-trigger
-        className="group relative block aspect-[4/5] w-full overflow-hidden rounded-md bg-black text-start ring-1 ring-ink-line md:aspect-video"
+        className="group relative block aspect-[4/5] w-full overflow-hidden rounded-md bg-black text-start ring-1 ring-hairline-gold md:aspect-video"
       >
         {coverSrc ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -57,7 +57,7 @@ export function SitePromoPlayer({
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "auto"}
             decoding="async"
-            className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            className="absolute inset-0 size-full object-cover"
           />
         ) : (
         <picture>
@@ -74,7 +74,7 @@ export function SitePromoPlayer({
             loading={priority ? "eager" : "lazy"}
             fetchPriority={priority ? "high" : "auto"}
             decoding="async"
-            className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+            className="absolute inset-0 size-full object-cover"
           />
         </picture>
         )}
@@ -82,8 +82,8 @@ export function SitePromoPlayer({
         <span className="absolute inset-x-0 bottom-0 flex items-center gap-4 p-4 sm:p-5">
           <PlayBadge size={56} className="bg-black/40 text-gold transition-colors duration-200 group-hover:bg-gold group-hover:text-ink" />
           <span className="min-w-0">
-            <span className="block font-display text-lg font-semibold text-on-dark sm:text-xl">{label}</span>
-            <span className="block truncate text-sm text-on-dark/85">{caption}</span>
+            <span className="block font-display text-lg font-semibold text-ivory sm:text-xl">{label}</span>
+            <span className="block truncate text-sm text-ivory/85">{caption}</span>
             <span className="sr-only"> — {PROMO_TITLE}</span>
           </span>
         </span>
@@ -210,7 +210,7 @@ function PromoDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         data-promo-dialog={variant}
-        className={`relative rounded-md bg-ink p-3 text-on-dark shadow-2xl sm:p-4 ${portrait ? "w-auto max-w-full" : "w-full max-w-5xl"}`}
+        className={`relative rounded-md bg-night-deep p-3 text-ivory shadow-2xl sm:p-4 ${portrait ? "w-auto max-w-full" : "w-full max-w-5xl"}`}
       >
         <div className="mb-2 flex items-start justify-between gap-4">
           <h2 id={titleId} className="min-w-0 pt-2 text-base font-semibold break-words sm:text-lg">
@@ -221,7 +221,7 @@ function PromoDialog({
             type="button"
             onClick={requestClose}
             aria-label="إغلاق الفيديو"
-            className="grid size-11 shrink-0 place-items-center rounded-sm text-on-dark hover:text-gold"
+            className="grid size-11 shrink-0 place-items-center rounded-sm text-ivory hover:text-gold"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M6 6l12 12M18 6L6 18" />

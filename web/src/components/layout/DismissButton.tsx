@@ -16,7 +16,7 @@ export function DismissButton({ id, dark }: { id: string; dark: boolean }) {
           /* private mode / blocked storage */
         }
       }}
-      className={`grid size-11 shrink-0 place-items-center rounded-sm ${dark ? "hover:text-gold" : "hover:bg-ink/10"}`}
+      className={`grid size-11 shrink-0 place-items-center rounded-sm transition-colors ${dark ? "text-ivory-muted hover:bg-surface-2 hover:text-gold" : "hover:bg-ink/10"}`}
     >
       <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
         <path d="M6 6l12 12M18 6L6 18" />

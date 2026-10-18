@@ -13,7 +13,7 @@ export function InlinePlayer({ youtubeId, title }: { youtubeId: string; title: s
   const [playing, setPlaying] = useState(false);
   if (!isYouTubeId(youtubeId)) return null;
   return (
-    <div data-inline-player={youtubeId} className="relative aspect-video w-full overflow-hidden rounded-md bg-black ring-1 ring-ink-line">
+    <div data-inline-player={youtubeId} className="relative aspect-video w-full overflow-hidden rounded-lg bg-black ring-1 ring-hairline-gold shadow-[0_24px_60px_-30px_rgb(233_185_73/0.45)]">
       {playing ? (
         <iframe
           src={youTubeEmbedUrl(youtubeId)}
@@ -27,7 +27,7 @@ export function InlinePlayer({ youtubeId, title }: { youtubeId: string; title: s
         <button type="button" onClick={() => setPlaying(true)} aria-label={`تشغيل الفيديو: ${title}`} className="group absolute inset-0 block">
           <Image src={youTubeThumbUrl(youtubeId)} alt="" fill unoptimized priority sizes="(min-width: 1024px) 66vw, 100vw" className="object-cover" />
           <span aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-black/70 via-black/10 to-transparent" />
-          <PlayBadge size={72} className="absolute start-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-black/45 text-gold transition-colors group-hover:bg-gold group-hover:text-ink rtl:translate-x-1/2" />
+          <PlayBadge size={72} className="absolute inset-0 m-auto bg-black/45 text-gold transition-colors group-hover:bg-gold group-hover:text-ink" />
         </button>
       )}
     </div>

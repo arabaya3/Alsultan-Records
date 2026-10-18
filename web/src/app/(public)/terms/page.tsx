@@ -1,4 +1,5 @@
-import { PageIntro, Section } from "@/components/ui/Layout";
+import { Section } from "@/components/ui/Layout";
+import { PageHero } from "@/components/ui/PageHero";
 import { pageMetadata } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -16,9 +17,9 @@ export const metadata = pageMetadata({
 export default function TermsPage() {
   return (
     <>
-      <PageIntro title="الشروط والأحكام" />
+      <PageHero title="الشروط والأحكام" />
       <Section>
-        <div className="prose-ar max-w-3xl text-lg leading-loose">
+        <div className="prose-ar mx-auto max-w-3xl text-lg leading-loose text-ivory/90 [&_h2]:text-ivory">
           <h2>طلبات الحجز</h2>
           <p>
             إرسال طلب عبر الموقع هو استفسار وليس حجزاً مؤكداً. يُثبَّت الحجز فقط بعد الاتفاق على التفاصيل

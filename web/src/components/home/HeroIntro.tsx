@@ -30,7 +30,7 @@ export type HeroIntroProps = {
 };
 
 /**
- * Homepage intro (≈2.1 s, GSAP, progressive enhancement).
+ * Homepage hero (GSAP, progressive enhancement, ≈0.9 s; never hides text or CTAs).
  *
  * Everything is server-rendered in its FINAL layout, in the DOM, focusable and clickable from the first
  * frame. The timeline only animates opacity/transform (no layout properties → no layout shift) and never
@@ -38,9 +38,8 @@ export type HeroIntroProps = {
  * is paused (IntersectionObserver) and resumed when it returns; nothing loops after the intro.
  * Reduced motion → the static final state (matchMedia; no transforms). Cleanup: gsap.context().revert().
  *
- * The inline arming script (rendered before the markup) hides intro targets for the first paint only
- * when motion is allowed, so there is no flash of final content before the timeline starts; a CSS
- * failsafe (globals.css) reveals them at 2.6 s if scripts never run.
+ * No arming script any more: content is fully visible at first paint. The CSS failsafe for the old
+ * intro-armed class (globals.css) is unused; disarm() stays as a harmless cleanup.
  */
 export function HeroIntro(p: HeroIntroProps) {
   const ref = useRef<HTMLElement>(null);
@@ -64,101 +63,25 @@ export function HeroIntro(p: HeroIntroProps) {
             io?.disconnect();
           },
         });
-        // Inline from-states take over before the CSS arming class is removed (same frame → no flash).
+        // Text, logo and CTAs are never hidden or moved: they are readable and usable from the first paint.
+        // Only the film card settles in and the decorative thumbnails unveil (≈0.9 s, opacity/transform/clip only).
         tl.fromTo(
-          q("logo"),
-          { opacity: 0, scale: 0.94 },
+          q("media"),
+          { opacity: 0.55, y: 12 },
+          { opacity: 1, y: 0, duration: 0.6, clearProps: "transform,opacity" },
+          0.05,
+        ).fromTo(
+          q("thumb"),
+          { opacity: 0, clipPath: "inset(0 0 100% 0)" },
           {
             opacity: 1,
-            scale: 1,
-            duration: 0.6,
-            clearProps: "transform,opacity",
+            clipPath: "inset(0 0 0% 0)",
+            duration: 0.5,
+            stagger: 0.07,
+            clearProps: "opacity,clipPath",
           },
-          0,
-        )
-          .fromTo(
-            q("brand"),
-            { opacity: 0, y: 8 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.45,
-              clearProps: "transform,opacity",
-            },
-            0.15,
-          )
-          .fromTo(
-            q("word"),
-            { opacity: 0, y: 18 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.55,
-              stagger: 0.07,
-              clearProps: "transform,opacity",
-            },
-            0.3,
-          )
-          .fromTo(
-            q("sub"),
-            { opacity: 0, y: 12 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.5,
-              stagger: 0.035,
-              clearProps: "transform,opacity",
-            },
-            0.75,
-          )
-          .fromTo(
-            q("service"),
-            { opacity: 0, y: 10 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.4,
-              stagger: 0.1,
-              clearProps: "transform,opacity",
-            },
-            1.05,
-          )
-          .fromTo(
-            q("media"),
-            { opacity: 0, y: 16 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.7,
-              clearProps: "transform,opacity",
-            },
-            0.35,
-          )
-          .fromTo(
-            q("thumb"),
-            { opacity: 0, clipPath: "inset(0 0 100% 0)", x: -14 },
-            {
-              opacity: 1,
-              clipPath: "inset(0 0 0% 0)",
-              x: 0,
-              duration: 0.6,
-              stagger: 0.08,
-              clearProps: "transform,opacity,clipPath",
-            },
-            1.0,
-          )
-          .fromTo(
-            q("cta"),
-            { opacity: 0, y: 10 },
-            {
-              opacity: 1,
-              y: 0,
-              duration: 0.45,
-              stagger: 0.08,
-              clearProps: "transform,opacity",
-            },
-            1.35,
-          );
+          0.3,
+        );
         disarm();
 
         io = new IntersectionObserver(([e]) => {
@@ -197,7 +120,7 @@ export function HeroIntro(p: HeroIntroProps) {
       aria-labelledby="hero-title"
       data-hero-intro
       data-intro-state="idle"
-      className="ink-texture relative isolate overflow-hidden text-on-dark"
+      className="ink-texture relative isolate overflow-hidden border-b border-hairline text-ivory"
     >
       <div className="mx-auto grid w-full max-w-[var(--content-max)] items-center gap-8 px-[var(--gutter)] py-10 md:py-12 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:py-14">
         <div className="min-w-0">
@@ -250,7 +173,7 @@ export function HeroIntro(p: HeroIntroProps) {
               .
             </span>
           </h1>
-          <p className="mt-4 text-lg text-on-dark/90 md:text-xl">
+          <p className="mt-4 text-lg text-ivory/90 md:text-xl">
             {subWords.map((w, i) => (
               <span key={i}>
                 <span data-intro="sub" className="inline-block">
@@ -299,7 +222,7 @@ export function HeroIntro(p: HeroIntroProps) {
                 data-whatsapp-cta
                 data-intro="cta"
                 data-hero-cta="whatsapp"
-                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-sm border border-on-dark/40 px-6 text-lg font-medium transition-colors hover:border-gold hover:text-gold"
+                className="inline-flex min-h-14 items-center justify-center gap-3 rounded-sm border border-ivory/55 px-6 text-lg font-medium transition-colors hover:border-gold hover:text-gold"
               >
                 <WhatsAppIcon size={22} />
                 <span>{p.secondaryLabel ?? "تواصل عبر واتساب"}</span>
@@ -310,9 +233,9 @@ export function HeroIntro(p: HeroIntroProps) {
             <p data-intro="cta" className="mt-5">
               <a
                 href={p.phone.href}
-                className="inline-flex min-h-11 items-center gap-2 text-on-dark/90 underline decoration-1 underline-offset-8 hover:decoration-gold"
+                className="inline-flex min-h-11 items-center gap-2 text-ivory/90 underline decoration-1 underline-offset-8 hover:decoration-gold"
               >
-                <span className="text-muted">هاتف</span>
+                <span className="text-ivory-muted">هاتف</span>
                 <span dir="ltr">{p.phone.label}</span>
               </a>
             </p>
@@ -339,7 +262,7 @@ export function HeroIntro(p: HeroIntroProps) {
                 <li
                   key={v.youtubeId}
                   data-intro="thumb"
-                  className="relative aspect-video overflow-hidden rounded-sm bg-ink-2 ring-1 ring-ink-line"
+                  className="relative aspect-video overflow-hidden rounded-sm bg-surface ring-1 ring-hairline"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img

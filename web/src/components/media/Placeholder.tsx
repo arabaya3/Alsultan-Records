@@ -19,7 +19,7 @@ export function PlaceholderMedia({
     <div
       data-placeholder="true"
       className={`absolute inset-0 grid place-items-center ${
-        tone === "ink" ? "bg-ink-2 text-muted" : "bg-cream-2 text-on-cream-muted"
+        tone === "ink" ? "bg-night-deep text-ivory-muted" : "bg-surface text-ivory-muted"
       } ${className}`}
     >
       <span className="rounded-sm border border-current/30 px-3 py-1 text-xs">

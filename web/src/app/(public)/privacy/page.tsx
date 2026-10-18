@@ -1,4 +1,5 @@
-import { PageIntro, Section } from "@/components/ui/Layout";
+import { Section } from "@/components/ui/Layout";
+import { PageHero } from "@/components/ui/PageHero";
 import { pageMetadata } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -16,9 +17,9 @@ export const metadata = pageMetadata({
 export default function PrivacyPage() {
   return (
     <>
-      <PageIntro title="سياسة الخصوصية" />
+      <PageHero title="سياسة الخصوصية" />
       <Section>
-        <div className="prose-ar max-w-3xl text-lg leading-loose">
+        <div className="prose-ar mx-auto max-w-3xl text-lg leading-loose text-ivory/90 [&_h2]:text-ivory">
           <h2>ما البيانات التي نجمعها</h2>
           <p>
             عند تواصلك معنا على واتساب أو بالهاتف نستخدم ما ترسله بنفسك: الاسم، رقم الهاتف، نوع المناسبة

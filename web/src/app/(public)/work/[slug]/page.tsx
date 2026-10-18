@@ -51,37 +51,38 @@ async function ProjectView({ params }: { params: PageProps<"/work/[slug]">["para
   return (
     <article>
       <JsonLd data={projectJsonLd(p)} />
-      <div className="bg-ink text-on-dark">
+      <div className="ink-texture border-b border-hairline text-ivory">
         <Container className="pb-10 pt-12 md:pt-16">
-          <nav aria-label="مسار التصفح" className="mb-6 text-sm text-muted">
-            <Link href="/work" className="hover:text-gold">
+          <nav aria-label="مسار التنقل" className="mb-6 text-sm text-ivory-muted">
+            <Link href="/work" className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-gold">
               أعمالنا
             </Link>
           </nav>
           <Reveal>
-            <h1 data-reveal className="text-4xl font-bold tracking-tight md:text-6xl">
+            <h1 data-reveal className="text-h1 font-bold tracking-tight">
               <bdi dir="auto">{p.title}</bdi>
-              <span className="text-gold">.</span>
+              
             </h1>
             {meta.length ? (
-              <p data-reveal className="mt-4 text-lg text-muted">
+              <p data-reveal className="mt-4 text-lead text-ivory-muted">
                 {meta.join(" · ")}
               </p>
             ) : null}
           </Reveal>
         </Container>
         <Container className="pb-12">
-          <MediaFrame media={p.cover} alt={p.title} ratio="16/9" sizes="100vw" priority playable />
+          <MediaFrame media={p.cover} alt={p.title} ratio="16/9" sizes="100vw" priority playable className="border border-hairline-gold" />
         </Container>
       </div>
 
       {details.length ? (
         <Section>
-          <div className="grid gap-10 md:grid-cols-2">
+          <div className="grid gap-6 md:grid-cols-2">
             {details.map((d) => (
-              <div key={d.title}>
-                <h2 className="text-2xl font-semibold">{d.title}</h2>
-                <p className="mt-3 whitespace-pre-line text-lg text-on-cream-muted">{d.body}</p>
+              <div key={d.title} className="rounded-lg border border-hairline bg-surface p-6 md:p-8">
+                <h2 className="text-h3 font-semibold">{d.title}</h2>
+                <span aria-hidden="true" className="gold-rule mt-3" />
+                <p className="mt-3 whitespace-pre-line text-lg text-ivory-muted">{d.body}</p>
               </div>
             ))}
           </div>
@@ -89,7 +90,7 @@ async function ProjectView({ params }: { params: PageProps<"/work/[slug]">["para
       ) : null}
 
       {gallery.length ? (
-        <Section tone="cream-2" labelledBy="gallery-title">
+        <Section tone="darker" labelledBy="gallery-title">
           <h2 id="gallery-title" className="sr-only">
             صور وفيديو من المناسبة
           </h2>
@@ -101,6 +102,7 @@ async function ProjectView({ params }: { params: PageProps<"/work/[slug]">["para
                   alt={p.title}
                   ratio="4/3"
                   playable
+                  className="border border-hairline"
                   sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                 />
               </li>
@@ -111,7 +113,7 @@ async function ProjectView({ params }: { params: PageProps<"/work/[slug]">["para
 
       <Section>
         <div className="flex flex-col items-start gap-5 md:flex-row md:items-center md:justify-between">
-          <p className="font-display text-2xl font-semibold">بدك نوثّق مناسبتك بنفس الطريقة؟</p>
+          <p className="font-display text-h3 font-semibold">بدك نوثّق مناسبتك بنفس الطريقة؟</p>
           <WhatsAppCta text={projectText(p.title)} />
         </div>
       </Section>

@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { JsonLd } from "@/components/ui/JsonLd";
-import { Container, Section } from "@/components/ui/Layout";
+import { Section } from "@/components/ui/Layout";
+import { PageHero } from "@/components/ui/PageHero";
 import { ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { offerDatesLabel, offerPeriodLabel, offerPriceLabel, offerWhatsappText, type Offer } from "@/features/public-content/cms-model";
@@ -68,46 +69,50 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
   return (
     <article data-offer={o.slug}>
       {ld ? <JsonLd data={ld} /> : null}
-      <div className="bg-ink text-on-dark">
-        <Container className="py-12 md:py-16">
-          <nav aria-label="مسار التصفح" className="mb-6 text-sm text-muted">
-            <Link href="/offers" className="inline-flex min-h-11 items-center hover:text-gold">
-              العروض
-            </Link>
-          </nav>
-          <h1 className="text-4xl font-bold tracking-tight break-words md:text-6xl">
-            <bdi>{o.title}</bdi>
+      <PageHero
+        align="start"
+        breadcrumb={[{ label: "العروض", href: "/offers" }, { label: o.title }]}
+        title={
+          <>
+            <bdi className="break-words">{o.title}</bdi>
             <span className="text-gold">.</span>
-          </h1>
-          {o.description ? <p className="mt-4 max-w-2xl text-lg whitespace-pre-line text-muted md:text-xl">{o.description}</p> : null}
-          {period ? <p data-offer-period className="mt-4 text-lg font-medium text-gold">{period}</p> : null}
-          {price || dates ? (
-            <p className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2">
-              {price ? <span data-offer-price className="text-2xl font-semibold text-gold">{price}</span> : null}
-              {dates ? <span data-offer-dates className="text-muted">{dates}</span> : null}
-            </p>
-          ) : null}
-        </Container>
-      </div>
+          </>
+        }
+        lead={o.description ? <span className="whitespace-pre-line">{o.description}</span> : undefined}
+      >
+        {period || price || dates ? (
+          <div className="flex flex-col gap-2">
+            {period ? <p data-offer-period className="text-lg font-medium text-gold">{period}</p> : null}
+            {price || dates ? (
+              <p className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+                {price ? <span data-offer-price className="text-2xl font-bold text-gold">{price}</span> : null}
+                {dates ? <span data-offer-dates className="text-ivory-muted">{dates}</span> : null}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </PageHero>
       <Section>
         <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr]">
           <div className="min-w-0">
             {o.items.length ? (
               <>
-                <h2 className="text-2xl font-semibold">يشمل العرض</h2>
-                <ul data-offer-items className="mt-4 divide-y divide-cream-line border-y border-cream-line">
+                <h2 className="text-h3 font-bold">يشمل العرض</h2>
+                <span aria-hidden="true" className="gold-rule mt-3" />
+                <ul data-offer-items className="mt-5 space-y-3">
                   {o.items.map((it, i) => (
-                    <li key={i} className="py-3 text-lg break-words">
-                      {it}
+                    <li key={i} className="flex items-start gap-3 text-lg break-words">
+                      <span aria-hidden="true" className="mt-2.5 size-2 shrink-0 rounded-full bg-gold" />
+                      <span className="min-w-0">{it}</span>
                     </li>
                   ))}
                 </ul>
               </>
             ) : null}
             {o.terms ? (
-              <div className="mt-8">
+              <div className="mt-10 rounded-lg border border-hairline bg-surface p-5">
                 <h2 className="text-xl font-semibold">الشروط</h2>
-                <p data-offer-terms className="mt-3 whitespace-pre-line break-words text-on-cream-muted">
+                <p data-offer-terms className="mt-3 whitespace-pre-line break-words text-ivory-muted">
                   {o.terms}
                 </p>
               </div>
@@ -115,18 +120,20 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
             {pkg ? (
               <p data-offer-package className="mt-8">
                 العرض على بكج:{" "}
-                <Link href={packagePath(pkg.slug)} className="font-medium underline underline-offset-4 hover:text-gold-press">
+                <Link href={packagePath(pkg.slug)} className="font-medium text-gold underline underline-offset-4">
                   <bdi>{pkg.title}</bdi>
                 </Link>
               </p>
             ) : null}
             <div className="mt-10">
-              <WhatsAppCta text={offerWhatsappText(o)} label="اسأل عن العرض على واتساب" />
+              <WhatsAppCta text={offerWhatsappText(o)} label="اسأل عن العرض على واتساب" size="lg" />
             </div>
           </div>
           {o.image_photo_id ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={photoUrl(o.image_photo_id, "display")} alt="" decoding="async" className="w-full rounded-sm object-cover" />
+            <div className="self-start overflow-hidden rounded-lg border border-hairline-gold bg-night-deep">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={photoUrl(o.image_photo_id, "display")} alt="" decoding="async" className="mx-auto max-h-[80vh] w-auto max-w-full object-contain" />
+            </div>
           ) : null}
         </div>
       </Section>

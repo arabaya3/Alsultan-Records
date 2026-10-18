@@ -1,23 +1,31 @@
 import Link from "next/link";
 import { bookingHref } from "@/features/public-content/contact";
 import { getBusinessSettings } from "@/features/public-content/queries";
+import { buttonClasses, type ButtonSize, type ButtonTone } from "./Button";
 import { WhatsAppIcon } from "./WhatsAppIcon";
 
 export { WhatsAppIcon };
 
-const PRIMARY =
-  "inline-flex items-center justify-center gap-3 rounded-sm bg-gold font-medium text-ink transition-colors duration-200 hover:bg-gold-press active:bg-gold-press";
+type CtaVariant = "primary" | "outline";
 
-/** A WhatsApp anchor styled as the gold primary action. Pass an already-built href. */
+/**
+ * A WhatsApp anchor (opens a new tab, keeps data-whatsapp-cta). Pass an already-built href.
+ * Props: href, children? (default «احجز عبر واتساب»), size? "md"|"lg", variant? "primary" (gold) | "outline",
+ * tone? "dark"|"light" (outline only), className?.
+ */
 export function WhatsAppLink({
   href,
   children = "احجز عبر واتساب",
   size = "md",
+  variant = "primary",
+  tone = "dark",
   className = "",
 }: {
   href: string;
   children?: React.ReactNode;
-  size?: "md" | "lg";
+  size?: ButtonSize;
+  variant?: CtaVariant;
+  tone?: ButtonTone;
   className?: string;
 }) {
   return (
@@ -26,7 +34,7 @@ export function WhatsAppLink({
       target="_blank"
       rel="noopener noreferrer"
       data-whatsapp-cta
-      className={`${PRIMARY} ${size === "lg" ? "min-h-14 px-7 text-lg" : "min-h-11 px-6 text-base"} ${className}`}
+      className={buttonClasses({ variant, tone, size, className: size === "lg" ? `px-7 ${className}` : className })}
     >
       <WhatsAppIcon size={size === "lg" ? 22 : 20} />
       <span>{children}</span>
@@ -34,29 +42,36 @@ export function WhatsAppLink({
   );
 }
 
-/** Booking CTA from business_settings; if no WhatsApp is configured, falls back to /contact. */
+/**
+ * Booking CTA from business_settings; if no WhatsApp is configured, falls back to /contact.
+ * Props: text? (prefilled message), label?, size?, variant?, tone?, className?.
+ */
 export async function WhatsAppCta({
   text,
   label = "احجز عبر واتساب",
   size = "md",
+  variant = "primary",
+  tone = "dark",
   className = "",
 }: {
   text?: string;
   label?: string;
-  size?: "md" | "lg";
+  size?: ButtonSize;
+  variant?: CtaVariant;
+  tone?: ButtonTone;
   className?: string;
 }) {
   const settings = await getBusinessSettings();
   const href = bookingHref(settings.status === "ok" ? settings.data : null, text);
   if (!href) {
     return (
-      <Link href="/contact" className={`${PRIMARY} ${size === "lg" ? "min-h-14 px-7 text-lg" : "min-h-11 px-6"} ${className}`}>
+      <Link href="/contact" className={buttonClasses({ variant, tone, size, className })}>
         تواصل معنا
       </Link>
     );
   }
   return (
-    <WhatsAppLink href={href} size={size} className={className}>
+    <WhatsAppLink href={href} size={size} variant={variant} tone={tone} className={className}>
       {label}
     </WhatsAppLink>
   );

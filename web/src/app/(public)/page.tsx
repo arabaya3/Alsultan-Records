@@ -3,15 +3,15 @@ import { activeLogoSrc } from "@/components/brand/Logo";
 import { HeroIntro } from "@/components/home/HeroIntro";
 import { AlbumCard } from "@/components/media/gallery/AlbumCard";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
-import { Reveal } from "@/components/motion/Reveal";
-import { MaskReveal } from "@/components/motion/ScrollEffects";
+import { FadeRise, Reveal } from "@/components/motion/Reveal";
+import { PackageCard } from "@/components/packages/PackageCard";
 import { OfferCard } from "@/components/offers/OfferCard";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { PROMO_CAPTION, promoVideoJsonLd } from "@/components/media/promo/promo-seo";
 import { Section, SectionHeading } from "@/components/ui/Layout";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import type { SectionConfig } from "@/features/public-content/cms-model";
-import { getActiveOffers, getProcessSteps, getSiteSections } from "@/features/public-content/cms-queries";
+import { getActiveOffers, getProcessSteps, getPublishedPackages, getSiteSections } from "@/features/public-content/cms-queries";
 import { bookingHref, telHref } from "@/features/public-content/contact";
 import { FALLBACK_SERVICES, HERO } from "@/features/public-content/home-content";
 import { homeSelection, photoUrl, promoVideos, toCardVideo } from "@/features/public-content/gallery-model";
@@ -36,7 +36,6 @@ function ChevronStart() {
   );
 }
 
-const INTRO_ARM_SCRIPT = `try{if(matchMedia("(prefers-reduced-motion: no-preference)").matches)document.documentElement.classList.add("intro-armed")}catch(e){}`;
 
 const linkCls = "inline-flex min-h-11 items-center gap-2 underline decoration-1 underline-offset-8 hover:decoration-gold";
 
@@ -63,7 +62,7 @@ const HEADING_ID: Record<SectionConfig["key"], string> = {
 };
 
 export default async function HomePage() {
-  const [settings, gallery, services, sections, offers, steps, albums] = await Promise.all([
+  const [settings, gallery, services, sections, offers, steps, albums, packages] = await Promise.all([
     getBusinessSettings(),
     getVideoGallery(),
     getPublishedServices(),
@@ -71,6 +70,7 @@ export default async function HomePage() {
     getActiveOffers(),
     getProcessSteps(),
     getPublishedAlbums(),
+    getPublishedPackages(),
   ]);
 
   const s = settings.status === "ok" ? settings.data : null;
@@ -93,7 +93,7 @@ export default async function HomePage() {
       ? (g.videos.find((v) => v.id === s.hero_promo_video_id) ?? g.promo ?? promoVideos(g)[0] ?? null)
       : null;
 
-  const renderSection = (c: SectionConfig, tone: "cream" | "cream-2") => {
+  const renderSection = (c: SectionConfig, tone: "dark" | "darker") => {
     const hid = HEADING_ID[c.key];
     switch (c.key) {
       case "works":
@@ -119,16 +119,16 @@ export default async function HomePage() {
               }
             />
             {gallery.status === "unavailable" ? (
-              <p role="status" className="text-on-cream-muted">
+              <p role="status" className="text-ivory-muted">
                 تعذّر تحميل الفيديوهات الآن. جرّب مرة أخرى بعد قليل.
               </p>
             ) : (
               <ul className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
                 {works.map((v, i) => (
                   <li key={v.id} className="h-full">
-                    <MaskReveal index={i % 3} className="h-full">
+                    <FadeRise delay={(i % 3) * 80} className="h-full">
                       <YouTubeCard video={{ ...toCardVideo(v, durationLabel(v.duration_seconds)), categories: v.primary ? [v.primary] : [] }} />
-                    </MaskReveal>
+                    </FadeRise>
                   </li>
                 ))}
               </ul>
@@ -150,17 +150,17 @@ export default async function HomePage() {
               }
             />
             <Reveal onScroll>
-              <ol className="divide-y divide-cream-line border-y border-cream-line">
+              <ol className="divide-y divide-hairline border-y border-hairline">
                 {serviceList.map((x, i) => (
                   <li key={x.key} data-reveal>
                     <Link href={x.href} className="group grid items-baseline gap-2 py-6 md:grid-cols-[4rem_1fr_2fr] md:gap-8 md:py-7">
-                      <span className="font-display text-sm text-on-cream-muted" aria-hidden="true">
+                      <span className="font-display text-sm text-ivory-muted" aria-hidden="true">
                         {String(i + 1).padStart(2, "0")}
                       </span>
-                      <span className="font-display text-2xl font-semibold transition-colors group-hover:text-gold-press md:text-3xl">
+                      <span className="font-display text-2xl font-semibold transition-colors group-hover:text-gold md:text-3xl">
                         <bdi>{x.title}</bdi>
                       </span>
-                      {x.summary ? <span className="text-on-cream-muted md:text-lg">{x.summary}</span> : null}
+                      {x.summary ? <span className="text-ivory-muted md:text-lg">{x.summary}</span> : null}
                     </Link>
                   </li>
                 ))}
@@ -255,14 +255,14 @@ export default async function HomePage() {
             <Reveal onScroll>
               <ol className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
                 {list.map((step, i) => (
-                  <li key={step.key} data-reveal className="border-t-2 border-on-cream pt-5">
+                  <li key={step.key} data-reveal className="border-t border-hairline-gold pt-5">
                     {step.photoId ? (
                       // eslint-disable-next-line @next/next/no-img-element
-                      <img src={photoUrl(step.photoId, "thumb")} alt="" loading="lazy" decoding="async" className="mb-4 aspect-[4/3] w-full rounded-sm object-cover" />
+                      <img src={photoUrl(step.photoId, "thumb")} alt="" loading="lazy" decoding="async" className="mb-4 aspect-[4/3] w-full rounded-sm bg-night-deep object-contain" />
                     ) : null}
-                    <span className="font-display text-sm text-gold-text">{String(i + 1).padStart(2, "0")}</span>
+                    <span className="font-display text-sm text-gold">{String(i + 1).padStart(2, "0")}</span>
                     <h3 className="mt-2 text-xl font-semibold break-words">{step.title}</h3>
-                    {step.body ? <p className="mt-2 text-on-cream-muted">{step.body}</p> : null}
+                    {step.body ? <p className="mt-2 text-ivory-muted">{step.body}</p> : null}
                   </li>
                 ))}
               </ol>
@@ -274,8 +274,9 @@ export default async function HomePage() {
         return (
           <Section key={c.key} tone={tone} labelledBy={hid}>
             <div data-home-section="about" className="max-w-3xl">
-              <h2 id={hid} className="text-3xl font-bold tracking-tight md:text-[2.5rem]">{c.title}</h2>
-              {c.intro ? <p className="mt-4 text-lg whitespace-pre-line text-on-cream-muted">{c.intro}</p> : null}
+              <h2 id={hid} className="text-h2 font-bold tracking-tight">{c.title}</h2>
+              <span aria-hidden="true" className="gold-rule mt-4" />
+              {c.intro ? <p className="mt-4 text-lg whitespace-pre-line text-ivory-muted">{c.intro}</p> : null}
               <Link href="/about" className={`${linkCls} mt-4`}>
                 اعرف عنا أكثر
                 <ChevronStart />
@@ -287,8 +288,9 @@ export default async function HomePage() {
         return (
           <Section key={c.key} tone={tone} labelledBy={hid}>
             <div data-home-section="contact" className="flex flex-col items-start gap-4">
-              <h2 id={hid} className="text-3xl font-bold tracking-tight md:text-[2.5rem]">{c.title}</h2>
-              {c.intro ? <p className="max-w-3xl text-lg whitespace-pre-line text-on-cream-muted">{c.intro}</p> : null}
+              <h2 id={hid} className="text-h2 font-bold tracking-tight">{c.title}</h2>
+              <span aria-hidden="true" className="gold-rule mt-4" />
+              {c.intro ? <p className="max-w-3xl text-lg whitespace-pre-line text-ivory-muted">{c.intro}</p> : null}
               <WhatsAppCta />
             </div>
           </Section>
@@ -296,11 +298,48 @@ export default async function HomePage() {
     }
   };
 
-  // Render visible sections in the owner's order; tones alternate over what is actually shown.
+  // Packages preview (not a CMS section key): a few published packages, featured first; only when some exist.
+  const pkgPreview =
+    packages.status === "ok"
+      ? [...packages.data].sort((a, b) => Number(b.featured) - Number(a.featured) || a.sort_order - b.sort_order).slice(0, 3)
+      : [];
+  const renderPackages = (tone: "dark" | "darker") => (
+    <Section key="packages" tone={tone} labelledBy="packages-title">
+      <div data-home-section="packages">
+        <SectionHeading
+          id="packages-title"
+          title="البكجات"
+          lead="من باقات خدماتنا للأعراس والمناسبات، والأسعار بالشيكل."
+          action={
+            <Link href="/packages" className={linkCls}>
+              عرض كل البكجات
+              <ChevronStart />
+            </Link>
+          }
+        />
+        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+          {pkgPreview.map((p, i) => (
+            <FadeRise as="li" key={p.id} delay={(i % 3) * 80} className="h-full">
+              <PackageCard pkg={p} />
+            </FadeRise>
+          ))}
+        </ul>
+      </div>
+    </Section>
+  );
+
+  // Render visible sections in the owner's order (packages preview after services, else after works, else before
+  // contact); tones alternate over what is actually shown.
+  const slots: (SectionConfig | "packages")[] = sections.filter((c) => c.visible);
+  if (pkgPreview.length) {
+    const after = ["services", "works"].map((k) => slots.findIndex((x) => x !== "packages" && x.key === k)).find((i) => i >= 0);
+    const contactAt = slots.findIndex((x) => x !== "packages" && x.key === "contact");
+    slots.splice(after !== undefined ? after + 1 : contactAt >= 0 ? contactAt : slots.length, 0, "packages");
+  }
   const rendered: React.ReactNode[] = [];
-  for (const c of sections) {
-    if (!c.visible) continue;
-    const node = renderSection(c, rendered.length % 2 ? "cream-2" : "cream");
+  for (const c of slots) {
+    const tone = rendered.length % 2 ? "darker" : "dark";
+    const node = c === "packages" ? renderPackages(tone) : renderSection(c, tone);
     if (node) rendered.push(node);
   }
 
@@ -309,8 +348,6 @@ export default async function HomePage() {
       {s ? <JsonLd data={localBusinessJsonLd(s)} /> : null}
       {ytPromo ? null : <JsonLd data={promoVideoJsonLd()} />}
 
-      {/* Inline, before the hero markup: arms the intro for the first paint (motion allowed only). */}
-      <script dangerouslySetInnerHTML={{ __html: INTRO_ARM_SCRIPT }} />
       <HeroIntro
         brand={SITE_NAME_AR}
         title={s?.hero_title ?? HERO.title}

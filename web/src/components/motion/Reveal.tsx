@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { gsap, useMotion } from "./gsap";
 
 /**
@@ -55,5 +55,58 @@ export function BrandEntrance({ children, className = "" }: { children: ReactNod
     <div ref={ref} className={className}>
       {children}
     </div>
+  );
+}
+
+/**
+ * FadeRise — subtle fade + 16px rise, once, when the element enters the viewport.
+ * Progressive: the server HTML is fully visible. On the client, only elements still below the fold get
+ * `.reveal-pending` (CSS, motion-allowed only), so nothing in view ever blinks and nothing stays hidden if JS
+ * fails. opacity/transform only → no layout shift. Disabled under prefers-reduced-motion (CSS + JS check).
+ *   as?: "div" | "section" | "li" | "article" (default "div") · delay?: ms (stagger siblings, e.g. i*80)
+ *   className?, plus data-* via `data`.
+ */
+export function FadeRise({
+  children,
+  as: Tag = "div",
+  delay = 0,
+  className = "",
+  data,
+}: {
+  children: ReactNode;
+  as?: "div" | "section" | "li" | "article";
+  delay?: number;
+  className?: string;
+  data?: Record<`data-${string}`, string | boolean | undefined>;
+}) {
+  const ref = useRef<HTMLElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+    if (!window.matchMedia("(prefers-reduced-motion: no-preference)").matches) return;
+    if (el.getBoundingClientRect().top < window.innerHeight * 0.92) return; // already in view: leave as is
+    el.classList.add("reveal-pending");
+    const io = new IntersectionObserver(
+      (entries) => {
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          if (delay) el.style.transitionDelay = `${delay}ms`;
+          el.classList.add("reveal-in");
+          el.classList.remove("reveal-pending");
+          io.disconnect();
+        }
+      },
+      { rootMargin: "0px 0px -8% 0px" },
+    );
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      el.classList.remove("reveal-pending");
+    };
+  }, [delay]);
+  return (
+    <Tag ref={ref as never} className={className} {...data}>
+      {children}
+    </Tag>
   );
 }

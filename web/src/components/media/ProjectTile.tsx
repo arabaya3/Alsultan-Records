@@ -59,7 +59,7 @@ export function ProjectTile({
   return (
     <Link
       href={href}
-      className="group relative block overflow-hidden rounded-sm bg-ink-2 text-on-dark"
+      className="group relative block overflow-hidden rounded-lg border border-hairline bg-night-deep text-ivory transition-colors duration-200 hover:border-gold/70"
       onPointerEnter={() => {
         if (canPreview()) void videoRef.current?.play().catch(() => {});
       }}
@@ -74,10 +74,10 @@ export function ProjectTile({
             sizes={sizes}
             priority={priority}
             unoptimized
-            className="object-cover transition-transform duration-700 ease-[var(--ease-out)] motion-safe:group-hover:scale-[1.04]"
+            className="object-contain"
           />
         ) : isVideo ? (
-          <div aria-hidden="true" className="absolute inset-0 grid place-items-center bg-ink">
+          <div aria-hidden="true" className="absolute inset-0 grid place-items-center bg-night-deep">
             <PlayBadge size={64} className="text-gold" />
           </div>
         ) : (
@@ -93,7 +93,7 @@ export function ProjectTile({
             preload="none"
             aria-hidden="true"
             tabIndex={-1}
-            className="absolute inset-0 size-full object-cover opacity-0 transition-opacity duration-500 group-hover:opacity-100"
+            className="absolute inset-0 size-full object-contain opacity-0 transition-opacity duration-500 group-hover:opacity-100"
           />
         ) : null}
         <div
@@ -106,14 +106,14 @@ export function ProjectTile({
               <span className="block truncate font-display text-xl font-semibold md:text-[1.75rem]">
                 <bdi dir="auto">{title}</bdi>
               </span>
-              {meta ? <span className="mt-1 block text-sm text-on-dark/75">{meta}</span> : null}
+              {meta ? <span className="mt-1 block text-sm text-ivory/75">{meta}</span> : null}
             </span>
           </div>
           <span className="flex shrink-0 items-center gap-3">
             <span className="hidden text-sm opacity-0 transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100 md:inline">
               شاهد المشروع
             </span>
-            {isVideo && still ? <PlayBadge size={40} className="text-on-dark" /> : null}
+            {isVideo && still ? <PlayBadge size={40} className="text-ivory" /> : null}
           </span>
         </div>
       </div>

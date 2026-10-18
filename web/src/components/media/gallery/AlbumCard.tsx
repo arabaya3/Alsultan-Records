@@ -11,8 +11,8 @@ export const photoCountLabel = (n: number) => (n === 1 ? "صورة واحدة" :
 export function AlbumCard({ album, priority = false }: { album: PhotoAlbum; priority?: boolean }) {
   const meta = [formatDateAr(album.event_date), photoCountLabel(album.photoCount)].filter(Boolean).join(" · ");
   return (
-    <Link href={`/work/albums/${album.slug}`} data-album-card={album.slug} className="group flex h-full flex-col">
-      <span className="relative block aspect-[2/3] overflow-hidden rounded-sm bg-cream-line">
+    <Link href={`/work/albums/${album.slug}`} data-album-card={album.slug} className="group flex h-full flex-col rounded-lg">
+      <span className="relative block aspect-[2/3] overflow-hidden rounded-lg border border-hairline-gold bg-night-deep transition-[border-color,box-shadow,transform] duration-300 group-hover:-translate-y-0.5 group-hover:border-gold group-hover:shadow-[0_10px_30px_-14px_rgb(233_185_73/0.5)] motion-reduce:group-hover:translate-y-0">
         {album.coverId ? (
           // Gated, short-lived same-origin bytes: plain <img> (no optimizer cache in the withdrawal path).
           // eslint-disable-next-line @next/next/no-img-element
@@ -25,10 +25,10 @@ export function AlbumCard({ album, priority = false }: { album: PhotoAlbum; prio
           />
         ) : null}
       </span>
-      <span className="mt-3 line-clamp-2 font-display text-lg font-semibold leading-snug break-words group-hover:text-gold-press">
+      <span className="mt-3 line-clamp-2 font-display text-lg font-semibold leading-snug break-words text-ivory transition-colors group-hover:text-gold">
         <bdi>{album.title}</bdi>
       </span>
-      {meta ? <span className="mt-auto pt-1 text-sm text-on-cream-muted">{meta}</span> : null}
+      {meta ? <span className="mt-auto pt-1 text-sm text-ivory-muted">{meta}</span> : null}
     </Link>
   );
 }

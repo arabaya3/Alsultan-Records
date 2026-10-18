@@ -3,11 +3,13 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { InlinePlayer } from "@/components/media/youtube/InlinePlayer";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
-import { ButtonLink } from "@/components/ui/Button";
-import { Container, Section } from "@/components/ui/Layout";
+import { FadeRise } from "@/components/motion/Reveal";
+import { ButtonLink, buttonClasses } from "@/components/ui/Button";
+import { Container, Section, SectionHeading } from "@/components/ui/Layout";
+import { YouTubeIcon } from "@/components/ui/SocialIcons";
 import { ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
-import { relatedVideos, toCardVideo } from "@/features/public-content/gallery-model";
+import { relatedVideos, toCardVideo, workHref } from "@/features/public-content/gallery-model";
 import { getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel, formatDateAr } from "@/features/public-content/labels";
 import { pageMetadata } from "@/features/public-content/seo";
@@ -49,71 +51,81 @@ async function VideoView({ params }: { params: PageProps<"/work/v/[youtubeId]">[
 
   return (
     <article data-video-page={video.youtube_id}>
-      <div className="bg-ink text-on-dark">
-        <Container className="pb-12 pt-10 md:pt-14">
-          <nav aria-label="مسار التصفح" className="mb-5 text-sm text-muted">
-            <Link href="/work" className="inline-flex min-h-11 items-center hover:text-gold">
-              أعمالنا
-            </Link>
+      <div className="ink-texture border-b border-hairline text-ivory">
+        <Container className="flex flex-col items-center pb-14 pt-12 text-center md:pb-20 md:pt-16">
+          <nav aria-label="مسار التنقل" className="mb-4 text-sm text-ivory-muted">
+            <ol className="flex flex-wrap items-center justify-center gap-x-2">
+              <li>
+                <Link href="/work" className="inline-flex min-h-11 min-w-11 items-center justify-center transition-colors hover:text-gold">
+                  أعمالنا
+                </Link>
+              </li>
+              {video.primary ? (
+                <li className="flex items-center gap-x-2">
+                  <span aria-hidden="true" className="text-gold">/</span>
+                  <Link href={workHref({ cat: video.primary.slug })} className="inline-flex min-h-11 items-center text-gold transition-colors hover:text-ivory">
+                    {video.primary.title}
+                  </Link>
+                </li>
+              ) : null}
+            </ol>
           </nav>
-          <div className="grid gap-8 lg:grid-cols-[1.7fr_1fr] lg:gap-12">
-            <div className="min-w-0">
-              <InlinePlayer youtubeId={video.youtube_id} title={video.title} />
-              <p className="mt-3 text-sm text-muted">
-                <a
-                  href={youTubeWatchUrl(video.youtube_id)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  data-youtube-fallback
-                  className="inline-flex min-h-11 items-center text-on-dark underline decoration-1 underline-offset-4 hover:decoration-gold"
-                >
-                  شاهد على YouTube
-                </a>
-              </p>
-            </div>
-            <div className="min-w-0">
-              <h1 data-video-title className="text-2xl font-bold leading-snug break-words md:text-3xl">
-                <bdi dir="auto">{video.title}</bdi>
-              </h1>
-              {meta.length ? <p className="mt-3 text-muted">{meta.join(" · ")}</p> : null}
-              {video.categories.length ? (
-                <ul aria-label="التصنيفات" className="mt-5 flex flex-wrap gap-2">
-                  {video.categories.map((c) => (
-                    <li key={c.slug}>
-                      <Link
-                        href={`/work?cat=${c.slug}`}
-                        data-category-chip={c.slug}
-                        className="inline-flex min-h-11 items-center rounded-full border border-ink-line px-4 hover:border-gold"
-                      >
-                        {c.title}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {video.description ? (
-                <p data-video-description className="mt-6 whitespace-pre-line break-words text-on-dark/90">
-                  {video.description}
-                </p>
-              ) : null}
-              <div className="mt-8">
-                <WhatsAppCta text={projectText(video.title)} label="اسأل عن مناسبتك" />
-              </div>
-            </div>
+          <h1 data-video-title className="max-w-4xl text-h2 font-bold leading-snug break-words">
+            <bdi dir="auto">{video.title}</bdi>
+          </h1>
+          <span aria-hidden="true" className="gold-rule mx-auto mt-4" />
+          {meta.length ? <p className="mt-4 text-ivory-muted">{meta.join(" · ")}</p> : null}
+
+          <div className="mt-8 w-full max-w-5xl text-start">
+            <InlinePlayer youtubeId={video.youtube_id} title={video.title} />
           </div>
+
+          {video.description ? (
+            <p data-video-description className="mt-8 max-w-3xl whitespace-pre-line break-words text-lead text-ivory-muted">
+              {video.description}
+            </p>
+          ) : null}
+
+          <div className="mt-8 flex flex-wrap items-center justify-center gap-4">
+            <WhatsAppCta text={projectText(video.title)} label="استفسر عن تصوير مناسبتك" />
+            <a
+              href={youTubeWatchUrl(video.youtube_id)}
+              target="_blank"
+              rel="noopener noreferrer"
+              data-youtube-fallback
+              className={buttonClasses({ variant: "outline" })}
+            >
+              <YouTubeIcon size={20} />
+              <span>شاهد على YouTube</span>
+            </a>
+          </div>
+
+          {video.categories.length ? (
+            <ul aria-label="التصنيفات" className="mt-8 flex flex-wrap justify-center gap-2">
+              {video.categories.map((c) => (
+                <li key={c.slug}>
+                  <Link
+                    href={workHref({ cat: c.slug })}
+                    data-category-chip={c.slug}
+                    className="inline-flex min-h-11 items-center rounded-full border border-hairline px-4 text-sm text-ivory-muted transition-colors hover:border-gold hover:text-gold"
+                  >
+                    {c.title}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </Container>
       </div>
 
       {related.length ? (
         <Section labelledBy="related-title">
-          <h2 id="related-title" className="mb-8 text-2xl font-bold md:text-3xl">
-            أعمال مشابهة{video.primary ? `: ${video.primary.title}` : ""}
-          </h2>
+          <SectionHeading id="related-title" title="أعمال مشابهة" align="center" lead={video.primary?.title} />
           <ul data-related className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-            {related.map((v) => (
-              <li key={v.id} className="h-full">
+            {related.map((v, i) => (
+              <FadeRise as="li" key={v.id} delay={i * 80} className="h-full">
                 <YouTubeCard video={toCardVideo(v, durationLabel(v.duration_seconds))} />
-              </li>
+              </FadeRise>
             ))}
           </ul>
         </Section>

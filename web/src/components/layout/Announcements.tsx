@@ -23,14 +23,14 @@ export async function Announcements() {
             data-announcement={a.id}
             data-template={a.template}
             aria-label="إعلان"
-            className={banner ? "border-b border-gold/40 bg-gold text-ink" : "border-b border-ink-line bg-ink-2 text-on-dark"}
+            className={banner ? "border-b border-gold-press bg-gold text-ink" : "border-b border-hairline bg-surface text-ivory"}
           >
             <div
               className={`mx-auto flex w-full max-w-[var(--content-max)] items-center gap-3 px-[var(--gutter)] ${banner ? "py-4 md:py-5" : "py-2"}`}
             >
               <p className={`min-w-0 flex-1 break-words ${banner ? "text-lg font-semibold md:text-xl" : "text-sm md:text-base"}`}>
                 {a.href ? (
-                  <Link href={a.href} data-announcement-link className="inline-flex min-h-11 items-center underline decoration-1 underline-offset-4 hover:decoration-2">
+                  <Link href={a.href} data-announcement-link className={`inline-flex min-h-11 items-center underline decoration-1 underline-offset-4 transition-colors hover:decoration-2 ${banner ? "" : "decoration-gold/70 hover:text-gold"}`}>
                     <bdi>{a.text}</bdi>
                   </Link>
                 ) : (

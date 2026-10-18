@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import path from "node:path";
 
 /**
- * Footer + booking band layout, overflow, touch targets and the before/after screenshots.
+ * Compact footer (cinematic redesign: the booking band was removed by design), overflow, touch targets, screenshots.
  *   BASE_URL=http://localhost:3600 npx playwright test tests/e2e/footer.spec.ts --project=chromium
  */
 const SHOTS = path.resolve(__dirname, "../../../docs/screenshots/before-after");
@@ -10,16 +10,16 @@ const WIDTHS = [360, 390, 768, 1440, 1920];
 
 test.describe.configure({ mode: "serial" });
 
-test("footer height and booking band are compact on desktop", async ({ browser }) => {
+test("footer is compact on desktop", async ({ browser }) => {
   for (const width of [1440, 1920]) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
     await page.goto("/", { waitUntil: "networkidle" });
     const footer = await page.locator("[data-site-footer]").boundingBox();
-    const band = await page.locator("[data-booking-band]").boundingBox();
-    test.info().annotations.push({ type: `footer@${width}`, description: `footer=${footer?.height}px band=${band?.height}px` });
-    expect(footer!.height).toBeGreaterThanOrEqual(220);
+    test.info().annotations.push({ type: `footer@${width}`, description: `footer=${footer?.height}px` });
+    // Compact footer (one band + links row); still a real footer, not a sliver.
+    expect(footer!.height).toBeGreaterThanOrEqual(120);
     expect(footer!.height).toBeLessThanOrEqual(340);
-    expect(band!.height).toBeLessThanOrEqual(130);
+    await expect(page.locator("[data-booking-band]")).toHaveCount(0); // no big booking CTA on every page
     // Full-width background, content in the container.
     expect(footer!.width).toBe(width);
     await page.close();
@@ -36,7 +36,7 @@ test("no horizontal overflow; footer links are >=44px tall on mobile", async ({ 
     }
     if (width < 768) {
       const heights = await page
-        .locator("[data-site-footer] a, [data-booking-band] a")
+        .locator("[data-site-footer] a")
         .evaluateAll((as) => as.map((a) => [a.textContent?.trim(), a.getBoundingClientRect().height] as const));
       for (const [label, h] of heights) expect(h, `touch target "${label}" @${width}`).toBeGreaterThanOrEqual(44);
       const footer = await page.locator("[data-site-footer]").boundingBox();
@@ -72,14 +72,7 @@ test("after screenshots", async ({ browser }) => {
     await page.screenshot({ path: path.join(SHOTS, `after-home-${width}.png`), fullPage: true });
     if (width === 1440) await page.screenshot({ path: path.join(SHOTS, "after-home-1440-fold.png") });
     if (width === 1440 || width === 390) {
-      await page.locator("[data-booking-band]").scrollIntoViewIfNeeded();
-      const band = (await page.locator("[data-booking-band]").boundingBox())!;
-      const foot = (await page.locator("[data-site-footer]").boundingBox())!;
-      await page.screenshot({
-        path: path.join(SHOTS, `after-footer-${width}.png`),
-        fullPage: true,
-        clip: { x: 0, y: band.y + (await page.evaluate(() => window.scrollY)), width, height: band.height + foot.height },
-      });
+      await page.locator("[data-site-footer]").screenshot({ path: path.join(SHOTS, `after-footer-${width}.png`) });
     }
     await page.close();
   }

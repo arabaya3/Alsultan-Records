@@ -120,7 +120,7 @@ export function YouTubeDialog({
         aria-modal="true"
         aria-labelledby={titleId}
         data-youtube-dialog
-        className="relative w-full max-w-5xl rounded-md bg-ink p-3 text-on-dark shadow-2xl sm:p-4"
+        className="relative w-full max-w-5xl rounded-md bg-night-deep p-3 text-ivory shadow-2xl sm:p-4"
       >
         <div className="mb-2 flex items-start justify-between gap-4">
           <h2 id={titleId} className="min-w-0 pt-2 text-base font-semibold break-words sm:text-lg">
@@ -131,7 +131,7 @@ export function YouTubeDialog({
             type="button"
             onClick={requestClose}
             aria-label="إغلاق الفيديو"
-            className="grid size-11 shrink-0 place-items-center rounded-sm text-on-dark hover:text-gold"
+            className="grid size-11 shrink-0 place-items-center rounded-sm text-ivory hover:text-gold"
           >
             <svg aria-hidden="true" viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M6 6l12 12M18 6L6 18" />
@@ -148,14 +148,14 @@ export function YouTubeDialog({
             className="absolute inset-0 size-full border-0"
           />
         </div>
-        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-muted">
+        <div className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-ivory-muted">
           {video.categories?.map((c) => (
             <Link
               key={c.slug}
               href={`/work?cat=${c.slug}`}
               onClick={onClose}
               data-dialog-category={c.slug}
-              className="inline-flex min-h-11 items-center text-on-dark underline decoration-1 underline-offset-4 hover:decoration-gold"
+              className="inline-flex min-h-11 items-center text-ivory underline decoration-1 underline-offset-4 hover:decoration-gold"
             >
               {c.title}
             </Link>
@@ -165,7 +165,7 @@ export function YouTubeDialog({
               href={video.href}
               onClick={onClose}
               data-dialog-details
-              className="inline-flex min-h-11 items-center text-on-dark underline decoration-1 underline-offset-4 hover:decoration-gold"
+              className="inline-flex min-h-11 items-center text-ivory underline decoration-1 underline-offset-4 hover:decoration-gold"
             >
               صفحة الفيديو
             </Link>
@@ -175,7 +175,7 @@ export function YouTubeDialog({
             href={youTubeWatchUrl(video.youtubeId)}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex min-h-11 items-center text-on-dark underline decoration-1 underline-offset-4 hover:decoration-gold"
+            className="inline-flex min-h-11 items-center text-ivory underline decoration-1 underline-offset-4 hover:decoration-gold"
           >
             شاهد على YouTube
           </a>

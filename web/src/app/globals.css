@@ -21,6 +21,50 @@
   --radius-md: var(--radius-md);
   --font-display: var(--font-alexandria), var(--font-plex-arabic), system-ui, sans-serif;
   --font-sans: var(--font-plex-arabic), system-ui, sans-serif;
+  /* Tone-aware helpers, set by .site-public / .tone-*: text-tone-muted, border-tone-line, text-tone-accent */
+  --color-tone-muted: var(--tone-muted);
+  --color-tone-line: var(--tone-line);
+  --color-tone-accent: var(--tone-accent);
+  --color-tone-surface: var(--tone-surface);
+}
+
+/*
+ * PUBLIC THEME — black cinematic. NEW tokens only: the admin keeps ink/cream/on-cream untouched.
+ * Contrast (WCAG): ivory on night ~17:1 · ivory-muted on night ~9:1, on surface ~8:1 ·
+ * gold on night ~10:1 · ink on gold ~11:1. Gold is for buttons, rules, active states and small details.
+ */
+@theme {
+  /* Surfaces, darkest → lightest */
+  --color-night-deep: #070706; /* darker band (Section tone="darker", footer) */
+  --color-night: #0d0c0b; /* default public page background */
+  --color-surface: #161513; /* cards, panels */
+  --color-surface-2: #1f1d1a; /* raised / hover / skeleton */
+  /* Hairline borders */
+  --color-hairline: #2c2925; /* neutral 1px rule on dark */
+  --color-hairline-gold: rgb(233 185 73 / 0.38); /* gold hairline (cards, media frames) */
+  /* Text on dark */
+  --color-ivory: #f5f1e8;
+  --color-ivory-muted: #b9b1a3;
+  /* Light band used sparingly (Section tone="ivory"); text on it = on-cream / on-cream-muted / gold-text */
+  --color-ivory-band: #f8f5ee;
+
+  --radius-lg: 10px;
+
+  /* Type scale (fluid). Utilities: text-display, text-h1, text-h2, text-h3, text-lead */
+  --text-display: clamp(2.5rem, 1.6rem + 4vw, 4.75rem);
+  --text-display--line-height: 1.15;
+  --text-h1: clamp(2.125rem, 1.5rem + 2.6vw, 3.5rem);
+  --text-h1--line-height: 1.2;
+  --text-h2: clamp(1.75rem, 1.35rem + 1.6vw, 2.625rem);
+  --text-h2--line-height: 1.25;
+  --text-h3: clamp(1.25rem, 1.1rem + 0.6vw, 1.5rem);
+  --text-h3--line-height: 1.35;
+  --text-lead: clamp(1.0625rem, 1rem + 0.35vw, 1.25rem);
+  --text-lead--line-height: 1.8;
+
+  /* Layout rhythm. Utilities: py-section, mt-stack, gap-stack … */
+  --spacing-section: clamp(3.5rem, 2.5rem + 4.5vw, 6.5rem);
+  --spacing-stack: clamp(2rem, 1.5rem + 2vw, 3rem);
 }
 
 @layer base {
@@ -54,6 +98,9 @@
     color: var(--color-ink);
   }
   input, select, textarea, button { font: inherit; }
+  /* Public pages: the canvas behind the wrapper (overscroll, short pages) is night, not cream. */
+  body:has(> .site-public) { background: var(--color-night); color: var(--color-ivory); }
+  :root { --tone-muted: var(--color-on-cream-muted); --tone-line: var(--color-cream-line); --tone-accent: var(--color-gold-text); --tone-surface: transparent; }
 }
 
 @layer components {
@@ -76,9 +123,49 @@
       radial-gradient(50% 60% at 90% 0%, rgb(255 255 255 / 0.035), transparent 70%),
       repeating-linear-gradient(115deg, rgb(255 255 255 / 0.018) 0 1px, transparent 1px 7px);
   }
+  /* Tone scopes (Section sets one; .site-public defaults to dark). */
+  .site-public, .tone-dark, .tone-darker {
+    --tone-muted: var(--color-ivory-muted);
+    --tone-line: var(--color-hairline);
+    --tone-accent: var(--color-gold);
+    --tone-surface: var(--color-surface);
+  }
+  .tone-ivory {
+    --tone-muted: var(--color-on-cream-muted);
+    --tone-line: var(--color-cream-line);
+    --tone-accent: var(--color-gold-text);
+    --tone-surface: #fffdf8;
+  }
+  /* Short gold rule under headings (SectionHeading / PageHero). */
+  .gold-rule { display: block; width: 3rem; height: 2px; background: var(--color-gold); border-radius: 1px; }
   .prose-ar p { margin-block: 0 1rem; }
   .prose-ar h2 { font-size: 1.375rem; margin-block: 2rem 0.75rem; font-weight: 600; }
   .prose-ar ul { list-style: disc; padding-inline-start: 1.25rem; margin-block-end: 1rem; }
+}
+
+/*
+ * Reveal on view (components/motion/Reveal.tsx → FadeRise). Server HTML is fully visible; the client only
+ * adds .reveal-pending to elements still BELOW the fold when motion is allowed, then .reveal-in on enter.
+ * opacity/transform only → no layout shift. Never applied under reduced motion or without JS.
+ */
+@media (prefers-reduced-motion: no-preference) {
+  .reveal-pending { opacity: 0; transform: translateY(16px); }
+  .reveal-in {
+    opacity: 1;
+    transform: none;
+    transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
+  }
+}
+
+/* Mobile menu panel: smooth open/close on the native [hidden] attribute (discrete display transition). */
+.menu-panel {
+  opacity: 1;
+  transform: none;
+  transition: opacity 0.22s var(--ease-out), transform 0.22s var(--ease-out), display 0.22s allow-discrete;
+}
+.menu-panel[hidden] { opacity: 0; transform: translateY(-8px); }
+@starting-style {
+  .menu-panel:not([hidden]) { opacity: 0; transform: translateY(-8px); }
 }
 
 @media (prefers-reduced-motion: reduce) {

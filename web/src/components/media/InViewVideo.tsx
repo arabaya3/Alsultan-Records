@@ -37,7 +37,7 @@ export function InViewVideo({
       playsInline
       preload="none"
       aria-label={label}
-      className="absolute inset-0 size-full bg-ink object-cover"
+      className="absolute inset-0 size-full bg-night-deep object-contain"
     />
   );
 }

@@ -48,7 +48,7 @@ export function MediaFrame({
   const still = media ? (media.kind === "image" ? media.src : media.poster) : null;
   return (
     <div
-      className={`relative overflow-hidden rounded-sm bg-ink-2 ${ratioClassName ?? RATIO_CLASS[ratio]} ${className}`}
+      className={`relative overflow-hidden rounded-lg bg-night-deep ${ratioClassName ?? RATIO_CLASS[ratio]} ${className}`}
     >
       {media && media.kind === "video" && playable ? (
         <InViewVideo src={media.src} poster={media.poster} label={alt} />
@@ -61,7 +61,7 @@ export function MediaFrame({
           priority={priority}
           // Remote Supabase storage host is not in images.remotePatterns yet (lead-owned config).
           unoptimized
-          className="object-cover"
+          className="object-contain"
         />
       ) : (
         <PlaceholderMedia tone={tone} />
