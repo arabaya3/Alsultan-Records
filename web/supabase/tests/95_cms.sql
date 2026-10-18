@@ -48,8 +48,8 @@ values ('00000000-0000-4000-8000-0000000cad09', '00000000-0000-4000-8000-0000000
 -- ------------------------------------------------------------------ seeds
 select is((select count(*)::int from public.process_steps where is_published), 4, 'process_steps seeded with the 4 current steps');
 select is((select title from public.process_steps order by sort_order limit 1), 'راسلنا على واتساب', 'first step verbatim');
-select is((select string_agg(target, ',' order by sort_order) from public.nav_items where is_visible), 'work,services,about',
-  'nav seeded with the current header');
+select is((select string_agg(target, ',' order by sort_order) from public.nav_items where is_visible), 'work,packages,offers,services,about',
+  'nav: current header + packages/offers (0019 owner order)');
 select is((select string_agg(key, ',' order by sort_order) from public.site_sections where is_visible), 'works,services,process',
   'visible home sections match today''s homepage');
 
@@ -67,7 +67,7 @@ select throws_ok($$select price_minor from public.offers$$, '42501', null, 'anon
 select throws_ok($$select status from public.offers$$, '42501', null, 'anon cannot select offers.status');
 select is((select count(*)::int from public.offer_items), 1, 'anon sees items of active offers only');
 select is((select string_agg(text, ',') from public.announcements), 'إعلان فعال', 'announcements: active only');
-select is((select count(*)::int from public.nav_items), 6, 'anon reads nav items');
+select is((select count(*)::int from public.nav_items), 7, 'anon reads nav items (0019 adds packages)');
 select is((select count(*)::int from public.site_sections), 8, 'anon reads home sections');
 select throws_ok($$select updated_by from public.site_sections$$, '42501', null, 'site_sections.updated_by not anon-readable');
 select is((select count(*)::int from public.process_steps), 4, 'anon reads published steps');

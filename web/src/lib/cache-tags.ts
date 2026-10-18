@@ -10,6 +10,7 @@ export const TAGS = {
   services: "services",
   process: "process-steps",
   offers: "offers",
+  packages: "packages",
   announcements: "announcements",
   videos: "showcase-videos",
   albums: "photo-albums",

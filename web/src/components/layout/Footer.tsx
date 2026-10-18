@@ -52,7 +52,7 @@ export async function Footer() {
             <h2 id="footer-links-title" className="mb-2 text-sm font-semibold text-gold">
               روابط مهمة
             </h2>
-            <ul className="grid grid-cols-2 gap-x-6 md:grid-cols-1">
+            <ul className="grid grid-cols-2 gap-x-6 md:grid-cols-2 md:gap-x-8">
               {nav.footer.map((l) => (
                 <li key={l.key}>
                   <Link href={l.href} className={linkCls}>

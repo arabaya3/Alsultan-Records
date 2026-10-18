@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { offerDatesLabel, offerPriceLabel, type Offer } from "@/features/public-content/cms-model";
+import { offerDatesLabel, offerPeriodLabel, offerPriceLabel, type Offer } from "@/features/public-content/cms-model";
 import { photoUrl } from "@/features/public-content/gallery-model";
 import { offerPath } from "@/lib/site-targets";
 
 /** Offer tile: optional image (gated /p route), title, short description, dates, price only if shown. */
-export function OfferCard({ offer, tone = "light" }: { offer: Offer; tone?: "light" | "dark" }) {
+export function OfferCard({ offer, tone = "light", packageTitle }: { offer: Offer; tone?: "light" | "dark"; packageTitle?: string | null }) {
   const price = offerPriceLabel(offer);
+  const period = offerPeriodLabel(offer);
   const dates = offerDatesLabel(offer);
   const muted = tone === "dark" ? "text-muted" : "text-on-cream-muted";
   return (
@@ -25,7 +26,9 @@ export function OfferCard({ offer, tone = "light" }: { offer: Offer; tone?: "lig
       <span className={`${offer.image_photo_id ? "mt-3" : "border-t-2 border-gold pt-4"} line-clamp-2 font-display text-xl font-semibold leading-snug break-words group-hover:text-gold-press`}>
         <bdi>{offer.title}</bdi>
       </span>
+      {period ? <span data-offer-period className="mt-1 text-sm font-medium text-gold-press">{period}</span> : null}
       {offer.description ? <span className={`mt-2 line-clamp-3 break-words ${muted}`}>{offer.description}</span> : null}
+      {packageTitle ? <span data-offer-package className={`mt-2 text-sm ${muted}`}>على بكج: <bdi>{packageTitle}</bdi></span> : null}
       <span className="mt-auto flex flex-wrap items-baseline gap-x-4 gap-y-1 pt-3 text-sm">
         {price ? <span data-offer-price className="text-base font-semibold">{price}</span> : null}
         {dates ? <span className={muted}>{dates}</span> : null}

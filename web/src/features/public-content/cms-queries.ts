@@ -13,6 +13,9 @@ import {
   navItemRow,
   offerItemRow,
   offerRow,
+  packageItemRow,
+  packageRow,
+  sortPackages,
   processStepRow,
   resolveSections,
   serviceLinkRow,
@@ -23,6 +26,7 @@ import {
   type Announcement,
   type NavLink,
   type Offer,
+  type Package,
   type ProcessStep,
   type SectionConfig,
   type ServiceLink,
@@ -102,7 +106,7 @@ export async function getProcessSteps(): Promise<ProcessStep[]> {
 }
 
 const OFFER_COLUMNS =
-  "id, slug, title, description, image_photo_id, display_price_minor, currency, show_price, starts_on, ends_on, terms, whatsapp_message, pinned_home, sort_order";
+  "id, slug, title, description, image_photo_id, display_price_minor, currency, show_price, starts_on, ends_on, terms, whatsapp_message, pinned_home, sort_order, target_month, target_year, package_id";
 
 /** Active offers (anon RLS already applies the Asia/Hebron date rule; re-checked here). Pinned first. */
 export async function getActiveOffers(): Promise<Loaded<Offer[]>> {
@@ -125,6 +129,30 @@ export async function getActiveOffers(): Promise<Loaded<Offer[]>> {
       for (const it of res.error ? [] : parseRows(offerItemRow, res.data)) items.set(it.offer_id, [...(items.get(it.offer_id) ?? []), it.label]);
     }
     return { status: "ok", data: sortOffers(rows).map((r) => ({ ...r, items: items.get(r.id) ?? [] })) };
+  } catch {
+    return { status: "unavailable" };
+  }
+}
+
+const PACKAGE_COLUMNS = "id, slug, title, description, image_photo_id, display_price_minor, currency, show_price, whatsapp_message, featured, sort_order";
+
+/** Published packages (anon RLS: status = 'published'), owner order, with their included services. */
+export async function getPublishedPackages(): Promise<Loaded<Package[]>> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(TAGS.packages);
+  const sb = getPublicClient();
+  if (!sb) return { status: "unavailable" };
+  try {
+    const { data, error } = await sb.from("packages").select(PACKAGE_COLUMNS).order("sort_order", { ascending: true });
+    if (error) return error.code === "42P01" || error.code === "PGRST205" ? { status: "ok", data: [] } : { status: "unavailable" };
+    const rows = parseRows(packageRow, data);
+    const items = new Map<string, string[]>();
+    if (rows.length) {
+      const res = await sb.from("package_items").select("package_id, label, sort_order").in("package_id", rows.map((r) => r.id)).order("sort_order", { ascending: true });
+      for (const it of res.error ? [] : parseRows(packageItemRow, res.data)) items.set(it.package_id, [...(items.get(it.package_id) ?? []), it.label]);
+    }
+    return { status: "ok", data: sortPackages(rows).map((r) => ({ ...r, items: items.get(r.id) ?? [] })) };
   } catch {
     return { status: "unavailable" };
   }

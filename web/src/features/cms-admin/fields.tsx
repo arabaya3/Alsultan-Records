@@ -132,7 +132,7 @@ export function SlugField({ defaultValue, prefix }: { defaultValue?: string; pre
 }
 
 /** Editable list of short lines (offer items). Posts each as `items`. */
-export function ItemsEditor({ defaultValue = [], max = 20 }: { defaultValue?: string[]; max?: number }) {
+export function ItemsEditor({ defaultValue = [], max = 20, legend = "ماذا يشمل العرض؟ (بنود)" }: { defaultValue?: string[]; max?: number; legend?: string }) {
   const [rows, setRows] = useState(() => (defaultValue.length ? defaultValue : [""]).map((v, i) => ({ k: i, v })));
   const [next, setNext] = useState(rows.length);
   const btn = "min-h-10 min-w-10 rounded-sm border border-cream-line bg-[#fffdf8] text-sm disabled:opacity-40";
@@ -145,7 +145,7 @@ export function ItemsEditor({ defaultValue = [], max = 20 }: { defaultValue?: st
     });
   return (
     <fieldset className="text-sm" data-testid="items-editor">
-      <legend className="mb-1 font-medium">ماذا يشمل العرض؟ (بنود)</legend>
+      <legend className="mb-1 font-medium">{legend}</legend>
       <ol className="space-y-2">
         {rows.map((r, i) => (
           <li key={r.k} className="flex gap-1">

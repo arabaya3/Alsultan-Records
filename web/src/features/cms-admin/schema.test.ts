@@ -4,7 +4,7 @@ import { offerBadge } from "./status";
 
 const offer = (o: Record<string, unknown> = {}) => ({
   title: "عرض الصيف", slug: "summer", description: "", image_photo_id: "", price_minor: "", currency: "ILS", show_price: false,
-  starts_on: "", ends_on: "", terms: "", whatsapp_message: "", status: "draft", pinned_home: false, items: [], ...o,
+  starts_on: "", ends_on: "", terms: "", whatsapp_message: "", status: "draft", pinned_home: false, target_month: "", target_year: "", package_id: "", items: [], ...o,
 });
 const ident = (o: Record<string, string> = {}) => ({
   name: "السلطان", tagline: "", phone: "", whatsapp: "", whatsapp_url: "", address: "", facebook: "", youtube_url: "", instagram: "", email: "", ...o,
@@ -46,5 +46,16 @@ describe("cms schema", () => {
     expect(offerBadge({ status: "published", starts_on: null, ends_on: "2026-10-17" }, t).label).toBe("منتهي");
     expect(offerBadge({ status: "published", starts_on: "2026-10-19", ends_on: null }, t).label).toBe("مجدول");
     expect(offerBadge({ status: "draft", starts_on: null, ends_on: null }, t).label).toBe("مسودة");
+  });
+});
+
+describe("offer target period + package link", () => {
+  it("month and year together or neither; package id must be a uuid", () => {
+    expect(offerSchema.safeParse(offer({ target_month: "10", target_year: "2026" })).success).toBe(true);
+    expect(offerSchema.safeParse(offer({ target_month: "10" })).success).toBe(false);
+    expect(offerSchema.safeParse(offer({ target_month: "13", target_year: "2026" })).success).toBe(false);
+    expect(offerSchema.safeParse(offer({ package_id: "not-a-uuid" })).success).toBe(false);
+    const ok = offerSchema.safeParse(offer({ target_month: "9", target_year: "2027" }));
+    expect(ok.success && [ok.data.target_month, ok.data.target_year, ok.data.package_id]).toEqual([9, 2027, null]);
   });
 });

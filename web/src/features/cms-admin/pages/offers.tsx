@@ -5,7 +5,7 @@ import { Badge, btn, Card, Field, FilterChips, inputCls, Notice, PageHeader } fr
 import { isUuid } from "@/features/admin/result";
 import { one, type IdParams, type SP } from "@/features/admin/query";
 import { OfferCard } from "@/components/offers/OfferCard";
-import { offerWhatsappText, type Offer } from "@/features/public-content/cms-model";
+import { monthLabelAr, offerPeriodLabel, offerWhatsappText, type Offer } from "@/features/public-content/cms-model";
 import { cms, hebronToday } from "../db";
 import { CmsForm } from "../CmsForm";
 import { ItemsEditor, LinkPicker, PhotoPicker, SlugField } from "../fields";
@@ -33,8 +33,12 @@ type OfferDb = {
   status: OfferStatus;
   pinned_home: boolean;
   sort_order: number;
+  target_month: number | null;
+  target_year: number | null;
+  package_id: string | null;
 };
-const OFFER_COLS = "id, slug, title, description, image_photo_id, price_minor, currency, show_price, starts_on, ends_on, terms, whatsapp_message, status, pinned_home, sort_order";
+const OFFER_COLS =
+  "id, slug, title, description, image_photo_id, price_minor, currency, show_price, starts_on, ends_on, terms, whatsapp_message, status, pinned_home, sort_order, target_month, target_year, package_id";
 
 export async function OffersPage({ searchParams }: { searchParams: SP }) {
   if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
@@ -71,6 +75,9 @@ export async function OffersPage({ searchParams }: { searchParams: SP }) {
         ]}
       />
       <div className="space-y-4">
+        <p className="text-sm text-on-cream-muted" data-testid="offers-order-help">
+          الترتيب في الموقع: المثبّتة أولاً بترتيب السحب هنا، ثم السارية حسب الشهر المستهدف (الأحدث أولاً)، ثم البقية بترتيب السحب.
+        </p>
         {rows.length ? (
           filter ? (
             <ul className="space-y-2">
@@ -102,11 +109,12 @@ function OfferRowView({ o, today }: { o: OfferDb; today: string }) {
       <span data-testid="offer-status">
         <Badge tone={b.tone}>{b.label}</Badge>
       </span>
-      {o.pinned_home ? <Badge tone="gold">مثبّت في الرئيسية</Badge> : null}
+      {o.pinned_home ? <Badge tone="gold">مثبّت</Badge> : null}
+      {offerPeriodLabel(o) ? <span className="text-xs" data-testid="offer-period">{offerPeriodLabel(o)}</span> : null}
       <span className="text-xs text-on-cream-muted" dir="ltr">
         {o.starts_on ?? "…"} → {o.ends_on ?? "…"}
       </span>
-      <ActionForm action={setOfferPinned} submitLabel={o.pinned_home ? "إلغاء التثبيت" : "تثبيت في الرئيسية"} kind="ghost" inline>
+      <ActionForm action={setOfferPinned} submitLabel={o.pinned_home ? "إلغاء التثبيت" : "تثبيت"} kind="ghost" inline>
         <input type="hidden" name="id" value={o.id} />
         <input type="hidden" name="value" value={o.pinned_home ? "0" : "1"} />
       </ActionForm>
@@ -134,11 +142,13 @@ export async function OfferEditPage({ params, searchParams }: { params: IdParams
   const isNew = id === "new";
   if (!isNew && !isUuid(id)) return <CmsLoadError what="العرض" />;
   const sb = await cms();
-  const [row, items, photos] = await Promise.all([
+  const [row, items, photos, pkgs] = await Promise.all([
     isNew ? Promise.resolve({ data: null, error: null }) : sb.from("offers").select(OFFER_COLS).eq("id", id).maybeSingle(),
     isNew ? Promise.resolve({ data: [] }) : sb.from("offer_items").select("label, sort_order").eq("offer_id", id).order("sort_order"),
     pickPhotos(sb),
+    sb.from("packages").select("id, title, status").order("sort_order"),
   ]);
+  const packages = (pkgs.data ?? []) as { id: string; title: string; status: string }[];
   if (row.error || (!isNew && !row.data)) return <CmsLoadError error={row.error} what="العرض" />;
   const o = row.data as OfferDb | null;
   const today = hebronToday();
@@ -204,8 +214,32 @@ export async function OfferEditPage({ params, searchParams }: { params: IdParams
               <input type="date" name="ends_on" defaultValue={o?.ends_on ?? ""} className={inputCls} />
             </Field>
             <p className="text-xs text-on-cream-muted sm:col-span-2">
-              {DATE_HELP} {todayLine(today)}.
+              {DATE_HELP} {todayLine(today)}. العرض المستقبلي لا يظهر قبل تاريخ البداية، والمنتهي يختفي من الموقع ويبقى هنا.
             </p>
+            <Field label="الشهر المستهدف (اختياري)" hint="يحدد ترتيب العروض: الأحدث أولاً. لا نقرأ الشهر من العنوان.">
+              <select name="target_month" defaultValue={o?.target_month ? String(o.target_month) : ""} className={inputCls} data-testid="offer-target-month">
+                <option value="">— بدون —</option>
+                {Array.from({ length: 12 }, (_, i) => (
+                  <option key={i + 1} value={String(i + 1)}>
+                    {monthLabelAr(i + 1)} ({i + 1})
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label="السنة المستهدفة" hint="مع الشهر، أو اتركهما فارغين.">
+              <input name="target_year" inputMode="numeric" dir="ltr" pattern="20\d{2}" defaultValue={o?.target_year ? String(o.target_year) : ""} placeholder={today.slice(0, 4)} className={inputCls} data-testid="offer-target-year" />
+            </Field>
+            <Field label="مرتبط ببكج (اختياري)" hint="للربط فقط: تعديل العرض أو انتهاؤه لا يغيّر البكج." className="sm:col-span-2">
+              <select name="package_id" defaultValue={o?.package_id ?? ""} className={inputCls} data-testid="offer-package">
+                <option value="">— بدون —</option>
+                {packages.map((pk) => (
+                  <option key={pk.id} value={pk.id}>
+                    {pk.title}
+                    {pk.status !== "published" ? " (غير منشور)" : ""}
+                  </option>
+                ))}
+              </select>
+            </Field>
             <Field label="الشروط (اختياري)" hint="حتى 1000 حرف." className="sm:col-span-2">
               <textarea name="terms" rows={3} maxLength={1000} defaultValue={o?.terms ?? ""} className={inputCls} />
             </Field>
@@ -216,7 +250,7 @@ export async function OfferEditPage({ params, searchParams }: { params: IdParams
               <PhotoPicker name="image_photo_id" label="صورة العرض (اختياري)" photos={photos} defaultValue={o?.image_photo_id} />
             </div>
             <label className="flex min-h-10 items-center gap-2 text-sm sm:col-span-2">
-              <input type="checkbox" name="pinned_home" defaultChecked={o?.pinned_home ?? false} /> تثبيت في الصفحة الرئيسية
+              <input type="checkbox" name="pinned_home" defaultChecked={o?.pinned_home ?? false} /> تثبيت (يظهر أولاً في العروض والرئيسية، بالترتيب الذي تحدده)
             </label>
           </div>
         </CmsForm>

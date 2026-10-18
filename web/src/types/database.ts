@@ -803,14 +803,14 @@ isOneToOne: false
                   ]
                 },"offers": {
                   Row: {
-                    "created_at": string,"currency": string,"description": string | null,"display_price_minor": number | null,"ends_on": string | null,"id": string,"image_photo_id": string | null,"pinned_home": boolean,"price_minor": number | null,"show_price": boolean,"slug": string,"sort_order": number,"starts_on": string | null,"status": string,"terms": string | null,"title": string,"updated_at": string,"updated_by": string | null,"whatsapp_message": string | null
+                    "created_at": string,"currency": string,"description": string | null,"display_price_minor": number | null,"ends_on": string | null,"id": string,"image_photo_id": string | null,"package_id": string | null,"pinned_home": boolean,"price_minor": number | null,"show_price": boolean,"slug": string,"sort_order": number,"starts_on": string | null,"status": string,"target_month": number | null,"target_year": number | null,"terms": string | null,"title": string,"updated_at": string,"updated_by": string | null,"whatsapp_message": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"ends_on"?: string | null,"id"?: string,"image_photo_id"?: string | null,"pinned_home"?: boolean,"price_minor"?: number | null,"show_price"?: boolean,"slug": string,"sort_order"?: number,"starts_on"?: string | null,"status"?: string,"terms"?: string | null,"title": string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
+                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"ends_on"?: string | null,"id"?: string,"image_photo_id"?: string | null,"package_id"?: string | null,"pinned_home"?: boolean,"price_minor"?: number | null,"show_price"?: boolean,"slug": string,"sort_order"?: number,"starts_on"?: string | null,"status"?: string,"target_month"?: number | null,"target_year"?: number | null,"terms"?: string | null,"title": string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"ends_on"?: string | null,"id"?: string,"image_photo_id"?: string | null,"pinned_home"?: boolean,"price_minor"?: number | null,"show_price"?: boolean,"slug"?: string,"sort_order"?: number,"starts_on"?: string | null,"status"?: string,"terms"?: string | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
+                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"ends_on"?: string | null,"id"?: string,"image_photo_id"?: string | null,"package_id"?: string | null,"pinned_home"?: boolean,"price_minor"?: number | null,"show_price"?: boolean,"slug"?: string,"sort_order"?: number,"starts_on"?: string | null,"status"?: string,"target_month"?: number | null,"target_year"?: number | null,"terms"?: string | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
                   }
                   Relationships: [
                     {
@@ -820,7 +820,59 @@ isOneToOne: false
       referencedRelation: "album_photos"
       referencedColumns: ["id"]
     },{
+      foreignKeyName: "offers_package_id_fkey"
+      columns: ["package_id"]
+isOneToOne: false
+      referencedRelation: "packages"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "offers_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"package_items": {
+                  Row: {
+                    "created_at": string,"id": string,"label": string,"package_id": string,"sort_order": number,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"label": string,"package_id": string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"label"?: string,"package_id"?: string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "package_items_package_id_fkey"
+      columns: ["package_id"]
+isOneToOne: false
+      referencedRelation: "packages"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"packages": {
+                  Row: {
+                    "created_at": string,"currency": string,"description": string | null,"display_price_minor": number | null,"featured": boolean,"id": string,"image_photo_id": string | null,"price_minor": number | null,"show_price": boolean,"slug": string,"sort_order": number,"status": string,"title": string,"updated_at": string,"updated_by": string | null,"whatsapp_message": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"featured"?: boolean,"id"?: string,"image_photo_id"?: string | null,"price_minor"?: number | null,"show_price"?: boolean,"slug": string,"sort_order"?: number,"status"?: string,"title": string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"featured"?: boolean,"id"?: string,"image_photo_id"?: string | null,"price_minor"?: number | null,"show_price"?: boolean,"slug"?: string,"sort_order"?: number,"status"?: string,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "packages_image_photo_id_fkey"
+      columns: ["image_photo_id"]
+isOneToOne: false
+      referencedRelation: "album_photos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "packages_updated_by_fkey"
       columns: ["updated_by"]
 isOneToOne: false
       referencedRelation: "profiles"

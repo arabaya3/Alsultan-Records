@@ -114,7 +114,7 @@ test("C3: offer create -> pin -> expire by date disappears from public", async (
   await page.goto(`${BASE}/admin/content/offers`);
   const r = page.getByTestId("offer-row").filter({ hasText: OFFER.title });
   await expect(r.getByTestId("offer-status")).toContainText("ساري");
-  await r.getByRole("button", { name: "تثبيت في الرئيسية" }).click();
+  await r.getByRole("button", { name: "تثبيت", exact: true }).click();
   await expect.poll(async () => (await row()).pinned_home).toBe(true);
   await expect.poll(() => publicText(page, "/offers"), { timeout: 20_000 }).toContain(OFFER.title);
 

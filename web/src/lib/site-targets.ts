@@ -7,6 +7,7 @@ export const SITE_TARGETS = {
   home: { path: "/", label: "الرئيسية" },
   work: { path: "/work", label: "أعمالنا" },
   services: { path: "/services", label: "الخدمات" },
+  packages: { path: "/packages", label: "البكجات" },
   offers: { path: "/offers", label: "العروض" },
   promos: { path: "/work?tab=promos", label: "البروموهات" },
   albums: { path: "/work?tab=photos", label: "الصور" },
@@ -33,10 +34,11 @@ export function targetLabel(t: SiteTarget, label?: string | null): string {
 }
 
 /** Default header nav when no nav_items rows exist (today's design). */
-export const DEFAULT_HEADER_NAV: SiteTarget[] = ["work", "services", "about"];
+export const DEFAULT_HEADER_NAV: SiteTarget[] = ["work", "packages", "offers", "services", "about"];
 /** Default footer «روابط مهمة» (today's design). */
-export const DEFAULT_FOOTER_NAV: SiteTarget[] = ["work", "services", "about", "book"];
+export const DEFAULT_FOOTER_NAV: SiteTarget[] = ["work", "packages", "offers", "services", "about", "book"];
 
 /** Offer slugs are lowercase latin (slug_redirects check). */
 export const OFFER_SLUG = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 export const offerPath = (slug: string) => `/offers/${slug}`;
+export const packagePath = (slug: string) => `/packages#${slug}`;

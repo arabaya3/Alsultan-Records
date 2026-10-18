@@ -16,6 +16,7 @@ import {
   keyOrderSchema,
   navItemSchema,
   offerSchema,
+  packageSchema,
   orderSchema,
   sectionIntroSchema,
   sectionSchema,
@@ -39,6 +40,8 @@ const T = {
   services: [TAGS.services, TAGS.sections],
   process: [TAGS.process, TAGS.sections],
   offers: [TAGS.offers, TAGS.announcements, TAGS.sections],
+  // Offers show the linked package's title; a package change never writes to offers.
+  packages: [TAGS.packages, TAGS.offers],
   announcements: [TAGS.announcements],
   nav: [TAGS.nav, TAGS.sections],
   sections: [TAGS.sections, TAGS.nav],
@@ -49,11 +52,12 @@ const bool = (fd: FormData, k: string) => fd.get(k) === "on" || fd.get(k) === "1
 const all = (fd: FormData, k: string) => Array.from(new Set(fd.getAll(k).map(String).filter(Boolean)));
 
 // Ordered tables an action may renumber (never user-controlled).
-type OrderedTable = "services" | "process_steps" | "offers" | "announcements" | "nav_items";
+type OrderedTable = "services" | "process_steps" | "offers" | "packages" | "announcements" | "nav_items";
 const ORDER_TAGS: Record<OrderedTable, CacheTag[]> = {
   services: T.services,
   process_steps: T.process,
   offers: T.offers,
+  packages: T.packages,
   announcements: T.announcements,
   nav_items: T.nav,
 };
@@ -109,11 +113,12 @@ export async function setVisible(_p: ActionResult, fd: FormData): Promise<Action
   return ok(on ? "أصبح ظاهراً في الموقع." : "أُخفي من الموقع.");
 }
 
-const DELETABLE = { services: T.services, process_steps: T.process, offers: T.offers, announcements: T.announcements } as const;
+const DELETABLE = { services: T.services, process_steps: T.process, offers: T.offers, packages: T.packages, announcements: T.announcements } as const;
 const BACK: Record<keyof typeof DELETABLE, string> = {
   services: "/admin/content/services",
   process_steps: "/admin/content/process",
   offers: "/admin/content/offers",
+  packages: "/admin/content/packages",
   announcements: "/admin/content/announcements",
 };
 export async function deleteRow(_p: ActionResult, fd: FormData): Promise<ActionResult> {
@@ -348,6 +353,9 @@ function readOffer(fd: FormData) {
     whatsapp_message: str(fd, "whatsapp_message"),
     status,
     pinned_home: bool(fd, "pinned_home"),
+    target_month: str(fd, "target_month"),
+    target_year: str(fd, "target_year"),
+    package_id: str(fd, "package_id"),
     items: fd.getAll("items").map(String).map((s) => s.trim()).filter(Boolean),
   });
 }
@@ -407,6 +415,81 @@ export async function setOfferPinned(_p: ActionResult, fd: FormData): Promise<Ac
   if (!data?.length) return fail("السجل غير موجود.");
   publish(...T.offers);
   return ok(on ? "ثُبّت العرض في الرئيسية." : "أُلغي تثبيت العرض.");
+}
+
+// ------------------------------------------------------------------ packages
+function readPackage(fd: FormData) {
+  const intent = str(fd, "intent");
+  const status = intent === "publish" ? "published" : intent === "draft" ? "draft" : intent === "hide" ? "hidden" : str(fd, "status") || "draft";
+  return packageSchema.safeParse({
+    title: str(fd, "title"),
+    slug: str(fd, "slug"),
+    description: str(fd, "description"),
+    image_photo_id: str(fd, "image_photo_id"),
+    price_minor: str(fd, "price"),
+    currency: str(fd, "currency") || "ILS",
+    show_price: bool(fd, "show_price"),
+    whatsapp_message: str(fd, "whatsapp_message"),
+    status,
+    featured: bool(fd, "featured"),
+    items: fd.getAll("items").map(String).map((s) => s.trim()).filter(Boolean),
+  });
+}
+
+export async function savePackage(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
+  const raw = str(fd, "id");
+  const id = raw ? uuid(fd, "id") : null;
+  if (raw && !id) return fail("سجل غير صالح.");
+  const parsed = readPackage(fd);
+  if (!parsed.success) return fail(firstIssue(parsed.error));
+  const { items, ...row } = parsed.data;
+  const sb = await cms();
+  let pid = id;
+  if (pid) {
+    const { data, error } = await sb.from("packages").update(row).eq("id", pid).select("id");
+    if (error) return fail(dbMessage(error, SLUG_DUP));
+    if (!data?.length) return fail("السجل غير موجود.");
+  } else {
+    const { data: last } = await sb.from("packages").select("sort_order").order("sort_order", { ascending: false }).limit(1);
+    const sort_order = ((last?.[0] as { sort_order?: number } | undefined)?.sort_order ?? 0) + 10;
+    const { data, error } = await sb.from("packages").insert({ ...row, sort_order }).select("id").single();
+    if (error || !data) return fail(dbMessage(error, SLUG_DUP));
+    pid = (data as { id: string }).id;
+  }
+  const d = await sb.from("package_items").delete().eq("package_id", pid);
+  const ins = !d.error && items.length ? await sb.from("package_items").insert(items.map((label, i) => ({ package_id: pid, label, sort_order: (i + 1) * 10 }))) : null;
+  publish(...T.packages);
+  if (d.error || ins?.error) return fail("حُفظ البكج، لكن تعذّر حفظ الخدمات المشمولة. أعد المحاولة.");
+  if (!id) redirect(`/admin/content/packages/${pid}?saved=1`);
+  const msg = { draft: "حُفظ البكج كمسودة (غير ظاهر).", published: "نُشر البكج.", hidden: "أُخفي البكج (غير ظاهر)." } as const;
+  return ok(msg[row.status]);
+}
+
+export async function setPackageStatus(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
+  const id = uuid(fd, "id");
+  const status = str(fd, "status");
+  if (!id || !["draft", "published", "hidden"].includes(status)) return fail("سجل غير صالح.");
+  const sb = await cms();
+  const { data, error } = await sb.from("packages").update({ status }).eq("id", id).select("id");
+  if (error) return fail(dbMessage(error));
+  if (!data?.length) return fail("السجل غير موجود.");
+  publish(...T.packages);
+  return ok(status === "published" ? "نُشر البكج." : status === "hidden" ? "أُخفي البكج." : "أُعيد البكج لمسودة.");
+}
+
+export async function setPackageFeatured(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
+  const id = uuid(fd, "id");
+  if (!id) return fail("سجل غير صالح.");
+  const on = fd.get("value") === "1";
+  const sb = await cms();
+  const { data, error } = await sb.from("packages").update({ featured: on }).eq("id", id).select("id");
+  if (error) return fail(dbMessage(error));
+  if (!data?.length) return fail("السجل غير موجود.");
+  publish(...T.packages);
+  return ok(on ? "أصبح البكج مميّزاً." : "أُلغي تمييز البكج.");
 }
 
 // ------------------------------------------------------------------ announcements

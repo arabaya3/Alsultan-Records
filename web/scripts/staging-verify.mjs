@@ -287,11 +287,16 @@ async function run(F) {
     // migration 0017 — published process steps
     process_steps: "id title description photo_id sort_order".split(" "),
     // migration 0017 — ACTIVE offers only (RLS); raw price_minor/status/updated_by stay admin-only, display_price_minor is null unless show_price
-    offers: "id slug title description image_photo_id display_price_minor currency show_price starts_on ends_on terms whatsapp_message pinned_home sort_order".split(" "),
+    // migration 0019 adds target_month/target_year (ordering) and package_id (optional link)
+    offers: "id slug title description image_photo_id display_price_minor currency show_price starts_on ends_on terms whatsapp_message pinned_home sort_order target_month target_year package_id".split(" "),
     // migration 0017 — items of active offers
     offer_items: "id offer_id label sort_order".split(" "),
     // migration 0017 — ACTIVE announcements only (RLS); is_visible/updated_by stay admin-only
     announcements: "id template text link_kind link_offer_id link_page starts_on ends_on dismissible sort_order".split(" "),
+    // migration 0019 — PUBLISHED packages only (RLS); raw price_minor/status/updated_by stay admin-only
+    packages: "id slug title description image_photo_id display_price_minor currency show_price whatsapp_message featured sort_order".split(" "),
+    // migration 0019 — items of published packages
+    package_items: "id package_id label sort_order".split(" "),
     // migration 0018 — published album categories
     album_categories: "id slug title sort_order".split(" "),
   };

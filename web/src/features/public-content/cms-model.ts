@@ -137,6 +137,16 @@ export const offerRow = z.object({
   status: z.string().nullable().optional(),
   pinned_home: bool(false),
   sort_order: num(0),
+  /** The month the offer is FOR (owner-set). Ordering never reads the title. */
+  target_month: z.union([z.number(), z.string()]).nullable().optional().catch(null).transform((v) => {
+    const n = v == null ? NaN : Number(v);
+    return Number.isInteger(n) && n >= 1 && n <= 12 ? n : null;
+  }),
+  target_year: z.union([z.number(), z.string()]).nullable().optional().catch(null).transform((v) => {
+    const n = v == null ? NaN : Number(v);
+    return Number.isInteger(n) && n >= 2000 && n <= 2100 ? n : null;
+  }),
+  package_id: optUuid,
 });
 export type OfferRow = z.infer<typeof offerRow>;
 export const offerItemRow = z.object({ offer_id: z.string(), label: z.string().min(1).transform((v) => v.slice(0, 120)), sort_order: num(0) });
@@ -155,9 +165,38 @@ export function isOfferActive(o: Pick<OfferRow, "status" | "starts_on" | "ends_o
   return true;
 }
 
-/** Pinned first, then sort_order. */
-export function sortOffers<T extends Pick<OfferRow, "pinned_home" | "sort_order">>(list: T[]): T[] {
-  return [...list].sort((a, b) => Number(b.pinned_home) - Number(a.pinned_home) || a.sort_order - b.sort_order);
+/**
+ * Period an offer targets, as a sortable month number (year*12 + month-1): the owner's target month/year,
+ * otherwise the month of starts_on, otherwise null. The title is never parsed.
+ */
+export function offerPeriodKey(o: Pick<OfferRow, "target_month" | "target_year" | "starts_on">): number | null {
+  if (o.target_year != null && o.target_month != null) return o.target_year * 12 + (o.target_month - 1);
+  const m = o.starts_on ? /^(\d{4})-(\d{2})/.exec(o.starts_on) : null;
+  return m ? Number(m[1]) * 12 + (Number(m[2]) - 1) : null;
+}
+
+/**
+ * Offer order (public /offers, home section):
+ *  1. pinned first, in the owner's order (sort_order);
+ *  2. then the newest target period first (October 2026 above September 2026; 2027 above 2026);
+ *  3. offers with no period after those with one; ties by the owner's sort_order.
+ */
+export function sortOffers<T extends Pick<OfferRow, "pinned_home" | "sort_order"> & Partial<Pick<OfferRow, "target_month" | "target_year" | "starts_on">>>(list: T[]): T[] {
+  const key = (o: T) => offerPeriodKey({ target_month: o.target_month ?? null, target_year: o.target_year ?? null, starts_on: o.starts_on ?? null });
+  return [...list].sort((a, b) => {
+    if (a.pinned_home !== b.pinned_home) return a.pinned_home ? -1 : 1;
+    if (a.pinned_home) return a.sort_order - b.sort_order;
+    const ka = key(a);
+    const kb = key(b);
+    if (ka !== kb) return ka == null ? 1 : kb == null ? -1 : kb - ka;
+    return a.sort_order - b.sort_order;
+  });
+}
+
+const AR_MONTHS = ["كانون الثاني", "شباط", "آذار", "نيسان", "أيار", "حزيران", "تموز", "آب", "أيلول", "تشرين الأول", "تشرين الثاني", "كانون الأول"];
+export const monthLabelAr = (m: number) => AR_MONTHS[m - 1] ?? "";
+export function offerPeriodLabel(o: Pick<OfferRow, "target_month" | "target_year">): string | null {
+  return o.target_month && o.target_year ? `${monthLabelAr(o.target_month)} ${o.target_year}` : null;
 }
 
 /** Price only when the owner chose to show it. */
@@ -184,6 +223,31 @@ export function offerDatesLabel(o: Pick<OfferRow, "starts_on" | "ends_on">): str
 }
 export const offerWhatsappText = (o: Pick<OfferRow, "title" | "whatsapp_message">) =>
   o.whatsapp_message ?? `مرحباً، بدي أستفسر عن عرض: ${o.title}`;
+
+/* ---------------- packages ---------------- */
+export const packageRow = z.object({
+  id: z.string(),
+  slug: z.string().regex(OFFER_SLUG),
+  title: z.string().min(1).transform((v) => v.slice(0, 120)),
+  description: text(1000),
+  image_photo_id: optUuid,
+  display_price_minor: z.union([z.number(), z.string()]).nullable().optional().catch(null).transform((v) => {
+    const n = v == null ? NaN : Number(v);
+    return Number.isFinite(n) && n >= 0 ? n : null;
+  }),
+  currency: z.string().regex(/^[A-Z]{3}$/).nullable().optional().catch(null).transform((v) => v ?? "ILS"),
+  show_price: bool(false),
+  whatsapp_message: text(600),
+  featured: bool(false),
+  sort_order: num(0),
+});
+export type PackageRow = z.infer<typeof packageRow>;
+export const packageItemRow = z.object({ package_id: z.string(), label: z.string().min(1).transform((v) => v.slice(0, 120)), sort_order: num(0) });
+export type Package = PackageRow & { items: string[] };
+export const sortPackages = <T extends Pick<PackageRow, "sort_order">>(list: T[]): T[] => [...list].sort((a, b) => a.sort_order - b.sort_order);
+/** WhatsApp text always names the package (owner may write their own message). */
+export const packageWhatsappText = (p: Pick<PackageRow, "title" | "whatsapp_message">) =>
+  p.whatsapp_message ?? `مرحباً، بدي أستفسر عن بكج: ${p.title}`;
 
 /* ---------------- announcements ---------------- */
 export const announcementRow = z.object({

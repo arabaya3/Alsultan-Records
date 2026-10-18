@@ -41,6 +41,22 @@ export const optDate = z
     }
     return v;
   });
+/** Optional whole number in [min, max]; "" → null. */
+export const optInt = (min: number, max: number, label: string) =>
+  z
+    .string()
+    .trim()
+    .transform((v, ctx) => {
+      if (v === "") return null;
+      const n = Number(v);
+      if (!Number.isInteger(n) || n < min || n > max) {
+        ctx.addIssue({ code: "custom", message: `${label} غير صالح` });
+        return z.NEVER;
+      }
+      return n;
+    });
+export const defaultPackageMessage = (title: string) => `مرحباً، بدي أستفسر عن بكج: ${title}`;
+
 export const slug = z
   .string()
   .trim()
@@ -171,9 +187,29 @@ export const offerSchema = z
     whatsapp_message: optText(600, "رسالة واتساب"),
     status: z.enum(["draft", "published", "archived"]),
     pinned_home: z.boolean(),
+    target_month: optInt(1, 12, "الشهر المستهدف"),
+    target_year: optInt(2000, 2100, "السنة المستهدفة"),
+    package_id: optUuid,
     items: z.array(reqText(120, "بند العرض")).max(20, "بنود كثيرة (20 حداً أقصى)"),
   })
+  .refine((v) => (v.target_month === null) === (v.target_year === null), { message: "اختر الشهر والسنة المستهدفين معاً، أو اتركهما فارغين." })
   .refine((v) => !v.starts_on || !v.ends_on || v.ends_on >= v.starts_on, { message: "تاريخ النهاية يجب أن يكون بعد البداية أو مساوياً لها." })
+  .refine((v) => !v.show_price || v.price_minor !== null, { message: "أدخل السعر أو ألغِ «إظهار السعر»." });
+
+export const packageSchema = z
+  .object({
+    title: reqText(120, "اسم البكج", 2),
+    slug,
+    description: optText(1000, "الوصف"),
+    image_photo_id: optUuid,
+    price_minor: money,
+    currency: z.enum(["ILS", "USD", "JOD"], { message: "عملة غير مدعومة" }),
+    show_price: z.boolean(),
+    whatsapp_message: optText(600, "رسالة واتساب"),
+    status: z.enum(["draft", "published", "hidden"]),
+    featured: z.boolean(),
+    items: z.array(reqText(120, "خدمة مشمولة")).max(30, "خدمات كثيرة (30 حداً أقصى)"),
+  })
   .refine((v) => !v.show_price || v.price_minor !== null, { message: "أدخل السعر أو ألغِ «إظهار السعر»." });
 
 export const announcementSchema = z

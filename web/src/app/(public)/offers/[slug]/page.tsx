@@ -6,12 +6,12 @@ import { JsonLd } from "@/components/ui/JsonLd";
 import { Container, Section } from "@/components/ui/Layout";
 import { ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
-import { offerDatesLabel, offerPriceLabel, offerWhatsappText, type Offer } from "@/features/public-content/cms-model";
-import { getOfferBySlug } from "@/features/public-content/cms-queries";
+import { offerDatesLabel, offerPeriodLabel, offerPriceLabel, offerWhatsappText, type Offer } from "@/features/public-content/cms-model";
+import { getOfferBySlug, getPublishedPackages } from "@/features/public-content/cms-queries";
 import { photoUrl } from "@/features/public-content/gallery-model";
 import { pageMetadata } from "@/features/public-content/seo";
 import { SITE_NAME_AR, siteUrl } from "@/features/public-content/site";
-import { OFFER_SLUG, offerPath } from "@/lib/site-targets";
+import { OFFER_SLUG, offerPath, packagePath } from "@/lib/site-targets";
 
 async function load(slug: string) {
   return OFFER_SLUG.test(slug) ? getOfferBySlug(slug) : ({ status: "ok", data: null } as const);
@@ -61,6 +61,9 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
   if (!o) notFound(); // draft, archived, expired or not started → 404
   const price = offerPriceLabel(o);
   const dates = offerDatesLabel(o);
+  const period = offerPeriodLabel(o);
+  const pk = o.package_id ? await getPublishedPackages() : null;
+  const pkg = pk?.status === "ok" ? pk.data.find((p) => p.id === o.package_id) : undefined;
   const ld = offerJsonLd(o);
   return (
     <article data-offer={o.slug}>
@@ -77,6 +80,7 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
             <span className="text-gold">.</span>
           </h1>
           {o.description ? <p className="mt-4 max-w-2xl text-lg whitespace-pre-line text-muted md:text-xl">{o.description}</p> : null}
+          {period ? <p data-offer-period className="mt-4 text-lg font-medium text-gold">{period}</p> : null}
           {price || dates ? (
             <p className="mt-6 flex flex-wrap items-baseline gap-x-6 gap-y-2">
               {price ? <span data-offer-price className="text-2xl font-semibold text-gold">{price}</span> : null}
@@ -107,6 +111,14 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
                   {o.terms}
                 </p>
               </div>
+            ) : null}
+            {pkg ? (
+              <p data-offer-package className="mt-8">
+                العرض على بكج:{" "}
+                <Link href={packagePath(pkg.slug)} className="font-medium underline underline-offset-4 hover:text-gold-press">
+                  <bdi>{pkg.title}</bdi>
+                </Link>
+              </p>
             ) : null}
             <div className="mt-10">
               <WhatsAppCta text={offerWhatsappText(o)} label="اسأل عن العرض على واتساب" />

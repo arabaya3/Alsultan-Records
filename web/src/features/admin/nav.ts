@@ -18,6 +18,7 @@ export const NAV: NavGroup[] = [
       { href: "/admin/content/home", label: "الرئيسية", roles: A },
       { href: "/admin/content/services", label: "الخدمات", roles: A },
       { href: "/admin/content/process", label: "طريقة شغلنا", roles: A },
+      { href: "/admin/content/packages", label: "البكجات", roles: A },
       { href: "/admin/content/offers", label: "العروض", roles: A },
       { href: "/admin/content/announcements", label: "الإعلانات", roles: A },
       { href: "/admin/videos", label: "الفيديوهات", roles: A },

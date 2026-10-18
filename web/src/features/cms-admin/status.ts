@@ -28,3 +28,10 @@ export function visibleBadge(r: Dated & { is_visible: boolean }, today: string):
   if (s === "expired") return { label: "منتهي", tone: "danger" };
   return { label: "ظاهر الآن", tone: "success" };
 }
+
+export type PackageStatus = "draft" | "published" | "hidden";
+export function packageBadge(p: { status: PackageStatus }): { label: string; tone: Tone; key: PackageStatus } {
+  if (p.status === "published") return { label: "منشور", tone: "success", key: "published" };
+  if (p.status === "hidden") return { label: "مخفي", tone: "neutral", key: "hidden" };
+  return { label: "مسودة", tone: "neutral", key: "draft" };
+}
