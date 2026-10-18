@@ -350,3 +350,11 @@ Root causes (no timeouts were raised; each fix removes the shared state):
 
 The 10 skips: auth-links ×2 (above, run separately), empty-states stub mode ×3 (needs a stub build), photos empty state ×1 (needs no published album), qa-journeys/qa-responsive booking-form ×4 (the form was replaced by WhatsApp booking — approved scope).
 No production deploy: only tests and docs changed.
+
+## Packages vs offers (2026-10-18, migration 0019)
+- pgTAP **331/331** (new `96_packages.sql`, 22: anon sees published packages only and never `price_minor`; customer/anon writes denied; editing/expiring/archiving/deleting offers leaves the package row and items identical; deleting a package only unlinks offers; target month/year both-or-neither; nav order). `95_cms` nav assertions updated for the owner-requested order.
+- Vitest **65/65** (ordering: Oct 2026 > Sep 2026, Sep 2027 > Oct 2026, Jan 2027 > Dec 2026, title never parsed, pinned first in owner order, start-month fallback, validity windows, package WhatsApp text).
+- Playwright `packages-offers.spec.ts` **7/7**; full suite on a fresh DB 176 passed + footer fix (6 footer links → 2 columns on desktop; footer spec 4/4 after rebuild); footer/public/a11y/packages/offers re-run **33/33**; axe 0 violations on /packages (1440, 390) and /offers.
+- Production: pre-migration export `npm run backup` COMPLETE (434/434). `db push` applied only 0019; counts unchanged (offers 0, packages 0, albums 7, photos 128, videos 19, profiles 1; nav_items 6→7 = new «البكجات»). staging-verify **69/69** (allow-list extended only with the new anon columns).
+- Live (`node web/scripts/live-packages-check.mjs`, temp `[STAGING-TEST]` admin): **17/17** — package visible without deploy, WhatsApp names the package, order pinned > Oct 2026 > Sep 2026, linked offer → package link, expiry removes the offer and leaves the package untouched, desktop + mobile nav order, anon insert denied, cleanup through the admin, both pages back to the real (empty) state. First run: 14/16 — the WhatsApp check read a stale cached copy once (fixed by polling), and /packages still showed the deleted test package for a short while; the cleanup then logged nothing, so the cause was not confirmed. Second run confirmed deletion through the admin and the page clean at once.
+- Screenshots: `docs/screenshots/packages/`.
