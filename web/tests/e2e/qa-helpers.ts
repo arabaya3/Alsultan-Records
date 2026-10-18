@@ -112,3 +112,19 @@ export function psql(sql: string): string {
     encoding: "utf8",
   }).trim();
 }
+
+/**
+ * LOCAL fixture reset: puts the seeded [DEV] events' photo selection back to "nothing selected".
+ * Two specs (portal, qa-portal C4) each submit — and therefore permanently lock — the selection of the same
+ * seeded events; whichever ran second used to find it already locked. Snapshots stay immutable for every API
+ * role (trigger album_snapshots_immutable); only this local superuser session skips triggers (replica mode),
+ * exactly like `supabase db reset` would. Refuses anything but the seeded [DEV] events.
+ */
+export function resetSeedSelections(eventIds: string[]) {
+  if (!eventIds.every((id) => /^00000000-0000-4000-8000-0000000000[0-9a-f]{2}$/.test(id))) throw new Error("seed events only");
+  const ids = eventIds.map((id) => `'${id}'`).join(",");
+  psql(`begin; set local session_replication_role = replica;
+    delete from public.album_selection_snapshots where event_id in (${ids});
+    delete from public.album_selections where event_id in (${ids});
+    commit;`);
+}

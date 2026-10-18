@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import fs from "node:fs";
 import path from "node:path";
+import { resetSeedSelections } from "./qa-helpers";
 
 /**
  * Client portal e2e. LOCAL STACK ONLY (seeded dev users).
@@ -139,6 +140,7 @@ async function pick(page: Page, eventId: string, n: number) {
 }
 
 test("selection counts per event, submit creates snapshot and locks", async ({ page }) => {
+  resetSeedSelections([A1, A2]); // qa-portal C4 locks the same seeded selections
   await page.setViewportSize({ width: 1440, height: 1000 });
   await login(page);
   await pick(page, A1, 3);

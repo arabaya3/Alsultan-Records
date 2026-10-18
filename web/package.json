@@ -10,7 +10,8 @@
     "seed:storage": "node scripts/seed-storage.mjs",
     "test:unit": "vitest run",
     "test:db": "supabase test db",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "backup": "node scripts/backup-now.mjs --target staging"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",

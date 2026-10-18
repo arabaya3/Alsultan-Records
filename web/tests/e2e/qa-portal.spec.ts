@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
-import { as, BASE, CONTRACT_A, db, EV, QUOTE_A, SHOTS, uiLogin, watchErrors } from "./qa-helpers";
+import { as, BASE, CONTRACT_A, db, EV, QUOTE_A, resetSeedSelections, SHOTS, uiLogin, watchErrors } from "./qa-helpers";
 
 /** Portal deep checks (customer A) against the production build on a fresh local DB + seed:storage. */
 test.describe.configure({ mode: "serial" });
@@ -45,6 +45,7 @@ async function pick(page: Page, eventId: string, n: number) {
 }
 
 test("C4: selection across two events (3 and 2); submitted snapshot is immutable", async ({ page }) => {
+  resetSeedSelections([EV.A1, EV.A2]); // portal.spec locks the same seeded selections
   await uiLogin(page, "a", "/portal");
   await pick(page, EV.A1, 3);
   await pick(page, EV.A2, 2);

@@ -34,7 +34,9 @@ async function essentials(page: Page) {
   await expect(page.locator("main a[href='/book'], main a[href^='https://wa.me/']").first()).toBeVisible(); // booking is via WhatsApp (approved scope)
   await expect(page.getByRole("heading", { name: "الخدمات" })).toBeVisible();
   expect(await page.locator("#services-title ~ * li, section[aria-labelledby='services-title'] ol > li").count()).toBeGreaterThan(0);
-  await expect(page.locator("main a[href='/contact'], footer a[href='/contact']").first()).toBeAttached();
+  // A way to reach the studio: the footer shows WhatsApp/phone when they are set (it falls back to /contact
+  // only when they are not), and the header menu always links /contact.
+  await expect(page.locator("header a[href='/contact'], footer a[href='/contact'], footer a[href^='https://wa.me/'], footer a[href^='tel:']").first()).toBeAttached();
   await expect(page.locator("[data-placeholder]")).toHaveCount(0);
   await expect(page.getByText("صورة مؤقتة")).toHaveCount(0);
 }

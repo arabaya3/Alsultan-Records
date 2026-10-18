@@ -332,3 +332,21 @@ nav rename visible with URL `/services` unchanged (restored); pending photo proc
 Cleanup: 0 test rows/users/objects left. Real data after: 7 albums, 128 photos, 19 videos, 6 nav items, 1 user (owner).
 Local: pgTAP 309/309, vitest 57/57, tsc clean, lint 0 errors, admin/CMS/albums/pipeline/MFA e2e 35/35, qa-* 40 passed.
 Screenshots: `docs/screenshots/cms/`.
+
+## Full e2e suite — cross-spec interference fixed (2026-10-18)
+Fresh `db reset` + seed (418 objects) + content/album import, production build on :3600, `npx playwright test` (all specs, one worker).
+
+| Run | Result |
+|---|---|
+| Before fixes | 143 passed, **6 failed**, 26 did not run (serial blocks after a failure) |
+| After fixes | **173 passed, 0 failed**, 10 skipped |
+
+Root causes (no timeouts were raised; each fix removes the shared state):
+1. **portal / qa-portal C4** both submitted — and permanently locked — the photo selection of the same seeded events; the second found it locked. New `resetSeedSelections()` (qa-helpers, local stack only, seeded `[DEV]` ids only) resets those fixtures before each test. The `album_snapshots_immutable` trigger is unchanged for every API role.
+2. **public.spec console 404 on `/` and `/services`**: admin-cms C4/C6 and cms-public deleted their test video/offer/announcement/service straight in the DB, which does not invalidate the public cache; cached pages kept links/thumbnails to deleted rows → 404 in the console. C4/C6 now delete through the admin UI (which calls `updateTag`) and assert the item left `/`; cms-public's restore also waits for `/services`.
+3. **consent-revocation**: expected the test project on the homepage; since the gallery round projects are listed on `/work` («مشاريع مختارة»), not on `/`. Assertion moved to `/work` (the withdrawal half already checked `/work`).
+4. **empty-states (current DB)**: required a `/contact` link in main/footer; with real business data the footer shows WhatsApp/phone instead (it falls back to `/contact` only without them, same as before CMS) and the header menu links `/contact`. Assertion accepts either real contact path.
+5. **auth-links**: precondition, not interference — in token_hash mode the mailed link uses config.toml `site_url`, which must equal BASE_URL's origin. It now skips with that reason in a full run on another port, and was run separately with `site_url` = `http://localhost:3600` (stack restarted, config restored after): **2/2 passed**.
+
+The 10 skips: auth-links ×2 (above, run separately), empty-states stub mode ×3 (needs a stub build), photos empty state ×1 (needs no published album), qa-journeys/qa-responsive booking-form ×4 (the form was replaced by WhatsApp booking — approved scope).
+No production deploy: only tests and docs changed.

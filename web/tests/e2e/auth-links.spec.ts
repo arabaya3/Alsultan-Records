@@ -21,6 +21,8 @@
  *   AUTH_LINK_TEMPLATES=token_hash BASE_URL=http://localhost:4100 npx playwright test auth-links
  */
 import { expect, test, type Browser, type BrowserContext, type Page } from "@playwright/test";
+import fs from "node:fs";
+import path from "node:path";
 import { BASE, db, USERS } from "./qa-helpers";
 
 const MAIL = process.env.MAILPIT_URL ?? "http://127.0.0.1:54324";
@@ -84,7 +86,14 @@ async function fresh(browser: Browser): Promise<{ ctx: BrowserContext; page: Pag
 
 test.describe.configure({ mode: "serial" });
 
+// Precondition, not a flake: in token_hash mode the mailed link is built from config.toml `site_url`, so it can only
+// point at the app under test when site_url has the same origin as BASE_URL. Otherwise skip with the reason (a full
+// run usually targets another port); run this spec on its own as described in the header.
+const SITE_URL = /^site_urls*=s*"([^"]+)"/m.exec(fs.readFileSync(path.resolve(__dirname, "../../supabase/config.toml"), "utf8"))?.[1] ?? "";
+const SITE_MATCH = MODE !== "token_hash" || (SITE_URL !== "" && new URL(SITE_URL).origin === new URL(BASE).origin);
+
 test.describe(`auth links — ${MODE} templates`, () => {
+  test.skip(!SITE_MATCH, `precondition: config.toml site_url (${SITE_URL}) must have the origin of BASE_URL (${BASE}); see the header of this spec`);
   test.afterAll(async () => {
     // Restore the seed password whatever happened.
     const { data } = await db.auth.admin.listUsers({ perPage: 200 });

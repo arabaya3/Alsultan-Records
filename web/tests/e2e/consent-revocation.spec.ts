@@ -92,12 +92,13 @@ test("published media is served through /m with a bounded public cache", async (
   // The bucket itself is not public: the old direct URL shape never works.
   expect((await request.get(`${SB_URL}/storage/v1/object/public/public-media/${pubDisplay}`)).ok()).toBe(false);
 
-  // Project page and listings (allowing the 1-minute public page cache to pick up the new cover).
+  // Project page and listing (allowing the 1-minute public page cache to pick up the new cover).
+  // Projects are listed on /work («مشاريع مختارة»); since the gallery round the homepage shows videos/albums, not projects.
   expect((await request.get(`${BASE}/work/${SLUG}`)).status()).toBe(200);
-  const home = await poll(async () => (await request.get(`${BASE}/`)).text(), (t) => t.includes(`/m/${publicId}/`), 90_000);
-  expect(home).toContain(`/work/${SLUG}`);
-  expect(home).toContain(`/m/${publicId}/`);
-  expect(home).not.toContain("/storage/v1/object/public/");
+  const work = await poll(async () => (await request.get(`${BASE}/work`)).text(), (t) => t.includes(`/m/${publicId}/`), 90_000);
+  expect(work).toContain(`/work/${SLUG}`);
+  expect(work).toContain(`/m/${publicId}/`);
+  expect(work).not.toContain("/storage/v1/object/public/");
 });
 
 test("customer withdraws consent in the portal: same URL is 404 immediately", async ({ page, request }) => {

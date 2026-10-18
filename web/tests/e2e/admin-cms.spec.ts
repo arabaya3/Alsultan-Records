@@ -157,8 +157,18 @@ test("C4: announcement linked to an offer", async ({ browser }) => {
       { timeout: 200_000, intervals: [5_000] },
     )
     .toBe(`/offers/${c4Slug}`);
-  await db.from("announcements").delete().eq("text", ANN_TEXT);
-  await db.from("offers").delete().eq("slug", c4Slug);
+  // Clean up THROUGH THE ADMIN so the public cache is invalidated. A direct DB delete left the announcement in
+  // cached pages linking to a deleted offer; the link prefetch 404 then failed public.spec's console check.
+  const annId = (await db.from("announcements").select("id").eq("text", ANN_TEXT).single()).data!.id;
+  for (const [path, label] of [[`/admin/content/announcements/${annId}`, "حذف الإعلان"], [`/admin/content/offers/${offerId}`, "حذف العرض نهائياً"]]) {
+    await page.goto(`${BASE}${path}`);
+    await page.getByRole("button", { name: label }).click();
+    await page.getByRole("dialog").getByRole("button", { name: "حذف" }).click();
+    await page.waitForURL((u) => !u.pathname.endsWith(path.split("/").pop()!));
+  }
+  expect((await db.from("announcements").select("id").eq("text", ANN_TEXT)).data).toHaveLength(0);
+  expect((await db.from("offers").select("id").eq("slug", c4Slug)).data).toHaveLength(0);
+  await expect.poll(async () => (await (await fetch(`${BASE}/`)).text()).includes(c4Slug), { timeout: 15_000 }).toBe(false);
   await page.context().close();
 });
 
@@ -198,6 +208,13 @@ test("C6: YouTube add + role promo + pin", async ({ browser }) => {
   await page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`).getByRole("button", { name: "تثبيت" }).click();
   await expect.poll(async () => (await row()).pinned).toBe(true);
   expect((await anon().from("showcase_videos").select("role, pinned").eq("youtube_id", YT_ID).single()).data).toMatchObject({ role: "promo", pinned: true });
+  // Clean up THROUGH THE ADMIN (it invalidates the public cache). A direct DB delete in afterAll left the
+  // fake video in cached public pages for minutes; its YouTube thumbnail 404 then failed public.spec.
+  await page.reload();
+  await page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`).getByRole("button", { name: "حذف" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "حذف" }).click();
+  await expect.poll(async () => (await db.from("showcase_videos").select("id").eq("youtube_id", YT_ID)).data?.length).toBe(0);
+  await expect.poll(async () => (await (await fetch(`${BASE}/`)).text()).includes(YT_ID), { timeout: 15_000 }).toBe(false);
   await page.context().close();
 });
 

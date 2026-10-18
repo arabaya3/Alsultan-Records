@@ -86,6 +86,9 @@ test.afterAll(async () => {
   if (svcId) await db.from("services").delete().eq("id", svcId);
   await db.from("slug_redirects").delete().in("from_path", [`/services/${SVC_OLD}`]);
   await until("/", (h) => !h.includes(NAV_LABEL) && !h.includes("إعلان اختبار CMS") && h.includes('id="steps-title"'));
+  // /services is cached separately: wait until it no longer lists the deleted test service, otherwise its link
+  // prefetch 404s and fails later console-error checks (public.spec) — the restore must cover every page it touched.
+  await until("/services", (h) => !h.includes(SVC_NEW) && !h.includes(SVC_OLD));
 });
 
 test("header nav labels and order come from nav_items; footer uses the same; never admin/login", async ({ page }) => {
