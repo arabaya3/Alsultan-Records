@@ -615,14 +615,14 @@ isOneToOne: false
                   ]
                 },"events": {
                   Row: {
-                    "booking_request_id": string | null,"city": string | null,"consent_at": string | null,"consent_by": string | null,"consent_revoked_by_customer_at": string | null,"coverage_notes": string | null,"created_at": string,"customer_id": string,"equipment_note": string | null,"event_date": string | null,"event_type": string | null,"featured": boolean,"featured_order": number | null,"highlight": string | null,"id": string,"is_published": boolean,"production_note": string | null,"public_slug": string | null,"publication_consent": Database["public"]['Enums']["consent_status"],"seo_description": string | null,"seo_title": string | null,"status": Database["public"]['Enums']["event_status"],"title": string,"updated_at": string,"venue": string | null
+                    "booking_request_id": string | null,"city": string | null,"consent_at": string | null,"consent_by": string | null,"consent_revoked_by_customer_at": string | null,"coverage_notes": string | null,"created_at": string,"customer_id": string,"deleted_at": string | null,"deleted_by": string | null,"equipment_note": string | null,"event_date": string | null,"event_type": string | null,"featured": boolean,"featured_order": number | null,"highlight": string | null,"id": string,"is_published": boolean,"production_note": string | null,"public_slug": string | null,"publication_consent": Database["public"]['Enums']["consent_status"],"seo_description": string | null,"seo_title": string | null,"status": Database["public"]['Enums']["event_status"],"title": string,"updated_at": string,"venue": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "booking_request_id"?: string | null,"city"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"consent_revoked_by_customer_at"?: string | null,"coverage_notes"?: string | null,"created_at"?: string,"customer_id": string,"equipment_note"?: string | null,"event_date"?: string | null,"event_type"?: string | null,"featured"?: boolean,"featured_order"?: number | null,"highlight"?: string | null,"id"?: string,"is_published"?: boolean,"production_note"?: string | null,"public_slug"?: string | null,"publication_consent"?: Database["public"]['Enums']["consent_status"],"seo_description"?: string | null,"seo_title"?: string | null,"status"?: Database["public"]['Enums']["event_status"],"title": string,"updated_at"?: string,"venue"?: string | null
+                    "booking_request_id"?: string | null,"city"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"consent_revoked_by_customer_at"?: string | null,"coverage_notes"?: string | null,"created_at"?: string,"customer_id": string,"deleted_at"?: string | null,"deleted_by"?: string | null,"equipment_note"?: string | null,"event_date"?: string | null,"event_type"?: string | null,"featured"?: boolean,"featured_order"?: number | null,"highlight"?: string | null,"id"?: string,"is_published"?: boolean,"production_note"?: string | null,"public_slug"?: string | null,"publication_consent"?: Database["public"]['Enums']["consent_status"],"seo_description"?: string | null,"seo_title"?: string | null,"status"?: Database["public"]['Enums']["event_status"],"title": string,"updated_at"?: string,"venue"?: string | null
                   }
                   Update: {
-                    "booking_request_id"?: string | null,"city"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"consent_revoked_by_customer_at"?: string | null,"coverage_notes"?: string | null,"created_at"?: string,"customer_id"?: string,"equipment_note"?: string | null,"event_date"?: string | null,"event_type"?: string | null,"featured"?: boolean,"featured_order"?: number | null,"highlight"?: string | null,"id"?: string,"is_published"?: boolean,"production_note"?: string | null,"public_slug"?: string | null,"publication_consent"?: Database["public"]['Enums']["consent_status"],"seo_description"?: string | null,"seo_title"?: string | null,"status"?: Database["public"]['Enums']["event_status"],"title"?: string,"updated_at"?: string,"venue"?: string | null
+                    "booking_request_id"?: string | null,"city"?: string | null,"consent_at"?: string | null,"consent_by"?: string | null,"consent_revoked_by_customer_at"?: string | null,"coverage_notes"?: string | null,"created_at"?: string,"customer_id"?: string,"deleted_at"?: string | null,"deleted_by"?: string | null,"equipment_note"?: string | null,"event_date"?: string | null,"event_type"?: string | null,"featured"?: boolean,"featured_order"?: number | null,"highlight"?: string | null,"id"?: string,"is_published"?: boolean,"production_note"?: string | null,"public_slug"?: string | null,"publication_consent"?: Database["public"]['Enums']["consent_status"],"seo_description"?: string | null,"seo_title"?: string | null,"status"?: Database["public"]['Enums']["event_status"],"title"?: string,"updated_at"?: string,"venue"?: string | null
                   }
                   Relationships: [
                     {
@@ -648,6 +648,12 @@ isOneToOne: false
       columns: ["customer_id"]
 isOneToOne: false
       referencedRelation: "customers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "events_deleted_by_fkey"
+      columns: ["deleted_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
                   ]
@@ -1436,6 +1442,11 @@ isOneToOne: false
             "active_logo_path":
 { Args: { "p_id": string }; Returns: string
                            },
+"admin_event_prices":
+{ Args: { "p_ids": (string)[] }; Returns: {
+              "amount": number,"basis": string,"currency": string,"event_id": string
+            }[]
+                           },
 "admin_financial_summary":
 { Args: { "p_from": string,"p_to": string }; Returns: {
               "contracted": number,"currency": string,"expenses": number,"net_cash": number,"outstanding": number,"paid": number,"refunded": number
@@ -1522,6 +1533,9 @@ isOneToOne: false
 "requeue_album_photos":
 { Args: { "p_album_id": string,"p_photo_id"?: string }; Returns: number
                            },
+"restore_event":
+{ Args: { "p_id": string }; Returns: undefined
+                           },
 "set_event_publication":
 { Args: { "p_event_id": string,"p_featured"?: boolean,"p_featured_order"?: number,"p_publish": boolean }; Returns: undefined
                            },
@@ -1544,6 +1558,9 @@ isOneToOne: false
                            },
 "transition_booking":
 { Args: { "p_booking_id": string,"p_note"?: string,"p_to": Database["public"]['Enums']["booking_status"] }; Returns: undefined
+                           },
+"trash_event":
+{ Args: { "p_id": string }; Returns: undefined
                            }
           }
           Enums: {

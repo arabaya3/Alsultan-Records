@@ -86,7 +86,7 @@ test("/offers lists active offers only, pinned first", async ({ page }) => {
 test("offer page: Arabic dates, items, terms, price only when shown, JSON-LD Offer, WhatsApp message", async ({ page }) => {
   await page.goto(`/offers/${F.today.slug}`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(F.today.title);
-  await expect(page.locator("[data-offer-price]")).toContainText("١٬٥٠٠");
+  await expect(page.locator("[data-offer-price]")).toContainText("1,500 شيكل"); // ILS shows as «شيكل» (owner wording)
   const dates = (await page.locator("[data-offer-dates]").innerText()).trim();
   expect(dates).toMatch(/^من .+ حتى .+/);
   expect(dates).toMatch(/[٠-٩]/); // Arabic-Indic digits

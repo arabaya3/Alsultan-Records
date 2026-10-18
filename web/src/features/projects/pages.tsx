@@ -16,36 +16,99 @@ import {
   assignStaff,
   cleanupPublic,
   createEvent,
-  deleteEvent,
+  restoreEvent,
   removeEquipmentAssignment,
   returnEquipment,
   setConsent,
   setPublication,
+  trashEvent,
   unassignStaff,
   updateEvent,
 } from "./actions";
 
-const EVENT_LIST_COLS = "id, title, event_type, event_date, city, status, publication_consent, is_published, customer_id";
+const EVENT_LIST_COLS = "id, title, event_type, event_date, city, status, publication_consent, is_published, customer_id, deleted_at";
+
+type Price = { amount: number | null; basis: string };
+const PRICE_BASIS: Record<string, string> = { contract: "حسب العقد المعتمد", quote: "حسب عرض السعر المقبول" };
+
+/** Agreed price in shekels («1,050 شيكل»), or «غير محدد» — never an empty cell or a made-up 0. */
+function PriceCell({ p }: { p?: Price }) {
+  if (!p || p.amount == null) return <span className="text-on-cream-muted" data-testid="event-price" data-basis="none">غير محدد</span>;
+  const whole = Math.floor(p.amount / 100);
+  const frac = p.amount % 100;
+  return (
+    <span data-testid="event-price" data-basis={p.basis} title={PRICE_BASIS[p.basis]}>
+      <bdi>{whole.toLocaleString("en-US")}{frac ? `.${String(frac).padStart(2, "0")}` : ""} شيكل</bdi>
+      <span className="block text-xs text-on-cream-muted">{PRICE_BASIS[p.basis]}</span>
+    </span>
+  );
+}
+
+function EventActions({ id, title, trashed }: { id: string; title: string; trashed: boolean }) {
+  return trashed ? (
+    <ActionForm action={restoreEvent} submitLabel="استرجاع" kind="secondary" inline testId="event-restore">
+      <input type="hidden" name="id" value={id} />
+    </ActionForm>
+  ) : (
+    <div className="flex flex-wrap items-center gap-2">
+      <Link href={`/admin/events/${id}#edit`} className={`${btn("ghost")} min-h-11`} data-testid="event-edit">
+        تعديل
+      </Link>
+      <ActionForm
+        action={trashEvent}
+        submitLabel="حذف"
+        kind="danger"
+        inline
+        testId="event-trash"
+        confirm={{
+          title: `حذف المناسبة «${title}»؟`,
+          body: "تنتقل إلى سلة المحذوفات ويمكن استرجاعها. لا تُحذف الصور أو الفيديوهات أو السجلات المالية، لكنها تختفي من الموقع العام.",
+          confirmLabel: "نقل إلى سلة المحذوفات",
+        }}
+      >
+        <input type="hidden" name="id" value={id} />
+      </ActionForm>
+    </div>
+  );
+}
 
 export async function EventsList({ searchParams }: { searchParams: SP }) {
   const session = await guard(ALL_STAFF);
   if (!session) return <Forbidden />;
+  const isAdmin = session.role !== "staff";
   const sp = await searchParams;
+  const trash = isAdmin && one(sp.view) === "trash";
   const status = pick(one(sp.status), Constants.public.Enums.event_status);
   const q = cleanSearch(one(sp.q));
   const page = pageOf(sp.page);
   const sb = await createClient();
   let query = sb.from("events").select(EVENT_LIST_COLS, { count: "exact" }).order("event_date", { ascending: false, nullsFirst: false });
+  query = trash ? query.not("deleted_at", "is", null) : query.is("deleted_at", null);
   if (status) query = query.eq("status", status);
   if (q) query = query.or(`title.ilike.*${q}*,city.ilike.*${q}*,venue.ilike.*${q}*`);
   const { data, count, error } = await query.range(...rangeOf(page));
-  const params = { status: status ?? "", q };
+  // Prices: admin-only RPC (server-enforced); staff never receive financial data.
+  const prices = new Map<string, Price>();
+  if (isAdmin && data?.length) {
+    const r = await sb.rpc("admin_event_prices", { p_ids: data.map((e) => e.id) });
+    for (const x of r.data ?? []) prices.set(x.event_id, { amount: x.amount, basis: x.basis });
+  }
+  const params = { status: status ?? "", q, ...(trash ? { view: "trash" } : {}) };
+  const head = ["المناسبة", "النوع", "التاريخ", "المدينة", "الحالة", "النشر", ...(isAdmin ? ["السعر", "الإجراءات"] : [])];
   return (
     <>
       <PageHeader
-        title="المناسبات"
-        lead={session.role === "staff" ? "المناسبات المكلّف بها فقط." : undefined}
-        actions={session.role !== "staff" ? <Link className={btn("primary")} href="/admin/events/new">مناسبة جديدة</Link> : null}
+        title={trash ? "سلة المحذوفات — المناسبات" : "المناسبات"}
+        lead={session.role === "staff" ? "المناسبات المكلّف بها فقط." : trash ? "المناسبات المحذوفة مع كل صورها وفيديوهاتها وسجلاتها المالية. «استرجاع» يعيدها كما كانت." : undefined}
+        back={trash ? { href: "/admin/events", label: "المناسبات" } : undefined}
+        actions={
+          isAdmin ? (
+            <>
+              {trash ? null : <Link className={btn("ghost")} href="/admin/events?view=trash" data-testid="events-trash-link">سلة المحذوفات</Link>}
+              {trash ? null : <Link className={btn("primary")} href="/admin/events/new">مناسبة جديدة</Link>}
+            </>
+          ) : null
+        }
       />
       <FilterChips
         base="/admin/events"
@@ -59,18 +122,56 @@ export async function EventsList({ searchParams }: { searchParams: SP }) {
         <LoadError what="المناسبات" />
       ) : (
         <>
-          <Table head={["المناسبة", "النوع", "التاريخ", "المدينة", "الحالة", "النشر"]} empty={!data?.length}>
-            {data?.map((e) => (
-              <tr key={e.id}>
-                <td><RowLink href={`/admin/events/${e.id}`}>{e.title}</RowLink></td>
-                <td>{eventTypeLabel(e.event_type)}</td>
-                <td>{fmtDate(e.event_date)}</td>
-                <td>{e.city ?? "—"}</td>
-                <td><Badge>{EVENT_STATUS[e.status]}</Badge></td>
-                <td>{e.is_published ? <Badge tone="success">منشورة</Badge> : <Badge>{CONSENT_STATUS[e.publication_consent]}</Badge>}</td>
-              </tr>
-            ))}
-          </Table>
+          {/* Phones: one card per event so the actions are never off-screen in a horizontally scrolled table. */}
+          <ul className="space-y-3 sm:hidden" data-testid="events-cards">
+            {data?.length ? (
+              data.map((e) => (
+                <li key={e.id} className="rounded-md border border-cream-line bg-[#fffdf8] p-3" data-testid="event-card" data-event-id={e.id}>
+                  <RowLink href={`/admin/events/${e.id}`}>{e.title}</RowLink>
+                  <p className="mt-1 text-sm text-on-cream-muted">
+                    {eventTypeLabel(e.event_type)} · {fmtDate(e.event_date)}{e.city ? ` · ${e.city}` : ""}
+                  </p>
+                  <div className="mt-2 flex flex-wrap items-center gap-2 text-sm">
+                    <Badge>{EVENT_STATUS[e.status]}</Badge>
+                    {e.is_published ? <Badge tone="success">منشورة</Badge> : <Badge>{CONSENT_STATUS[e.publication_consent]}</Badge>}
+                  </div>
+                  {isAdmin ? (
+                    <>
+                      <div className="mt-2 text-sm">
+                        <span className="text-on-cream-muted">السعر: </span>
+                        <PriceCell p={prices.get(e.id)} />
+                      </div>
+                      <div className="mt-3 border-t border-cream-line pt-3">
+                        <EventActions id={e.id} title={e.title} trashed={trash} />
+                      </div>
+                    </>
+                  ) : null}
+                </li>
+              ))
+            ) : (
+              <li className="px-4 py-8 text-center text-on-cream-muted">لا توجد سجلات مطابقة.</li>
+            )}
+          </ul>
+          <div className="hidden sm:block">
+            <Table head={head} empty={!data?.length}>
+              {data?.map((e) => (
+                <tr key={e.id} data-testid="event-row" data-event-id={e.id}>
+                  <td><RowLink href={`/admin/events/${e.id}`}>{e.title}</RowLink></td>
+                  <td>{eventTypeLabel(e.event_type)}</td>
+                  <td>{fmtDate(e.event_date)}</td>
+                  <td>{e.city ?? "—"}</td>
+                  <td><Badge>{EVENT_STATUS[e.status]}</Badge></td>
+                  <td>{e.is_published ? <Badge tone="success">منشورة</Badge> : <Badge>{CONSENT_STATUS[e.publication_consent]}</Badge>}</td>
+                  {isAdmin ? (
+                    <>
+                      <td><PriceCell p={prices.get(e.id)} /></td>
+                      <td><EventActions id={e.id} title={e.title} trashed={trash} /></td>
+                    </>
+                  ) : null}
+                </tr>
+              ))}
+            </Table>
+          </div>
           <Pagination base="/admin/events" page={page} total={count ?? 0} size={PAGE_SIZE} params={params} />
         </>
       )}
@@ -171,7 +272,7 @@ export async function EventDetail({ params }: { params: IdParams }) {
   const sb = await createClient();
   const evRes = await sb
     .from("events")
-    .select("id, customer_id, booking_request_id, title, event_type, event_date, venue, city, status, public_slug, publication_consent, consent_at, is_published, featured, featured_order, seo_title, seo_description, highlight, coverage_notes")
+    .select("id, customer_id, booking_request_id, title, event_type, event_date, venue, city, status, public_slug, publication_consent, consent_at, is_published, featured, featured_order, seo_title, seo_description, highlight, coverage_notes, deleted_at")
     .eq("id", id)
     .maybeSingle();
   if (evRes.error) return <LoadError what="المناسبة" />;
@@ -208,6 +309,18 @@ export async function EventDetail({ params }: { params: IdParams }) {
           </>
         }
       />
+      {ev.deleted_at ? (
+        <div className="mb-4" data-testid="event-trashed">
+          <Notice tone="danger">
+            هذه المناسبة في سلة المحذوفات منذ {fmtDateTime(ev.deleted_at)}. لا تظهر في الموقع العام، وصورها وفيديوهاتها وسجلاتها المالية محفوظة.
+            {isAdmin ? (
+              <ActionForm action={restoreEvent} submitLabel="استرجاع المناسبة" kind="primary" inline className="mt-2" testId="event-restore">
+                <input type="hidden" name="id" value={id} />
+              </ActionForm>
+            ) : null}
+          </Notice>
+        </div>
+      ) : null}
       {!isPublic && (publicLeft.count ?? 0) > 0 && isAdmin ? (
         <div className="mb-4">
           <Notice tone="danger">
@@ -220,7 +333,7 @@ export async function EventDetail({ params }: { params: IdParams }) {
       ) : null}
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
         <div className="space-y-4">
-          <Card title="بيانات المناسبة">
+          <Card title="بيانات المناسبة" id="edit">
             {isAdmin ? (
               <ActionForm action={updateEvent} submitLabel="حفظ التغييرات" testId="event-form">
                 <input type="hidden" name="id" value={id} />
@@ -419,14 +532,20 @@ export async function EventDetail({ params }: { params: IdParams }) {
               />
             </Card>
           ) : null}
-          {session.role === "owner" ? (
+          {isAdmin && !ev.deleted_at ? (
             <ActionForm
-              action={deleteEvent}
+              action={trashEvent}
               submitLabel="حذف المناسبة"
               kind="danger"
-              confirm={{ title: "حذف المناسبة نهائياً؟", body: "تُحذف معها الوسائط والتسليمات. يُفضّل تغيير الحالة إلى «مؤرشف» بدلاً من الحذف.", confirmLabel: "حذف نهائي" }}
+              testId="event-trash"
+              confirm={{
+                title: `حذف المناسبة «${ev.title}»؟`,
+                body: "تنتقل إلى سلة المحذوفات ويمكن استرجاعها. لا تُحذف الصور أو الفيديوهات أو السجلات المالية، لكنها تختفي من الموقع العام.",
+                confirmLabel: "نقل إلى سلة المحذوفات",
+              }}
             >
               <input type="hidden" name="id" value={id} />
+              <input type="hidden" name="from" value="detail" />
             </ActionForm>
           ) : null}
         </div>

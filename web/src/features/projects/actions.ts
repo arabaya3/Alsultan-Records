@@ -4,7 +4,7 @@ import { refresh, updateTag } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { guard, ADMIN_ROLES, OWNER_ONLY } from "@/features/admin/guard";
+import { guard, ADMIN_ROLES } from "@/features/admin/guard";
 import { pick } from "@/features/admin/query";
 import { dbMessage, fail, FORBIDDEN, ok, optDate, optStr, str, uuid, type ActionResult } from "@/features/admin/result";
 import { retractEventPublicCopies } from "@/features/publishing/server";
@@ -81,17 +81,33 @@ export async function updateEvent(_p: ActionResult, fd: FormData): Promise<Actio
   return ok("حُفظت المناسبة.");
 }
 
-export async function deleteEvent(_p: ActionResult, fd: FormData): Promise<ActionResult> {
-  if (!(await guard(OWNER_ONLY))) return FORBIDDEN;
+/**
+ * «حذف» = move to the trash (recoverable). Nothing is removed: media, deliverables, quotes, contracts, payments
+ * and expenses stay attached; the event just stops being public. Server-enforced: guard + app.is_admin() in the RPC.
+ */
+export async function trashEvent(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
   const id = uuid(fd, "id");
   if (!id) return fail("طلب غير صالح.");
   const sb = await createClient();
-  const { error, count } = await sb.from("events").delete({ count: "exact" }).eq("id", id);
-  if (error) return fail(dbMessage(error, { "23503": "لا يمكن الحذف لوجود سجلات مرتبطة (عقود أو دفعات). غيّر الحالة إلى «مؤرشف» بدلاً من ذلك." }));
-  if (!count) return fail("لم يُحذف شيء.");
-  // The delete trigger queued every stored object of the event; remove them now.
-  await processStorageCleanup(200);
-  redirect("/admin/events");
+  const { error } = await sb.rpc("trash_event", { p_id: id });
+  if (error) return fail(dbMessage(error, { P0002: "المناسبة غير موجودة أو موجودة في سلة المحذوفات." }));
+  updateTag("projects");
+  updateTag("media");
+  if (fd.get("from") === "detail") redirect("/admin/events?view=trash");
+  return ok("نُقلت المناسبة إلى سلة المحذوفات. يمكنك استرجاعها في أي وقت.");
+}
+
+export async function restoreEvent(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
+  const id = uuid(fd, "id");
+  if (!id) return fail("طلب غير صالح.");
+  const sb = await createClient();
+  const { error } = await sb.rpc("restore_event", { p_id: id });
+  if (error) return fail(dbMessage(error, { P0002: "المناسبة ليست في سلة المحذوفات." }));
+  updateTag("projects");
+  updateTag("media");
+  return ok("استُرجعت المناسبة.");
 }
 
 // ------------------------------------------------------------- consent & publication
