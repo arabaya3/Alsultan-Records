@@ -101,13 +101,14 @@ test.describe("with a temporary published album", () => {
     }).toPass({ timeout: 90_000 });
   }
 
-  test("photos tab: album card with cover (thumb variant), date, count; tab state in URL", async ({ page }) => {
+  test("photos tab: album card with whole cover (display variant, contain, 2:3), date, count; tab state in URL", async ({ page }) => {
     await gotoAlbumList(page);
     await expect(page.locator("[data-work-tab='photos']")).toHaveAttribute("aria-current", "page");
     const card = page.locator(`[data-album-card='${ALBUM.slug}']`);
     await expect(card).toContainText(ALBUM.title);
     await expect(card).toContainText("٣ صور");
-    await expect(card.locator("img")).toHaveAttribute("src", `/p/${PHOTOS[1].id}/thumb`);
+    await expect(card.locator("img")).toHaveAttribute("src", `/p/${PHOTOS[1].id}/display`);
+    await expect(card.locator("img")).toHaveCSS("object-fit", "contain");
     await expect.poll(() => card.locator("img").evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
     await page.locator("[data-work-tab='videos']").click();
     await expect(page).toHaveURL(/\/work$/);
