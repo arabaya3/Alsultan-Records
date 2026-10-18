@@ -25,11 +25,14 @@ export function SitePromoPlayer({
   caption,
   priority = false,
   sizes = "(min-width: 1024px) 45vw, 100vw",
+  coverSrc = null,
 }: {
   label?: string;
   caption: string;
   priority?: boolean;
   sizes?: string;
+  /** Owner-chosen hero cover (/p/<photo>/display); default = the promo's own cover frames. */
+  coverSrc?: string | null;
 }) {
   const [variant, setVariant] = useState<Variant | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -45,6 +48,18 @@ export function SitePromoPlayer({
         data-promo-trigger
         className="group relative block aspect-[4/5] w-full overflow-hidden rounded-md bg-black text-start ring-1 ring-ink-line md:aspect-video"
       >
+        {coverSrc ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={coverSrc}
+            alt=""
+            data-promo-cover="custom"
+            loading={priority ? "eager" : "lazy"}
+            fetchPriority={priority ? "high" : "auto"}
+            decoding="async"
+            className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+          />
+        ) : (
         <picture>
           <source media={COVER_PORTRAIT_MEDIA} type="image/webp" srcSet={P.coverWebp} />
           <source media={COVER_PORTRAIT_MEDIA} type="image/jpeg" srcSet={P.coverJpg} />
@@ -62,6 +77,7 @@ export function SitePromoPlayer({
             className="absolute inset-0 size-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
           />
         </picture>
+        )}
         <span aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-black/85 via-black/15 to-transparent" />
         <span className="absolute inset-x-0 bottom-0 flex items-center gap-4 p-4 sm:p-5">
           <PlayBadge size={56} className="bg-black/40 text-gold transition-colors duration-200 group-hover:bg-gold group-hover:text-ink" />

@@ -230,6 +230,67 @@ Result: 11 migrations pushed; auth users 5, identities 5, MFA factors 0; 33/33 p
 - **Auth versions:** `auth.users` is loaded with an explicit column list; if the target's GoTrue is newer, additive columns are fine; a removed column would fail the load loudly.
 - Restored users keep staging's password hashes and TOTP secrets; the owner's MFA keeps working only because the TOTP secret is copied.
 
+## Procedure C: independent export to a folder the owner controls (proven on staging 2026-10-18)
+
+The in-app backup writes into the **same** Supabase project (bucket `backups`). If that project is lost,
+suspended or locked, that copy goes with it. The independent export is a plain folder on the owner's machine:
+JSON tables + every storage object (including the **private originals** in `album-media`) + a checksummed
+manifest. It needs only Node and the project's secret key; nothing is uploaded anywhere.
+
+```bash
+cd web
+# 1. export (read-only against staging; resumable: re-run the same command to finish/refresh)
+node scripts/backup-export.mjs --target staging --out .cache/backup-export-<YYYYMMDD-HHMMSS>
+# 2. prove it restores: isolated local stack (project_id alsultan-export-restore, ports 563xx), load, verify
+node scripts/backup-restore-export.mjs --from .cache/backup-export-<ts> --target local-isolated        # up + restore
+node scripts/verify-export.mjs        --from .cache/backup-export-<ts> --target local-isolated        # → docs/backup-export-report.json
+node scripts/backup-restore-export.mjs --target local-isolated down                                   # stop + delete volumes
+```
+
+Contents of an export folder: `manifest.json` (status `complete|partial`, per-table rows, per-bucket counts/bytes,
+sha256 + size + etag for **every** file, error list), `data/<table>.json` (49 public tables, paginated 1000 rows,
+streamed), `auth/users.json` (ids/emails/metadata — the API cannot export password hashes or TOTP secrets;
+use Procedure A/B's `pg_dump` path for a full-fidelity auth copy), `buckets.json`, `storage/<bucket>/<path>`,
+`promo-files.json` (hashes of the promo files that live in git under `web/public/promo`).
+Resume rule: an object is downloaded again only if it is missing locally, its local sha256 differs from the
+previous manifest, or its remote size/etag changed. Objects stream to disk (`.part` + rename) — the archive is
+never held in memory.
+
+**Run on 2026-10-18 (staging `dyuixzxmmeiypvawzmty`, from this machine):**
+
+| Step | Result |
+|---|---|
+| Export, first run | complete · 49 tables / 1,281 rows (+ auth users) · 384 objects (all in `album-media`: 128 originals + 256 variants; other buckets empty) · 57 MB total · 3 min 27 s |
+| Export, second run (resume) | complete · 0 downloaded, 384 skipped (checksums matched) · 51 s |
+| Restore into isolated stack | 1,282 rows into 50 tables in one replica-mode transaction (0.7 s), FK re-check **ok** (0 orphans), 384 objects uploaded (4.7 s) |
+| Verify | local files 434/434 · storage read-back sha256 384/384 · `album_photos.sha256` = sha256 of the exported original 128/128 · anon serving path (RLS row → `album_photo_object_path` → anon storage read) 3/3 = 200 image/webp, originals denied to anon 3/3 · row counts equal for every table → **PASS** |
+| Teardown | isolated stack stopped, volumes removed |
+
+Not covered by this run: serving through a full Next build of the restored stack (verified at the DB/storage
+level only — the same checks the `/p/<id>/<variant>` route performs).
+
+### Where to keep the copy
+
+- Copy the whole `backup-export-<ts>` folder to **two** places the owner controls and that are not this
+  Supabase account: an external drive kept at the studio, and a personal cloud folder (Google Drive / OneDrive).
+- The folder contains customer personal data (bookings, contacts) — keep it private, never share the link;
+  prefer an encrypted container (e.g. a password-protected 7-Zip archive, AES-256) on the cloud copy.
+- Keep at least the last 3 monthly exports; delete older ones from the cloud copy.
+- Run it monthly and after every large photo upload. One run is ~1 minute when nothing changed.
+
+### Scheduled independent backup — integration boundary (not enabled)
+
+A scheduled off-site copy needs a destination outside Supabase. The tool is built so a scheduler only has to
+(1) run `backup-export.mjs` into a working folder and (2) sync that folder to the destination:
+- Destination options: the owner's **Google Drive** (rclone remote, owner's own account) or **Cloudflare R2**
+  (S3-compatible; free tier 10 GB, but requires a Cloudflare account + card) — the owner decides; nothing was
+  signed up for or enabled.
+- Runner options: the studio PC (Windows Task Scheduler: `node scripts/backup-export.mjs …` then
+  `rclone sync <folder> <remote>:sultan-backups/<ts>`), or a CI job holding the secret key as an encrypted secret.
+- Required secrets at the runner: `SUPABASE_SECRET_KEY` (read-only use) and the destination credential. Never
+  commit them; never put the secret key in a cloud function that is publicly reachable.
+- Success signal: `manifest.json` `status: "complete"` and `errors: []`; alert the owner otherwise.
+
 ## Retention
 
 - Daily platform backups/PITR at the plan's retention.

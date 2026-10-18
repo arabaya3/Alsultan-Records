@@ -6,6 +6,9 @@ import { ADMIN_ROLES, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
 import { Badge, btn, Card, DL, Field, FilterChips, inputCls, LoadError, Notice, PageHeader, Table } from "@/features/admin/ui";
 import { isUuid } from "@/features/admin/result";
+import { PhotoPicker, type PickPhoto } from "@/features/cms-admin/fields";
+import { pickPhotos } from "@/features/cms-admin/data";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { one, type IdParams, type SP } from "@/features/admin/query";
 import {
   createCategory,
@@ -16,6 +19,8 @@ import {
   markReviewed,
   moveCategory,
   restoreYouTubeTitle,
+  setVideoPinned,
+  setVideoRole,
   setCategoryPublished,
   setVideoPublished,
   updateCategory,
@@ -24,7 +29,7 @@ import {
 
 // title_source / needs_review are admin-only: column grants exclude them for the shared `authenticated`
 // role, so they are read from the admin-only view showcase_video_admin_details and merged by id.
-const COLS = "id, youtube_id, title, description, duration_seconds, published_at, is_promo, sort_order, is_published";
+const COLS = "id, youtube_id, title, description, duration_seconds, published_at, is_promo, sort_order, is_published, role, pinned, custom_cover_photo_id";
 const ADMIN_COLS = "video_id, title_source, needs_review";
 type AdminFlags = { video_id: string; title_source: string; needs_review: boolean };
 
@@ -38,7 +43,11 @@ type VideoRow = {
   sort_order: number;
   is_published: boolean;
   is_promo: boolean;
+  role: string;
+  pinned: boolean;
+  custom_cover_photo_id: string | null;
 };
+const ROLE_LABEL: Record<string, string> = { work: "أعمال", promo: "برومو", both: "أعمال وبرومو" };
 type Category = { id: string; slug: string; title: string; sort_order: number; is_published: boolean };
 type Link_ = { video_id: string; category_id: string; is_primary: boolean };
 type Details = {
@@ -51,7 +60,7 @@ type Details = {
   reviewed_at: string | null;
 };
 
-function VideoFields({ v, cats, links, details }: { v?: VideoRow; cats: Category[]; links: Link_[]; details?: Details | null }) {
+function VideoFields({ v, cats, links, details, photos }: { v?: VideoRow; cats: Category[]; links: Link_[]; details?: Details | null; photos: PickPhoto[] }) {
   const selected = new Set(links.map((l) => l.category_id));
   const primary = links.find((l) => l.is_primary)?.category_id ?? "";
   return (
@@ -70,6 +79,17 @@ function VideoFields({ v, cats, links, details }: { v?: VideoRow; cats: Category
       >
         <input name="title" required minLength={2} maxLength={200} defaultValue={v?.title ?? ""} className={inputCls} />
       </Field>
+      <fieldset className="text-sm sm:col-span-2" data-testid="video-role">
+        <legend className="mb-1 font-medium">دور الفيديو (منفصل عن التصنيف)</legend>
+        {(["work", "promo", "both"] as const).map((r) => (
+          <label key={r} className="me-4 inline-flex min-h-10 items-center gap-2">
+            <input type="radio" name="role" value={r} defaultChecked={(v?.role ?? "work") === r} /> {ROLE_LABEL[r]}
+          </label>
+        ))}
+      </fieldset>
+      <div className="sm:col-span-2">
+        <PhotoPicker name="custom_cover_photo_id" label="غلاف مخصص (اختياري، بدل صورة يوتيوب)" photos={photos} defaultValue={v?.custom_cover_photo_id} />
+      </div>
       <fieldset className="sm:col-span-2 text-sm" data-testid="video-categories">
         <legend className="mb-1 font-medium">التصنيفات (اختر واحداً أو أكثر، وحدّد الرئيسي)</legend>
         {cats.length ? (
@@ -111,7 +131,10 @@ function VideoFields({ v, cats, links, details }: { v?: VideoRow; cats: Category
           <input type="checkbox" name="is_published" defaultChecked={v ? v.is_published : true} /> منشور في الموقع
         </label>
         <label className="flex items-center gap-2">
-          <input type="checkbox" name="is_promo" defaultChecked={v?.is_promo ?? false} /> الفيديو التعريفي (يحل محل الحالي)
+          <input type="checkbox" name="is_promo" defaultChecked={v?.is_promo ?? false} /> الفيديو التعريفي الرئيسي (يحل محل الحالي)
+        </label>
+        <label className="flex items-center gap-2">
+          <input type="checkbox" name="pinned" defaultChecked={v?.pinned ?? false} /> مثبّت في المقدمة
         </label>
       </fieldset>
       <fieldset className="space-y-2 text-sm sm:col-span-2">
@@ -143,6 +166,7 @@ export async function VideosPage({ searchParams }: { searchParams: SP }) {
     loadCategories(sb),
     sb.from("showcase_video_categories").select("video_id, category_id, is_primary"),
   ]);
+  const photos = await pickPhotos(sb as unknown as SupabaseClient);
   if (error || flagsRes.error || ce || linksRes.error) return <LoadError what="الفيديوهات" />;
   const flags = new Map(((flagsRes.data ?? []) as AdminFlags[]).map((f) => [f.video_id, f]));
   const rows = ((data ?? []) as Omit<VideoRow, "title_source" | "needs_review">[])
@@ -202,6 +226,8 @@ export async function VideosPage({ searchParams }: { searchParams: SP }) {
                   <div className="flex flex-wrap gap-1">
                     {v.is_published ? <Badge tone="success">منشور</Badge> : <Badge>مخفي</Badge>}
                     {v.is_promo ? <Badge tone="gold">تعريفي</Badge> : null}
+                    <Badge>{ROLE_LABEL[v.role] ?? v.role}</Badge>
+                    {v.pinned ? <Badge tone="gold">مثبّت</Badge> : null}
                     {v.needs_review ? <Badge tone="danger">تحتاج مراجعة</Badge> : null}
                   </div>
                 </td>
@@ -210,6 +236,19 @@ export async function VideosPage({ searchParams }: { searchParams: SP }) {
                     <ActionForm action={setVideoPublished} submitLabel={v.is_published ? "إخفاء" : "نشر"} kind="ghost" inline>
                       <input type="hidden" name="id" value={v.id} />
                       <input type="hidden" name="publish" value={v.is_published ? "0" : "1"} />
+                    </ActionForm>
+                    <ActionForm action={setVideoPinned} submitLabel={v.pinned ? "إلغاء التثبيت" : "تثبيت"} kind="ghost" inline>
+                      <input type="hidden" name="id" value={v.id} />
+                      <input type="hidden" name="pinned" value={v.pinned ? "0" : "1"} />
+                    </ActionForm>
+                    <ActionForm action={setVideoRole} submitLabel="تغيير الدور" kind="ghost" inline>
+                      <input type="hidden" name="id" value={v.id} />
+                      <label className="sr-only" htmlFor={`role-${v.id}`}>دور الفيديو</label>
+                      <select id={`role-${v.id}`} name="role" defaultValue={v.role} className="field !min-h-10 !py-1 text-sm">
+                        <option value="work">أعمال</option>
+                        <option value="promo">برومو</option>
+                        <option value="both">كلاهما</option>
+                      </select>
                     </ActionForm>
                     {!v.is_promo ? (
                       <ActionForm action={makePromo} submitLabel="اجعله تعريفياً" kind="ghost" inline>
@@ -241,7 +280,7 @@ export async function VideosPage({ searchParams }: { searchParams: SP }) {
         </Table>
         <Card title="إضافة فيديو">
           <ActionForm action={createVideo} submitLabel="إضافة" kind="primary" resetOnSuccess testId="video-create">
-            <VideoFields cats={cats} links={[]} />
+            <VideoFields cats={cats} links={[]} photos={photos} />
           </ActionForm>
         </Card>
       </div>
@@ -264,6 +303,7 @@ export async function VideoEditPage({ params }: { params: IdParams }) {
     loadCategories(sb),
     sb.from("showcase_video_categories").select("video_id, category_id, is_primary").eq("video_id", id),
   ]);
+  const photos = await pickPhotos(sb as unknown as SupabaseClient);
   if (row.error || !row.data) return <LoadError what="الفيديو" />;
   const v = {
     ...(row.data as Omit<VideoRow, "title_source" | "needs_review">),
@@ -285,7 +325,7 @@ export async function VideoEditPage({ params }: { params: IdParams }) {
           <Card title="تعديل الفيديو">
             <ActionForm action={updateVideo} submitLabel="حفظ" kind="primary" testId="video-edit">
               <input type="hidden" name="id" value={v.id} />
-              <VideoFields v={v} cats={cats} links={(linksRes.data ?? []) as Link_[]} details={d} />
+              <VideoFields v={v} cats={cats} links={(linksRes.data ?? []) as Link_[]} details={d} photos={photos} />
             </ActionForm>
           </Card>
         </div>

@@ -40,6 +40,7 @@ export const photoAlbumRow = z.object({
   source_url: nullableText,
   cover_photo_id: nullableText,
   sort_order: z.number().nullable().optional().transform((v) => v ?? 0),
+  category_id: nullableText,
 });
 export type PhotoAlbumRow = z.infer<typeof photoAlbumRow>;
 
@@ -57,6 +58,10 @@ export type CategoryRef = { slug: string; title: string };
 export type GalleryVideo = ShowcaseVideo & { categories: CategoryRef[]; primary: CategoryRef | null };
 export type CategoryWithCount = VideoCategory & { count: number };
 export type VideoGallery = { videos: GalleryVideo[]; categories: CategoryWithCount[]; promo: GalleryVideo | null };
+/** Role (docs/cms-contract.md): "work" = portfolio only, "promo" = promos only, "both" = in both lists. */
+export const isWork = (v: Pick<ShowcaseVideo, "role">) => v.role !== "promo";
+export const isPromoRole = (v: Pick<ShowcaseVideo, "role">) => v.role === "promo" || v.role === "both";
+export const promoVideos = (g: VideoGallery) => g.videos.filter(isPromoRole);
 export type PhotoAlbum = PhotoAlbumRow & { photoCount: number; coverId: string | null };
 
 export const PAGE_SIZE = 9;
@@ -89,7 +94,7 @@ export function buildGallery(videos: ShowcaseVideo[], categories: VideoCategory[
   }
   const promo = all.find((v) => v.is_promo) ?? null;
   const counts = new Map<string, number>();
-  for (const v of all) for (const c of v.categories) counts.set(c.slug, (counts.get(c.slug) ?? 0) + 1);
+  for (const v of all) if (isWork(v)) for (const c of v.categories) counts.set(c.slug, (counts.get(c.slug) ?? 0) + 1);
   return {
     videos: all,
     promo,
@@ -98,8 +103,14 @@ export function buildGallery(videos: ShowcaseVideo[], categories: VideoCategory[
 }
 
 /** Homepage selection: no promo, no duplicates, ≤ max; one per category (category order) first, then fill by sort order. */
-export function homeSelection(g: VideoGallery, max = 6): GalleryVideo[] {
-  const pool = g.videos.filter((v) => !v.is_promo);
+export function homeSelection(g: VideoGallery, max = 6, featured: string[] = []): GalleryVideo[] {
+  const pool = g.videos.filter((v) => !v.is_promo && isWork(v));
+  // Owner-picked videos (site_sections.featured_ids) win, in the owner's order.
+  if (featured.length) {
+    const byId = new Map(pool.map((v) => [v.id, v]));
+    const picked = featured.flatMap((id) => (byId.has(id) ? [byId.get(id)!] : []));
+    if (picked.length) return picked.slice(0, max);
+  }
   const picked: GalleryVideo[] = [];
   const used = new Set<string>();
   for (const c of g.categories) {
@@ -125,17 +136,18 @@ export function homeSelection(g: VideoGallery, max = 6): GalleryVideo[] {
 /** Related works: same primary category, excluding itself, max 3. */
 export function relatedVideos(g: VideoGallery, v: GalleryVideo, max = 3): GalleryVideo[] {
   if (!v.primary) return [];
-  return g.videos.filter((x) => x.id !== v.id && !x.is_promo && x.categories.some((c) => c.slug === v.primary!.slug)).slice(0, max);
+  return g.videos.filter((x) => x.id !== v.id && !x.is_promo && isWork(x) && x.categories.some((c) => c.slug === v.primary!.slug)).slice(0, max);
 }
 
-export type WorkQuery = { tab: "videos" | "photos"; cat: string | null; page: number };
+export type WorkQuery = { tab: "videos" | "photos" | "promos"; cat: string | null; page: number };
 
 export function parseWorkQuery(sp: Record<string, string | string[] | undefined>): WorkQuery {
   const one = (k: string) => {
     const v = sp[k];
     return typeof v === "string" ? v : Array.isArray(v) ? v[0] : undefined;
   };
-  const tab = one("tab") === "photos" ? "photos" : "videos";
+  const rawTab = one("tab");
+  const tab = rawTab === "photos" ? "photos" : rawTab === "promos" ? "promos" : "videos";
   const rawCat = one("cat");
   const cat = rawCat && SLUG.test(rawCat) && rawCat.length <= 64 ? rawCat : null;
   const n = Number.parseInt(one("page") ?? "1", 10);
@@ -145,8 +157,10 @@ export function parseWorkQuery(sp: Record<string, string | string[] | undefined>
 
 export function workHref(q: Partial<WorkQuery>): string {
   const p = new URLSearchParams();
-  if (q.tab === "photos") p.set("tab", "photos");
-  else {
+  if (q.tab === "photos" || q.tab === "promos") {
+    p.set("tab", q.tab);
+    if (q.tab === "photos" && q.cat) p.set("cat", q.cat);
+  } else {
     if (q.cat) p.set("cat", q.cat);
     if (q.page && q.page > 1) p.set("page", String(q.page));
   }
@@ -156,7 +170,7 @@ export function workHref(q: Partial<WorkQuery>): string {
 
 /** Grid list for /work: promo excluded (shown separately on the unfiltered view). */
 export function filterVideos(g: VideoGallery, cat: string | null): GalleryVideo[] {
-  return g.videos.filter((v) => (cat ? v.categories.some((c) => c.slug === cat) : v !== g.promo));
+  return g.videos.filter((v) => isWork(v) && (cat ? v.categories.some((c) => c.slug === cat) : v !== g.promo));
 }
 
 /** "Load more" pagination: page N shows the first N×size items (shareable, server-rendered). */
@@ -168,5 +182,12 @@ export function paginate<T>(items: T[], page: number, size = PAGE_SIZE) {
 
 /** Props for <YouTubeCard> / the dialog: original title, categories, video page link. */
 export function toCardVideo(v: GalleryVideo, duration: string | null) {
-  return { youtubeId: v.youtube_id, title: v.title, duration, categories: v.categories, href: `/work/v/${v.youtube_id}` };
+  return {
+    youtubeId: v.youtube_id,
+    title: v.title,
+    duration,
+    categories: v.categories,
+    href: `/work/v/${v.youtube_id}`,
+    coverSrc: v.custom_cover_photo_id ? photoUrl(v.custom_cover_photo_id, "thumb") : null,
+  };
 }

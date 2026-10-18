@@ -31,7 +31,7 @@ async function essentials(page: Page) {
   const header = page.locator("header");
   await expect(header.locator('img[src*="logo-main"], img[srcset*="logo-main"]').first()).toBeVisible();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("فرحتك إلها حكاية");
-  await expect(page.locator("main a[href='/book']").first()).toBeVisible();
+  await expect(page.locator("main a[href='/book'], main a[href^='https://wa.me/']").first()).toBeVisible(); // booking is via WhatsApp (approved scope)
   await expect(page.getByRole("heading", { name: "الخدمات" })).toBeVisible();
   expect(await page.locator("#services-title ~ * li, section[aria-labelledby='services-title'] ol > li").count()).toBeGreaterThan(0);
   await expect(page.locator("main a[href='/contact'], footer a[href='/contact']").first()).toBeAttached();
@@ -88,7 +88,7 @@ test.describe("empty production state (stub Supabase)", () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(`${BASE}/work`, { waitUntil: "networkidle" });
     await expect(page.getByText("نجهّز معرض الأعمال")).toBeVisible();
-    await expect(page.locator("main a[href='/book']").first()).toBeVisible();
+    await expect(page.locator("main a[href='/book'], main a[href^='https://wa.me/']").first()).toBeVisible(); // booking is via WhatsApp (approved scope)
     await expect(page.locator("main a[href='/contact']").first()).toBeVisible();
     await expect(page.locator("main a[href^='/work/']")).toHaveCount(0);
     await expect(page.locator("[data-placeholder]")).toHaveCount(0);

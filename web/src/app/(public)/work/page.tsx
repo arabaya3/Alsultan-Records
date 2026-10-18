@@ -8,7 +8,8 @@ import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
 import { PageIntro, Section } from "@/components/ui/Layout";
 import { EmptyState, ErrorState, Skeleton } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
-import { filterVideos, paginate, parseWorkQuery, toCardVideo, workHref, type WorkQuery } from "@/features/public-content/gallery-model";
+import { getAlbumCategories } from "@/features/public-content/cms-queries";
+import { filterVideos, isWork, promoVideos, paginate, parseWorkQuery, toCardVideo, workHref, type WorkQuery } from "@/features/public-content/gallery-model";
 import { getPublishedAlbums, getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel, eventTypeLabel, formatDateAr } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedProjects } from "@/features/public-content/queries";
@@ -30,7 +31,7 @@ const chipCls = (active: boolean) =>
   }`;
 const linkCls = "inline-flex min-h-11 items-center underline decoration-1 underline-offset-8 hover:decoration-gold";
 
-function Tabs({ tab }: { tab: WorkQuery["tab"] }) {
+function Tabs({ tab, promos }: { tab: WorkQuery["tab"]; promos: boolean }) {
   // Two links styled as tabs: each tab is a real, shareable URL (server-rendered; back/refresh work).
   return (
     <nav aria-label="نوع الأعمال" className="mb-8 border-b border-cream-line">
@@ -45,6 +46,13 @@ function Tabs({ tab }: { tab: WorkQuery["tab"] }) {
             الصور
           </Link>
         </li>
+        {promos || tab === "promos" ? (
+          <li>
+            <Link href={workHref({ tab: "promos" })} aria-current={tab === "promos" ? "page" : undefined} data-work-tab="promos" className={tabCls(tab === "promos")}>
+              البروموهات
+            </Link>
+          </li>
+        ) : null}
       </ul>
     </nav>
   );
@@ -80,7 +88,7 @@ async function Videos({ q }: { q: WorkQuery }) {
   const active = q.cat ? (g.categories.find((c) => c.slug === q.cat) ?? null) : null;
   // Unfiltered: every published YouTube work, including the one flagged is_promo (a real work, no
   // longer featured; the highlight slot belongs to the self-hosted studio promo).
-  const list = active ? filterVideos(g, active.slug) : g.videos;
+  const list = active ? filterVideos(g, active.slug) : g.videos.filter(isWork);
   const { shown, page, hasMore, total } = paginate(q.cat && !active ? [] : list, q.page);
   const featured = !q.cat && page === 1;
 
@@ -155,13 +163,58 @@ async function Videos({ q }: { q: WorkQuery }) {
   );
 }
 
-async function Albums() {
-  const res = await getPublishedAlbums();
-  if (res.status === "unavailable") return <ErrorState title="تعذّر تحميل الألبومات الآن" action={<WhatsAppCta />} />;
-  const albums = res.data.filter((a) => a.photoCount > 0);
-  if (!albums.length) return <EmptyState title="لا توجد ألبومات منشورة بعد" body="ننشر ألبومات صور من مناسباتنا هنا حال جاهزيتها." />;
+/** Promos (role promo/both), separate from the occasion categories. Pinned first (query order). */
+async function Promos() {
+  const res = await getVideoGallery();
+  if (res.status === "unavailable") return <ErrorState action={<WhatsAppCta />} />;
+  const list = promoVideos(res.data);
+  if (!list.length) return <EmptyState title="لا توجد بروموهات منشورة بعد" body="ننشر البروموهات هنا حال جاهزيتها." action={<Link href="/work" className={linkCls}>كل الأعمال</Link>} />;
   return (
     <>
+      <h2 className="sr-only">البروموهات</h2>
+      <ul data-promo-grid className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+        {list.map((v, i) => (
+          <li key={v.id} className="h-full">
+            <YouTubeCard video={{ ...toCardVideo(v, durationLabel(v.duration_seconds)), categories: [] }} priority={i < 3} />
+          </li>
+        ))}
+      </ul>
+    </>
+  );
+}
+
+async function Albums({ cat }: { cat: string | null }) {
+  const [res, categories] = await Promise.all([getPublishedAlbums(), getAlbumCategories()]);
+  if (res.status === "unavailable") return <ErrorState title="تعذّر تحميل الألبومات الآن" action={<WhatsAppCta />} />;
+  const all = res.data.filter((a) => a.photoCount > 0);
+  if (!all.length) return <EmptyState title="لا توجد ألبومات منشورة بعد" body="ننشر ألبومات صور من مناسباتنا هنا حال جاهزيتها." />;
+  const used = categories.filter((c) => all.some((a) => a.category_id === c.id));
+  const active = cat ? (used.find((c) => c.slug === cat) ?? null) : null;
+  const albums = active ? all.filter((a) => a.category_id === active.id) : cat ? [] : all;
+  return (
+    <>
+      {used.length ? (
+        <nav aria-label="تصنيفات الألبومات" className="mb-8">
+          <ul className="flex flex-wrap gap-2">
+            <li>
+              <Link href={workHref({ tab: "photos" })} aria-current={!cat ? "page" : undefined} data-album-cat-chip="" className={chipCls(!cat)}>
+                الكل
+              </Link>
+            </li>
+            {used.map((c) => (
+              <li key={c.id}>
+                <Link href={workHref({ tab: "photos", cat: c.slug })} aria-current={active?.id === c.id ? "page" : undefined} data-album-cat-chip={c.slug} className={chipCls(active?.id === c.id)}>
+                  {c.title}
+                  <span className="text-sm opacity-70">{all.filter((a) => a.category_id === c.id).length.toLocaleString("ar-PS")}</span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+      ) : null}
+      {!albums.length ? (
+        <EmptyState title="لا توجد ألبومات في هذا التصنيف" body="جرّب تصنيفاً آخر أو اعرض كل الألبومات." action={<Link href={workHref({ tab: "photos" })} className={linkCls}>عرض الكل</Link>} />
+      ) : null}
       <h2 className="sr-only">ألبومات الصور</h2>
       <ul data-album-grid className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
         {albums.map((a, i) => (
@@ -176,12 +229,18 @@ async function Albums() {
 
 async function WorkBody({ searchParams }: { searchParams: PageProps<"/work">["searchParams"] }) {
   const q = parseWorkQuery(await searchParams);
+  const gallery = await getVideoGallery();
+  const hasPromos = gallery.status === "ok" && promoVideos(gallery.data).length > 0;
   return (
     <>
-      <Tabs tab={q.tab} />
+      <Tabs tab={q.tab} promos={hasPromos} />
       {q.tab === "photos" ? (
         <Suspense fallback={<GridSkeleton ratio="aspect-[4/3]" />}>
-          <Albums />
+          <Albums cat={q.cat} />
+        </Suspense>
+      ) : q.tab === "promos" ? (
+        <Suspense fallback={<GridSkeleton />}>
+          <Promos />
         </Suspense>
       ) : (
         <Suspense fallback={<GridSkeleton />}>

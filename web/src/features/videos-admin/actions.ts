@@ -1,6 +1,7 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { youTubeWatchUrl } from "@/lib/youtube";
@@ -13,6 +14,14 @@ const PROMO_FAIL = "حُفظ الفيديو، لكن تعذّر تعيينه ك�
 const LINKS_FAIL = "حُفظ الفيديو، لكن تعذّر حفظ التصنيفات. أعد المحاولة.";
 
 type SB = Awaited<ReturnType<typeof createClient>>;
+
+/** Videos and categories feed /work, the home works/promos sections and the hero promo. */
+function invalidate() {
+  updateTag(TAGS.videos);
+  updateTag(TAGS.sections);
+  updateTag(TAGS.business);
+  refresh();
+}
 
 /**
  * Make the video's category links exactly `ids`, with `primary` (or none) as the primary link.
@@ -45,7 +54,9 @@ export async function createVideo(_p: ActionResult, fd: FormData): Promise<Actio
   if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
   const parsed = readVideoForm(fd);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "راجع الحقول.");
-  const { is_promo, category_ids, primary_category, ...v } = parsed.data;
+  const { is_promo, category_ids, primary_category, ...rest } = parsed.data;
+  // The main promo is always shown as a promo too.
+  const v = { ...rest, role: is_promo && rest.role === "work" ? ("both" as const) : rest.role };
   const sb = await createClient();
   const { data, error } = await sb
     .from("showcase_videos")
@@ -54,17 +65,17 @@ export async function createVideo(_p: ActionResult, fd: FormData): Promise<Actio
     .single();
   if (error || !data) return fail(dbMessage(error, DUP));
   if (!(await syncCategories(sb, data.id, category_ids, primary_category))) {
-    refresh();
+    invalidate();
     return fail(LINKS_FAIL);
   }
   if (is_promo) {
     const { error: e } = await sb.rpc("set_showcase_promo", { p_id: data.id });
     if (e) {
-      refresh();
+      invalidate();
       return fail(PROMO_FAIL);
     }
   }
-  refresh();
+  invalidate();
   return ok("أُضيف الفيديو.");
 }
 
@@ -74,7 +85,9 @@ export async function updateVideo(_p: ActionResult, fd: FormData): Promise<Actio
   if (!id) return fail("سجل غير صالح.");
   const parsed = readVideoForm(fd);
   if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "راجع الحقول.");
-  const { is_promo, category_ids, primary_category, ...v } = parsed.data;
+  const { is_promo, category_ids, primary_category, ...rest } = parsed.data;
+  // The main promo is always shown as a promo too.
+  const v = { ...rest, role: is_promo && rest.role === "work" ? ("both" as const) : rest.role };
   const sb = await createClient();
   const { data: cur } = await sb.from("showcase_videos").select("title").eq("id", id).maybeSingle();
   if (!cur) return fail("السجل غير موجود.");
@@ -91,17 +104,17 @@ export async function updateVideo(_p: ActionResult, fd: FormData): Promise<Actio
   if (error) return fail(dbMessage(error, DUP));
   if (!data?.length) return fail("السجل غير موجود.");
   if (!(await syncCategories(sb, id, category_ids, primary_category))) {
-    refresh();
+    invalidate();
     return fail(LINKS_FAIL);
   }
   if (is_promo) {
     const { error: e } = await sb.rpc("set_showcase_promo", { p_id: id });
     if (e) {
-      refresh();
+      invalidate();
       return fail(PROMO_FAIL);
     }
   }
-  refresh();
+  invalidate();
   return ok(titleChanged ? "حُفظت التعديلات. العنوان الآن يدوي ولن يغيّره الاستيراد." : "حُفظت التعديلات.");
 }
 
@@ -117,7 +130,7 @@ export async function restoreYouTubeTitle(_p: ActionResult, fd: FormData): Promi
   const { data, error } = await sb.from("showcase_videos").update({ title: yt.slice(0, 200), title_source: "youtube" }).eq("id", id).select("id");
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("السجل غير موجود.");
-  refresh();
+  invalidate();
   return ok("استُعيد عنوان YouTube.");
 }
 
@@ -130,7 +143,7 @@ export async function markReviewed(_p: ActionResult, fd: FormData): Promise<Acti
   const { data, error } = await sb.from("showcase_videos").update({ needs_review: false }).eq("id", id).select("id");
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("السجل غير موجود.");
-  refresh();
+  invalidate();
   return ok("عُلّم كمُراجَع.");
 }
 
@@ -143,8 +156,34 @@ export async function setVideoPublished(_p: ActionResult, fd: FormData): Promise
   const { data, error } = await sb.from("showcase_videos").update({ is_published: publish }).eq("id", id).select("id");
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("السجل غير موجود.");
-  refresh();
+  invalidate();
   return ok(publish ? "نُشر الفيديو." : "أُخفي الفيديو من الموقع.");
+}
+
+export async function setVideoPinned(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
+  const id = uuid(fd, "id");
+  if (!id) return fail("سجل غير صالح.");
+  const pinned = fd.get("pinned") === "1";
+  const sb = await createClient();
+  const { data, error } = await sb.from("showcase_videos").update({ pinned }).eq("id", id).select("id");
+  if (error) return fail(dbMessage(error));
+  if (!data?.length) return fail("السجل غير موجود.");
+  invalidate();
+  return ok(pinned ? "ثُبّت الفيديو في المقدمة." : "أُلغي التثبيت.");
+}
+
+export async function setVideoRole(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
+  const id = uuid(fd, "id");
+  const role = fd.get("role");
+  if (!id || (role !== "work" && role !== "promo" && role !== "both")) return fail("سجل غير صالح.");
+  const sb = await createClient();
+  const { data, error } = await sb.from("showcase_videos").update({ role }).eq("id", id).select("id");
+  if (error) return fail(dbMessage(error));
+  if (!data?.length) return fail("السجل غير موجود.");
+  invalidate();
+  return ok("تغيّر دور الفيديو.");
 }
 
 export async function makePromo(_p: ActionResult, fd: FormData): Promise<ActionResult> {
@@ -154,7 +193,8 @@ export async function makePromo(_p: ActionResult, fd: FormData): Promise<ActionR
   const sb = await createClient();
   const { error } = await sb.rpc("set_showcase_promo", { p_id: id });
   if (error) return fail(dbMessage(error));
-  refresh();
+  await sb.from("showcase_videos").update({ role: "both" }).eq("id", id).eq("role", "work");
+  invalidate();
   return ok("أصبح هذا الفيديو التعريفي.");
 }
 
@@ -167,7 +207,7 @@ export async function deleteVideo(_p: ActionResult, fd: FormData): Promise<Actio
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("السجل غير موجود.");
   if (fd.get("from") === "edit") redirect("/admin/videos");
-  refresh();
+  invalidate();
   return ok("حُذف الفيديو.");
 }
 
@@ -181,7 +221,7 @@ export async function createCategory(_p: ActionResult, fd: FormData): Promise<Ac
   const sb = await createClient();
   const { error } = await sb.from("video_categories").insert(parsed.data);
   if (error) return fail(dbMessage(error, CAT_DUP));
-  refresh();
+  invalidate();
   return ok("أُضيف التصنيف.");
 }
 
@@ -195,7 +235,7 @@ export async function updateCategory(_p: ActionResult, fd: FormData): Promise<Ac
   const { data, error } = await sb.from("video_categories").update(parsed.data).eq("id", id).select("id");
   if (error) return fail(dbMessage(error, CAT_DUP));
   if (!data?.length) return fail("السجل غير موجود.");
-  refresh();
+  invalidate();
   return ok("حُفظ التصنيف.");
 }
 
@@ -208,7 +248,7 @@ export async function setCategoryPublished(_p: ActionResult, fd: FormData): Prom
   const { data, error } = await sb.from("video_categories").update({ is_published: publish }).eq("id", id).select("id");
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("السجل غير موجود.");
-  refresh();
+  invalidate();
   return ok(publish ? "نُشر التصنيف." : "أُخفي التصنيف من الموقع.");
 }
 
@@ -231,7 +271,7 @@ export async function moveCategory(_p: ActionResult, fd: FormData): Promise<Acti
     const u = await sb.from("video_categories").update({ sort_order: want }).eq("id", rows[k].id);
     if (u.error) return fail(dbMessage(u.error));
   }
-  refresh();
+  invalidate();
   return ok("تغيّر الترتيب.");
 }
 
@@ -243,6 +283,6 @@ export async function deleteCategory(_p: ActionResult, fd: FormData): Promise<Ac
   const { data, error } = await sb.from("video_categories").delete().eq("id", id).select("id");
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("السجل غير موجود.");
-  refresh();
+  invalidate();
   return ok("حُذف التصنيف (أُزيل من الفيديوهات المرتبطة).");
 }

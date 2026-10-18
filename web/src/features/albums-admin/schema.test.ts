@@ -39,3 +39,24 @@ describe("album upload rules", () => {
     expect(albumObjectPath("a", "p", "image/webp")).toBe("albums/a/p/original.webp");
   });
 });
+
+describe("category form + album category", () => {
+  it("accepts a category and an optional album category id", async () => {
+    const { readCategoryForm } = await import("./schema");
+    const f = new FormData();
+    f.set("title", "أعراس");
+    f.set("slug", "weddings");
+    f.set("is_published", "on");
+    expect(readCategoryForm(f).data).toMatchObject({ slug: "weddings", is_published: true, sort_order: 100 });
+    f.set("slug", "Bad");
+    expect(readCategoryForm(f).success).toBe(false);
+    expect(readAlbumForm(fd({ category_id: "not-a-uuid" })).success).toBe(false);
+    expect(readAlbumForm(fd({ category_id: "" })).data?.category_id).toBeNull();
+  });
+  it("computes sha256 like the server", async () => {
+    const { fileSha256 } = await import("./rules");
+    const { sha256Hex } = await import("@/features/photo-processing/core");
+    const bytes = new TextEncoder().encode("sultan");
+    expect(await fileSha256(new Blob([bytes]))).toBe(sha256Hex(bytes));
+  });
+});

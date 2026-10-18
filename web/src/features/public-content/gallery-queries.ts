@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 import { getPublicClient } from "./client";
 import {
   albumPhotoRow,
@@ -31,7 +32,7 @@ function parseRows<S extends z.ZodType>(schema: S, rows: unknown): z.output<S>[]
 export async function getVideoGallery(): Promise<Loaded<VideoGallery>> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("showcase-videos", "video-categories");
+  cacheTag(TAGS.videos, "video-categories");
   const videos = await getShowcaseVideos();
   if (videos.status !== "ok") return videos;
   const sb = getPublicClient();
@@ -51,22 +52,24 @@ export async function getVideoGallery(): Promise<Loaded<VideoGallery>> {
   }
 }
 
+const ALBUM_COLUMNS = "id, slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order";
+
 /** Published albums with their published photo count and a usable cover (falls back to the first photo). */
 export async function getPublishedAlbums(): Promise<Loaded<PhotoAlbum[]>> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("photo-albums");
+  cacheTag(TAGS.albums);
   const sb = getPublicClient();
   if (!sb) return { status: "unavailable" };
   try {
-    const [albums, photos] = await Promise.all([
-      sb
-        .from("photo_albums")
-        .select("id, slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order")
-        .order("sort_order", { ascending: true })
-        .order("event_date", { ascending: false, nullsFirst: false }),
+    // Anon RLS hides unpublished, archived and trashed albums/photos.
+    const readAlbums = (cols: string) =>
+      sb.from("photo_albums").select(cols).order("sort_order", { ascending: true }).order("event_date", { ascending: false, nullsFirst: false });
+    const [albumsFirst, photos] = await Promise.all([
+      readAlbums(`${ALBUM_COLUMNS}, category_id`),
       sb.from("album_photos").select("id, album_id, sort_order").order("sort_order", { ascending: true }),
     ]);
+    const albums = albumsFirst.error ? await readAlbums(ALBUM_COLUMNS) : albumsFirst; // CMS column not migrated yet
     if (albums.error || photos.error) throw albums.error ?? photos.error;
     const byAlbum = new Map<string, string[]>();
     for (const p of (photos.data ?? []) as { id: string; album_id: string }[]) {
@@ -88,7 +91,7 @@ export async function getPublishedAlbums(): Promise<Loaded<PhotoAlbum[]>> {
 export async function getAlbumBySlug(slug: string): Promise<Loaded<{ album: PhotoAlbum; photos: AlbumPhoto[] } | null>> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("photo-albums", `photo-album:${slug}`);
+  cacheTag(TAGS.albums, `photo-album:${slug}`);
   const sb = getPublicClient();
   if (!sb) return { status: "unavailable" };
   try {

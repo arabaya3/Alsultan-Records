@@ -5,13 +5,9 @@ import { WhatsAppIcon, WhatsAppLink } from "@/components/ui/WhatsAppCta";
 import { bookingHref, contactItems } from "@/features/public-content/contact";
 import { getBusinessSettings } from "@/features/public-content/queries";
 import { SITE_NAME_AR } from "@/features/public-content/site";
+import { getSiteNav } from "@/features/public-content/cms-queries";
+import { activeLogoSrc } from "@/components/brand/Logo";
 
-const FOOTER_LINKS = [
-  { href: "/work", label: "أعمالنا" },
-  { href: "/services", label: "الخدمات" },
-  { href: "/about", label: "من نحن" },
-  { href: "/book", label: "احجز" },
-] as const;
 
 const linkCls = "inline-flex min-h-11 items-center transition-colors hover:text-gold md:min-h-8";
 
@@ -20,7 +16,7 @@ const linkCls = "inline-flex min-h-11 items-center transition-colors hover:text-
  * the band is a single row on desktop and the footer is three tight groups.
  */
 export async function Footer() {
-  const settings = await getBusinessSettings();
+  const [settings, nav] = await Promise.all([getBusinessSettings(), getSiteNav()]);
   const s = settings.status === "ok" ? settings.data : null;
   const book = bookingHref(s);
   const contacts = contactItems(s);
@@ -46,7 +42,7 @@ export async function Footer() {
       <footer data-site-footer className="bg-ink text-on-dark">
         <Container className="grid gap-8 py-8 sm:grid-cols-2 md:grid-cols-[1.3fr_1fr_1.3fr] md:gap-10">
           <div className="sm:col-span-2 md:col-span-1">
-            <Logo height={56} />
+            <Logo height={56} src={activeLogoSrc(s?.active_logo_id)} />
             <p className="mt-3 max-w-xs text-sm leading-relaxed text-muted">
               {s?.tagline ?? "تصوير فوتوغرافي وأفلام أعراس ومناسبات وDJ."}
             </p>
@@ -57,8 +53,8 @@ export async function Footer() {
               روابط مهمة
             </h2>
             <ul className="grid grid-cols-2 gap-x-6 md:grid-cols-1">
-              {FOOTER_LINKS.map((l) => (
-                <li key={l.href}>
+              {nav.footer.map((l) => (
+                <li key={l.key}>
                   <Link href={l.href} className={linkCls}>
                     {l.label}
                   </Link>

@@ -11,6 +11,8 @@ export type CardVideo = DialogVideo & {
   /** e.g. "٩ د" */
   duration?: string | null;
   meta?: string | null;
+  /** Owner-chosen cover (same-origin /p/<photo>/thumb); defaults to the YouTube thumbnail. */
+  coverSrc?: string | null;
 };
 
 /**
@@ -48,7 +50,7 @@ export function YouTubeCard({
       >
         <span className="relative block aspect-video overflow-hidden rounded-sm bg-ink">
           <Image
-            src={youTubeThumbUrl(video.youtubeId)}
+            src={video.coverSrc ?? youTubeThumbUrl(video.youtubeId)}
             alt=""
             fill
             unoptimized

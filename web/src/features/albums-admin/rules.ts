@@ -21,3 +21,11 @@ export function checkAlbumFile(f: { type: string; size: number }): string | null
 export function albumObjectPath(albumId: string, photoId: string, mime: string): string {
   return `albums/${albumId}/${photoId}/original.${ALBUM_MIME_EXT[mime]}`;
 }
+
+export const SHA256_RE = /^[0-9a-f]{64}$/;
+
+/** sha256 of a file in the browser (SubtleCrypto) for the duplicate pre-check; the server re-verifies after upload. */
+export async function fileSha256(f: Blob): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", await f.arrayBuffer());
+  return Array.from(new Uint8Array(digest), (b) => b.toString(16).padStart(2, "0")).join("");
+}

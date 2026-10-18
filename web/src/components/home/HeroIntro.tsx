@@ -4,6 +4,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { useLayoutEffect, useRef } from "react";
 import { SitePromoPlayer } from "@/components/media/promo/SitePromoPlayer";
+import { PromoPlayer } from "@/components/media/youtube/PromoPlayer";
+import { ActiveLogoImg } from "@/components/brand/ActiveLogoImg";
 import { WhatsAppIcon } from "@/components/ui/WhatsAppIcon";
 import { gsap, MOTION_OK } from "@/components/motion/gsap";
 import { youTubeThumbUrl } from "@/lib/youtube";
@@ -17,8 +19,12 @@ export type HeroIntroProps = {
   workHref: string | null;
   whatsappHref: string | null;
   phone: { label: string; href: string } | null;
-  /** Self-hosted studio promo (static asset in /public/promo); null hides the card. */
-  promo: { caption: string } | null;
+  /** Self-hosted studio promo (static asset in /public/promo) or a YouTube promo; null hides the card. */
+  promo: { caption: string; coverSrc?: string | null; youtube?: { youtubeId: string; title: string } | null } | null;
+  /** Active owner logo (/a/<id>); null = built-in logo. */
+  logoSrc?: string | null;
+  primaryLabel?: string;
+  secondaryLabel?: string;
   /** The studio's own published YouTube works (i.ytimg thumbnails only). */
   strip: { youtubeId: string; title: string }[];
 };
@@ -196,16 +202,27 @@ export function HeroIntro(p: HeroIntroProps) {
       <div className="mx-auto grid w-full max-w-[var(--content-max)] items-center gap-8 px-[var(--gutter)] py-10 md:py-12 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:py-14">
         <div className="min-w-0">
           <div data-hero-mark className="flex items-center gap-4">
-            <Image
-              src="/brand/logo-main.webp"
-              alt=""
-              width={900}
-              height={748}
-              priority
-              sizes="96px"
-              data-intro="logo"
-              className="h-16 w-auto origin-center md:h-20"
-            />
+            {p.logoSrc ? (
+              <ActiveLogoImg
+                src={p.logoSrc}
+                fallback="/brand/logo-main.webp"
+                alt=""
+                fetchPriority="high"
+                data-intro="logo"
+                className="h-16 w-auto max-w-40 origin-center object-contain md:h-20 md:max-w-48"
+              />
+            ) : (
+              <Image
+                src="/brand/logo-main.webp"
+                alt=""
+                width={900}
+                height={748}
+                priority
+                sizes="96px"
+                data-intro="logo"
+                className="h-16 w-auto origin-center md:h-20"
+              />
+            )}
             <p
               data-intro="brand"
               className="font-display text-lg font-semibold text-gold md:text-xl"
@@ -271,7 +288,7 @@ export function HeroIntro(p: HeroIntroProps) {
                 data-hero-cta="work"
                 className="inline-flex min-h-14 min-w-52 items-center justify-center rounded-sm bg-gold px-7 text-lg font-medium text-ink transition-colors hover:bg-gold-press"
               >
-                شاهد أعمالنا
+                {p.primaryLabel ?? "شاهد أعمالنا"}
               </Link>
             ) : null}
             {p.whatsappHref ? (
@@ -285,7 +302,7 @@ export function HeroIntro(p: HeroIntroProps) {
                 className="inline-flex min-h-14 items-center justify-center gap-3 rounded-sm border border-on-dark/40 px-6 text-lg font-medium transition-colors hover:border-gold hover:text-gold"
               >
                 <WhatsAppIcon size={22} />
-                <span>تواصل عبر واتساب</span>
+                <span>{p.secondaryLabel ?? "تواصل عبر واتساب"}</span>
               </a>
             ) : null}
           </div>
@@ -305,7 +322,11 @@ export function HeroIntro(p: HeroIntroProps) {
         <div className="min-w-0">
           {p.promo ? (
             <div data-intro="media">
-              <SitePromoPlayer caption={p.promo.caption} priority />
+              {p.promo.youtube ? (
+                <PromoPlayer youtubeId={p.promo.youtube.youtubeId} title={p.promo.youtube.title} caption={p.promo.caption} />
+              ) : (
+                <SitePromoPlayer caption={p.promo.caption} coverSrc={p.promo.coverSrc} priority />
+              )}
             </div>
           ) : null}
           {p.strip.length >= 3 ? (

@@ -4,12 +4,15 @@ import { BrandEntrance } from "@/components/motion/Reveal";
 import { WhatsAppLink } from "@/components/ui/WhatsAppCta";
 import { bookingHref } from "@/features/public-content/contact";
 import { getBusinessSettings } from "@/features/public-content/queries";
-import { NAV_LINKS } from "@/features/public-content/site";
+import { getSiteNav } from "@/features/public-content/cms-queries";
+import { activeLogoSrc } from "@/components/brand/Logo";
 import { MobileMenu } from "./MobileMenu";
 
 export async function Header() {
-  const settings = await getBusinessSettings();
-  const book = bookingHref(settings.status === "ok" ? settings.data : null);
+  const [settings, nav] = await Promise.all([getBusinessSettings(), getSiteNav()]);
+  const s = settings.status === "ok" ? settings.data : null;
+  const book = bookingHref(s);
+  const links = nav.header.map((l) => ({ href: l.href, label: l.label }));
   return (
     <header className="relative z-40 bg-ink text-on-dark">
       <a
@@ -20,12 +23,12 @@ export async function Header() {
       </a>
       <div className="mx-auto flex h-[var(--header-h)] w-full max-w-[var(--content-max)] items-center gap-6 px-[var(--gutter)] lg:h-[104px] lg:gap-14">
         <BrandEntrance>
-          <Logo height={60} priority className="lg:!h-[84px]" />
+          <Logo height={60} priority className="lg:!h-[84px]" src={activeLogoSrc(s?.active_logo_id)} />
         </BrandEntrance>
 
         <nav aria-label="القائمة الرئيسية" className="hidden lg:block">
           <ul className="flex items-center gap-14 text-[1.0625rem]">
-            {NAV_LINKS.map((l) => (
+            {links.map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className="py-2 transition-colors hover:text-gold">
                   {l.label}
@@ -46,7 +49,7 @@ export async function Header() {
         </div>
 
         <div className="ms-auto lg:hidden">
-          <MobileMenu bookHref={book} />
+          <MobileMenu bookHref={book} links={links} />
         </div>
       </div>
     </header>

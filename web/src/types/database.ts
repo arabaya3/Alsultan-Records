@@ -23,16 +23,30 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "album_photos": {
+            "album_categories": {
                   Row: {
-                    "album_id": string,"alt_text": string | null,"bytes": number | null,"created_at": string,"height": number | null,"id": string,"is_published": boolean,"mime": string,"sort_order": number,"source_url": string | null,"storage_path_original": string,"updated_at": string,"upload_status": string,"variants": NonNullable<Json>,"width": number | null
+                    "created_at": string,"id": string,"is_published": boolean,"slug": string,"sort_order": number,"title": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "album_id": string,"alt_text"?: string | null,"bytes"?: number | null,"created_at"?: string,"height"?: number | null,"id"?: string,"is_published"?: boolean,"mime": string,"sort_order"?: number,"source_url"?: string | null,"storage_path_original": string,"updated_at"?: string,"upload_status"?: string,"variants"?: NonNullable<Json>,"width"?: number | null
+                    "created_at"?: string,"id"?: string,"is_published"?: boolean,"slug": string,"sort_order"?: number,"title": string,"updated_at"?: string
                   }
                   Update: {
-                    "album_id"?: string,"alt_text"?: string | null,"bytes"?: number | null,"created_at"?: string,"height"?: number | null,"id"?: string,"is_published"?: boolean,"mime"?: string,"sort_order"?: number,"source_url"?: string | null,"storage_path_original"?: string,"updated_at"?: string,"upload_status"?: string,"variants"?: NonNullable<Json>,"width"?: number | null
+                    "created_at"?: string,"id"?: string,"is_published"?: boolean,"slug"?: string,"sort_order"?: number,"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"album_photos": {
+                  Row: {
+                    "album_id": string,"alt_text": string | null,"attempts": number,"bytes": number | null,"created_at": string,"deleted_at": string | null,"height": number | null,"id": string,"is_published": boolean,"last_error": string | null,"mime": string,"processing_started_at": string | null,"sha256": string | null,"sort_order": number,"source_url": string | null,"storage_path_original": string,"updated_at": string,"upload_status": string,"variants": NonNullable<Json>,"width": number | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "album_id": string,"alt_text"?: string | null,"attempts"?: number,"bytes"?: number | null,"created_at"?: string,"deleted_at"?: string | null,"height"?: number | null,"id"?: string,"is_published"?: boolean,"last_error"?: string | null,"mime": string,"processing_started_at"?: string | null,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path_original": string,"updated_at"?: string,"upload_status"?: string,"variants"?: NonNullable<Json>,"width"?: number | null
+                  }
+                  Update: {
+                    "album_id"?: string,"alt_text"?: string | null,"attempts"?: number,"bytes"?: number | null,"created_at"?: string,"deleted_at"?: string | null,"height"?: number | null,"id"?: string,"is_published"?: boolean,"last_error"?: string | null,"mime"?: string,"processing_started_at"?: string | null,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path_original"?: string,"updated_at"?: string,"upload_status"?: string,"variants"?: NonNullable<Json>,"width"?: number | null
                   }
                   Relationships: [
                     {
@@ -145,6 +159,32 @@ isOneToOne: true
       referencedColumns: ["id"]
     }
                   ]
+                },"announcements": {
+                  Row: {
+                    "created_at": string,"dismissible": boolean,"ends_on": string | null,"id": string,"is_visible": boolean,"link_kind": string,"link_offer_id": string | null,"link_page": string | null,"sort_order": number,"starts_on": string | null,"template": string,"text": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"dismissible"?: boolean,"ends_on"?: string | null,"id"?: string,"is_visible"?: boolean,"link_kind"?: string,"link_offer_id"?: string | null,"link_page"?: string | null,"sort_order"?: number,"starts_on"?: string | null,"template"?: string,"text": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"dismissible"?: boolean,"ends_on"?: string | null,"id"?: string,"is_visible"?: boolean,"link_kind"?: string,"link_offer_id"?: string | null,"link_page"?: string | null,"sort_order"?: number,"starts_on"?: string | null,"template"?: string,"text"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "announcements_link_offer_id_fkey"
+      columns: ["link_offer_id"]
+isOneToOne: false
+      referencedRelation: "offers"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "announcements_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"app_settings": {
                   Row: {
                     "booking_rules": NonNullable<Json>,"created_at": string,"id": number,"require_staff_mfa": boolean,"turnstile_enabled": boolean,"updated_at": string
@@ -239,23 +279,67 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
-                },"business_settings": {
+                },"brand_assets": {
                   Row: {
-                    "address": string | null,"canonical_base_url": string | null,"created_at": string,"email": string | null,"facebook": string | null,"hero_media_id": string | null,"id": number,"instagram": string | null,"name": string,"phone": string | null,"tagline": string | null,"updated_at": string,"whatsapp": string | null,"whatsapp_url": string | null,"youtube_url": string | null
+                    "bytes": number | null,"created_at": string,"created_by": string | null,"height": number | null,"id": string,"kind": string,"mime": string,"note": string | null,"sha256": string | null,"storage_path": string,"width": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"canonical_base_url"?: string | null,"created_at"?: string,"email"?: string | null,"facebook"?: string | null,"hero_media_id"?: string | null,"id"?: number,"instagram"?: string | null,"name"?: string,"phone"?: string | null,"tagline"?: string | null,"updated_at"?: string,"whatsapp"?: string | null,"whatsapp_url"?: string | null,"youtube_url"?: string | null
+                    "bytes"?: number | null,"created_at"?: string,"created_by"?: string | null,"height"?: number | null,"id"?: string,"kind"?: string,"mime": string,"note"?: string | null,"sha256"?: string | null,"storage_path": string,"width"?: number | null
                   }
                   Update: {
-                    "address"?: string | null,"canonical_base_url"?: string | null,"created_at"?: string,"email"?: string | null,"facebook"?: string | null,"hero_media_id"?: string | null,"id"?: number,"instagram"?: string | null,"name"?: string,"phone"?: string | null,"tagline"?: string | null,"updated_at"?: string,"whatsapp"?: string | null,"whatsapp_url"?: string | null,"youtube_url"?: string | null
+                    "bytes"?: number | null,"created_at"?: string,"created_by"?: string | null,"height"?: number | null,"id"?: string,"kind"?: string,"mime"?: string,"note"?: string | null,"sha256"?: string | null,"storage_path"?: string,"width"?: number | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "brand_assets_created_by_fkey"
+      columns: ["created_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"business_settings": {
+                  Row: {
+                    "active_logo_id": string | null,"address": string | null,"booking_message": string | null,"canonical_base_url": string | null,"created_at": string,"email": string | null,"facebook": string | null,"hero_cover_photo_id": string | null,"hero_media_id": string | null,"hero_primary_label": string | null,"hero_promo_source": string,"hero_promo_video_id": string | null,"hero_secondary_label": string | null,"hero_subtitle": string | null,"hero_title": string | null,"id": number,"instagram": string | null,"name": string,"phone": string | null,"tagline": string | null,"updated_at": string,"whatsapp": string | null,"whatsapp_url": string | null,"youtube_url": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "active_logo_id"?: string | null,"address"?: string | null,"booking_message"?: string | null,"canonical_base_url"?: string | null,"created_at"?: string,"email"?: string | null,"facebook"?: string | null,"hero_cover_photo_id"?: string | null,"hero_media_id"?: string | null,"hero_primary_label"?: string | null,"hero_promo_source"?: string,"hero_promo_video_id"?: string | null,"hero_secondary_label"?: string | null,"hero_subtitle"?: string | null,"hero_title"?: string | null,"id"?: number,"instagram"?: string | null,"name"?: string,"phone"?: string | null,"tagline"?: string | null,"updated_at"?: string,"whatsapp"?: string | null,"whatsapp_url"?: string | null,"youtube_url"?: string | null
+                  }
+                  Update: {
+                    "active_logo_id"?: string | null,"address"?: string | null,"booking_message"?: string | null,"canonical_base_url"?: string | null,"created_at"?: string,"email"?: string | null,"facebook"?: string | null,"hero_cover_photo_id"?: string | null,"hero_media_id"?: string | null,"hero_primary_label"?: string | null,"hero_promo_source"?: string,"hero_promo_video_id"?: string | null,"hero_secondary_label"?: string | null,"hero_subtitle"?: string | null,"hero_title"?: string | null,"id"?: number,"instagram"?: string | null,"name"?: string,"phone"?: string | null,"tagline"?: string | null,"updated_at"?: string,"whatsapp"?: string | null,"whatsapp_url"?: string | null,"youtube_url"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "business_settings_active_logo_id_fkey"
+      columns: ["active_logo_id"]
+isOneToOne: false
+      referencedRelation: "brand_assets"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "business_settings_hero_cover_photo_id_fkey"
+      columns: ["hero_cover_photo_id"]
+isOneToOne: false
+      referencedRelation: "album_photos"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "business_settings_hero_fk"
       columns: ["hero_media_id"]
 isOneToOne: false
       referencedRelation: "media_assets"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "business_settings_hero_promo_video_id_fkey"
+      columns: ["hero_promo_video_id"]
+isOneToOne: false
+      referencedRelation: "showcase_video_admin_details"
+      referencedColumns: ["video_id"]
+    },{
+      foreignKeyName: "business_settings_hero_promo_video_id_fkey"
+      columns: ["hero_promo_video_id"]
+isOneToOne: false
+      referencedRelation: "showcase_videos"
       referencedColumns: ["id"]
     }
                   ]
@@ -599,6 +683,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"import_items": {
+                  Row: {
+                    "album_id": string | null,"bytes": number | null,"created_at": string,"error": string | null,"file_name": string | null,"id": string,"photo_id": string | null,"sha256": string | null,"source": string,"source_ref": string,"status": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "album_id"?: string | null,"bytes"?: number | null,"created_at"?: string,"error"?: string | null,"file_name"?: string | null,"id"?: string,"photo_id"?: string | null,"sha256"?: string | null,"source": string,"source_ref": string,"status"?: string,"updated_at"?: string
+                  }
+                  Update: {
+                    "album_id"?: string | null,"bytes"?: number | null,"created_at"?: string,"error"?: string | null,"file_name"?: string | null,"id"?: string,"photo_id"?: string | null,"sha256"?: string | null,"source"?: string,"source_ref"?: string,"status"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "import_items_album_id_fkey"
+      columns: ["album_id"]
+isOneToOne: false
+      referencedRelation: "photo_albums"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "import_items_photo_id_fkey"
+      columns: ["photo_id"]
+isOneToOne: false
+      referencedRelation: "album_photos"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"media_assets": {
                   Row: {
                     "bucket": Database["public"]['Enums']["media_bucket"],"bytes": number | null,"created_at": string,"duration_s": number | null,"event_id": string | null,"height": number | null,"id": string,"kind": Database["public"]['Enums']["media_kind"],"mime": string,"path": string,"sort_order": number,"updated_at": string,"upload_status": Database["public"]['Enums']["upload_status"],"uploaded_by": string | null,"variants": NonNullable<Json>,"visibility": Database["public"]['Enums']["media_visibility"],"width": number | null
@@ -631,6 +741,26 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"nav_items": {
+                  Row: {
+                    "id": string,"is_visible": boolean,"label": string,"sort_order": number,"target": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "id"?: string,"is_visible"?: boolean,"label": string,"sort_order"?: number,"target": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "id"?: string,"is_visible"?: boolean,"label"?: string,"sort_order"?: number,"target"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "nav_items_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"notifications": {
                   Row: {
                     "created_at": string,"id": string,"kind": string,"payload": NonNullable<Json>,"read_at": string | null,"recipient_id": string,"updated_at": string
@@ -646,6 +776,52 @@ isOneToOne: false
                     {
       foreignKeyName: "notifications_recipient_id_fkey"
       columns: ["recipient_id"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"offer_items": {
+                  Row: {
+                    "created_at": string,"id": string,"label": string,"offer_id": string,"sort_order": number,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"label": string,"offer_id": string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"label"?: string,"offer_id"?: string,"sort_order"?: number,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "offer_items_offer_id_fkey"
+      columns: ["offer_id"]
+isOneToOne: false
+      referencedRelation: "offers"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"offers": {
+                  Row: {
+                    "created_at": string,"currency": string,"description": string | null,"display_price_minor": number | null,"ends_on": string | null,"id": string,"image_photo_id": string | null,"pinned_home": boolean,"price_minor": number | null,"show_price": boolean,"slug": string,"sort_order": number,"starts_on": string | null,"status": string,"terms": string | null,"title": string,"updated_at": string,"updated_by": string | null,"whatsapp_message": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"ends_on"?: string | null,"id"?: string,"image_photo_id"?: string | null,"pinned_home"?: boolean,"price_minor"?: number | null,"show_price"?: boolean,"slug": string,"sort_order"?: number,"starts_on"?: string | null,"status"?: string,"terms"?: string | null,"title": string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"currency"?: string,"description"?: string | null,"display_price_minor"?: never,"ends_on"?: string | null,"id"?: string,"image_photo_id"?: string | null,"pinned_home"?: boolean,"price_minor"?: number | null,"show_price"?: boolean,"slug"?: string,"sort_order"?: number,"starts_on"?: string | null,"status"?: string,"terms"?: string | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null,"whatsapp_message"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "offers_image_photo_id_fkey"
+      columns: ["image_photo_id"]
+isOneToOne: false
+      referencedRelation: "album_photos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "offers_updated_by_fkey"
+      columns: ["updated_by"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
@@ -703,17 +879,23 @@ isOneToOne: false
                   ]
                 },"photo_albums": {
                   Row: {
-                    "cover_photo_id": string | null,"created_at": string,"description": string | null,"event_date": string | null,"id": string,"is_published": boolean,"rights_note": string | null,"slug": string,"sort_order": number,"source_label": string | null,"source_url": string | null,"title": string,"updated_at": string,"updated_by": string | null
+                    "archived_at": string | null,"category_id": string | null,"cover_photo_id": string | null,"created_at": string,"deleted_at": string | null,"description": string | null,"event_date": string | null,"id": string,"is_published": boolean,"rights_note": string | null,"slug": string,"sort_order": number,"source_label": string | null,"source_url": string | null,"title": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "cover_photo_id"?: string | null,"created_at"?: string,"description"?: string | null,"event_date"?: string | null,"id"?: string,"is_published"?: boolean,"rights_note"?: string | null,"slug": string,"sort_order"?: number,"source_label"?: string | null,"source_url"?: string | null,"title": string,"updated_at"?: string,"updated_by"?: string | null
+                    "archived_at"?: string | null,"category_id"?: string | null,"cover_photo_id"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"description"?: string | null,"event_date"?: string | null,"id"?: string,"is_published"?: boolean,"rights_note"?: string | null,"slug": string,"sort_order"?: number,"source_label"?: string | null,"source_url"?: string | null,"title": string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "cover_photo_id"?: string | null,"created_at"?: string,"description"?: string | null,"event_date"?: string | null,"id"?: string,"is_published"?: boolean,"rights_note"?: string | null,"slug"?: string,"sort_order"?: number,"source_label"?: string | null,"source_url"?: string | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "archived_at"?: string | null,"category_id"?: string | null,"cover_photo_id"?: string | null,"created_at"?: string,"deleted_at"?: string | null,"description"?: string | null,"event_date"?: string | null,"id"?: string,"is_published"?: boolean,"rights_note"?: string | null,"slug"?: string,"sort_order"?: number,"source_label"?: string | null,"source_url"?: string | null,"title"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "photo_albums_category_id_fkey"
+      columns: ["category_id"]
+isOneToOne: false
+      referencedRelation: "album_categories"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "photo_albums_cover_fk"
       columns: ["cover_photo_id"]
 isOneToOne: false
@@ -721,6 +903,32 @@ isOneToOne: false
       referencedColumns: ["id"]
     },{
       foreignKeyName: "photo_albums_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"process_steps": {
+                  Row: {
+                    "created_at": string,"description": string | null,"id": string,"is_published": boolean,"photo_id": string | null,"sort_order": number,"title": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"description"?: string | null,"id"?: string,"is_published"?: boolean,"photo_id"?: string | null,"sort_order"?: number,"title": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"description"?: string | null,"id"?: string,"is_published"?: boolean,"photo_id"?: string | null,"sort_order"?: number,"title"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "process_steps_photo_id_fkey"
+      columns: ["photo_id"]
+isOneToOne: false
+      referencedRelation: "album_photos"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "process_steps_updated_by_fkey"
       columns: ["updated_by"]
 isOneToOne: false
       referencedRelation: "profiles"
@@ -863,16 +1071,36 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
-                },"services": {
+                },"service_links": {
                   Row: {
-                    "body": string | null,"category_id": string | null,"cover_media_id": string | null,"created_at": string,"id": string,"is_published": boolean,"slug": string,"sort_order": number,"summary": string | null,"title": string,"updated_at": string
+                    "created_at": string,"kind": string,"service_id": string,"sort_order": number,"target_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "body"?: string | null,"category_id"?: string | null,"cover_media_id"?: string | null,"created_at"?: string,"id"?: string,"is_published"?: boolean,"slug": string,"sort_order"?: number,"summary"?: string | null,"title": string,"updated_at"?: string
+                    "created_at"?: string,"kind": string,"service_id": string,"sort_order"?: number,"target_id": string
                   }
                   Update: {
-                    "body"?: string | null,"category_id"?: string | null,"cover_media_id"?: string | null,"created_at"?: string,"id"?: string,"is_published"?: boolean,"slug"?: string,"sort_order"?: number,"summary"?: string | null,"title"?: string,"updated_at"?: string
+                    "created_at"?: string,"kind"?: string,"service_id"?: string,"sort_order"?: number,"target_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "service_links_service_id_fkey"
+      columns: ["service_id"]
+isOneToOne: false
+      referencedRelation: "services"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"services": {
+                  Row: {
+                    "body": string | null,"category_id": string | null,"cover_media_id": string | null,"cover_photo_id": string | null,"created_at": string,"id": string,"is_published": boolean,"slug": string,"sort_order": number,"summary": string | null,"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "body"?: string | null,"category_id"?: string | null,"cover_media_id"?: string | null,"cover_photo_id"?: string | null,"created_at"?: string,"id"?: string,"is_published"?: boolean,"slug": string,"sort_order"?: number,"summary"?: string | null,"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "body"?: string | null,"category_id"?: string | null,"cover_media_id"?: string | null,"cover_photo_id"?: string | null,"created_at"?: string,"id"?: string,"is_published"?: boolean,"slug"?: string,"sort_order"?: number,"summary"?: string | null,"title"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -886,6 +1114,12 @@ isOneToOne: false
       columns: ["cover_media_id"]
 isOneToOne: false
       referencedRelation: "media_assets"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "services_cover_photo_id_fkey"
+      columns: ["cover_photo_id"]
+isOneToOne: false
+      referencedRelation: "album_photos"
       referencedColumns: ["id"]
     }
                   ]
@@ -923,23 +1157,63 @@ isOneToOne: false
                   ]
                 },"showcase_videos": {
                   Row: {
-                    "category": string,"created_at": string,"description": string | null,"duration_seconds": number | null,"id": string,"is_promo": boolean,"is_published": boolean,"needs_review": boolean,"original_title": string | null,"published_at": string | null,"review_note": string | null,"reviewed_at": string | null,"sort_order": number,"source": string,"source_url": string,"title": string,"title_source": string,"updated_at": string,"updated_by": string | null,"verification_notes": string | null,"youtube_description": string | null,"youtube_id": string,"youtube_title": string | null
+                    "category": string,"created_at": string,"custom_cover_photo_id": string | null,"description": string | null,"duration_seconds": number | null,"id": string,"is_promo": boolean,"is_published": boolean,"needs_review": boolean,"original_title": string | null,"pinned": boolean,"published_at": string | null,"review_note": string | null,"reviewed_at": string | null,"role": string,"sort_order": number,"source": string,"source_url": string,"title": string,"title_source": string,"updated_at": string,"updated_by": string | null,"verification_notes": string | null,"youtube_description": string | null,"youtube_id": string,"youtube_title": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "category"?: string,"created_at"?: string,"description"?: string | null,"duration_seconds"?: number | null,"id"?: string,"is_promo"?: boolean,"is_published"?: boolean,"needs_review"?: boolean,"original_title"?: string | null,"published_at"?: string | null,"review_note"?: string | null,"reviewed_at"?: string | null,"sort_order"?: number,"source"?: string,"source_url": string,"title": string,"title_source"?: string,"updated_at"?: string,"updated_by"?: string | null,"verification_notes"?: string | null,"youtube_description"?: string | null,"youtube_id": string,"youtube_title"?: string | null
+                    "category"?: string,"created_at"?: string,"custom_cover_photo_id"?: string | null,"description"?: string | null,"duration_seconds"?: number | null,"id"?: string,"is_promo"?: boolean,"is_published"?: boolean,"needs_review"?: boolean,"original_title"?: string | null,"pinned"?: boolean,"published_at"?: string | null,"review_note"?: string | null,"reviewed_at"?: string | null,"role"?: string,"sort_order"?: number,"source"?: string,"source_url": string,"title": string,"title_source"?: string,"updated_at"?: string,"updated_by"?: string | null,"verification_notes"?: string | null,"youtube_description"?: string | null,"youtube_id": string,"youtube_title"?: string | null
                   }
                   Update: {
-                    "category"?: string,"created_at"?: string,"description"?: string | null,"duration_seconds"?: number | null,"id"?: string,"is_promo"?: boolean,"is_published"?: boolean,"needs_review"?: boolean,"original_title"?: string | null,"published_at"?: string | null,"review_note"?: string | null,"reviewed_at"?: string | null,"sort_order"?: number,"source"?: string,"source_url"?: string,"title"?: string,"title_source"?: string,"updated_at"?: string,"updated_by"?: string | null,"verification_notes"?: string | null,"youtube_description"?: string | null,"youtube_id"?: string,"youtube_title"?: string | null
+                    "category"?: string,"created_at"?: string,"custom_cover_photo_id"?: string | null,"description"?: string | null,"duration_seconds"?: number | null,"id"?: string,"is_promo"?: boolean,"is_published"?: boolean,"needs_review"?: boolean,"original_title"?: string | null,"pinned"?: boolean,"published_at"?: string | null,"review_note"?: string | null,"reviewed_at"?: string | null,"role"?: string,"sort_order"?: number,"source"?: string,"source_url"?: string,"title"?: string,"title_source"?: string,"updated_at"?: string,"updated_by"?: string | null,"verification_notes"?: string | null,"youtube_description"?: string | null,"youtube_id"?: string,"youtube_title"?: string | null
                   }
                   Relationships: [
                     {
+      foreignKeyName: "showcase_videos_custom_cover_photo_id_fkey"
+      columns: ["custom_cover_photo_id"]
+isOneToOne: false
+      referencedRelation: "album_photos"
+      referencedColumns: ["id"]
+    },{
       foreignKeyName: "showcase_videos_updated_by_fkey"
       columns: ["updated_by"]
 isOneToOne: false
       referencedRelation: "profiles"
       referencedColumns: ["id"]
     }
+                  ]
+                },"site_sections": {
+                  Row: {
+                    "featured_ids": (string)[],"intro": string | null,"is_visible": boolean,"item_limit": number,"key": string,"sort_order": number,"title": string | null,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "featured_ids"?: (string)[],"intro"?: string | null,"is_visible"?: boolean,"item_limit"?: number,"key": string,"sort_order"?: number,"title"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "featured_ids"?: (string)[],"intro"?: string | null,"is_visible"?: boolean,"item_limit"?: number,"key"?: string,"sort_order"?: number,"title"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "site_sections_updated_by_fkey"
+      columns: ["updated_by"]
+isOneToOne: false
+      referencedRelation: "profiles"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"slug_redirects": {
+                  Row: {
+                    "created_at": string,"from_path": string,"to_path": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"from_path": string,"to_path": string
+                  }
+                  Update: {
+                    "created_at"?: string,"from_path"?: string,"to_path"?: string
+                  }
+                  Relationships: [
+                    
                   ]
                 },"staff_members": {
                   Row: {
@@ -1107,7 +1381,10 @@ isOneToOne: false
                 }
           }
           Functions: {
-            "admin_financial_summary":
+            "active_logo_path":
+{ Args: { "p_id": string }; Returns: string
+                           },
+"admin_financial_summary":
 { Args: { "p_from": string,"p_to": string }; Returns: {
               "contracted": number,"currency": string,"expenses": number,"net_cash": number,"outstanding": number,"paid": number,"refunded": number
             }[]
@@ -1127,10 +1404,18 @@ isOneToOne: false
 "bootstrap_initial_owner":
 { Args: { "p_token": string }; Returns: undefined
                            },
+"claim_photo_jobs":
+{ Args: { "p_limit"?: number }; Returns: {
+              "album_id": string,"attempts": number,"id": string,"mime": string,"storage_path_original": string
+            }[]
+                           },
 "claim_storage_cleanup":
 { Args: { "p_limit"?: number }; Returns: {
               "bucket": string,"enqueued_at": string,"id": string,"path": string,"reason": string
             }[]
+                           },
+"complete_photo_job":
+{ Args: { "p_error"?: string,"p_height"?: number,"p_id": string,"p_ok": boolean,"p_variants"?: Json,"p_width"?: number }; Returns: boolean
                            },
 "complete_storage_cleanup":
 { Args: { "p_ids": (string)[] }; Returns: number
@@ -1152,6 +1437,11 @@ isOneToOne: false
 "fail_storage_cleanup":
 { Args: { "p_error": string,"p_ids": (string)[] }; Returns: number
                            },
+"find_duplicate_photo":
+{ Args: { "p_sha256": string }; Returns: {
+              "album_id": string,"album_title": string,"photo_id": string
+            }[]
+                           },
 "public_submit_booking":
 { Args: { "p_city"?: string,"p_contact_email"?: string,"p_contact_name": string,"p_contact_phone": string,"p_customer_id"?: string,"p_event_date"?: string,"p_event_type": string,"p_guests"?: number,"p_idempotency_key": string,"p_ip_hash": string,"p_message"?: string,"p_services"?: (string)[],"p_venue"?: string }; Returns: string
                            },
@@ -1168,11 +1458,17 @@ isOneToOne: false
               "status": Database["public"]['Enums']["support_status"],"updated_at": string
             }[]
                            },
+"purge_album":
+{ Args: { "p_confirm_slug": string,"p_id": string }; Returns: number
+                           },
 "purge_test_fixtures":
 { Args: { "p_prefix": string }; Returns: Json
                            },
 "record_payment":
 { Args: { "p_amount": number,"p_contract_id"?: string,"p_currency"?: string,"p_customer_id": string,"p_event_id"?: string,"p_idempotency_key": string,"p_kind"?: Database["public"]['Enums']["payment_kind"],"p_method": string,"p_received_at"?: string,"p_reference"?: string }; Returns: string
+                           },
+"requeue_album_photos":
+{ Args: { "p_album_id": string,"p_photo_id"?: string }; Returns: number
                            },
 "set_event_publication":
 { Args: { "p_event_id": string,"p_featured"?: boolean,"p_featured_order"?: number,"p_publish": boolean }; Returns: undefined

@@ -6,7 +6,7 @@ import { anon, as, db, newLoggedIn, PUB_KEY, SB_URL } from "./qa-helpers";
  * Admin photo albums (local stack, seed users). Run: BASE_URL=http://localhost:3400 npx playwright test admin-albums
  * Creates album slug `e2e-album`, uploads generated images (incl. one invalid + one oversized), checks
  * per-file results, variants, reorder/cover/hide, publish gating of rows AND storage objects for anon,
- * then deletes the album and verifies its storage objects are gone.
+ * dedupe, trash/restore, preview, archive/trash/purge (slug confirmation; storage cleanup is queued by purge_album).
  */
 test.describe.configure({ mode: "serial" });
 
@@ -41,7 +41,7 @@ async function anonObject(path: string) {
 test("A1: nav entry, create album (hidden by default)", async ({ browser }) => {
   const page = await newLoggedIn(browser, "admin", "/admin/albums");
   await expect(page.getByRole("heading", { level: 1, name: "الألبومات" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "الألبومات" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "ألبومات الصور" }).first()).toBeVisible();
   const form = page.getByTestId("album-create");
   await form.locator('input[name="title"]').fill("ألبوم اختبار");
   await form.locator('input[name="slug"]').fill(SLUG);
@@ -68,14 +68,22 @@ test("A2: bulk upload with per-file results, variants, reorder, cover, hide, pub
     { name: "bad.gif", mimeType: "image/gif", buffer: Buffer.from("GIF89a") },
   ]);
   await page.getByTestId("album-upload-start").click();
-  await expect(page.getByTestId("album-upload-summary")).toHaveText("اكتمل 2، فشل 1 من 3.", { timeout: 120_000 });
+  await expect(page.locator('[data-testid="album-upload-row"][data-state="ready"]')).toHaveCount(2, { timeout: 120_000 });
   await expect(page.locator('[data-testid="album-upload-row"][data-state="failed"]')).toHaveCount(1);
+  await expect(page.getByTestId("album-upload-summary")).toContainText("جاهز 2");
+
+  // duplicate in the same album (sha256) → skipped, nothing new stored
+  const again = await jpeg(2400, 1600, "#b08d57");
+  await page.getByTestId("album-upload-input").setInputFiles([{ name: "one-again.jpg", mimeType: "image/jpeg", buffer: again }]);
+  await page.getByTestId("album-upload-start").click();
+  await expect(page.locator('[data-testid="album-upload-row"][data-state="skipped"]')).toHaveCount(1, { timeout: 60_000 });
 
   const photos = async () =>
     (await db.from("album_photos").select("id, width, height, variants, sort_order, is_published, upload_status, storage_path_original").eq("album_id", a.id).order("sort_order")).data!;
   let ps = await photos();
   expect(ps).toHaveLength(2);
   expect(ps[0]).toMatchObject({ width: 2400, height: 1600, upload_status: "ready" });
+  expect((await db.from("album_photos").select("sha256").eq("id", ps[0].id).single()).data!.sha256).toMatch(/^[0-9a-f]{64}$/);
   const v = ps[0].variants as Record<string, string>;
   expect(v.thumb).toMatch(/\/thumb\.webp$/);
   expect(v.display).toMatch(/\/display\.webp$/);
@@ -116,31 +124,49 @@ test("A2: bulk upload with per-file results, variants, reorder, cover, hide, pub
   await expect.poll(async () => (await anon().from("album_photos").select("id").eq("album_id", a.id)).data?.length).toBe(1);
   expect(await anonObject(v.thumb)).not.toBe(200);
 
-  // delete a photo: storage objects removed
+  // trash a photo (soft delete): hidden for anon, files kept, restorable
   const bigId = ps[0].id;
   ps = await photos();
   const victim = ps.find((p) => p.id !== bigId && p.is_published)!;
-  const victimPaths = [victim.storage_path_original, ...Object.values(victim.variants as Record<string, string>)];
   await page.reload();
-  await page.locator(`[data-testid=album-photo][data-photo-id="${victim.id}"]`).getByRole("button", { name: "حذف" }).click();
-  await page.locator("dialog[open] [data-testid=confirm-yes]").click();
-  await expect.poll(async () => (await photos()).length).toBe(1);
-  for (const p of victimPaths) expect((await db.storage.from(BUCKET).download(p)).error).not.toBeNull();
+  await page.locator(`[data-testid=album-photo][data-photo-id="${victim.id}"]`).getByTestId("photo-trash").getByRole("button").click();
+  await expect.poll(async () => (await db.from("album_photos").select("deleted_at").eq("id", victim.id).single()).data!.deleted_at).not.toBeNull();
+  expect((await anon().from("album_photos").select("id").eq("id", victim.id)).data).toHaveLength(0);
+  expect((await db.storage.from(BUCKET).download(victim.storage_path_original)).error).toBeNull();
+  await page.reload();
+  await page.getByTestId("album-trashed-photos").getByRole("button", { name: "استرجاع" }).click();
+  await expect.poll(async () => (await db.from("album_photos").select("deleted_at").eq("id", victim.id).single()).data!.deleted_at).toBeNull();
+
+  // preview renders drafts for the admin
+  await page.goto(`/admin/albums/${a.id}/preview`);
+  await expect(page.getByTestId("album-preview")).toBeVisible();
 
   // hide album (confirm)
-  await page.reload();
+  await page.goto(`/admin/albums/${a.id}`);
   await page.getByTestId("album-unpublish").getByRole("button", { name: "إخفاء الألبوم" }).click();
   await page.locator("dialog[open] [data-testid=confirm-yes]").click();
   await expect.poll(async () => (await anon().from("photo_albums").select("id").eq("slug", SLUG)).data?.length).toBe(0);
 
-  // delete album: rows + objects gone
-  const left = await photos();
-  await page.reload();
-  await page.getByTestId("album-delete").getByRole("button", { name: "حذف الألبوم وكل صوره" }).click();
-  await page.locator("dialog[open] [data-testid=confirm-yes]").click();
+  // archive → restore; trash → restore; trash → purge (typing the slug)
+  for (const [op, label] of [["archive", "أرشفة"], ["unarchive", "إخراج من الأرشيف"], ["trash", "نقل إلى سلة المحذوفات"], ["untrash", "استرجاع من سلة المحذوفات"], ["trash", "نقل إلى سلة المحذوفات"]] as const) {
+    await page.goto(`/admin/albums/${a.id}`);
+    await page.getByTestId(`album-${op}`).getByRole("button", { name: label }).click();
+    const dlg = page.locator("dialog[open] [data-testid=confirm-yes]");
+    if (await dlg.isVisible().catch(() => false)) await dlg.click();
+    const want = op === "archive" ? "archived_at" : op === "trash" ? "deleted_at" : null;
+    await expect.poll(async () => {
+      const r = (await db.from("photo_albums").select("archived_at, deleted_at").eq("id", a.id).single()).data!;
+      return want ? r[want] !== null : r.archived_at === null && r.deleted_at === null;
+    }).toBe(true);
+  }
+  await page.goto(`/admin/albums/${a.id}`);
+  await page.getByTestId("album-purge-slug").fill("wrong-slug");
+  await page.getByTestId("album-purge").getByRole("button", { name: "حذف نهائي" }).click();
+  expect((await db.from("photo_albums").select("id").eq("id", a.id)).data).toHaveLength(1);
+  await page.getByTestId("album-purge-slug").fill(SLUG);
+  await page.getByTestId("album-purge").getByRole("button", { name: "حذف نهائي" }).click();
   await page.waitForURL((u) => u.pathname === "/admin/albums");
   expect((await db.from("photo_albums").select("id").eq("id", a.id)).data).toHaveLength(0);
-  for (const p of left) expect((await db.storage.from(BUCKET).download(p.storage_path_original)).error).not.toBeNull();
   await page.context().close();
 });
 
@@ -148,7 +174,7 @@ test("A3: staff and customers are denied (UI + API + storage)", async ({ browser
   const staff = await newLoggedIn(browser, "staff", "/admin");
   await staff.goto("/admin/albums");
   await expect(staff.getByTestId("forbidden")).toBeVisible();
-  await expect(staff.getByRole("link", { name: "الألبومات" })).toHaveCount(0);
+  await expect(staff.getByRole("link", { name: "ألبومات الصور" })).toHaveCount(0);
   await staff.context().close();
   for (const who of ["staff", "a"] as const) {
     const c = await as(who);

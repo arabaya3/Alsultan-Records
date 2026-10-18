@@ -1,7 +1,9 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
 import type { z } from "zod";
+import { TAGS } from "@/lib/cache-tags";
 import { getPublicClient, publicMediaUrl } from "./client";
+import { photoUrl } from "./gallery-model";
 import {
   businessSettingsRow,
   mediaAssetRow,
@@ -23,7 +25,8 @@ const PROJECT_COLUMNS =
   "id, public_slug, title, event_type, event_date, city, featured, featured_order, seo_title, seo_description, highlight, coverage_notes";
 const MEDIA_COLUMNS =
   "id, event_id, bucket, path, kind, mime, width, height, duration_s, variants, sort_order";
-const SERVICE_COLUMNS = "id, slug, title, summary, body, cover_media_id, sort_order";
+const SERVICE_COLUMNS_LEGACY = "id, slug, title, summary, body, cover_media_id, sort_order";
+const SERVICE_COLUMNS = `${SERVICE_COLUMNS_LEGACY}, cover_photo_id`;
 
 function toPublicMedia(row: MediaAssetRow): PublicMedia | null {
   if (row.kind === "document") return null;
@@ -89,7 +92,7 @@ async function mediaById(ids: string[]): Promise<Map<string, PublicMedia>> {
 export async function getBusinessSettings(): Promise<Loaded<BusinessSettings | null>> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("business-settings");
+  cacheTag(TAGS.business);
   const sb = getPublicClient();
   if (!sb) return { status: "unavailable" };
   try {
@@ -106,7 +109,7 @@ export async function getBusinessSettings(): Promise<Loaded<BusinessSettings | n
 export async function getHeroMedia(): Promise<PublicMedia | null> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("business-settings", "media");
+  cacheTag(TAGS.business, TAGS.media);
   const settings = await getBusinessSettings();
   const id = settings.status === "ok" ? settings.data?.hero_media_id : null;
   if (!id) return null;
@@ -120,7 +123,7 @@ export async function getHeroMedia(): Promise<PublicMedia | null> {
 export async function getPublishedProjects(limit?: number): Promise<Loaded<Project[]>> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("projects");
+  cacheTag(TAGS.projects);
   const sb = getPublicClient();
   if (!sb) return { status: "unavailable" };
   try {
@@ -153,7 +156,7 @@ export async function getPublishedProjects(limit?: number): Promise<Loaded<Proje
 export async function getProjectBySlug(slug: string): Promise<Loaded<Project | null>> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("projects", `project:${slug}`);
+  cacheTag(TAGS.projects, `project:${slug}`);
   const sb = getPublicClient();
   if (!sb) return { status: "unavailable" };
   try {
@@ -177,15 +180,13 @@ export async function getProjectBySlug(slug: string): Promise<Loaded<Project | n
 export async function getPublishedServices(): Promise<Loaded<Service[]>> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("services");
+  cacheTag(TAGS.services, TAGS.albums);
   const sb = getPublicClient();
   if (!sb) return { status: "unavailable" };
   try {
-    const { data, error } = await sb
-      .from("services")
-      .select(SERVICE_COLUMNS)
-      .eq("is_published", true)
-      .order("sort_order", { ascending: true });
+    const read = (cols: string) => sb.from("services").select(cols).eq("is_published", true).order("sort_order", { ascending: true });
+    let { data, error } = await read(SERVICE_COLUMNS);
+    if (error) ({ data, error } = await read(SERVICE_COLUMNS_LEGACY)); // CMS column not migrated yet
     if (error) throw error;
     const rows = parseRows(serviceRow, data);
     const covers = await mediaById(
@@ -196,6 +197,7 @@ export async function getPublishedServices(): Promise<Loaded<Service[]>> {
       data: rows.map((r) => ({
         ...r,
         cover: r.cover_media_id ? (covers.get(r.cover_media_id) ?? null) : null,
+        coverPhotoSrc: r.cover_photo_id ? photoUrl(r.cover_photo_id, "display") : null,
       })),
     };
   } catch {
@@ -206,7 +208,7 @@ export async function getPublishedServices(): Promise<Loaded<Service[]>> {
 export async function getServiceBySlug(slug: string): Promise<Loaded<Service | null>> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("services", `service:${slug}`);
+  cacheTag(TAGS.services, `service:${slug}`);
   const all = await getPublishedServices();
   if (all.status !== "ok") return all;
   return { status: "ok", data: all.data.find((s) => s.slug === slug) ?? null };
@@ -215,7 +217,7 @@ export async function getServiceBySlug(slug: string): Promise<Loaded<Service | n
 export async function getApprovedReviews(limit = 6): Promise<Loaded<ReviewRow[]>> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("reviews");
+  cacheTag(TAGS.reviews);
   const sb = getPublicClient();
   if (!sb) return { status: "unavailable" };
   try {
@@ -232,24 +234,27 @@ export async function getApprovedReviews(limit = 6): Promise<Loaded<ReviewRow[]>
   }
 }
 
-const VIDEO_COLUMNS = "id, youtube_id, title, description, category, duration_seconds, published_at, is_promo, sort_order";
+const VIDEO_COLUMNS_LEGACY = "id, youtube_id, title, description, category, duration_seconds, published_at, is_promo, sort_order";
+const VIDEO_COLUMNS = `${VIDEO_COLUMNS_LEGACY}, role, pinned, custom_cover_photo_id`;
 
-/** Published showcase videos (promo first, then sort_order). Anon RLS returns published rows only. */
+/** Published showcase videos (pinned, then main promo, then sort_order). Anon RLS returns published rows only. */
 export async function getShowcaseVideos(): Promise<Loaded<ShowcaseVideo[]>> {
   "use cache";
   cacheLife("minutes");
-  cacheTag("showcase-videos");
+  cacheTag(TAGS.videos);
   const sb = getPublicClient();
   if (!sb) return { status: "unavailable" };
   try {
     // Rows are validated with Zod (the table may be newer than the generated types).
-    const { data, error } = await sb
-      .from("showcase_videos")
-      .select(VIDEO_COLUMNS) // RLS (showcase_public_read) returns published rows only; is_published is not anon-selectable.
-      .order("is_promo", { ascending: false })
-      .order("sort_order", { ascending: true });
+    // RLS (showcase_public_read) returns published rows only; is_published is not anon-selectable.
+    const read = (cols: string) =>
+      sb.from("showcase_videos").select(cols).order("is_promo", { ascending: false }).order("sort_order", { ascending: true });
+    let { data, error } = await read(VIDEO_COLUMNS);
+    if (error) ({ data, error } = await read(VIDEO_COLUMNS_LEGACY)); // CMS columns not migrated yet
     if (error) throw error;
-    return { status: "ok", data: parseRows(showcaseVideoRow, data) };
+    const rows = parseRows(showcaseVideoRow, data);
+    // Stable sort: pinned first, otherwise the order above.
+    return { status: "ok", data: rows.map((v, i) => ({ v, i })).sort((a, b) => Number(b.v.pinned) - Number(a.v.pinned) || a.i - b.i).map((x) => x.v) };
   } catch {
     return { status: "unavailable" };
   }

@@ -12,8 +12,9 @@ export type ContactItem = {
 };
 
 /** The single booking/contact WhatsApp link used by every CTA on the site. */
-export function bookingHref(s: BusinessSettings | null, text: string = BOOKING_TEXT): string | null {
-  return whatsappHref({ number: s?.whatsapp, messageLink: s?.whatsapp_url, text });
+export function bookingHref(s: BusinessSettings | null, text?: string): string | null {
+  // Owner's default booking message (business_settings.booking_message) when no specific text is given.
+  return whatsappHref({ number: s?.whatsapp, messageLink: s?.whatsapp_url, text: text ?? s?.booking_message ?? BOOKING_TEXT });
 }
 
 export const telHref = (phone: string) => `tel:${phone.replace(/[^\d+]/g, "")}`;

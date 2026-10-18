@@ -1,7 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import type { Database } from "@/types/database";
-import { publicSlugExists, type PublicSlugKind } from "@/features/public-content/slug-guard";
+import { publicSlugExists, slugRedirectTarget, type PublicSlugKind } from "@/features/public-content/slug-guard";
 
 /**
  * Refreshes the Supabase session cookie on authenticated areas only, so public pages stay
@@ -11,9 +11,15 @@ import { publicSlugExists, type PublicSlugKind } from "@/features/public-content
 export async function proxy(request: NextRequest) {
   // Real 404 for unknown public slugs: with Cache Components the shell streams 200 before notFound().
   const nested = request.nextUrl.pathname.match(/^\/work\/(v|albums)\/([^/]+)\/?$/);
-  const slug = nested ?? request.nextUrl.pathname.match(/^\/(work|services)\/([^/]+)\/?$/);
+  const slug = nested ?? request.nextUrl.pathname.match(/^\/(work|services|offers)\/([^/]+)\/?$/);
   if (slug) {
-    const kind: PublicSlugKind = nested ? (nested[1] === "v" ? "video" : "album") : (slug[1] as "work" | "services");
+    const kind: PublicSlugKind = nested
+      ? nested[1] === "v"
+        ? "video"
+        : "album"
+      : slug[1] === "offers"
+        ? "offer"
+        : (slug[1] as "work" | "services");
     let value: string;
     try {
       value = decodeURIComponent(slug[2]);
@@ -21,6 +27,13 @@ export async function proxy(request: NextRequest) {
       value = "";
     }
     if (!(await publicSlugExists(kind, value))) {
+      // Renamed slug? Old links keep working: permanent redirect to the new path (before the 404).
+      const to = await slugRedirectTarget(request.nextUrl.pathname);
+      if (to) {
+        const dest = request.nextUrl.clone();
+        dest.pathname = to;
+        return NextResponse.redirect(dest, 308);
+      }
       return NextResponse.rewrite(new URL("/_not-found", request.url), { status: 404 });
     }
     return NextResponse.next();
@@ -58,5 +71,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/work/:slug", "/work/v/:id", "/work/albums/:slug", "/services/:slug", "/portal/:path*", "/admin/:path*", "/login", "/auth/:path*"],
+  matcher: ["/work/:slug", "/work/v/:id", "/work/albums/:slug", "/services/:slug", "/offers/:slug", "/portal/:path*", "/admin/:path*", "/login", "/auth/:path*"],
 };

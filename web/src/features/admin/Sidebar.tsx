@@ -52,9 +52,8 @@ export function Sidebar({
           </Link>
         </div>
         <nav aria-label="أقسام لوحة الإدارة" className="px-3 py-3">
-          {groups.map((g) => (
-            <div key={g.title} className="mb-4">
-              <p className="px-2 pb-1 text-xs text-muted">{g.title}</p>
+          {groups.map((g) => {
+            const list = (
               <ul>
                 {g.items.map((i) => (
                   <li key={i.href}>
@@ -62,7 +61,7 @@ export function Sidebar({
                       href={i.href}
                       onClick={() => setOpen(false)}
                       aria-current={isActive(i.href) ? "page" : undefined}
-                      className={`block rounded-sm px-2 py-1.5 text-sm transition-colors ${
+                      className={`flex min-h-10 items-center rounded-sm px-2 py-1.5 text-sm transition-colors lg:min-h-0 ${
                         isActive(i.href) ? "bg-ink-2 text-gold" : "hover:bg-ink-2"
                       }`}
                     >
@@ -71,8 +70,26 @@ export function Sidebar({
                   </li>
                 ))}
               </ul>
-            </div>
-          ))}
+            );
+            if (g.collapsible) {
+              const holdsActive = g.items.some((i) => i.href === activeHref);
+              return (
+                <details key={g.title} open={holdsActive || undefined} className="group mb-4" data-testid="nav-group-collapsible">
+                  <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between rounded-sm px-2 text-xs text-muted hover:bg-ink-2 [&::-webkit-details-marker]:hidden">
+                    {g.title}
+                    <span aria-hidden="true" className="transition-transform group-open:rotate-180">▾</span>
+                  </summary>
+                  {list}
+                </details>
+              );
+            }
+            return (
+              <div key={g.title} className="mb-4">
+                <p className="px-2 pb-1 text-xs text-muted">{g.title}</p>
+                {list}
+              </div>
+            );
+          })}
         </nav>
         <div className="border-t border-ink-line px-5 py-4 text-sm">
           <p className="truncate">{name}</p>

@@ -28,6 +28,9 @@ export const videoFormSchema = z.object({
   sort_order: z.coerce.number({ message: "الترتيب يجب أن يكون رقماً" }).int("الترتيب رقم صحيح").min(-1000).max(100000),
   is_published: z.boolean(),
   is_promo: z.boolean(),
+  role: z.enum(["work", "promo", "both"], { message: "دور الفيديو غير صالح" }),
+  pinned: z.boolean(),
+  custom_cover_photo_id: z.string().regex(UUID, "صورة الغلاف غير صالحة").nullable(),
 }).refine((v) => v.primary_category === null || v.category_ids.includes(v.primary_category), {
   message: "التصنيف الرئيسي يجب أن يكون من التصنيفات المختارة.",
   path: ["primary_category"],
@@ -50,6 +53,9 @@ export function readVideoForm(fd: FormData) {
     sort_order: s("sort_order") || "100",
     is_published: fd.get("is_published") === "on",
     is_promo: fd.get("is_promo") === "on",
+    role: s("role") || "work",
+    pinned: fd.get("pinned") === "on",
+    custom_cover_photo_id: s("custom_cover_photo_id") || null,
   });
 }
 

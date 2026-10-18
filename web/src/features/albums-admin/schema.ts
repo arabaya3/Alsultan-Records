@@ -19,6 +19,7 @@ export const albumFormSchema = z.object({
   source_url: z.string().trim().max(500, "الرابط طويل جداً").regex(HTTPS, "رابط المصدر يجب أن يبدأ بـ https://").nullable(),
   rights_note: opt(2000, "ملاحظة الحقوق أطول من 2000 حرف"),
   sort_order: z.coerce.number({ message: "الترتيب يجب أن يكون رقماً" }).int("الترتيب رقم صحيح").min(-1000).max(100000),
+  category_id: z.string().uuid("تصنيف غير صالح").nullable(),
 });
 export type AlbumForm = z.infer<typeof albumFormSchema>;
 
@@ -36,6 +37,28 @@ export function readAlbumForm(fd: FormData) {
     source_url: s("source_url") || null,
     rights_note: s("rights_note") || null,
     sort_order: s("sort_order") || "100",
+    category_id: s("category_id") || null,
+  });
+}
+
+const CATEGORY_SLUG = /^[a-z0-9][a-z0-9-]{1,59}$/;
+export const categoryFormSchema = z.object({
+  title: z.string().trim().min(2, "العنوان قصير جداً").max(80, "العنوان أطول من 80 حرفاً"),
+  slug: z.string().trim().regex(CATEGORY_SLUG, "المعرّف: أحرف إنجليزية صغيرة وأرقام و - (2–60)"),
+  sort_order: z.coerce.number({ message: "الترتيب يجب أن يكون رقماً" }).int().min(-1000).max(100000),
+  is_published: z.boolean(),
+});
+
+export function readCategoryForm(fd: FormData) {
+  const s = (k: string) => {
+    const v = fd.get(k);
+    return typeof v === "string" ? v.trim() : "";
+  };
+  return categoryFormSchema.safeParse({
+    title: s("title"),
+    slug: s("slug"),
+    sort_order: s("sort_order") || "100",
+    is_published: fd.get("is_published") === "on" || fd.get("is_published") === "1",
   });
 }
 

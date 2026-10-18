@@ -40,7 +40,14 @@ export default async function ServicesPage() {
                       التفاصيل
                     </span>
                   </div>
-                  {s.cover ? <MediaFrame media={s.cover} alt={s.title} ratio="16/9" /> : null}
+                  {s.coverPhotoSrc ? (
+                    <span className="relative block aspect-video overflow-hidden rounded-sm bg-cream-line">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img src={s.coverPhotoSrc} alt="" loading="lazy" decoding="async" data-service-cover className="absolute inset-0 size-full object-cover" />
+                    </span>
+                  ) : s.cover ? (
+                    <MediaFrame media={s.cover} alt={s.title} ratio="16/9" />
+                  ) : null}
                 </Link>
               </li>
             ))}

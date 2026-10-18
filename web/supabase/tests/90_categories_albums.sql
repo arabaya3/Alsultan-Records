@@ -6,6 +6,10 @@ update public.app_settings set require_staff_mfa = true where id = 1;
 
 -- ---- fixtures (postgres)
 delete from public.showcase_videos;
+-- Isolate from imported content (FB albums + their objects): rolled back at the end.
+delete from public.album_photos;
+delete from public.photo_albums;
+delete from public.video_categories;
 insert into public.showcase_videos (id, youtube_id, source_url, title, is_published, review_note, youtube_title)
 values
   ('00000000-0000-4000-8000-0000000009a1', 'BBBBBBBBBB1', 'https://www.youtube.com/watch?v=BBBBBBBBBB1', 'حفل العريس فلان', true, 'internal', 'حفل العريس فلان'),
@@ -108,7 +112,7 @@ select is((select count(*)::int from public.showcase_video_categories), 4, 'admi
 select lives_ok($$insert into public.photo_albums (slug, title) values ('new-album', 'ألبوم جديد')$$, 'admin inserts album');
 select is((select updated_by::text from public.photo_albums where slug = 'new-album'), '00000000-0000-4000-8000-0000000000a2', 'updated_by stamped');
 select lives_ok($$insert into storage.objects (bucket_id, name) values ('album-media', 'albums/a/b/original.jpg')$$, 'admin uploads to album-media');
-select is((select count(*)::int from storage.objects where bucket_id = 'album-media'), 5, 'admin reads every album object');
+select is((select count(*)::int from storage.objects where bucket_id = 'album-media' and name ~ '^albums/(00000000-0000-4000-8000-0000000009|a/)'), 5, 'admin reads every album object');
 select lives_ok($$update public.showcase_videos set needs_review = true, review_note = 'check' where id = '00000000-0000-4000-8000-0000000009a1'$$,
   'admin sets needs_review');
 select isnt((select reviewed_at from public.showcase_video_admin_details where video_id = '00000000-0000-4000-8000-0000000009a1'), null,

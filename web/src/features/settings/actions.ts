@@ -1,6 +1,7 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { guard, ADMIN_ROLES, OWNER_ONLY } from "@/features/admin/guard";
@@ -43,8 +44,11 @@ export async function saveBusinessSettings(_p: ActionResult, fd: FormData): Prom
   const sb = await createClient();
   const { error } = await sb.from("business_settings").update(parsed.data).eq("id", 1);
   if (error) return fail(dbMessage(error));
+  updateTag(TAGS.business);
+  updateTag(TAGS.siteContent);
+  updateTag(TAGS.nav);
   refresh();
-  return ok("حُفظت بيانات النشاط. تظهر في الموقع العام خلال دقائق.");
+  return ok("حُفظت بيانات النشاط وظهرت في الموقع العام.");
 }
 
 export async function saveAppSettings(_p: ActionResult, fd: FormData): Promise<ActionResult> {

@@ -19,6 +19,16 @@ export const businessSettingsRow = z.object({
   whatsapp_url: nullableText,
   hero_media_id: nullableText,
   canonical_base_url: nullableText,
+  // CMS (docs/cms-contract.md). Absent columns parse as null → code fallbacks apply.
+  hero_title: nullableText,
+  hero_subtitle: nullableText,
+  hero_primary_label: nullableText,
+  hero_secondary_label: nullableText,
+  booking_message: nullableText,
+  hero_cover_photo_id: nullableText,
+  hero_promo_source: z.enum(["site", "youtube"]).nullable().optional().catch(null).transform((v) => v ?? "site"),
+  hero_promo_video_id: nullableText,
+  active_logo_id: nullableText,
 });
 export type BusinessSettings = z.infer<typeof businessSettingsRow>;
 
@@ -65,6 +75,7 @@ export const serviceRow = z.object({
   summary: nullableText,
   body: nullableText,
   cover_media_id: nullableText,
+  cover_photo_id: nullableText,
   sort_order: z.number().nullable().optional(),
 });
 export type ServiceRow = z.infer<typeof serviceRow>;
@@ -88,7 +99,7 @@ export type PublicMedia = {
 };
 
 export type Project = ProjectRow & { cover: PublicMedia | null; media: PublicMedia[] };
-export type Service = ServiceRow & { cover: PublicMedia | null };
+export type Service = ServiceRow & { cover: PublicMedia | null; coverPhotoSrc: string | null };
 
 /** Distinguishes "the service failed" from "there is nothing yet". */
 export type Loaded<T> = { status: "ok"; data: T } | { status: "unavailable" };
@@ -106,5 +117,8 @@ export const showcaseVideoRow = z.object({
   published_at: nullableText,
   is_promo: z.boolean().nullable().optional().transform((v) => v ?? false),
   sort_order: z.number().nullable().optional(),
+  role: z.enum(["work", "promo", "both"]).nullable().optional().catch(null).transform((v) => v ?? "work"),
+  pinned: z.boolean().nullable().optional().transform((v) => v ?? false),
+  custom_cover_photo_id: nullableText,
 });
 export type ShowcaseVideo = z.infer<typeof showcaseVideoRow>;

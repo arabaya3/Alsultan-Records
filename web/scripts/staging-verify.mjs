@@ -266,12 +266,34 @@ async function run(F) {
     events: "id title event_type event_date city status public_slug publication_consent is_published featured featured_order seo_title seo_description highlight coverage_notes created_at updated_at".split(" "),
     reviews: "id event_id display_name rating body status created_at".split(" "),
     // display columns only — original_title, source_url, source, verification_notes, updated_by stay admin-only (migration 0013)
-    showcase_videos: "id youtube_id title description category duration_seconds published_at is_promo sort_order".split(" "),
+    showcase_videos: "id youtube_id title description category duration_seconds published_at is_promo sort_order".split(" ")
+      // migration 0017 (CMS) — video role / pin / optional cover photo id
+      .concat("role pinned custom_cover_photo_id".split(" ")),
     // migration 0015 — display columns only; rights_note, storage paths, variants, source/review fields stay admin-only
     video_categories: "id slug title sort_order is_published".split(" "),
     showcase_video_categories: "video_id category_id is_primary".split(" "),
-    photo_albums: "id slug title description event_date source_label source_url cover_photo_id sort_order".split(" "),
+    photo_albums: "id slug title description event_date source_label source_url cover_photo_id sort_order".split(" ")
+      // migration 0018 (CMS) — album category id; archived_at/deleted_at stay admin-only
+      .concat(["category_id"]),
     album_photos: "id album_id width height alt_text sort_order".split(" "),
+    // migration 0017 (CMS) — home section config (all rows, incl. is_visible); updated_by admin-only
+    site_sections: "key title intro is_visible sort_order item_limit featured_ids".split(" "),
+    // migration 0017 — header nav (allow-listed targets only)
+    nav_items: "id label target sort_order is_visible".split(" "),
+    // migration 0017 — old slug -> new slug paths (trigger-written)
+    slug_redirects: "from_path to_path".split(" "),
+    // migration 0017 — links of published services to public videos/albums
+    service_links: "service_id kind target_id sort_order".split(" "),
+    // migration 0017 — published process steps
+    process_steps: "id title description photo_id sort_order".split(" "),
+    // migration 0017 — ACTIVE offers only (RLS); raw price_minor/status/updated_by stay admin-only, display_price_minor is null unless show_price
+    offers: "id slug title description image_photo_id display_price_minor currency show_price starts_on ends_on terms whatsapp_message pinned_home sort_order".split(" "),
+    // migration 0017 — items of active offers
+    offer_items: "id offer_id label sort_order".split(" "),
+    // migration 0017 — ACTIVE announcements only (RLS); is_visible/updated_by stay admin-only
+    announcements: "id template text link_kind link_offer_id link_page starts_on ends_on dismissible sort_order".split(" "),
+    // migration 0018 — published album categories
+    album_categories: "id slug title sort_order".split(" "),
   };
   const anonCols = await sql(`select c.relname, a.attname, p.priv from pg_class c join pg_namespace n on n.oid = c.relnamespace
       join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
@@ -282,9 +304,13 @@ async function run(F) {
   check("anon column privileges limited to public display columns (events, reviews, videos, categories, albums, photos)", extraC.length === 0, extraC.map((r) => `${r.relname}.${r.attname}:${r.priv}`).join(", "));
   const anonFns = await sql("select p.proname from pg_proc p join pg_namespace n on n.oid = p.pronamespace where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'EXECUTE') order by 1");
   // Only exception: the /p photo route resolves thumb/display paths of PUBLISHED photos (migrations 0015 + 0016).
-  const ALLOWED_ANON_FNS = ["album_photo_object_path"];
+  const ALLOWED_ANON_FNS = [
+    "album_photo_object_path",
+    // migration 0017 (CMS): /a/<id> logo route — returns the storage path only when <id> is the ACTIVE logo
+    "active_logo_path",
+  ];
   const extraF = anonFns.filter((r) => !ALLOWED_ANON_FNS.includes(r.proname));
-  check("anon can execute no public function except album_photo_object_path", extraF.length === 0, extraF.map((r) => r.proname).join(", "));
+  check("anon can execute no public function except album_photo_object_path / active_logo_path", extraF.length === 0, extraF.map((r) => r.proname).join(", "));
   const fnDef = await sql("select pg_get_functiondef('public.album_photo_object_path(uuid,text)'::regprocedure) as d");
   const def = fnDef?.[0]?.d ?? "";
   check("album_photo_object_path never returns originals (variants thumb/display only)", !def.includes("storage_path_original") && def.includes("p_variant in ('thumb', 'display')"));

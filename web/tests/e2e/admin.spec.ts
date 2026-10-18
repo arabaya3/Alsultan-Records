@@ -52,7 +52,9 @@ test("admin logs in and lands on the overview", async ({ browser }) => {
   const page = await login(browser, "admin");
   await expect(page.getByRole("heading", { name: "نظرة عامة" })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByRole("navigation", { name: "أقسام لوحة الإدارة" })).toBeVisible();
-  // admin sees finance (read) but not users/backups (owner only)
+  // admin sees finance (read) but not users/backups (owner only). Operational links sit in the collapsed group.
+  const ops = page.getByTestId("nav-group-collapsible").first();
+  if (!(await ops.evaluate((d) => (d as HTMLDetailsElement).open))) await ops.locator("summary").click();
   await expect(page.getByRole("link", { name: "المالية" })).toBeVisible();
   await expect(page.getByRole("link", { name: "المستخدمون والصلاحيات" })).toHaveCount(0);
   fs.mkdirSync(SHOTS, { recursive: true });

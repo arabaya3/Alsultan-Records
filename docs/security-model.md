@@ -386,3 +386,89 @@ default, it is idempotent, and admin edits always win. The import:
 
 **Grants.** Each new table gets an explicit `REVOKE ALL` and then column grants. `service_role` gets `grant all` on
 the four tables (the lesson from 0014). Tests: `supabase/tests/90_categories_albums.sql`.
+
+## 17. Addendum (migrations 0017–0018): owner-managed site content (CMS)
+
+Contract: `docs/cms-contract.md`. Both migrations are additive only (new tables/columns/policies/functions);
+every default reproduces the pre-CMS site (null text = code fallback, `hero_promo_source='site'`,
+`active_logo_id` null = built-in static logo, hidden sections/nav entries seeded hidden).
+
+**Tables and anon access.** Every new table: RLS on, `REVOKE ALL` from anon/authenticated/public, explicit
+column grants, `grant all` to `service_role`, admin writes via `app.is_admin()` (aal2 rule applies).
+
+| Table | Anon reads (rows / columns) | Admin-only columns |
+|---|---|---|
+| `business_settings` (+9 cols) | row 1, table-wide as before (hero texts, hero photo/video ids, promo source, `active_logo_id`) | — |
+| `brand_assets` | none | all (storage path, sha256, note, created_by) |
+| `site_sections` | all 8 rows (structural config, incl. `is_visible`) | `updated_by` |
+| `nav_items` | all rows; `target` is CHECK-limited to `app.is_site_target()` (no admin/login) | `updated_by` |
+| `slug_redirects` | all (`from_path`, `to_path`) — written only by trigger | — |
+| `service_links` | links of published services whose target video/album is public | — |
+| `process_steps` | published | `is_published`, timestamps, `updated_by` |
+| `offers` | **active** only; `display_price_minor` (generated: price only when `show_price`) | `price_minor`, `status`, timestamps, `updated_by` |
+| `offer_items` | items of active offers | timestamps |
+| `announcements` | **active** only | `is_visible`, timestamps, `updated_by` |
+| `album_categories` | published | `is_published`, timestamps |
+| `import_items` | none (admin-only manifest) | all |
+| `showcase_videos` (+3) | `role`, `pinned`, `custom_cover_photo_id` | — |
+| `photo_albums` (+3) | `category_id` | `archived_at`, `deleted_at` |
+| `album_photos` (+5) | — | `deleted_at`, `sha256`, `attempts`, `last_error`, `processing_started_at` |
+
+Policy helpers (SECURITY DEFINER, boolean only, so policies never need anon column grants):
+`app.offer_is_active(id)`, `app.announcement_is_active(id)`, `app.service_is_public(id)`,
+`app.album_is_public(id)` (now also excludes archived/trashed), `app.site_media_is_public(name)`.
+
+**Hebron date rule.** `app.hebron_today()` = `(now() at time zone 'Asia/Hebron')::date`;
+`app.date_window_ok(starts_on, ends_on)` treats both bounds as inclusive and null as open. Active offer =
+`status='published'` and window ok; active announcement = `is_visible` and window ok. Expiry is evaluated on
+every read, so nothing has to run at midnight (public caches must still expire; see cache tags).
+
+**Logo.** Private bucket `site-media` (5 MiB, png/webp/jpeg/avif; SVG deliberately not accepted). Anon RPC
+`public.active_logo_path(p_id uuid) returns text` returns the path only when `p_id` is the active logo, and the
+storage policy `site-media read active logo` mirrors that. Activation/rollback = updating
+`business_settings.active_logo_id` (audited). Deleting an asset enqueues its object for cleanup; the FK falls
+back to the static logo.
+
+**Slug redirects.** AFTER UPDATE OF slug triggers on `services`, `offers`, `photo_albums` call
+`app.record_slug_redirect(old, new)`: upsert old→new, repoint existing redirects to the new path (no chains),
+and drop a redirect whose source becomes live again.
+
+**Soft delete and purge.** `photo_albums.archived_at` (archive) / `deleted_at` (trash), `album_photos.deleted_at`.
+Anon policies, `app.album_object_is_public` (storage) and `public.album_photo_object_path` (/p route) all
+exclude archived/trashed albums and deleted photos; originals stay non-public (0016 rule). Hard delete:
+`public.purge_album(p_id uuid, p_confirm_slug text) returns int` — admin only, the slug must match exactly
+and the album must already be in the trash; deletes photos + album (per-photo trigger enqueues original and
+variants into `private.storage_cleanup_queue`), writes an `audit_events` row with action `purge`, kicks the
+cleanup worker. (Admins still hold the 0015 direct DELETE grant used by the current admin UI.)
+
+**Dedupe.** `album_photos.sha256` with partial unique index `(album_id, sha256) where deleted_at is null`.
+`public.find_duplicate_photo(p_sha256 text) returns table(album_id, album_title, photo_id)` — admin only, no paths.
+
+**Processing queue.** `upload_status` adds `processing`. Claimable = not deleted and (pending > 2 min, failed with
+attempts < 5, or processing stale > 10 min).
+- `public.claim_photo_jobs(p_limit int default 5) returns table(id, album_id, storage_path_original, mime, attempts)`
+  (max 50, `for update skip locked`, sets processing + attempts+1)
+- `public.complete_photo_job(p_id uuid, p_ok boolean, p_error text, p_width int, p_height int, p_variants jsonb) returns boolean`
+  (only rows in `processing`; variants must be exactly this photo's `thumb.webp`/`display.webp`)
+- both **service_role only** (no anon/authenticated EXECUTE).
+- `public.requeue_album_photos(p_album_id uuid, p_photo_id uuid default null) returns int` — admin "إعادة المعالجة"
+  (failed/pending → claimable now, attempts reset).
+- pg_cron job `process-photos` (every minute) runs `app.invoke_photo_jobs()`, which POSTs to Vault secret `jobs_url`
+  with headers `x-jobs-secret` and `Authorization: Bearer` = Vault secret `jobs_secret` (= app env `JOBS_SECRET`).
+  Without both secrets, or without claimable work, it is a no-op. Operator SQL (staging):
+  ```sql
+  select vault.create_secret('https://sultan-records.vercel.app/api/jobs/process-photos', 'jobs_url');
+  select vault.create_secret('<JOBS_SECRET>', 'jobs_secret');
+  -- rotate: select vault.update_secret((select id from vault.secrets where name = 'jobs_secret'), '<new>');
+  ```
+
+**Import manifest.** `import_items` (unique `(source, source_ref)`, status pending/uploaded/processed/failed/
+skipped_duplicate) is admin + service_role only; it never reaches anon.
+
+**Audit.** Full row audit (`app.audit_trigger`): `business_settings`, `brand_assets`, `site_sections`, `nav_items`
+(plus the existing videos/albums/photos/categories). Narrow audit (`app.cms_audit_trigger(cols…)`, action
+`update:<cols>`): `services` (is_published, slug, title), `offers` (status, slug, window, pinned_home),
+`announcements` (is_visible, window, text), `process_steps` (is_published), `album_categories`.
+
+Tests: `supabase/tests/95_cms.sql` (71). `scripts/staging-verify.mjs` allow-lists list each new anon column
+and `active_logo_path` explicitly.

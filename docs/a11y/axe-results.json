@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-16T16:28:47.650Z",
+  "generatedAt": "2026-10-18T11:20:17.702Z",
   "base": "http://localhost:3600",
   "tags": [
     "wcag2a",
@@ -258,7 +258,7 @@
     },
     {
       "page": "portal-video",
-      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/3b2617ac-aab7-44f9-9504-cf20449154ab",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/e66d4089-61fb-41b0-8db2-0c9a0b727494",
       "critical": 0,
       "serious": 0,
       "moderate": 0,
@@ -314,7 +314,7 @@
     },
     {
       "page": "admin-booking",
-      "url": "/admin/bookings/38d714d9-b824-47ad-a312-85c4156caa44",
+      "url": "/admin/bookings/0b69a910-01e0-4e4e-a626-a20e578552bc",
       "critical": 0,
       "serious": 0,
       "moderate": 0,
@@ -609,7 +609,7 @@
         "minor": 0
       },
       "violations": [],
-      "incomplete": 1,
+      "incomplete": 2,
       "passes": 26
     },
     {
@@ -739,7 +739,7 @@
         "minor": 0
       },
       "violations": [],
-      "incomplete": 1,
+      "incomplete": 2,
       "passes": 26
     },
     {
@@ -770,7 +770,7 @@
     },
     {
       "page": "portal-video",
-      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/3b2617ac-aab7-44f9-9504-cf20449154ab",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/e66d4089-61fb-41b0-8db2-0c9a0b727494",
       "counts": {
         "critical": 0,
         "serious": 0,
@@ -831,7 +831,7 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 22
+      "passes": 26
     },
     {
       "page": "admin-overview",
@@ -843,8 +843,8 @@
         "minor": 0
       },
       "violations": [],
-      "incomplete": 0,
-      "passes": 23
+      "incomplete": 1,
+      "passes": 24
     },
     {
       "page": "admin-customers",
@@ -856,12 +856,12 @@
         "minor": 0
       },
       "violations": [],
-      "incomplete": 0,
-      "passes": 27
+      "incomplete": 1,
+      "passes": 29
     },
     {
       "page": "admin-booking",
-      "url": "/admin/bookings/38d714d9-b824-47ad-a312-85c4156caa44",
+      "url": "/admin/bookings/0b69a910-01e0-4e4e-a626-a20e578552bc",
       "counts": {
         "critical": 0,
         "serious": 0,
@@ -869,8 +869,8 @@
         "minor": 0
       },
       "violations": [],
-      "incomplete": 0,
-      "passes": 28
+      "incomplete": 1,
+      "passes": 30
     },
     {
       "page": "admin-event",
@@ -882,8 +882,8 @@
         "minor": 0
       },
       "violations": [],
-      "incomplete": 0,
-      "passes": 29
+      "incomplete": 1,
+      "passes": 30
     },
     {
       "page": "admin-event-media",
@@ -895,8 +895,8 @@
         "minor": 0
       },
       "violations": [],
-      "incomplete": 0,
-      "passes": 27
+      "incomplete": 1,
+      "passes": 29
     },
     {
       "page": "admin-users",
@@ -908,8 +908,8 @@
         "minor": 0
       },
       "violations": [],
-      "incomplete": 0,
-      "passes": 28
+      "incomplete": 1,
+      "passes": 30
     },
     {
       "page": "admin-settings",
@@ -921,8 +921,8 @@
         "minor": 0
       },
       "violations": [],
-      "incomplete": 0,
-      "passes": 25
+      "incomplete": 1,
+      "passes": 26
     },
     {
       "page": "admin-confirm-dialog",
@@ -935,7 +935,7 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 11
+      "passes": 12
     },
     {
       "page": "admin-finance-errors",
@@ -948,7 +948,7 @@
       },
       "violations": [],
       "incomplete": 2,
-      "passes": 28
+      "passes": 30
     },
     {
       "page": "admin-overview-nav-open@390",
@@ -960,8 +960,8 @@
         "minor": 0
       },
       "violations": [],
-      "incomplete": 0,
-      "passes": 22
+      "incomplete": 1,
+      "passes": 24
     }
   ]
 }

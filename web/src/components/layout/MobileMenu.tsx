@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { useEffect, useId, useRef, useState } from "react";
-import { NAV_LINKS } from "@/features/public-content/site";
 
 /** Accessible mobile menu: focus trap, Escape to close, focus returns to the toggle. */
-export function MobileMenu({ bookHref }: { bookHref: string | null }) {
+export function MobileMenu({ bookHref, links }: { bookHref: string | null; links: { href: string; label: string }[] }) {
   const [open, setOpen] = useState(false);
   const panelId = useId();
   const toggleRef = useRef<HTMLButtonElement>(null);
@@ -77,7 +76,7 @@ export function MobileMenu({ bookHref }: { bookHref: string | null }) {
       >
         <nav aria-label="القائمة الرئيسية" className="px-[var(--gutter)] py-6">
           <ul className="flex flex-col gap-1 font-display text-2xl">
-            {[...NAV_LINKS, { href: "/contact", label: "تواصل معنا" }].map((l) => (
+            {(links.some((l) => l.href === "/contact") ? links : [...links, { href: "/contact", label: "تواصل معنا" }]).map((l) => (
               <li key={l.href}>
                 <Link href={l.href} className="block border-b border-ink-line py-4" onClick={() => setOpen(false)}>
                   {l.label}
