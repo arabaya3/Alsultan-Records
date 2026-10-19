@@ -1,9 +1,9 @@
 {
   "target": "staging",
   "host": "dyuixzxmmeiypvawzmty.supabase.co",
-  "run_id": "mveywf7dbe208e",
-  "started_at": "2026-10-19T08:03:28.633Z",
-  "finished_at": "2026-10-19T08:04:30.007Z",
+  "run_id": "mvfi549t7ab35f",
+  "started_at": "2026-10-19T17:02:07.073Z",
+  "finished_at": "2026-10-19T17:03:09.997Z",
   "totals": {
     "checks": 69,
     "passed": 69,
@@ -24,7 +24,7 @@
       "storage_objects": 0
     },
     "errors": [],
-    "audit_rows_retained": 23,
+    "audit_rows_retained": 29,
     "queue_items_pending": 2
   },
   "checks": [

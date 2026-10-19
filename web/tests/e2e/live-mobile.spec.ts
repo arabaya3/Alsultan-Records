@@ -24,7 +24,9 @@ test("home on a phone: self-hosted promo plays in-page, WhatsApp booking, menu w
   const dialog = page.getByRole("dialog");
   await expect(dialog).toBeVisible();
   await expect(dialog.getByText("بوابة العميل")).toHaveCount(0);
-  await expect(dialog.locator('a[href^="/portal"], a[href^="/track"], a[href^="/login"]')).toHaveCount(0);
+  await expect(dialog.locator('a[href^="/portal"], a[href^="/track"]')).toHaveCount(0);
+  // «تسجيل الدخول» (owner request): exactly one plain /login entry in the menu — never a deep link into admin/portal.
+  expect(await dialog.locator('a[href^="/login"]').evaluateAll((as) => as.map((a) => a.getAttribute("href")))).toEqual(["/login"]);
   await page.keyboard.press("Escape");
 
   // Promo (self-hosted, /promo/*.mp4): no <video> before tap; tap opens the dialog with the portrait cut and it plays.
