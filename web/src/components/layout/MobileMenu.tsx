@@ -106,6 +106,13 @@ export function MobileMenu({ bookHref, links }: { bookHref: string | null; links
           >
             {bookHref ? "احجز عبر واتساب" : "تواصل معنا"}
           </a>
+          <Link
+            href="/login"
+            onClick={() => setOpen(false)}
+            className="mt-3 flex min-h-12 items-center justify-center rounded-sm border border-hairline px-6 text-base text-ivory transition-colors hover:border-gold hover:text-gold"
+          >
+            تسجيل الدخول
+          </Link>
         </nav>
       </div>
     </>

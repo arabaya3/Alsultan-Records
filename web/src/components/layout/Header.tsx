@@ -10,7 +10,14 @@ import { activeLogoSrc } from "@/components/brand/Logo";
 import { HeaderNav } from "./HeaderNav";
 import { MobileMenu } from "./MobileMenu";
 
-/** Logo (start/right) · CMS nav (center) · gold WhatsApp booking button (end/left). Dark bar, hairline bottom. */
+const UserIcon = () => (
+  <svg aria-hidden="true" viewBox="0 0 24 24" width={20} height={20} fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
+  </svg>
+);
+
+/** Logo (start/right) · CMS nav (center) · «تسجيل الدخول» + gold WhatsApp booking button (end/left). */
 export async function Header() {
   const [settings, nav] = await Promise.all([getBusinessSettings(), getSiteNav()]);
   const s = settings.status === "ok" ? settings.data : null;
@@ -33,7 +40,11 @@ export async function Header() {
           <HeaderNav links={links} />
         </div>
 
-        <div className="hidden shrink-0 items-center lg:flex">
+        <div className="hidden shrink-0 items-center gap-5 lg:flex">
+          <Link href="/login" data-login-link className="inline-flex min-h-11 items-center gap-2 text-ivory-muted transition-colors hover:text-gold">
+            <UserIcon />
+            تسجيل الدخول
+          </Link>
           {book ? (
             <WhatsAppLink href={book} />
           ) : (
@@ -43,7 +54,10 @@ export async function Header() {
           )}
         </div>
 
-        <div className="ms-auto lg:hidden">
+        <div className="ms-auto flex items-center gap-1 lg:hidden">
+          <Link href="/login" aria-label="تسجيل الدخول" title="تسجيل الدخول" data-login-link className="inline-flex size-11 items-center justify-center rounded-full text-ivory transition-colors hover:text-gold">
+            <UserIcon />
+          </Link>
           <MobileMenu bookHref={book} links={links} />
         </div>
       </div>

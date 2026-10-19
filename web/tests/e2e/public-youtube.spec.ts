@@ -142,7 +142,9 @@ test("no portal/track/form/registration on public pages", async ({ page }) => {
     expect(body, route).not.toContain("بوابة العميل");
     expect(body, route).not.toContain("تابع طلبك");
     expect(body, route).not.toMatch(/إنشاء حساب|رابط (الدخول|سحري)|سجّل الدخول/);
-    expect(await page.locator('a[href^="/portal"], a[href^="/track"], a[href^="/login"]').count(), route).toBe(0);
+    expect(await page.locator('a[href^="/portal"], a[href^="/track"]').count(), route).toBe(0);
+    // The only sign-in entry is the header/menu «تسجيل الدخول» → /login (owner request), never inside page content.
+    expect(await page.locator('main a[href^="/login"]').count(), route).toBe(0);
     expect(await page.locator("main form").count(), `${route} form`).toBe(0);
   }
 });

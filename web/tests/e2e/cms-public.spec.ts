@@ -91,7 +91,7 @@ test.afterAll(async () => {
   await until("/services", (h) => !h.includes(SVC_NEW) && !h.includes(SVC_OLD));
 });
 
-test("header nav labels and order come from nav_items; footer uses the same; never admin/login", async ({ page }) => {
+test("header nav labels and order come from nav_items; footer uses the same; never admin; login only as the plain /login entry", async ({ page }) => {
   await page.goto("/");
   const header = page.locator("header nav[aria-label='القائمة الرئيسية']").first().locator("a");
   const items = await header.evaluateAll((as) => as.map((a) => ({ text: a.textContent?.trim(), href: a.getAttribute("href") })));
@@ -107,7 +107,9 @@ test("header nav labels and order come from nav_items; footer uses the same; nev
   const footer = await page.locator("[data-site-footer] nav a").evaluateAll((as) => as.map((a) => a.textContent?.trim()));
   expect(footer).toEqual(["الخصوصية", "الشروط"]);
   const all = await page.locator("a[href]").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
-  expect(all.filter((h) => /^\/(admin|login)/.test(h))).toEqual([]);
+  expect(all.filter((h) => /^\/admin/.test(h))).toEqual([]);
+  // «تسجيل الدخول» entry (owner request): plain /login only — never a deep link into the admin/portal.
+  expect([...new Set(all.filter((h) => /^\/login/.test(h)))]).toEqual(["/login"]);
 });
 
 test("hidden home section is not rendered at all; visible ones keep their order", async ({ page }) => {
