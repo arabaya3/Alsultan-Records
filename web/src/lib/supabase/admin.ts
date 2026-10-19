@@ -9,7 +9,8 @@ import { serverEnv } from "@/lib/env/server";
  *  - public form RPCs (public_submit_booking, public_track_booking,
  *    public_submit_support, public_track_support) after Turnstile verification
  *    — these RPCs are granted to service_role only;
- *  - minting short-lived signed URLs after an RLS-checked ownership query.
+ *  - minting short-lived signed URLs after an RLS-checked ownership query;
+ *  - auth admin createUser in features/users/actions.ts (owner-only guard; role then set via the audited RPC).
  * Never forward user-controlled table names or filters.
  */
 export function createAdminClient() {

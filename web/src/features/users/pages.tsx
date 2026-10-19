@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { Forbidden, guard, OWNER_ONLY } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import { Badge, FilterChips, LoadError, PageHeader, Pagination, SearchBox, Table } from "@/features/admin/ui";
+import { Badge, Card, Field, FilterChips, inputCls, LoadError, PageHeader, Pagination, SearchBox, Table } from "@/features/admin/ui";
 import { cleanSearch, one, pageOf, PAGE_SIZE, pick, rangeOf, type SP } from "@/features/admin/query";
 import { fmtDate } from "@/features/admin/format";
 import { ROLE_LABEL } from "@/features/admin/labels";
 import { Constants } from "@/types/database";
-import { setUserDisabled, setUserRole } from "./actions";
+import { createUserAccount, setUserDisabled, setUserRole } from "./actions";
 
 export async function UsersPage({ searchParams }: { searchParams: SP }) {
   const session = await guard(OWNER_ONLY);
@@ -24,6 +24,34 @@ export async function UsersPage({ searchParams }: { searchParams: SP }) {
   return (
     <>
       <PageHeader title="المستخدمون والصلاحيات" lead="أي تغيير هنا يسري فوراً ويُسجّل في سجل التدقيق." />
+      <Card title="إنشاء حساب جديد" className="mb-6">
+        <ActionForm action={createUserAccount} submitLabel="إنشاء الحساب" kind="primary" resetOnSuccess testId="create-account-form">
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Field label="الاسم">
+              <input name="full_name" required minLength={2} maxLength={120} autoComplete="off" className={inputCls} />
+            </Field>
+            <Field label="الإيميل" hint="بيستعمله للدخول.">
+              <input name="email" type="email" required dir="ltr" autoComplete="off" className={inputCls} />
+            </Field>
+            <Field label="الصلاحية" hint="مالك: كل شي. مدير: المحتوى والمناسبات. موظف: المناسبات المكلّف فيها. عميل: البوابة بس.">
+              <select name="role" defaultValue="admin" className={inputCls}>
+                {(["owner", "admin", "staff", "customer"] as const).map((r) => (
+                  <option key={r} value={r}>
+                    {ROLE_LABEL[r]}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <div className="hidden sm:block" />
+            <Field label="كلمة السر" hint="10 أحرف على الأقل. ابعتها للشخص بطريقة آمنة.">
+              <input name="password" type="password" required minLength={10} maxLength={72} autoComplete="new-password" className={inputCls} />
+            </Field>
+            <Field label="تأكيد كلمة السر">
+              <input name="confirm" type="password" required minLength={10} maxLength={72} autoComplete="new-password" className={inputCls} />
+            </Field>
+          </div>
+        </ActionForm>
+      </Card>
       <FilterChips base="/admin/users" param="role" current={role ?? ""} params={params} options={Constants.public.Enums.app_role.map((r) => ({ value: r, label: ROLE_LABEL[r] }))} />
       <SearchBox base="/admin/users" q={q} params={params} />
       {error ? <LoadError /> : (

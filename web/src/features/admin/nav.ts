@@ -77,6 +77,7 @@ export const NAV: NavGroup[] = [
     items: [
       { href: "/admin/content/identity", label: "الهوية ومعلومات النشاط", roles: A },
       { href: "/admin/content/nav", label: "القائمة والأقسام", roles: A },
+      { href: "/admin/account", label: "حسابي وكلمة السر", roles: S },
       { href: "/admin/settings", label: "إعدادات اللوحة", roles: A },
       { href: "/admin/backups", label: "النسخ الاحتياطي", roles: O },
     ],
