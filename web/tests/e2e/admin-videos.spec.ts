@@ -140,7 +140,6 @@ test("V5: categories page — create, reorder, hide, delete", async ({ browser }
   expect((await anon().from("video_categories").select("slug").eq("slug", "e2e_cat")).data).toHaveLength(0);
 
   await page.reload();
-  await row.getByTestId("video-more").locator("summary").click();
   await row.getByRole("button", { name: "حذف" }).click();
   await page.locator("dialog[open] [data-testid=confirm-yes]").click();
   await expect.poll(async () => (await db.from("video_categories").select("id").eq("slug", "e2e_cat")).data).toHaveLength(0);

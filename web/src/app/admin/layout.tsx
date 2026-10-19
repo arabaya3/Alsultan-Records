@@ -9,6 +9,9 @@ import { ROLE_LABEL } from "@/features/admin/labels";
 import { signOutAction } from "@/features/admin/session-actions";
 
 export const metadata: Metadata = {
+  // Dashboard home-screen app (the public site has its own manifest).
+  manifest: "/app.webmanifest",
+  appleWebApp: { capable: true, title: "لوحة السلطان", statusBarStyle: "black" },
   title: { default: "لوحة الإدارة", template: "%s | لوحة الإدارة" },
   robots: { index: false, follow: false },
 };

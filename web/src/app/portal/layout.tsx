@@ -4,6 +4,9 @@ import { Logo } from "@/components/brand/Logo";
 import { LogoutButton } from "@/features/auth/components/LogoutButton";
 
 export const metadata: Metadata = {
+  // Dashboard home-screen app (the public site has its own manifest).
+  manifest: "/app.webmanifest",
+  appleWebApp: { capable: true, title: "لوحة السلطان", statusBarStyle: "black" },
   title: { default: "بوابة العميل", template: "%s | بوابة العميل" },
   robots: { index: false, follow: false },
 };

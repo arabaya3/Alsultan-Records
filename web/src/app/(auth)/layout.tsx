@@ -1,7 +1,10 @@
 import type { Metadata } from "next";
 import { Logo } from "@/components/brand/Logo";
 
-export const metadata: Metadata = { robots: { index: false, follow: false } };
+export const metadata: Metadata = {
+  // Dashboard home-screen app (the public site has its own manifest).
+  manifest: "/app.webmanifest",
+  appleWebApp: { capable: true, title: "لوحة السلطان", statusBarStyle: "black" }, robots: { index: false, follow: false } };
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -79,8 +79,8 @@ export async function UsersPage({ searchParams }: { searchParams: SP }) {
                     {self ? null : (
                       <div className="flex flex-wrap items-start gap-2">
                       <details className="group relative" data-testid="set-password">
-                        <summary className={`${btn("ghost")} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>تعيين كلمة سر</summary>
-                        <div className="absolute end-0 top-full z-20 mt-1 w-72 rounded-md border border-cream-line bg-cream p-3 shadow-lg">
+                        <summary className={`${btn("ghost")} cursor-pointer list-none whitespace-nowrap [&::-webkit-details-marker]:hidden`}>تعيين كلمة سر</summary>
+                        <div className="mt-2 w-72 max-w-full rounded-md border border-cream-line bg-cream p-3">
                           <ActionForm action={setUserPassword} submitLabel="حفظ كلمة السر" kind="primary" resetOnSuccess>
                             <input type="hidden" name="id" value={u.id} />
                             <Field label="كلمة السر الجديدة" hint="10 أحرف على الأقل.">

@@ -1,18 +1,18 @@
 import type { MetadataRoute } from "next";
 
 /**
- * Installable app (Android «تثبيت التطبيق» / iOS «إضافة إلى الشاشة الرئيسية»).
- * Opens on /login, which sends a signed-in user straight to the admin (staff) or portal (customer).
+ * Installable PUBLIC site (Android «تثبيت التطبيق» / iOS «إضافة إلى الشاشة الرئيسية»), opens on the home page.
+ * The dashboard is a separate installable app: /app.webmanifest (linked from the login/admin/portal layouts).
  */
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    id: "/login",
+    id: "/",
     name: "ستوديو وتسجيلات السلطان",
     short_name: "السلطان",
-    description: "لوحة ستوديو وتسجيلات السلطان",
+    description: "تصوير فوتوغرافي وأفلام أعراس وتنسيق مناسبات وDJ",
     lang: "ar",
     dir: "rtl",
-    start_url: "/login",
+    start_url: "/",
     scope: "/",
     display: "standalone",
     orientation: "portrait",
