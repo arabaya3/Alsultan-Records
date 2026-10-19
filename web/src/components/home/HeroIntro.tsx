@@ -120,7 +120,7 @@ export function HeroIntro(p: HeroIntroProps) {
       aria-labelledby="hero-title"
       data-hero-intro
       data-intro-state="idle"
-      className="ink-texture relative isolate overflow-hidden border-b border-hairline text-ivory"
+      className="ink-texture relative isolate overflow-hidden hero-flow text-ivory"
     >
       {p.promo?.coverSrc ? (
         // Full-bleed cinematic backdrop: the owner's CMS cover photo, heavily dimmed (decorative, object-cover allowed

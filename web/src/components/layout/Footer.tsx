@@ -32,7 +32,7 @@ export async function Footer() {
   ];
 
   return (
-    <footer data-site-footer className="border-t border-hairline bg-night-deep text-ivory">
+    <footer data-site-footer className="site-footer-flow bg-night-deep text-ivory">
       <Container className="grid items-center justify-items-center gap-x-8 gap-y-3 py-6 md:justify-items-stretch md:grid-cols-[1fr_auto_1fr] md:py-5">
         {/* Site pages live in the header nav; only the legal links stay here, inline with the copyright. */}
         <nav aria-label="روابط قانونية" className="order-3 flex flex-wrap items-center justify-center gap-x-4 text-sm text-ivory-muted md:order-1 md:justify-self-start">

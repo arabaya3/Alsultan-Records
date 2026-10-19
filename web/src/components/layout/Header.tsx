@@ -17,7 +17,7 @@ export async function Header() {
   const book = bookingHref(s);
   const links = nav.header.map((l) => ({ href: l.href, label: l.label }));
   return (
-    <header className="relative z-40 border-b border-hairline bg-night-deep/95 text-ivory">
+    <header className="site-header-flow relative z-40 bg-night-deep/95 text-ivory">
       <a
         href="#main"
         className="sr-only focus:not-sr-only focus:absolute focus:start-4 focus:top-4 focus:z-50 focus:rounded-sm focus:bg-gold focus:px-4 focus:py-2 focus:text-ink"

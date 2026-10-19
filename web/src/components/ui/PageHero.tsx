@@ -42,7 +42,7 @@ export async function PageHero({
   }
   const center = align === "center";
   return (
-    <div className={`relative isolate overflow-hidden border-b border-hairline text-ivory ${photoId ? "bg-night-deep" : "ink-texture"}`}>
+    <div className={`relative isolate overflow-hidden hero-flow text-ivory ${photoId ? "bg-night-deep" : "ink-texture"}`}>
       {photoId ? (
         <>
           {/* Decorative backdrop: gated same-origin variant, plain <img> as elsewhere for /p/<id>. */}

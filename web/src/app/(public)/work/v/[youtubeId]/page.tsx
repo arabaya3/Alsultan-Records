@@ -51,7 +51,7 @@ async function VideoView({ params }: { params: PageProps<"/work/v/[youtubeId]">[
 
   return (
     <article data-video-page={video.youtube_id}>
-      <div className="ink-texture border-b border-hairline text-ivory">
+      <div className="ink-texture hero-flow relative text-ivory">
         <Container className="flex flex-col items-center pb-14 pt-12 text-center md:pb-20 md:pt-16">
           <nav aria-label="مسار التنقل" className="mb-4 text-sm text-ivory-muted">
             <ol className="flex flex-wrap items-center justify-center gap-x-2">

@@ -242,3 +242,19 @@ html[data-site-intro="on"] .site-intro {
 }
 .site-intro__skip:hover { border-color: var(--color-gold); color: var(--color-gold); }
 @media (prefers-reduced-motion: reduce) { html[data-site-intro="on"] .site-intro { display: none; } }
+
+/* Seamless header → body → footer: no hard hairlines; soft tonal fades instead. */
+.site-header-flow::after {
+  content: ""; position: absolute; inset-inline: 0; top: 100%; height: 28px; pointer-events: none;
+  background: linear-gradient(to bottom, color-mix(in srgb, var(--color-night-deep) 95%, transparent), transparent);
+}
+.site-footer-flow { position: relative; background: linear-gradient(to bottom, var(--color-night), var(--color-night-deep) 75%); }
+/* Heroes melt into the page below instead of ending on a hairline. */
+.hero-flow::after {
+  content: ""; position: absolute; inset-inline: 0; bottom: 0; height: 96px; pointer-events: none; z-index: 1;
+  background: linear-gradient(to bottom, transparent, var(--color-night));
+}
+.site-footer-flow::after { /* faint gold glint in place of the border line */
+  content: ""; position: absolute; top: 0; inset-inline: 15%; height: 1px; pointer-events: none;
+  background: linear-gradient(to right, transparent, color-mix(in srgb, var(--color-gold) 22%, transparent), transparent);
+}
