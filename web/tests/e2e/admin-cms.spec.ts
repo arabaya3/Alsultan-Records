@@ -205,12 +205,14 @@ test("C6: YouTube add + role promo + pin", async ({ browser }) => {
   const row = async () => (await db.from("showcase_videos").select("role, pinned").eq("youtube_id", YT_ID).single()).data!;
   expect(await row()).toMatchObject({ role: "promo", pinned: false });
   await page.reload();
+  await page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`).getByTestId("video-more").locator("summary").click();
   await page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`).getByRole("button", { name: "تثبيت" }).click();
   await expect.poll(async () => (await row()).pinned).toBe(true);
   expect((await anon().from("showcase_videos").select("role, pinned").eq("youtube_id", YT_ID).single()).data).toMatchObject({ role: "promo", pinned: true });
   // Clean up THROUGH THE ADMIN (it invalidates the public cache). A direct DB delete in afterAll left the
   // fake video in cached public pages for minutes; its YouTube thumbnail 404 then failed public.spec.
   await page.reload();
+  await page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`).getByTestId("video-more").locator("summary").click();
   await page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`).getByRole("button", { name: "حذف" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "حذف" }).click();
   await expect.poll(async () => (await db.from("showcase_videos").select("id").eq("youtube_id", YT_ID)).data?.length).toBe(0);

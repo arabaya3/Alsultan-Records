@@ -229,46 +229,55 @@ export async function VideosPage({ searchParams }: { searchParams: SP }) {
                   </div>
                 </td>
                 <td className="px-3 py-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <ActionForm action={setVideoPublished} submitLabel={v.is_published ? "إخفاء" : "نشر"} kind="ghost" inline>
-                      <input type="hidden" name="id" value={v.id} />
-                      <input type="hidden" name="publish" value={v.is_published ? "0" : "1"} />
-                    </ActionForm>
-                    <ActionForm action={setVideoPinned} submitLabel={v.pinned ? "إلغاء التثبيت" : "تثبيت"} kind="ghost" inline>
-                      <input type="hidden" name="id" value={v.id} />
-                      <input type="hidden" name="pinned" value={v.pinned ? "0" : "1"} />
-                    </ActionForm>
-                    <ActionForm action={setVideoRole} submitLabel="تغيير الدور" kind="ghost" inline>
-                      <input type="hidden" name="id" value={v.id} />
-                      <label className="sr-only" htmlFor={`role-${v.id}`}>دور الفيديو</label>
-                      <select id={`role-${v.id}`} name="role" defaultValue={v.role} className="field !min-h-10 !py-1 text-sm">
-                        <option value="work">أعمال</option>
-                        <option value="promo">برومو</option>
-                        <option value="both">كلاهما</option>
-                      </select>
-                    </ActionForm>
-                    {!v.is_promo ? (
-                      <ActionForm action={makePromo} submitLabel="اجعله تعريفياً" kind="ghost" inline>
-                        <input type="hidden" name="id" value={v.id} />
-                      </ActionForm>
-                    ) : null}
+                  {/* Main actions visible; the rest in a compact «المزيد» menu (was 7 buttons stacked per row). */}
+                  <div className="flex items-center justify-end gap-2" data-testid="video-actions">
                     {v.needs_review ? (
-                      <ActionForm action={markReviewed} submitLabel="تمت المراجعة" kind="ghost" inline>
+                      <ActionForm action={markReviewed} submitLabel="تمت المراجعة" kind="primary" inline>
                         <input type="hidden" name="id" value={v.id} />
                       </ActionForm>
                     ) : null}
                     <Link href={`/admin/videos/${v.id}`} className={btn("ghost")}>
                       تعديل
                     </Link>
-                    <ActionForm
-                      action={deleteVideo}
-                      submitLabel="حذف"
-                      kind="danger"
-                      inline
-                      confirm={{ title: "حذف هذا الفيديو؟", body: "يُزال من الموقع ومن هذه القائمة. لا يتأثر الفيديو على يوتيوب.", confirmLabel: "حذف" }}
-                    >
+                    <ActionForm action={setVideoPublished} submitLabel={v.is_published ? "إخفاء" : "نشر"} kind="ghost" inline>
                       <input type="hidden" name="id" value={v.id} />
+                      <input type="hidden" name="publish" value={v.is_published ? "0" : "1"} />
                     </ActionForm>
+                    <details className="group relative" data-testid="video-more">
+                      <summary className={`${btn("ghost")} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+                        المزيد <span aria-hidden="true" className="transition-transform group-open:rotate-180">▾</span>
+                      </summary>
+                      <div className="absolute end-0 top-full z-20 mt-1 grid w-56 gap-2 rounded-md border border-cream-line bg-cream p-3 shadow-lg">
+                        <ActionForm action={setVideoPinned} submitLabel={v.pinned ? "إلغاء التثبيت" : "تثبيت"} kind="ghost" inline>
+                          <input type="hidden" name="id" value={v.id} />
+                          <input type="hidden" name="pinned" value={v.pinned ? "0" : "1"} />
+                        </ActionForm>
+                        {!v.is_promo ? (
+                          <ActionForm action={makePromo} submitLabel="اجعله تعريفياً" kind="ghost" inline>
+                            <input type="hidden" name="id" value={v.id} />
+                          </ActionForm>
+                        ) : null}
+                        <ActionForm action={setVideoRole} submitLabel="تغيير الدور" kind="ghost" inline>
+                          <input type="hidden" name="id" value={v.id} />
+                          <label className="sr-only" htmlFor={`role-${v.id}`}>دور الفيديو</label>
+                          <select id={`role-${v.id}`} name="role" defaultValue={v.role} className="field !min-h-10 !py-1 text-sm">
+                            <option value="work">أعمال</option>
+                            <option value="promo">برومو</option>
+                            <option value="both">كلاهما</option>
+                          </select>
+                        </ActionForm>
+                        <hr className="border-cream-line" />
+                        <ActionForm
+                          action={deleteVideo}
+                          submitLabel="حذف"
+                          kind="danger"
+                          inline
+                          confirm={{ title: "حذف هذا الفيديو؟", body: "يُزال من الموقع ومن هذه القائمة. لا يتأثر الفيديو على يوتيوب.", confirmLabel: "حذف" }}
+                        >
+                          <input type="hidden" name="id" value={v.id} />
+                        </ActionForm>
+                      </div>
+                    </details>
                   </div>
                 </td>
               </tr>

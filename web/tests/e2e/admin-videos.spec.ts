@@ -73,6 +73,7 @@ test("V3: create from URL, toggle publish, make promo, edit, delete", async ({ b
   expect((await anon().from("showcase_videos").select("id").eq("youtube_id", TEST_ID)).data).toHaveLength(0);
 
   await page.reload();
+  await tr.getByTestId("video-more").locator("summary").click();
   await tr.getByRole("button", { name: "اجعله تعريفياً" }).click();
   await expect.poll(async () => (await row()).data!.is_promo).toBe(true);
   const promos = (await db.from("showcase_videos").select("id").eq("is_promo", true)).data!;
@@ -139,6 +140,7 @@ test("V5: categories page — create, reorder, hide, delete", async ({ browser }
   expect((await anon().from("video_categories").select("slug").eq("slug", "e2e_cat")).data).toHaveLength(0);
 
   await page.reload();
+  await row.getByTestId("video-more").locator("summary").click();
   await row.getByRole("button", { name: "حذف" }).click();
   await page.locator("dialog[open] [data-testid=confirm-yes]").click();
   await expect.poll(async () => (await db.from("video_categories").select("id").eq("slug", "e2e_cat")).data).toHaveLength(0);
