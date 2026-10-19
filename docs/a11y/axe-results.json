@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-19T15:28:09.572Z",
+  "generatedAt": "2026-10-19T16:35:53.611Z",
   "base": "http://localhost:3600",
   "tags": [
     "wcag2a",
@@ -258,7 +258,7 @@
     },
     {
       "page": "portal-video",
-      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/0d8d1eca-c152-42ed-8d81-de97fd91bd2c",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/d637f858-101f-4979-af94-fd19939ca464",
       "critical": 0,
       "serious": 0,
       "moderate": 0,
@@ -314,7 +314,7 @@
     },
     {
       "page": "admin-booking",
-      "url": "/admin/bookings/a1e70ecb-e8f4-4b7d-b28c-d6317306a2f1",
+      "url": "/admin/bookings/dcdb61a5-b501-4ae1-b121-8d4ec038e244",
       "critical": 0,
       "serious": 0,
       "moderate": 0,
@@ -770,7 +770,7 @@
     },
     {
       "page": "portal-video",
-      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/0d8d1eca-c152-42ed-8d81-de97fd91bd2c",
+      "url": "/portal/events/00000000-0000-4000-8000-0000000000e1/videos/d637f858-101f-4979-af94-fd19939ca464",
       "counts": {
         "critical": 0,
         "serious": 0,
@@ -831,7 +831,7 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 26
+      "passes": 22
     },
     {
       "page": "admin-overview",
@@ -861,7 +861,7 @@
     },
     {
       "page": "admin-booking",
-      "url": "/admin/bookings/a1e70ecb-e8f4-4b7d-b28c-d6317306a2f1",
+      "url": "/admin/bookings/dcdb61a5-b501-4ae1-b121-8d4ec038e244",
       "counts": {
         "critical": 0,
         "serious": 0,

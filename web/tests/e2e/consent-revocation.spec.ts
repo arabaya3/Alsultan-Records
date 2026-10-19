@@ -103,6 +103,8 @@ test("published media is served through /m with a bounded public cache", async (
 
 test("customer withdraws consent in the portal: same URL is 404 immediately", async ({ page, request }) => {
   const url = `${BASE}/m/${publicId}/display`;
+  // Count only the cleanup jobs THIS withdrawal enqueues (earlier runs on the same stack leave their own rows).
+  const since = psql("select now()::text");
   await uiLogin(page, "a", `/portal/events/${EV.A2}`);
   const card = page.getByTestId("consent-card");
   await card.getByRole("button", { name: "سحب الموافقة على النشر" }).click();
@@ -137,7 +139,7 @@ test("customer withdraws consent in the portal: same URL is 404 immediately", as
 
   // DB state: withdrawal recorded, copies queued.
   expect(psql(`select consent_revoked_by_customer_at is not null from public.events where id = '${EV.A2}'`)).toBe("t");
-  expect(Number(psql(`select count(*) from private.storage_cleanup_queue where bucket = 'public-media' and path in ('${pubDisplay}', '${pubThumb}')`))).toBe(2);
+  expect(Number(psql(`select count(*) from private.storage_cleanup_queue where bucket = 'public-media' and path in ('${pubDisplay}', '${pubThumb}') and enqueued_at >= '${since}'::timestamptz`))).toBe(2);
 });
 
 test("staff cannot republish after the customer withdrew", async () => {

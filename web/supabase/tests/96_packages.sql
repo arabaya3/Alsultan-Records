@@ -35,8 +35,9 @@ select ok(has_column_privilege('anon', 'public.packages', 'gift', 'SELECT') and 
 -- ------------------------------------------------------------------ anon
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
-select is((select string_agg(slug, ',' order by sort_order) from public.packages), 'pk-published', 'anon sees published packages only');
-select is((select count(*)::int from public.package_items), 1, 'anon sees items of published packages only');
+-- scoped to this file's fixtures (pk-*): the local stack may also hold the owner's real packages
+select is((select string_agg(slug, ',' order by sort_order) from public.packages where slug like 'pk-%'), 'pk-published', 'anon sees published packages only');
+select is((select count(*)::int from public.package_items i join public.packages p on p.id = i.package_id where p.slug like 'pk-%'), 1, 'anon sees items of published packages only');
 select is((select display_price_minor from public.packages where slug = 'pk-published'), 300000::bigint, 'anon sees the price when shown');
 select throws_ok($$select price_minor from public.packages$$, '42501', null, 'anon cannot read the raw price column');
 select is((select package_id from public.offers where slug = 'pk-offer-active'), '00000000-0000-4000-8000-0000000c9a01'::uuid,

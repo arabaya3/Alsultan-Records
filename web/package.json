@@ -11,7 +11,8 @@
     "test:unit": "vitest run",
     "test:db": "supabase test db",
     "test:e2e": "playwright test",
-    "backup": "node scripts/backup-now.mjs --target staging"
+    "backup": "node scripts/backup-now.mjs --target staging",
+    "e2e:reset": "node scripts/e2e-reset-local.mjs"
   },
   "dependencies": {
     "@supabase/ssr": "0.12.7",
