@@ -184,3 +184,61 @@ html.intro-armed [data-hero-intro] [data-intro] {
   opacity: 0;
   animation: intro-failsafe 0.3s ease-out 2.6s forwards;
 }
+
+/* ---------------------------------------------------------------- site opening (components/layout/SiteIntro.tsx)
+   Visible only while <html data-site-intro="on"> (set by its inline script, removed at 2.05 s or on «تخطّي»).
+   Timeline (2 s): emblem in 0–0.65 s · ring sweep 0–1.2 s · tagline 0.35–0.75 s · brand out 1.15–1.5 s ·
+   aperture opens 1.35–2.0 s. No flashes: only opacity/transform/clip-path. */
+.site-intro { display: none; }
+html[data-site-intro="on"] .site-intro {
+  display: block; position: fixed; inset: 0; z-index: 100; pointer-events: auto;
+  animation: site-intro-release 0s linear 1.6s forwards;
+}
+@keyframes site-intro-release { to { pointer-events: none; } }
+/* Aperture: a circular HOLE grows from the centre outwards (the page shows through it), not a shrinking cover. */
+@property --site-intro-hole { syntax: "<length>"; inherits: false; initial-value: 0px; }
+.site-intro__aperture {
+  position: absolute; inset: 0; background: #070809;
+  --site-intro-hole: 0px;
+  -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent var(--site-intro-hole), #000 calc(var(--site-intro-hole) + 1.5px));
+  mask-image: radial-gradient(circle at 50% 50%, transparent var(--site-intro-hole), #000 calc(var(--site-intro-hole) + 1.5px));
+  animation: site-intro-aperture 0.65s cubic-bezier(.65,0,.35,1) 1.35s forwards;
+}
+@keyframes site-intro-aperture { to { --site-intro-hole: 120vmax; } }
+.site-intro__brand {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  color: var(--color-ivory, #f5f1e8);
+  animation: site-intro-brand-out 0.35s ease-in 1.15s forwards;
+}
+@keyframes site-intro-brand-out { to { opacity: 0; transform: scale(1.06); } }
+.site-intro__emblem {
+  position: relative; display: grid; place-items: center; width: 174px; height: 174px;
+  opacity: 0; transform: scale(.86); filter: blur(7px);
+  animation: site-intro-emblem 0.65s cubic-bezier(.2,.8,.2,1) forwards;
+}
+.site-intro__emblem img { width: 146px; height: auto; filter: drop-shadow(0 0 12px rgb(223 171 42 / .2)); }
+@keyframes site-intro-emblem { to { opacity: 1; transform: none; filter: blur(0); } }
+.site-intro__ring {
+  position: absolute; inset: 0; border-radius: 50%;
+  border: 1px solid rgb(218 177 67 / .15); border-top-color: var(--color-gold); border-right-color: rgb(218 177 67 / .5);
+  opacity: 0; animation: site-intro-ring 1.2s ease-out forwards;
+}
+@keyframes site-intro-ring {
+  0% { transform: rotate(-100deg); opacity: 0; }
+  70% { transform: rotate(170deg); opacity: .85; }
+  100% { transform: rotate(220deg); opacity: 0; }
+}
+.site-intro__tagline {
+  margin-top: 1.5rem; font-family: var(--font-display); font-size: clamp(1.25rem, 1rem + 1.2vw, 1.6rem); font-weight: 700;
+  opacity: 0; transform: translateY(10px);
+  animation: site-intro-tagline 0.4s ease-out 0.35s forwards;
+}
+@keyframes site-intro-tagline { to { opacity: 1; transform: none; } }
+.site-intro__skip {
+  position: absolute; bottom: max(1.25rem, env(safe-area-inset-bottom)); inset-inline-start: 1.25rem;
+  min-height: 44px; min-width: 64px; padding: 0 1.1rem; border-radius: 6px;
+  border: 1px solid rgb(255 255 255 / .3); background: rgb(0 0 0 / .35); color: #e8e1d3; font-size: .875rem;
+  animation: site-intro-brand-out 0.3s ease-in 1.45s forwards;
+}
+.site-intro__skip:hover { border-color: var(--color-gold); color: var(--color-gold); }
+@media (prefers-reduced-motion: reduce) { html[data-site-intro="on"] .site-intro { display: none; } }

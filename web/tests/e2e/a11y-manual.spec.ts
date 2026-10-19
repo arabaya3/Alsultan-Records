@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { BASE, EV, USERS, uiLogin, type Who } from "./qa-helpers";
+import { BASE, EV, USERS, uiLogin, type Who, skipSiteIntro } from "./qa-helpers";
 
 /**
  * A11y release blocker, part B: "manual" checks automated (keyboard, focus, dialogs, form errors,
@@ -47,6 +47,7 @@ const activeIs = (page: Page, fn: string) => () => page.evaluate(fn) as Promise<
 
 async function newPage(browser: Browser, width = 1440, opts: Parameters<Browser["newContext"]>[0] = {}) {
   const ctx = await browser.newContext({ viewport: { width, height: width >= 1000 ? 1000 : 844 }, locale: "ar", ...opts });
+  await skipSiteIntro(ctx);
   return ctx.newPage();
 }
 

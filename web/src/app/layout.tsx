@@ -42,7 +42,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ar" dir="rtl" className={`${alexandria.variable} ${plexArabic.variable} antialiased`}>
+    <html lang="ar" dir="rtl" suppressHydrationWarning className={`${alexandria.variable} ${plexArabic.variable} antialiased`}>
       <body className="flex min-h-dvh flex-col">{children}</body>
     </html>
   );

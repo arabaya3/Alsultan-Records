@@ -128,3 +128,8 @@ export function resetSeedSelections(eventIds: string[]) {
     delete from public.album_selections where event_id in (${ids});
     commit;`);
 }
+
+/** Mark the one-time site opening (SiteIntro) as already played in this context, for tests about the page itself. */
+export async function skipSiteIntro(target: Page | import("@playwright/test").BrowserContext) {
+  await target.addInitScript(() => { try { sessionStorage.setItem("sultan-intro-v1", "1"); } catch {} });
+}

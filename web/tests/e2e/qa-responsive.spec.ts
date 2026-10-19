@@ -1,6 +1,6 @@
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
-import { BASE, EV, overflowPx, psql, SHOTS, uiLogin } from "./qa-helpers";
+import { BASE, EV, overflowPx, psql, SHOTS, uiLogin, skipSiteIntro } from "./qa-helpers";
 
 /**
  * Responsive + accessibility. @axe-core/playwright is NOT installed (npm install not allowed for QA),
@@ -181,6 +181,7 @@ test("a11y: dialogs trap focus and restore it (mobile menu, gallery lightbox)", 
 });
 
 test("a11y: text contrast estimate (WCAG AA) on public pages", async ({ page }) => {
+  await skipSiteIntro(page);
   const report: string[] = [];
   for (const url of ["/", "/work", "/services", "/book", "/track", "/faq", "/about", "/contact"]) {
     await page.goto(`${BASE}${url}`, { waitUntil: "networkidle" });

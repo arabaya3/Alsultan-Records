@@ -1,3 +1,4 @@
+import { skipSiteIntro } from "./qa-helpers";
 import { expect, test, devices, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import fs from "node:fs";
@@ -16,6 +17,7 @@ const BASE = () => process.env.BASE_URL!;
 const state = (page: Page) => page.locator("[data-hero-intro]").getAttribute("data-intro-state");
 
 test("content is in the DOM and clickable at t=0: a CTA click mid-intro navigates", async ({ page }) => {
+  await skipSiteIntro(page); // hero motion only; the site opening has its own spec
   await page.goto("/", { waitUntil: "commit" });
   const cta = page.locator("[data-hero-cta='work']");
   await cta.waitFor({ state: "attached" });

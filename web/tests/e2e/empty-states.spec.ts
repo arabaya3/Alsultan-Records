@@ -1,3 +1,4 @@
+import { skipSiteIntro } from "./qa-helpers";
 import { expect, test, type Page } from "@playwright/test";
 import path from "node:path";
 
@@ -108,10 +109,11 @@ test.describe("current local DB", () => {
   test.skip(EMPTY, "runs against the real local DB");
 
   test("home essentials + screenshot", async ({ page }) => {
+    await skipSiteIntro(page);
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await essentials(page);
-    await keyboardReaches(page, ["/book", "/services"]);
+    await keyboardReaches(page, ["/work", "/services"]); // home CTAs are /work + WhatsApp (no /book link since the redesign)
     await settle(page);
     await page.screenshot({ path: path.join(SHOTS, "home-1440-v3.png"), fullPage: true });
   });
