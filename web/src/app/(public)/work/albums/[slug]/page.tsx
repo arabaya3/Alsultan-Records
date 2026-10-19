@@ -79,6 +79,7 @@ async function AlbumView({ params }: { params: PageProps<"/work/albums/[slug]">[
   return (
     <article data-album-page={album.slug}>
       <PageHero
+        photoId={null}
         breadcrumb={[{ label: "أعمالنا", href: "/work" }, { label: "ألبومات الصور", href: ALBUMS }]}
         title={<bdi dir="auto">{album.title}</bdi>}
         lead={

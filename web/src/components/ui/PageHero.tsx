@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { photoUrl } from "@/features/public-content/gallery-model";
+import { getBusinessSettings } from "@/features/public-content/queries";
 
 export type Crumb = { label: string; href?: string };
 
@@ -12,11 +13,13 @@ export type Crumb = { label: string; href?: string };
  *   breadcrumb? — [{label, href?}] ; last item = current page (no href)
  *   photoId? — a REAL album photo id chosen in the CMS (e.g. business_settings.hero_cover_photo_id). Shown as a
  *              decorative backdrop (object-cover is allowed ONLY here) under a dark gradient for legibility.
- *              Without it the CSS ink texture is used. Never pass stock/generated images.
+ *              Omitted (undefined) → the CMS cover photo (business_settings.hero_cover_photo_id) if set; pass
+ *              null to force no photo (e.g. an album page, so another event's photo never sits behind its title).
+ *              Without a photo the CSS ink texture is used. Never pass stock/generated images.
  *   align?   — "center" (default, as in the references) | "start"
  *   children? — optional actions row (e.g. ButtonLink / WhatsAppCta)
  */
-export function PageHero({
+export async function PageHero({
   title,
   lead,
   eyebrow,
@@ -33,6 +36,10 @@ export function PageHero({
   align?: "center" | "start";
   children?: ReactNode;
 }) {
+  if (photoId === undefined) {
+    const s = await getBusinessSettings(); // cached + tagged (admin saves expire it)
+    photoId = s.status === "ok" ? (s.data?.hero_cover_photo_id ?? null) : null;
+  }
   const center = align === "center";
   return (
     <div className={`relative isolate overflow-hidden border-b border-hairline text-ivory ${photoId ? "bg-night-deep" : "ink-texture"}`}>

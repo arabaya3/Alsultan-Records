@@ -122,6 +122,15 @@ export function HeroIntro(p: HeroIntroProps) {
       data-intro-state="idle"
       className="ink-texture relative isolate overflow-hidden border-b border-hairline text-ivory"
     >
+      {p.promo?.coverSrc ? (
+        // Full-bleed cinematic backdrop: the owner's CMS cover photo, heavily dimmed (decorative, object-cover allowed
+        // only for this backdrop) so wide screens are not empty and the text keeps AA contrast.
+        <>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={p.promo.coverSrc} alt="" aria-hidden="true" decoding="async" className="absolute inset-0 -z-20 size-full object-cover opacity-35 blur-[2px]" />
+          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(to_left,rgb(13_12_11/0.92)_0%,rgb(13_12_11/0.78)_45%,rgb(13_12_11/0.6)_100%)]" />
+        </>
+      ) : null}
       <div className="mx-auto grid w-full max-w-[var(--content-max)] items-center gap-8 px-[var(--gutter)] py-10 md:py-12 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:py-14">
         <div className="min-w-0">
           <div data-hero-mark className="flex items-center gap-4">
