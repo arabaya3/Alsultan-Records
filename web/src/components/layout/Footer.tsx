@@ -5,7 +5,6 @@ import { FacebookIcon, PhoneIcon, YouTubeIcon } from "@/components/ui/SocialIcon
 import { WhatsAppIcon } from "@/components/ui/WhatsAppCta";
 import { contactItems } from "@/features/public-content/contact";
 import { getBusinessSettings } from "@/features/public-content/queries";
-import { getSiteNav } from "@/features/public-content/cms-queries";
 
 // ≥44px touch targets everywhere (the footer test measures every link on mobile).
 const linkCls = "inline-flex min-h-11 min-w-11 items-center justify-center gap-2 transition-colors duration-200 hover:text-gold";
@@ -24,19 +23,26 @@ const SOCIAL: Record<string, { label: string; icon: React.ReactNode }> = {
  * No booking band here (no huge CTA on every page). Height comes from content only.
  */
 export async function Footer() {
-  const [settings, nav] = await Promise.all([getBusinessSettings(), getSiteNav()]);
+  const settings = await getBusinessSettings();
   const s = settings.status === "ok" ? settings.data : null;
   const contacts = contactItems(s).filter((c) => c.href && c.key in SOCIAL);
-  const navHrefs = new Set(nav.footer.map((l) => l.href));
   const legal = [
     { href: "/privacy", label: "الخصوصية" },
     { href: "/terms", label: "الشروط" },
-  ].filter((l) => !navHrefs.has(l.href));
+  ];
 
   return (
     <footer data-site-footer className="border-t border-hairline bg-night-deep text-ivory">
       <Container className="grid items-center justify-items-center gap-x-8 gap-y-3 py-6 md:justify-items-stretch md:grid-cols-[1fr_auto_1fr] md:py-5">
-        <p className="order-3 text-sm text-ivory-muted md:order-1 md:justify-self-start">© جميع الحقوق محفوظة</p>
+        {/* Site pages live in the header nav; only the legal links stay here, inline with the copyright. */}
+        <nav aria-label="روابط قانونية" className="order-3 flex flex-wrap items-center justify-center gap-x-4 text-sm text-ivory-muted md:order-1 md:justify-self-start">
+          <span>© جميع الحقوق محفوظة</span>
+          {legal.map((l) => (
+            <Link key={l.href} href={l.href} className={linkCls}>
+              {l.label}
+            </Link>
+          ))}
+        </nav>
 
         <div className="order-1 flex flex-col items-center gap-1 md:order-2 md:justify-self-center">
           <Logo height={64} src={activeLogoSrc(s?.active_logo_id)} />
@@ -75,21 +81,6 @@ export async function Footer() {
         </ul>
       </Container>
 
-      <div className="border-t border-hairline">
-        <Container>
-          <nav aria-label="روابط الموقع">
-            <ul className="flex flex-wrap items-center justify-center gap-x-6 gap-y-0 py-1 text-sm text-ivory-muted md:justify-start">
-              {[...nav.footer, ...legal.map((l) => ({ ...l, key: l.href }))].map((l) => (
-                <li key={l.key}>
-                  <Link href={l.href} className={linkCls}>
-                    {l.label}
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </nav>
-        </Container>
-      </div>
     </footer>
   );
 }

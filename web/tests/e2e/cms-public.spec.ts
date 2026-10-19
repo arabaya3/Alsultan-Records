@@ -103,8 +103,9 @@ test("header nav labels and order come from nav_items; footer uses the same; nev
   expect(items[0]).toEqual({ text: NAV_LABEL, href: "/services" });
   expect(items.some((i) => i.href === "/about")).toBe(false);
 
+  // The footer no longer repeats the site nav (it lives in the header); only the legal links remain there.
   const footer = await page.locator("[data-site-footer] nav a").evaluateAll((as) => as.map((a) => a.textContent?.trim()));
-  expect(footer.slice(0, expected.length)).toEqual(expected.map((n) => n.label));
+  expect(footer).toEqual(["الخصوصية", "الشروط"]);
   const all = await page.locator("a[href]").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
   expect(all.filter((h) => /^\/(admin|login)/.test(h))).toEqual([]);
 });

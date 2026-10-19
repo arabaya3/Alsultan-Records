@@ -52,7 +52,11 @@ test("footer content: groups, ltr phone, no duplicates, no portal/track", async 
   await expect(f.locator('a[href^="tel:"] [dir="ltr"]')).toHaveText("+970598677477");
   const hrefs = await f.locator("a").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
   expect(new Set(hrefs).size).toBe(hrefs.length);
-  for (const h of ["/work", "/services", "/about", "/book", "/privacy", "/terms"]) expect(hrefs).toContain(h);
+  // Site pages are in the header nav only; the footer keeps the legal links next to the copyright.
+  for (const h of ["/privacy", "/terms"]) expect(hrefs).toContain(h);
+  for (const h of ["/work", "/services", "/about", "/packages", "/offers"]) expect(hrefs).not.toContain(h);
+  const header = await page.locator("header nav[aria-label='القائمة الرئيسية'] a").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+  for (const h of ["/work", "/services", "/about"]) expect(header).toContain(h);
   expect(hrefs.some((h) => h?.startsWith("/portal") || h?.startsWith("/track"))).toBe(false);
 });
 
