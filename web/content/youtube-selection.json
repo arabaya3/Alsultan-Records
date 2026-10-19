@@ -1,0 +1,84 @@
+{
+  "source": {
+    "channel_id": "UCpxtdVABBIOaNLne-0_dDmQ",
+    "channel_title": "ستوديو و تسجيلات السلطان",
+    "channel_url": "https://www.youtube.com/channel/UCpxtdVABBIOaNLne-0_dDmQ/videos",
+    "verified_at": "2026-10-16",
+    "method": "Channel RSS feed (IDs, titles, publish dates) + each watch page (lengthSeconds, playableInEmbed, channelId == channel) + oEmbed 200 (embeddable). 19 public videos found; no Shorts; shortest is 539 s.",
+    "privacy_note": "Original titles name grooms. Display titles on the site omit personal names; the original title is kept only for the admin record. Videos are public on the studio's own channel; no private client media or records are made public by this import."
+  },
+  "videos": [
+    {
+      "youtube_id": "y0-ajKb7Umw",
+      "is_promo": true,
+      "sort_order": 0,
+      "category": "evening",
+      "original_title": "استقبال العريس أحمد رشدي قلالوة | تعليلة العريس 2026 | الجديدة |",
+      "title": "استقبال العريس في التعليلة",
+      "description": "مقطع من استقبال العريس في تعليلة عرس، صيف 2026. أقصر مقطع على القناة (حوالي 9 دقائق).",
+      "duration_seconds": 539,
+      "published_at": "2026-07-13",
+      "unverified": "No dedicated short promo exists on the channel; this 9-minute clip is the shortest available and is presented as a selected clip, not a short promo."
+    },
+    {
+      "youtube_id": "A7Bby0aFuz0",
+      "is_promo": false,
+      "sort_order": 1,
+      "category": "wedding",
+      "original_title": "حفل زفاف العريس داود جهاد نعيرات - ميثلون - 2026",
+      "title": "حفل زفاف — ميثلون",
+      "description": "تصوير حفل زفاف في ميثلون، 2026.",
+      "duration_seconds": 1878,
+      "published_at": "2026-09-28",
+      "unverified": null
+    },
+    {
+      "youtube_id": "bY-HEOQVEZA",
+      "is_promo": false,
+      "sort_order": 2,
+      "category": "wedding",
+      "original_title": "حفل زفاف العريس احمد فتحي ربايعة - ميثلون - 2026",
+      "title": "حفل زفاف — ميثلون",
+      "description": "تصوير حفل زفاف كامل في ميثلون، 2026.",
+      "duration_seconds": 2730,
+      "published_at": "2026-10-04",
+      "unverified": null
+    },
+    {
+      "youtube_id": "gUhswny61EY",
+      "is_promo": false,
+      "sort_order": 3,
+      "category": "evening",
+      "original_title": "سهرة العريس احمد ماجد نعيرات 🎤 ميثلون 🔥 2026",
+      "title": "سهرة عريس",
+      "description": "سهرة العريس بالصوت والصورة في ميثلون، 2026.",
+      "duration_seconds": 3588,
+      "published_at": "2026-09-20",
+      "unverified": null
+    },
+    {
+      "youtube_id": "1HyF-9dPZno",
+      "is_promo": false,
+      "sort_order": 4,
+      "category": "groom_prep",
+      "original_title": "حمّام وزينة  العريس اشرف مفيد ربايعة | 2026 -  ميثلون",
+      "title": "حمّام وزينة العريس",
+      "description": "توثيق حمّام وزينة العريس في ميثلون، 2026.",
+      "duration_seconds": 1948,
+      "published_at": "2026-08-25",
+      "unverified": null
+    },
+    {
+      "youtube_id": "LKpD2MqUoF0",
+      "is_promo": false,
+      "sort_order": 5,
+      "category": "folk",
+      "original_title": "عبدالله غانم × عبادة مساد | حداية وطوشة نار | تعليلة العريس أحمد رشدي قلالوة 2026",
+      "title": "حداية وطوشة في التعليلة",
+      "description": "حداية وطوشة شعبية في تعليلة عرس، 2026.",
+      "duration_seconds": 1015,
+      "published_at": "2026-07-14",
+      "unverified": "Performer names appear in the original title; not repeated on the site."
+    }
+  ]
+}

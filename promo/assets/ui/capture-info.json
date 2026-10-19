@@ -1,0 +1,27 @@
+{
+  "tel": "tel:+970598677477",
+  "desktopChip": {
+    "x": 1249.03125,
+    "y": 583,
+    "text": "حفلات الزفاف٣",
+    "href": "/work?cat=wedding"
+  },
+  "desktopCard": {
+    "x": 1170.671875,
+    "y": 787.7421875,
+    "href": null
+  },
+  "desktopDialogUrl": "https://sultan-records.vercel.app/work?cat=wedding",
+  "mobileChip": {
+    "x": 239.03125,
+    "y": 475,
+    "text": "حفلات الزفاف٣",
+    "href": "/work?cat=wedding"
+  },
+  "mobileCard": {
+    "x": 195,
+    "y": 816.4375,
+    "href": null
+  },
+  "mobileDialogUrl": "https://sultan-records.vercel.app/work?cat=wedding"
+}

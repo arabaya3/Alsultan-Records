@@ -1,0 +1,984 @@
+{
+ "source": {
+  "page": "https://www.facebook.com/Sultan.Rec0rds2",
+  "page_title": "ستوديو وتسجيلات السلطان",
+  "collected_at": "2026-10-16",
+  "method": "Owner-authorized logged-in browser session (owner signed in); full-size images from each photo page; candidates = first 40 photos per album; visual selection by contact sheet; near-duplicates (dHash ≤ 5) excluded",
+  "rights": "Published on the studio's own Facebook page; imported at the owner's request; watermarks kept, no cropping/editing"
+ },
+ "albums": [
+  {
+   "fb_album_id": "1086537544125109",
+   "slug": "wedding-dawood-nairat-2026",
+   "title": "حفل زفاف العريس داود جهاد نعيرات - ميثلون - 2026",
+   "event_date": null,
+   "source_label": "فيسبوك — ستوديو وتسجيلات السلطان",
+   "source_url": "https://www.facebook.com/media/set/?set=a.1086537544125109",
+   "cover_fbid": "1086549614123902",
+   "photos": [
+    {
+     "fbid": "1086549157457281",
+     "sort_order": 1,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086549157457281&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086549614123902",
+     "sort_order": 2,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086549614123902&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086549700790560",
+     "sort_order": 3,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086549700790560&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086549734123890",
+     "sort_order": 4,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086549734123890&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086550177457179",
+     "sort_order": 5,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086550177457179&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086550637457133",
+     "sort_order": 6,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086550637457133&set=a.1086537544125109",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1086551020790428",
+     "sort_order": 7,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086551020790428&set=a.1086537544125109",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1086552744123589",
+     "sort_order": 8,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086552744123589&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086552997456897",
+     "sort_order": 9,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086552997456897&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086553727456824",
+     "sort_order": 10,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086553727456824&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086555080790022",
+     "sort_order": 11,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086555080790022&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086555220790008",
+     "sort_order": 12,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086555220790008&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086555320789998",
+     "sort_order": 13,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086555320789998&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086556130789917",
+     "sort_order": 14,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086556130789917&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086556190789911",
+     "sort_order": 15,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086556190789911&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086558200789710",
+     "sort_order": 16,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086558200789710&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086559104122953",
+     "sort_order": 17,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086559104122953&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086559557456241",
+     "sort_order": 18,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086559557456241&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086563720789158",
+     "sort_order": 19,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086563720789158&set=a.1086537544125109",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1086565017455695",
+     "sort_order": 20,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086565017455695&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086565364122327",
+     "sort_order": 21,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086565364122327&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1086567677455429",
+     "sort_order": 22,
+     "source_url": "https://www.facebook.com/photo/?fbid=1086567677455429&set=a.1086537544125109",
+     "width": 1365,
+     "height": 2048
+    }
+   ]
+  },
+  {
+   "fb_album_id": "1088508273928036",
+   "slug": "wedding-laith-jarrar-2026",
+   "title": "حفل زفاف العريس ليث الحج علي جرار - ميثلون - 2026",
+   "event_date": null,
+   "source_label": "فيسبوك — ستوديو وتسجيلات السلطان",
+   "source_url": "https://www.facebook.com/media/set/?set=a.1088508273928036",
+   "cover_fbid": "1088525793926284",
+   "photos": [
+    {
+     "fbid": "1088522380593292",
+     "sort_order": 1,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088522380593292&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088522613926602",
+     "sort_order": 2,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088522613926602&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088522820593248",
+     "sort_order": 3,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088522820593248&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088523637259833",
+     "sort_order": 4,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088523637259833&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088524443926419",
+     "sort_order": 5,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088524443926419&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088525793926284",
+     "sort_order": 6,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088525793926284&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088527413926122",
+     "sort_order": 7,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088527413926122&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088528817259315",
+     "sort_order": 8,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088528817259315&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088529220592608",
+     "sort_order": 9,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088529220592608&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088529853925878",
+     "sort_order": 10,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088529853925878&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088534277258769",
+     "sort_order": 11,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088534277258769&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088534373925426",
+     "sort_order": 12,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088534373925426&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088538357258361",
+     "sort_order": 13,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088538357258361&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088539033924960",
+     "sort_order": 14,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088539033924960&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088539427258254",
+     "sort_order": 15,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088539427258254&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088539457258251",
+     "sort_order": 16,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088539457258251&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088543103924553",
+     "sort_order": 17,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088543103924553&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088543640591166",
+     "sort_order": 18,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088543640591166&set=a.1088508273928036",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1088551247257072",
+     "sort_order": 19,
+     "source_url": "https://www.facebook.com/photo/?fbid=1088551247257072&set=a.1088508273928036",
+     "width": 2048,
+     "height": 1365
+    }
+   ]
+  },
+  {
+   "fb_album_id": "1090011230444407",
+   "slug": "wedding-emad-rabaya-2026",
+   "title": "حفل زفاف العريس عماد حمدان ربايعة - ميثلون - 2026",
+   "event_date": null,
+   "source_label": "فيسبوك — ستوديو وتسجيلات السلطان",
+   "source_url": "https://www.facebook.com/media/set/?set=a.1090011230444407",
+   "cover_fbid": "1090050343773829",
+   "photos": [
+    {
+     "fbid": "1090037337108463",
+     "sort_order": 1,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090037337108463&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090037473775116",
+     "sort_order": 2,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090037473775116&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090037730441757",
+     "sort_order": 3,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090037730441757&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090038113775052",
+     "sort_order": 4,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090038113775052&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090038243775039",
+     "sort_order": 5,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090038243775039&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090042833774580",
+     "sort_order": 6,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090042833774580&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090043437107853",
+     "sort_order": 7,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090043437107853&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090047947107402",
+     "sort_order": 8,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090047947107402&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090050343773829",
+     "sort_order": 9,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090050343773829&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090053260440204",
+     "sort_order": 10,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090053260440204&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090054637106733",
+     "sort_order": 11,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090054637106733&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090057877106409",
+     "sort_order": 12,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090057877106409&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090058150439715",
+     "sort_order": 13,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090058150439715&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090060037106193",
+     "sort_order": 14,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090060037106193&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090060857106111",
+     "sort_order": 15,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090060857106111&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090062860439244",
+     "sort_order": 16,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090062860439244&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090063933772470",
+     "sort_order": 17,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090063933772470&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090064520439078",
+     "sort_order": 18,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090064520439078&set=a.1090011230444407",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1090067577105439",
+     "sort_order": 19,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090067577105439&set=a.1090011230444407",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1090069677105229",
+     "sort_order": 20,
+     "source_url": "https://www.facebook.com/photo/?fbid=1090069677105229&set=a.1090011230444407",
+     "width": 2048,
+     "height": 1365
+    }
+   ]
+  },
+  {
+   "fb_album_id": "1091801640265366",
+   "slug": "groom-prep-emad-rabaya-2026",
+   "title": "حمّام وزينة العريس عماد حمدان ربايعة | 2026",
+   "event_date": null,
+   "source_label": "فيسبوك — ستوديو وتسجيلات السلطان",
+   "source_url": "https://www.facebook.com/media/set/?set=a.1091801640265366",
+   "cover_fbid": "1091793336932863",
+   "photos": [
+    {
+     "fbid": "1091793046932892",
+     "sort_order": 1,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091793046932892&set=a.1091801640265366",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1091793336932863",
+     "sort_order": 2,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091793336932863&set=a.1091801640265366",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1091793356932861",
+     "sort_order": 3,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091793356932861&set=a.1091801640265366",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1091793383599525",
+     "sort_order": 4,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091793383599525&set=a.1091801640265366",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1091793673599496",
+     "sort_order": 5,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091793673599496&set=a.1091801640265366",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1091794263599437",
+     "sort_order": 6,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091794263599437&set=a.1091801640265366",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1091794310266099",
+     "sort_order": 7,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091794310266099&set=a.1091801640265366",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1091794943599369",
+     "sort_order": 8,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091794943599369&set=a.1091801640265366",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1091795163599347",
+     "sort_order": 9,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091795163599347&set=a.1091801640265366",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1091795170266013",
+     "sort_order": 10,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091795170266013&set=a.1091801640265366",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1091795220266008",
+     "sort_order": 11,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091795220266008&set=a.1091801640265366",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1091795560265974",
+     "sort_order": 12,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091795560265974&set=a.1091801640265366",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1091795913599272",
+     "sort_order": 13,
+     "source_url": "https://www.facebook.com/photo/?fbid=1091795913599272&set=a.1091801640265366",
+     "width": 2048,
+     "height": 1365
+    }
+   ]
+  },
+  {
+   "fb_album_id": "1092704030175127",
+   "slug": "engagement-ahmad-rabaya-2026",
+   "title": "خطوبة العريس احمد عبدالعزيز ربايعة - 2026 ميثلون",
+   "event_date": null,
+   "source_label": "فيسبوك — ستوديو وتسجيلات السلطان",
+   "source_url": "https://www.facebook.com/media/set/?set=a.1092704030175127",
+   "cover_fbid": "1092684360177094",
+   "photos": [
+    {
+     "fbid": "1092684306843766",
+     "sort_order": 1,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092684306843766&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092684360177094",
+     "sort_order": 2,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092684360177094&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092684633510400",
+     "sort_order": 3,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092684633510400&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092684643510399",
+     "sort_order": 4,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092684643510399&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092684956843701",
+     "sort_order": 5,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092684956843701&set=a.1092704030175127",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1092685046843692",
+     "sort_order": 6,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092685046843692&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092685090177021",
+     "sort_order": 7,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092685090177021&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092686200176910",
+     "sort_order": 8,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092686200176910&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092686253510238",
+     "sort_order": 9,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092686253510238&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092686270176903",
+     "sort_order": 10,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092686270176903&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092686766843520",
+     "sort_order": 11,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092686766843520&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092686816843515",
+     "sort_order": 12,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092686816843515&set=a.1092704030175127",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1092687296843467",
+     "sort_order": 13,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092687296843467&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092687573510106",
+     "sort_order": 14,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092687573510106&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092687600176770",
+     "sort_order": 15,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092687600176770&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1092687710176759",
+     "sort_order": 16,
+     "source_url": "https://www.facebook.com/photo/?fbid=1092687710176759&set=a.1092704030175127",
+     "width": 1365,
+     "height": 2048
+    }
+   ]
+  },
+  {
+   "fb_album_id": "1094286983350165",
+   "slug": "wedding-ahmad-fathi-rabaya-2026",
+   "title": "حفل زفاف العريس احمد فتحي ربايعة - ميثلون - 2026",
+   "event_date": null,
+   "source_label": "فيسبوك — ستوديو وتسجيلات السلطان",
+   "source_url": "https://www.facebook.com/media/set/?set=a.1094286983350165",
+   "cover_fbid": "1094340660011464",
+   "photos": [
+    {
+     "fbid": "1094299126682284",
+     "sort_order": 1,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094299126682284&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094300970015433",
+     "sort_order": 2,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094300970015433&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094300976682099",
+     "sort_order": 3,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094300976682099&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094301430015387",
+     "sort_order": 4,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094301430015387&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094301640015366",
+     "sort_order": 5,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094301640015366&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094302020015328",
+     "sort_order": 6,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094302020015328&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094302296681967",
+     "sort_order": 7,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094302296681967&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094302303348633",
+     "sort_order": 8,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094302303348633&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094302330015297",
+     "sort_order": 9,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094302330015297&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094304033348460",
+     "sort_order": 10,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094304033348460&set=a.1094286983350165",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1094306323348231",
+     "sort_order": 11,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094306323348231&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094307146681482",
+     "sort_order": 12,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094307146681482&set=a.1094286983350165",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1094307913348072",
+     "sort_order": 13,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094307913348072&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094309340014596",
+     "sort_order": 14,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094309340014596&set=a.1094286983350165",
+     "width": 2048,
+     "height": 1365
+    },
+    {
+     "fbid": "1094316210013909",
+     "sort_order": 15,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094316210013909&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094319266680270",
+     "sort_order": 16,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094319266680270&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094319903346873",
+     "sort_order": 17,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094319903346873&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1094340660011464",
+     "sort_order": 18,
+     "source_url": "https://www.facebook.com/photo/?fbid=1094340660011464&set=a.1094286983350165",
+     "width": 1365,
+     "height": 2048
+    }
+   ]
+  },
+  {
+   "fb_album_id": "1099378066174390",
+   "slug": "wedding-yousef-farah-2026",
+   "title": "حفل زفاف العريس يوسف جهاد فرح - ميثلون - 2026",
+   "event_date": null,
+   "source_label": "فيسبوك — ستوديو وتسجيلات السلطان",
+   "source_url": "https://www.facebook.com/media/set/?set=a.1099378066174390",
+   "cover_fbid": "1099391022839761",
+   "photos": [
+    {
+     "fbid": "1099389729506557",
+     "sort_order": 1,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099389729506557&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099390242839839",
+     "sort_order": 2,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099390242839839&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099390252839838",
+     "sort_order": 3,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099390252839838&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099390772839786",
+     "sort_order": 4,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099390772839786&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099390916173105",
+     "sort_order": 5,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099390916173105&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099391022839761",
+     "sort_order": 6,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099391022839761&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099391226173074",
+     "sort_order": 7,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099391226173074&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099391289506401",
+     "sort_order": 8,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099391289506401&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099391422839721",
+     "sort_order": 9,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099391422839721&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099391656173031",
+     "sort_order": 10,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099391656173031&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099392729506257",
+     "sort_order": 11,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099392729506257&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099392886172908",
+     "sort_order": 12,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099392886172908&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099393006172896",
+     "sort_order": 13,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099393006172896&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099393246172872",
+     "sort_order": 14,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099393246172872&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099393262839537",
+     "sort_order": 15,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099393262839537&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099393996172797",
+     "sort_order": 16,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099393996172797&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099397156172481",
+     "sort_order": 17,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099397156172481&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099397509505779",
+     "sort_order": 18,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099397509505779&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099398192839044",
+     "sort_order": 19,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099398192839044&set=a.1099378066174390",
+     "width": 1365,
+     "height": 2048
+    },
+    {
+     "fbid": "1099398326172364",
+     "sort_order": 20,
+     "source_url": "https://www.facebook.com/photo/?fbid=1099398326172364&set=a.1099378066174390",
+     "width": 2048,
+     "height": 1365
+    }
+   ]
+  }
+ ]
+}

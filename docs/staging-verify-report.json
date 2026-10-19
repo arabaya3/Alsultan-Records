@@ -1,0 +1,335 @@
+{
+  "target": "staging",
+  "host": "dyuixzxmmeiypvawzmty.supabase.co",
+  "run_id": "mveywf7dbe208e",
+  "started_at": "2026-10-19T08:03:28.633Z",
+  "finished_at": "2026-10-19T08:04:30.007Z",
+  "totals": {
+    "checks": 69,
+    "passed": 69,
+    "failed": 0
+  },
+  "public_tables": 51,
+  "cleanup": {
+    "leftovers": {
+      "events": 0,
+      "media_assets": 0,
+      "quotes": 0,
+      "payments": 0,
+      "customers": 0,
+      "staff_members": 0,
+      "profiles": 0,
+      "tagged_customers": 0,
+      "auth_users": 0,
+      "storage_objects": 0
+    },
+    "errors": [],
+    "audit_rows_retained": 23,
+    "queue_items_pending": 2
+  },
+  "checks": [
+    {
+      "name": "anon: private events invisible",
+      "pass": true
+    },
+    {
+      "name": "anon: published+consented event visible (control)",
+      "pass": true
+    },
+    {
+      "name": "anon: private media rows invisible",
+      "pass": true
+    },
+    {
+      "name": "anon: customers not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table customers"
+    },
+    {
+      "name": "anon: profiles not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table profiles"
+    },
+    {
+      "name": "anon: payments not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table payments"
+    },
+    {
+      "name": "anon: quotes not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table quotes"
+    },
+    {
+      "name": "anon: contracts not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table contracts"
+    },
+    {
+      "name": "anon: booking_requests not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table booking_requests"
+    },
+    {
+      "name": "anon: audit_events not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table audit_events"
+    },
+    {
+      "name": "anon: backup_runs not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table backup_runs"
+    },
+    {
+      "name": "anon: app_settings not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table app_settings"
+    },
+    {
+      "name": "anon: staff_members not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table staff_members"
+    },
+    {
+      "name": "anon: expenses not readable",
+      "pass": true,
+      "detail": "error 42501 permission denied for table expenses"
+    },
+    {
+      "name": "anon: events.production_note not selectable",
+      "pass": true
+    },
+    {
+      "name": "anon: private-media object download denied",
+      "pass": true
+    },
+    {
+      "name": "anon: backups object download denied",
+      "pass": true
+    },
+    {
+      "name": "anon: rpc public_submit_booking refused",
+      "pass": true,
+      "detail": "error 42501 permission denied for function public_submit_booking"
+    },
+    {
+      "name": "anon: rpc public_track_booking refused",
+      "pass": true,
+      "detail": "error 42501 permission denied for function public_track_booking"
+    },
+    {
+      "name": "anon: rpc public_submit_support refused",
+      "pass": true,
+      "detail": "error 42501 permission denied for function public_submit_support"
+    },
+    {
+      "name": "anon: rpc public_track_support refused",
+      "pass": true,
+      "detail": "error 42501 permission denied for function public_track_support"
+    },
+    {
+      "name": "anon: rpc bootstrap_initial_owner refused",
+      "pass": true,
+      "detail": "error 42501 permission denied for function bootstrap_initial_owner"
+    },
+    {
+      "name": "anon: rpc claim_storage_cleanup refused",
+      "pass": true,
+      "detail": "error 42501 permission denied for function claim_storage_cleanup"
+    },
+    {
+      "name": "A sees own events (control)",
+      "pass": true,
+      "detail": "2 rows"
+    },
+    {
+      "name": "A cannot see B's event",
+      "pass": true
+    },
+    {
+      "name": "B cannot see A's events",
+      "pass": true
+    },
+    {
+      "name": "A sees own media (control)",
+      "pass": true
+    },
+    {
+      "name": "A cannot see B's media",
+      "pass": true
+    },
+    {
+      "name": "A sees own quote (control)",
+      "pass": true
+    },
+    {
+      "name": "A cannot see B's quote",
+      "pass": true
+    },
+    {
+      "name": "A cannot accept B's quote",
+      "pass": true
+    },
+    {
+      "name": "A sees only own payments",
+      "pass": true,
+      "detail": "1 rows"
+    },
+    {
+      "name": "B cannot see A's payments",
+      "pass": true
+    },
+    {
+      "name": "A cannot read B's event financials",
+      "pass": true
+    },
+    {
+      "name": "A can download own private object (control)",
+      "pass": true
+    },
+    {
+      "name": "A cannot download B's private object",
+      "pass": true
+    },
+    {
+      "name": "A cannot sign a URL for B's object",
+      "pass": true,
+      "detail": "error NoSuchKey Object not found"
+    },
+    {
+      "name": "A cannot update B's quote",
+      "pass": true
+    },
+    {
+      "name": "customer cannot change own role (column/trigger)",
+      "pass": true,
+      "detail": "error 42501 permission denied for table profiles"
+    },
+    {
+      "name": "customer cannot call admin_set_user_role",
+      "pass": true
+    },
+    {
+      "name": "customer cannot call bootstrap_initial_owner successfully",
+      "pass": true
+    },
+    {
+      "name": "staff aal1 (MFA required) cannot see assigned event",
+      "pass": true
+    },
+    {
+      "name": "staff aal1 cannot see assigned event media",
+      "pass": true
+    },
+    {
+      "name": "staff reaches aal2 via TOTP",
+      "pass": true
+    },
+    {
+      "name": "staff aal2 sees assigned event (control)",
+      "pass": true
+    },
+    {
+      "name": "staff aal2 cannot see unassigned event",
+      "pass": true
+    },
+    {
+      "name": "admin aal1 (MFA required) cannot read customer events",
+      "pass": true
+    },
+    {
+      "name": "admin reaches aal2 via TOTP",
+      "pass": true
+    },
+    {
+      "name": "admin aal2 reads customer events (control)",
+      "pass": true
+    },
+    {
+      "name": "service role sees backup object (control)",
+      "pass": true
+    },
+    {
+      "name": "admin aal2 cannot download backups object",
+      "pass": true
+    },
+    {
+      "name": "admin aal2 cannot list backups",
+      "pass": true,
+      "detail": "0 rows"
+    },
+    {
+      "name": "admin aal2 cannot read backup_runs",
+      "pass": true
+    },
+    {
+      "name": "admin aal2 cannot write payments directly",
+      "pass": true
+    },
+    {
+      "name": "anon reads live public object before withdrawal (control)",
+      "pass": true
+    },
+    {
+      "name": "anon sees public media row before withdrawal (control)",
+      "pass": true
+    },
+    {
+      "name": "customer withdraws consent",
+      "pass": true,
+      "detail": "0 rows"
+    },
+    {
+      "name": "anon object read denied immediately after withdrawal",
+      "pass": true
+    },
+    {
+      "name": "anon media row hidden after withdrawal",
+      "pass": true
+    },
+    {
+      "name": "event unpublished after withdrawal",
+      "pass": true
+    },
+    {
+      "name": "admin cannot re-grant after customer withdrawal",
+      "pass": true,
+      "detail": "error 42501 consent was withdrawn by the customer; only the customer can grant it again"
+    },
+    {
+      "name": "RLS enabled on every public table",
+      "pass": true
+    },
+    {
+      "name": "anon table privileges limited to SELECT on business_settings/services/service_categories/media_assets",
+      "pass": true
+    },
+    {
+      "name": "anon column privileges limited to public display columns (events, reviews, videos, categories, albums, photos)",
+      "pass": true
+    },
+    {
+      "name": "anon can execute no public function except album_photo_object_path / active_logo_path",
+      "pass": true
+    },
+    {
+      "name": "album_photo_object_path never returns originals (variants thumb/display only)",
+      "pass": true
+    },
+    {
+      "name": "access token hook: executable by supabase_auth_admin only",
+      "pass": true,
+      "detail": "{\"auth_admin\":true,\"authn\":false,\"anon\":false}"
+    },
+    {
+      "name": "all three buckets exist and are private",
+      "pass": true,
+      "detail": "[{\"id\":\"backups\",\"public\":false},{\"id\":\"private-media\",\"public\":false},{\"id\":\"public-media\",\"public\":false}]"
+    },
+    {
+      "name": "cleanup: zero leftovers (users, rows, objects)",
+      "pass": true,
+      "detail": "{\"events\":0,\"media_assets\":0,\"quotes\":0,\"payments\":0,\"customers\":0,\"staff_members\":0,\"profiles\":0,\"tagged_customers\":0,\"auth_users\":0,\"storage_objects\":0} "
+    }
+  ]
+}

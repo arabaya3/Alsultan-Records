@@ -1,0 +1,102 @@
+"use client";
+
+import Image from "next/image";
+import Link from "next/link";
+import { useRef, useState } from "react";
+import { PlayBadge } from "@/components/ui/Button";
+import { isYouTubeId, youTubeThumbUrl } from "@/lib/youtube";
+import { ArrowStartIcon, iconLinkCls } from "@/components/ui/IconLink";
+import { YouTubeDialog, type DialogVideo } from "./YouTubeDialog";
+
+export type CardVideo = DialogVideo & {
+  /** e.g. "٩ د" */
+  duration?: string | null;
+  meta?: string | null;
+  /** Owner-chosen cover (same-origin /p/<photo>/thumb); defaults to the YouTube thumbnail. */
+  coverSrc?: string | null;
+};
+
+/**
+ * Work card (black cinematic): reserved 16:9 frame with a gold hairline, centred play badge, the ORIGINAL
+ * title (clamped to 3 lines; the full title is in the dialog, the video page and the accessible name) and the
+ * category chips. Flex column so every card in a grid row ends at the same baseline. No iframe until the
+ * visitor clicks. Hover: gold border + soft glow only (no zoom).
+ * `tone` is accepted for backward compatibility (the public site is dark everywhere now).
+ */
+export function YouTubeCard({
+  video,
+  priority = false,
+  sizes = "(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw",
+}: {
+  video: CardVideo;
+  priority?: boolean;
+  sizes?: string;
+  tone?: "light" | "dark";
+}) {
+  const [open, setOpen] = useState(false);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  if (!isYouTubeId(video.youtubeId)) return null;
+  const chip =
+    "inline-flex min-h-11 items-center rounded-full border border-hairline px-3 text-sm text-ivory-muted transition-colors hover:border-gold hover:text-gold";
+  return (
+    <article data-work-card={video.youtubeId} className="flex h-full flex-col">
+      <button
+        ref={triggerRef}
+        type="button"
+        onClick={() => setOpen(true)}
+        aria-haspopup="dialog"
+        data-youtube-card={video.youtubeId}
+        className="group block w-full text-start"
+      >
+        <span className="relative block aspect-video overflow-hidden rounded-lg border border-hairline-gold bg-night-deep transition-[border-color,box-shadow] duration-300 group-hover:border-gold group-hover:shadow-[0_10px_30px_-14px_rgb(233_185_73/0.5)]">
+          <Image
+            src={video.coverSrc ?? youTubeThumbUrl(video.youtubeId)}
+            alt=""
+            fill
+            unoptimized
+            priority={priority}
+            sizes={sizes}
+            // An owner-chosen album photo is shown whole (contain); the YouTube thumbnail is already 16:9.
+            className={video.coverSrc ? "object-contain" : "object-cover"}
+          />
+          <span aria-hidden="true" className="absolute inset-0 bg-linear-to-t from-black/55 via-black/5 to-transparent" />
+          <PlayBadge
+            size={52}
+            className="absolute inset-0 m-auto bg-black/45 text-gold transition-colors duration-200 group-hover:bg-gold group-hover:text-ink"
+          />
+          {video.duration ? (
+            <span className="absolute end-3 top-3 rounded-sm bg-black/75 px-2 py-0.5 text-sm text-ivory">{video.duration}</span>
+          ) : null}
+        </span>
+        <span
+          data-card-title
+          title={video.title}
+          className="mt-3 line-clamp-3 font-display text-lg font-semibold leading-snug break-words text-ivory transition-colors group-hover:text-gold"
+        >
+          <span className="sr-only">تشغيل: </span>
+          <bdi>{video.title}</bdi>
+        </span>
+      </button>
+      <div data-card-footer className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 pt-3">
+        {video.categories?.slice(0, 2).map((c) => (
+          <Link key={c.slug} href={`/work?cat=${c.slug}`} data-category-chip={c.slug} className={chip}>
+            {c.title}
+          </Link>
+        ))}
+        {video.meta ? <span className="text-sm text-ivory-muted">{video.meta}</span> : null}
+        {video.href ? (
+          <Link
+            href={video.href}
+            data-details-link
+            aria-label={`تفاصيل: ${video.title}`}
+            title="تفاصيل"
+            className={`ms-auto ${iconLinkCls}`}
+          >
+            <ArrowStartIcon />
+          </Link>
+        ) : null}
+      </div>
+      <YouTubeDialog video={open ? video : null} onClose={() => setOpen(false)} returnFocus={triggerRef} />
+    </article>
+  );
+}

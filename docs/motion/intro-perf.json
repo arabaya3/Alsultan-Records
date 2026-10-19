@@ -1,0 +1,31 @@
+{
+  "profile": "Pixel 7 (412×915, DPR 2.625), CPU 4× throttle, local production build, no network throttling",
+  "runs": [
+    {
+      "lcp": 368,
+      "cls": 0,
+      "longTasks": 2,
+      "tbt": 128,
+      "lcpEl": "img"
+    },
+    {
+      "lcp": 456,
+      "cls": 0,
+      "longTasks": 2,
+      "tbt": 142,
+      "lcpEl": "img"
+    },
+    {
+      "lcp": 436,
+      "cls": 0,
+      "longTasks": 1,
+      "tbt": 117,
+      "lcpEl": "img"
+    }
+  ],
+  "median": {
+    "lcp": 436,
+    "tbt": 128,
+    "cls": 0
+  }
+}

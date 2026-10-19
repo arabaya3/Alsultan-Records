@@ -1,0 +1,54 @@
+{
+ "generated_at": "2026-10-18T09:43:41.898Z",
+ "target": "staging",
+ "supabase_host": "dyuixzxmmeiypvawzmty.supabase.co",
+ "site": "https://sultan-records.vercel.app",
+ "albums": {
+  "total": 7,
+  "published": 7
+ },
+ "published_photos": 128,
+ "variants_in_album_media": {
+  "ok": 128,
+  "missing": 0
+ },
+ "http_display": {
+  "checked": 128,
+  "mode": "all",
+  "ok": 128,
+  "failed": 0
+ },
+ "fbcdn_references": 0,
+ "provenance_links": {
+  "album_photos_source_url_facebook_pages": 128,
+  "photo_albums_source_url_facebook_pages": 7,
+  "other": []
+ },
+ "tables_scanned": {
+  "business_settings": 1,
+  "services": 0,
+  "showcase_videos": 19,
+  "video_categories": 6,
+  "photo_albums": 7,
+  "album_photos": 128,
+  "album_categories": 0,
+  "import_items": 0,
+  "media_assets": 0,
+  "brand_assets": 0,
+  "site_sections": 8,
+  "nav_items": 6,
+  "slug_redirects": 0,
+  "service_links": 0,
+  "process_steps": 4,
+  "offers": 0,
+  "offer_items": 0,
+  "announcements": 0,
+  "reviews": 0,
+  "events": 1,
+  "deliverables": 0
+ },
+ "storage_paths_scanned": 384,
+ "failures": [],
+ "verdict": "PASS — every published photo is served from our own storage; no Facebook CDN URL is stored",
+ "duration_ms": 67966
+}

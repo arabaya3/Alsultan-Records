@@ -1,0 +1,13 @@
+# Upload only the app. Never upload secrets, local data or the original static site.
+/*
+!/web
+web/.env*
+!web/.env.example
+web/.cache
+web/.next
+web/node_modules
+web/test-results
+web/playwright-report
+web/supabase/.temp
+web/supabase/.branches
+web/backups-local

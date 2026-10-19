@@ -1,0 +1,234 @@
+{
+ "verified_at": "2026-10-18T09:52:52.159Z",
+ "export": "backup-export-20261018-124625",
+ "export_created_at": "2026-10-18T09:50:01.737Z",
+ "source": {
+  "target": "staging",
+  "supabase_host": "dyuixzxmmeiypvawzmty.supabase.co"
+ },
+ "export_status": "complete",
+ "export_totals": {
+  "files": 434,
+  "bytes": 58131834,
+  "storage_objects": 384,
+  "storage_bytes": 56857376
+ },
+ "export_duration_ms": 51111,
+ "local_files_ok": "434/434",
+ "table_counts": {
+  "business_settings": {
+   "exported": 1,
+   "restored": 1
+  },
+  "app_settings": {
+   "exported": 1,
+   "restored": 1
+  },
+  "service_categories": {
+   "exported": 8,
+   "restored": 8
+  },
+  "profiles": {
+   "exported": 1,
+   "restored": 1
+  },
+  "customers": {
+   "exported": 4,
+   "restored": 4
+  },
+  "staff_members": {
+   "exported": 0,
+   "restored": 0
+  },
+  "media_assets": {
+   "exported": 0,
+   "restored": 0
+  },
+  "services": {
+   "exported": 0,
+   "restored": 0
+  },
+  "booking_requests": {
+   "exported": 1,
+   "restored": 1
+  },
+  "booking_stage_history": {
+   "exported": 2,
+   "restored": 2
+  },
+  "events": {
+   "exported": 1,
+   "restored": 1
+  },
+  "deliverables": {
+   "exported": 0,
+   "restored": 0
+  },
+  "deliverable_revisions": {
+   "exported": 0,
+   "restored": 0
+  },
+  "video_comments": {
+   "exported": 0,
+   "restored": 0
+  },
+  "album_selections": {
+   "exported": 0,
+   "restored": 0
+  },
+  "album_selection_items": {
+   "exported": 0,
+   "restored": 0
+  },
+  "album_selection_snapshots": {
+   "exported": 0,
+   "restored": 0
+  },
+  "quotes": {
+   "exported": 0,
+   "restored": 0
+  },
+  "quote_items": {
+   "exported": 0,
+   "restored": 0
+  },
+  "contracts": {
+   "exported": 0,
+   "restored": 0
+  },
+  "contract_versions": {
+   "exported": 0,
+   "restored": 0
+  },
+  "payments": {
+   "exported": 0,
+   "restored": 0
+  },
+  "expenses": {
+   "exported": 0,
+   "restored": 0
+  },
+  "event_staff_assignments": {
+   "exported": 0,
+   "restored": 0
+  },
+  "equipment": {
+   "exported": 0,
+   "restored": 0
+  },
+  "equipment_assignments": {
+   "exported": 0,
+   "restored": 0
+  },
+  "equipment_maintenance": {
+   "exported": 0,
+   "restored": 0
+  },
+  "support_requests": {
+   "exported": 0,
+   "restored": 0
+  },
+  "support_messages": {
+   "exported": 0,
+   "restored": 0
+  },
+  "reviews": {
+   "exported": 0,
+   "restored": 0
+  },
+  "notifications": {
+   "exported": 0,
+   "restored": 0
+  },
+  "audit_events": {
+   "exported": 924,
+   "restored": 924
+  },
+  "backup_runs": {
+   "exported": 0,
+   "restored": 0
+  },
+  "video_categories": {
+   "exported": 6,
+   "restored": 6
+  },
+  "showcase_videos": {
+   "exported": 19,
+   "restored": 19
+  },
+  "showcase_video_categories": {
+   "exported": 32,
+   "restored": 32
+  },
+  "album_categories": {
+   "exported": 0,
+   "restored": 0
+  },
+  "photo_albums": {
+   "exported": 7,
+   "restored": 7
+  },
+  "album_photos": {
+   "exported": 128,
+   "restored": 128
+  },
+  "import_items": {
+   "exported": 128,
+   "restored": 128
+  },
+  "brand_assets": {
+   "exported": 0,
+   "restored": 0
+  },
+  "site_sections": {
+   "exported": 8,
+   "restored": 8
+  },
+  "nav_items": {
+   "exported": 6,
+   "restored": 6
+  },
+  "slug_redirects": {
+   "exported": 0,
+   "restored": 0
+  },
+  "service_links": {
+   "exported": 0,
+   "restored": 0
+  },
+  "process_steps": {
+   "exported": 4,
+   "restored": 4
+  },
+  "offers": {
+   "exported": 0,
+   "restored": 0
+  },
+  "offer_items": {
+   "exported": 0,
+   "restored": 0
+  },
+  "announcements": {
+   "exported": 0,
+   "restored": 0
+  },
+  "auth.users": {
+   "exported": 1,
+   "restored": 1
+  }
+ },
+ "storage_readback_ok": "384/384",
+ "photo_sha256_matches_original": {
+  "ok": 128,
+  "without_sha256": 0,
+  "total": 128
+ },
+ "public_serving": {
+  "checked": 3,
+  "ok": 3,
+  "original_denied": 3
+ },
+ "failures": [],
+ "verdict": "PASS",
+ "duration_ms": 8043
+}

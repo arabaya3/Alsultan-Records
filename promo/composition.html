@@ -1,0 +1,294 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>Sultan Records promo</title>
+<!-- Fonts: Alexandria + IBM Plex Sans Arabic, Google Fonts, SIL OFL 1.1 -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@500;700;800&family=IBM+Plex+Sans+Arabic:wght@400;500;600&display=block" rel="stylesheet">
+<style>
+:root{--c:#0b0b0b;--i:#f8f4ec;--g:#e9b949}
+html,body{margin:0;padding:0;background:var(--c);overflow:hidden}
+#stage{position:relative;overflow:hidden;background:var(--c);color:var(--i);font-family:'IBM Plex Sans Arabic',sans-serif}
+.scene{position:absolute;inset:0;opacity:0}
+.disp{font-family:'Alexandria',sans-serif;font-weight:700;line-height:1.25;margin:0}
+.g{color:var(--g)}
+.center{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center}
+.rule{height:2px;background:linear-gradient(90deg,transparent,var(--g) 20%,var(--g) 80%,transparent);transform:scaleX(0)}
+.mask{display:inline-block;clip-path:inset(0 0 0 100%)}
+img{display:block}
+/* overlays */
+#vignette{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(0,0,0,.55) 100%);z-index:50}
+#grain{position:absolute;inset:0;pointer-events:none;opacity:.07;z-index:51;mix-blend-mode:overlay;
+  background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' seed='7'/></filter><rect width='300' height='300' filter='url(%23n)'/></svg>")}
+/* S1 */
+#s1 .inner{position:absolute;inset:0}
+#logo1{clip-path:circle(0% at 50% 50%)}
+/* S2 */
+#s2 .bg{position:absolute;inset:0;background-size:cover;background-position:100% 0%;transform-origin:100% 0%;filter:saturate(.85);opacity:.2}
+#s2 .inner{position:absolute;inset:0}
+#dot{display:inline-block;transform-origin:50% 80%}
+#l2{font-weight:500;color:rgba(248,244,236,.88);margin:0}
+/* S3 */
+.slide{position:absolute;inset:0;overflow:hidden}
+.slide .ph{position:absolute;inset:0;background-size:cover;background-position:center}
+.slide .shade{position:absolute;inset:0}
+.slide .edge{position:absolute;top:-10%;height:120%;width:6px;background:var(--g);box-shadow:0 0 18px rgba(233,185,73,.6);transform:skewX(-8deg)}
+.slide .inset{position:absolute;border:6px solid var(--i);box-shadow:0 20px 50px rgba(0,0,0,.5);background-size:cover;background-position:center}
+.title{position:absolute;opacity:0}
+.title .idx{font-family:'Alexandria';font-weight:500;color:var(--g);letter-spacing:.1em;direction:ltr;display:inline-block}
+.title .t{font-family:'Alexandria';font-weight:800;line-height:1.15;margin:0;text-shadow:0 4px 30px rgba(0,0,0,.6)}
+.title .bar{height:3px;background:var(--g);transform-origin:100% 50%}
+/* S4 */
+.device{position:absolute;transform-origin:50% 50%}
+.browser{background:#1c1c1c;border-radius:16px;overflow:hidden;box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 0 1px rgba(233,185,73,.25)}
+.chrome{height:46px;display:flex;align-items:center;gap:10px;padding:0 18px;direction:ltr;background:#202020}
+.chrome i{width:13px;height:13px;border-radius:50%;background:#444;display:block}
+.urlbar{position:relative;flex:1;height:28px;margin-left:20px;border-radius:14px;background:#2d2d2d;font:500 15px/28px 'IBM Plex Sans Arabic';color:#cfc9bd;direction:ltr;text-align:left;padding-left:16px}
+.urlbar span{position:absolute;left:16px;top:0;opacity:0}
+.screen{position:relative;overflow:hidden;background:#0b0b0b}
+.screen img{position:absolute;left:0;top:0;width:100%;opacity:0}
+.phone{background:#141414;border-radius:70px;padding:16px;box-shadow:0 40px 100px rgba(0,0,0,.7),0 0 0 2px rgba(233,185,73,.35)}
+.phone .screen{border-radius:56px}
+.ring{position:absolute;width:76px;height:76px;margin:-38px 0 0 -38px;border-radius:50%;border:4px solid var(--g);box-shadow:0 0 24px rgba(233,185,73,.7);opacity:0;z-index:5}
+.ring .dotc{position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px;border-radius:50%;background:var(--g)}
+.ring .pulse{position:absolute;inset:-4px;border-radius:50%;border:4px solid var(--g);opacity:0}
+.copy{position:absolute}
+.copy .h{font-family:'Alexandria';font-weight:800;margin:0;line-height:1.2}
+.copy .s{font-family:'Alexandria';font-weight:500;margin:0;line-height:1.3;color:rgba(248,244,236,.9)}
+/* S5 */
+#phone{direction:ltr;unicode-bidi:isolate;font-family:'Alexandria';font-weight:600;letter-spacing:.04em}
+#url{direction:ltr;unicode-bidi:isolate;font-family:'IBM Plex Sans Arabic';font-weight:500;color:var(--g);letter-spacing:.03em}
+/* cover */
+#cover{position:absolute;inset:0;display:none;z-index:40;background:var(--c)}
+#cover .bg{position:absolute;inset:0;background-size:cover;background-position:center;opacity:.3}
+#cover .shade{position:absolute;inset:0;background:radial-gradient(ellipse at center,rgba(11,11,11,.35),rgba(11,11,11,.92) 75%)}
+#cover .inner{position:absolute;inset:0}
+</style>
+</head>
+<body>
+<div id="stage">
+  <!-- S1 logo reveal -->
+  <section class="scene" id="s1"><div class="inner center">
+    <img id="logo1" src="../web/public/brand/logo-main.webp" alt="">
+    <div class="rule" id="rule1"></div>
+    <h1 class="disp mask" id="name1">ستوديو وتسجيلات السلطان</h1>
+  </div></section>
+
+  <!-- S2 tagline -->
+  <section class="scene" id="s2"><div class="bg" style="background-image:url(assets/photos/1099398326172364.jpg)"></div><div class="inner center">
+    <h2 class="disp mask" id="l1">فرحتك إلها حكاية<span id="dot" class="g">.</span></h2>
+    <div class="rule" id="rule2"></div>
+    <p id="l2" class="disp"></p>
+  </div></section>
+
+  <!-- S3 stills + services -->
+  <section class="scene" id="s3"></section>
+
+  <!-- S4 website -->
+  <section class="scene" id="s4"></section>
+
+  <!-- S5 end card -->
+  <section class="scene" id="s5"><div class="inner center" style="position:absolute;inset:0">
+    <img id="logo5" src="../web/public/brand/logo-main.webp" alt="">
+    <div class="rule" id="rule5"></div>
+    <h2 class="disp" id="cta">احكِ لنا عن مناسبتك</h2>
+    <div id="phone" dir="ltr">+970598677477</div>
+    <div id="url" dir="ltr">sultan-records.vercel.app</div>
+  </div></section>
+
+  <section id="cover"><div class="bg" id="coverBg"></div><div class="shade"></div><div class="inner center" id="coverInner"></div></section>
+
+  <div id="vignette"></div><div id="grain"></div>
+</div>
+
+<script src="../web/node_modules/gsap/dist/gsap.min.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+const P = q.get('format') === 'portrait';
+const W = P ? 1080 : 1920, H = P ? 1920 : 1080;
+const $ = s => document.querySelector(s);
+const stage = $('#stage'); stage.style.width = W + 'px'; stage.style.height = H + 'px';
+const css = (el, o) => Object.assign(el.style, o);
+
+/* ---------- layout per format ---------- */
+// S1
+css($('#logo1'), { height: (P ? 400 : 330) + 'px', width: 'auto' });
+css($('#rule1'), { width: (P ? 640 : 560) + 'px', margin: (P ? 56 : 40) + 'px 0 ' + (P ? 44 : 30) + 'px' });
+css($('#name1'), { fontSize: (P ? 66 : 66) + 'px', whiteSpace: 'nowrap' });
+// S2
+css($('#l1'), { fontSize: (P ? 112 : 124) + 'px' });
+css($('#rule2'), { width: (P ? 420 : 520) + 'px', margin: (P ? 50 : 36) + 'px 0' });
+$('#l2').innerHTML = P ? 'نوثّق أجمل لحظاتكم<br>بالصوت والصورة' : 'نوثّق أجمل لحظاتكم بالصوت والصورة';
+css($('#l2'), { fontSize: (P ? 66 : 58) + 'px', lineHeight: 1.45 });
+// S5
+css($('#logo5'), { height: (P ? 380 : 270) + 'px' });
+css($('#rule5'), { width: (P ? 600 : 520) + 'px', margin: (P ? 50 : 30) + 'px 0' });
+css($('#cta'), { fontSize: (P ? 92 : 84) + 'px', marginBottom: (P ? 60 : 34) + 'px' });
+css($('#phone'), { fontSize: (P ? 76 : 62) + 'px', marginBottom: (P ? 26 : 14) + 'px' });
+css($('#url'), { fontSize: (P ? 58 : 42) + 'px' });
+
+// S3 slides
+// Studio's own Facebook album photos (promo/assets/photos/<fbid>.jpg), watermarks kept
+const PH = id => `url(assets/photos/${id}.jpg)`;
+const SLIDES = P ? [
+  { panels: ['1088525793926284'], t: 'تصوير فوتوغرافي' },
+  { panels: ['1094340660011464'], t: 'أفلام أعراس ومناسبات' },
+  { panels: ['1099391022839761'], t: 'DJ وتجهيز الأجواء' },
+] : [
+  { panels: ['1088525793926284', '1086549614123902', '1094307913348072'], t: 'تصوير فوتوغرافي' },
+  { panels: ['1086563720789158'], t: 'أفلام أعراس ومناسبات' },
+  { panels: ['1099398326172364'], t: 'DJ وتجهيز الأجواء' },
+];
+const s3 = $('#s3');
+SLIDES.forEach((s, k) => {
+  const el = document.createElement('div'); el.className = 'slide'; el.id = 'sl' + k;
+  el.innerHTML = `<div class="ph" style="display:flex;gap:8px;background:#0b0b0b;transform-origin:100% 0%">${s.panels.map(id => `<div class="pn" style="flex:1;background-image:${PH(id)};background-size:cover;background-position:${s.panels.length > 1 ? '50% 20%' : (P ? '60% 0%' : '50% 0%')}"></div>`).join('')}</div>
+   <div class="shade" style="background:${P ? 'linear-gradient(180deg,rgba(11,11,11,.15) 40%,rgba(11,11,11,.92) 88%)' : 'linear-gradient(0deg,rgba(11,11,11,.92) 0%,rgba(11,11,11,.55) 28%,rgba(11,11,11,0) 55%)'}"></div>
+      <div class="edge" style="left:100%"></div>
+   <div class="title" style="${P ? 'left:65px;right:65px;bottom:200px;text-align:center' : 'right:120px;bottom:130px;text-align:right'}">
+     <div class="idx" style="font-size:${P ? 44 : 34}px">0${k + 1} / 03</div>
+     <h3 class="t" style="font-size:${P ? 100 : 112}px">${s.t}</h3>
+     <div class="bar" style="width:${P ? 300 : 260}px;margin:${P ? '30px auto 0' : '22px 0 0 auto'}"></div>
+   </div>`;
+  s3.appendChild(el);
+});
+
+// S4 device scene
+const s4 = $('#s4');
+const kind = P ? 'mobile' : 'desktop';
+const vpW = P ? 390 : 1440, vpH = P ? 844 : 900;
+const devW = P ? 560 : 1240, sc = devW / vpW, scrH = Math.round(vpH * sc);
+// real capture coordinates (CSS px of the live page), from assets/ui/capture-info.json
+const CHIP = P ? { x: 239, y: 475 } : { x: 1249, y: 583 };
+const CARD = P ? { x: 195, y: 790 } : { x: 1170, y: 788 };
+const screens = ['work', 'cat', 'dialog', 'video'];
+const imgs = screens.map(n => `<img id="sc-${n}" src="assets/ui/${kind}-${n}.png">`).join('');
+const ring = `<div class="ring" id="ring"><div class="dotc"></div><div class="pulse" id="pulse"></div></div>`;
+if (P) {
+  s4.innerHTML = `
+   <div class="copy" style="left:65px;right:65px;top:150px;text-align:center">
+     <h2 class="h mask" id="c1" style="font-size:104px">شاهد أعمالنا</h2>
+     <p class="s" id="c2" style="font-size:62px;margin-top:22px;opacity:0">واختَر اللي يناسب مناسبتك</p>
+   </div>
+   <div class="device phone" id="dev" style="left:${(W - devW - 32) / 2}px;top:560px">
+     <div class="screen" style="width:${devW}px;height:${scrH}px"><div class="zoom" id="zoom" style="position:absolute;inset:0">${imgs}${ring}</div></div>
+   </div>`;
+} else {
+  s4.innerHTML = `
+   <div class="device browser" id="dev" style="left:70px;top:${(H - scrH - 46) / 2}px;width:${devW}px">
+     <div class="chrome"><i></i><i></i><i></i><div class="urlbar"><span id="u0">sultan-records.vercel.app/work</span><span id="u1">sultan-records.vercel.app/work?cat=wedding</span><span id="u2">sultan-records.vercel.app/work/v/bY-HEOQVEZA</span></div></div>
+     <div class="screen" style="width:${devW}px;height:${scrH}px"><div class="zoom" id="zoom" style="position:absolute;inset:0">${imgs}${ring}</div></div>
+   </div>
+   <div class="copy" style="right:80px;width:500px;top:390px;text-align:right">
+     <h2 class="h mask" id="c1" style="font-size:76px;white-space:nowrap">شاهد أعمالنا</h2>
+     <div class="rule" id="rule4" style="width:220px;margin:26px 0 26px auto;transform-origin:100% 50%"></div>
+     <p class="s" id="c2" style="font-size:50px;opacity:0">واختَر اللي يناسب<br>مناسبتك</p>
+   </div>`;
+}
+
+// cover
+$('#coverInner').innerHTML = `
+  <img src="../web/public/brand/logo-main.webp" style="height:${P ? 360 : 260}px">
+  <div style="width:${P ? 520 : 460}px;height:2px;margin:${P ? 50 : 30}px 0;background:linear-gradient(90deg,transparent,#e9b949 20%,#e9b949 80%,transparent)"></div>
+  <h1 class="disp" style="font-size:${P ? 110 : 112}px;font-weight:800">فرحتك إلها حكاية<span class="g">.</span></h1>
+  <p class="disp" style="font-size:${P ? 60 : 50}px;font-weight:500;margin:${P ? 30 : 18}px 0 ${P ? 70 : 40}px;color:rgba(248,244,236,.9)">ستوديو وتسجيلات السلطان</p>
+  <div dir="ltr" style="font-family:'IBM Plex Sans Arabic';font-weight:500;color:#e9b949;font-size:${P ? 56 : 40}px;letter-spacing:.03em">sultan-records.vercel.app</div>`;
+$('#coverBg').style.backgroundImage = PH(P ? '1099391022839761' : '1094307146681482');
+$('#coverBg').style.backgroundPosition = '100% 0%';
+if (q.get('cover')) $('#cover').style.display = 'block';
+
+/* ---------- master timeline (absolute seconds) ---------- */
+const DUR = 28;
+const tl = gsap.timeline({ paused: true, defaults: { ease: 'power2.out' } });
+const R = 'inset(0 0 0 0%)';
+// S1 0–4
+tl.set('#s1', { opacity: 1 }, 0)
+  .fromTo('#s1 .inner', { scale: 1 }, { scale: 1.05, duration: 4, ease: 'none' }, 0)
+  .fromTo('#logo1', { clipPath: 'circle(0% at 50% 50%)', scale: .9, opacity: 0 }, { clipPath: 'circle(75% at 50% 50%)', scale: 1, opacity: 1, duration: 1.7 }, .25)
+  .to('#rule1', { scaleX: 1, duration: 1.1, ease: 'power3.inOut' }, 1.1)
+  .fromTo('#name1', { clipPath: 'inset(0 0 0 100%)', y: 16 }, { clipPath: R, y: 0, duration: 1.1 }, 1.5)
+  .to('#s1', { opacity: 0, y: -24, duration: .5, ease: 'power2.in' }, 3.5);
+// S2 4–9
+tl.fromTo('#s2', { opacity: 0 }, { opacity: 1, duration: .5 }, 3.9)
+  .fromTo('#s2 .inner', { scale: 1 }, { scale: 1.06, duration: 5.2, ease: 'none' }, 3.9)
+  .fromTo('#s2 .bg', { scale: 1 }, { scale: 1.06, duration: 5.2, ease: 'none' }, 3.9)
+  .fromTo('#l1', { clipPath: 'inset(0 0 0 100%)' }, { clipPath: R, duration: 1.1, ease: 'power3.out' }, 4.2)
+  .fromTo('#dot', { scale: 0, opacity: 0 }, { scale: 1, opacity: 1, duration: .45, ease: 'back.out(3)' }, 5.1)
+  .to('#rule2', { scaleX: 1, duration: .8, ease: 'power3.inOut' }, 5.6)
+  .fromTo('#l2', { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: .9 }, 6.0)
+  .to('#s2', { opacity: 0, duration: .45, ease: 'power1.in' }, 8.55);
+// S3 8.6–16
+tl.set('#s3', { opacity: 1 }, 8.6);
+const starts = [8.6, 11.1, 13.6];
+SLIDES.forEach((s, k) => {
+  const t0 = starts[k], el = '#sl' + k;
+  const end = k < 2 ? starts[k + 1] + .7 : 16.3;
+  tl.fromTo(el, { clipPath: 'polygon(130% 0%,130% 0%,130% 100%,115% 100%)' },
+      { clipPath: 'polygon(-15% 0%,130% 0%,130% 100%,-30% 100%)', duration: .75, ease: 'power3.inOut' }, t0)
+    .fromTo(el + ' .edge', { left: '115%', opacity: 1 }, { left: '-25%', duration: .75, ease: 'power3.inOut' }, t0)
+    .fromTo(el + ' .ph', { scale: 1.0 }, { scale: 1.08, duration: end - t0, ease: 'none' }, t0)
+    .fromTo(el + ' .title', { opacity: 0, y: 40 }, { opacity: 1, y: 0, duration: .7 }, t0 + .8)
+    .fromTo(el + ' .t', { clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 -20% 0%)', duration: .8, ease: 'power3.out' }, t0 + .8)
+    .fromTo(el + ' .bar', { scaleX: 0 }, { scaleX: 1, duration: .7 }, t0 + 1.1);
+  if (s.panels.length > 1) tl.fromTo(el + ' .pn', { y: 60, opacity: .0 }, { y: 0, opacity: 1, duration: .9, stagger: .12, ease: 'power3.out' }, t0 + .1);
+  if (false) tl.fromTo(el + ' .inset', { opacity: 0, y: 60 }, { opacity: 1, y: -20, duration: end - t0 - .3, ease: 'power1.out' }, t0 + .3);
+  if (k < 2) tl.to(el + ' .title', { opacity: 0, y: -20, duration: .3, ease: 'power1.in' }, starts[k + 1] - .4);
+});
+tl.to('#sl2 .title', { opacity: 0, y: -20, duration: .3, ease: 'power1.in' }, 15.35);
+tl.to('#s3', { opacity: 0, duration: .45, ease: 'power1.in' }, 15.7);
+// S4 16–23
+const ringPos = p => ({ left: p.x * sc, top: p.y * sc });
+tl.fromTo('#s4', { opacity: 0 }, { opacity: 1, duration: .5 }, 15.95)
+  .fromTo('#dev', { y: 70, scale: .97 }, { y: 0, scale: 1, duration: 1.0, ease: 'power3.out' }, 15.95)
+  .set('#sc-work', { opacity: 1 }, 15.95)
+  .fromTo('#c1', { clipPath: 'inset(0 0 0 100%)' }, { clipPath: 'inset(0 0 -20% 0%)', duration: 1.0, ease: 'power3.out' }, 16.3);
+if (!P) tl.to('#rule4', { scaleX: 1, duration: .8 }, 16.8).set('#u0', { opacity: 1 }, 15.95);
+tl.set('#ring', { ...ringPos({ x: vpW * .5, y: vpH * .78 }) }, 15.95)
+  .to('#ring', { opacity: 1, duration: .3 }, 16.75)
+  .to('#ring', { ...ringPos(CHIP), duration: .7, ease: 'power2.inOut' }, 16.85)
+  .fromTo('#pulse', { scale: 1, opacity: .9 }, { scale: 2.2, opacity: 0, duration: .55 }, 17.55)
+  .to('#ring', { scale: .8, duration: .12, yoyo: true, repeat: 1 }, 17.55)
+  .to('#sc-cat', { opacity: 1, duration: .3 }, 17.85);
+if (!P) tl.to('#u0', { opacity: 0, duration: .2 }, 17.85).to('#u1', { opacity: 1, duration: .2 }, 17.9);
+tl.to('#ring', { ...ringPos(CARD), duration: .75, ease: 'power2.inOut' }, 18.25)
+  .fromTo('#pulse', { scale: 1, opacity: .9 }, { scale: 2.2, opacity: 0, duration: .55, immediateRender: false }, 19.0)
+  .to('#ring', { scale: .8, duration: .12, yoyo: true, repeat: 1 }, 19.0)
+  .to('#ring', { opacity: 0, duration: .3 }, 19.35)
+  .fromTo('#sc-dialog', { opacity: 0, scale: .96 }, { opacity: 1, scale: 1, duration: .45 }, 19.3)
+  .fromTo('#c2', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .8 }, 19.5)
+  .fromTo('#sc-video', { opacity: 0 }, { opacity: 1, duration: .45 }, 21.1);
+if (!P) tl.to('#u1', { opacity: 0, duration: .2 }, 21.1).to('#u2', { opacity: 1, duration: .2 }, 21.2);
+const org = p => `${p.x * sc}px ${p.y * sc}px`;
+if (!P) {
+  tl.set('#zoom', { transformOrigin: org(CHIP), scale: 1 }, 15.95)
+    .to('#zoom', { scale: 1.45, duration: .9, ease: 'power2.inOut' }, 16.75)
+    .to('#zoom', { transformOrigin: org(CARD), duration: .8, ease: 'power2.inOut' }, 18.15)
+    .to('#zoom', { scale: 1, transformOrigin: org({ x: vpW / 2, y: vpH / 2 }), duration: .6, ease: 'power2.inOut' }, 19.25)
+    .to('#zoom', { scale: 1.05, duration: 1.7, ease: 'none' }, 21.1);
+} else {
+  tl.fromTo('#dev', { scale: 1 }, { scale: 1.03, duration: 5.9, ease: 'none', immediateRender: false }, 17.0);
+}
+tl.to('#s4', { opacity: 0, duration: .4, ease: 'power1.in' }, 22.55);
+// S5 23–26
+tl.fromTo('#s5', { opacity: 0 }, { opacity: 1, duration: .4 }, 23.0)
+  .fromTo('#logo5', { opacity: 0, scale: .94 }, { opacity: 1, scale: 1, duration: .7 }, 23.0)
+  .fromTo('#rule5', { scaleX: 0 }, { scaleX: 1, duration: .6, ease: 'power3.inOut' }, 23.3)
+  .fromTo('#cta', { opacity: 0, y: 24 }, { opacity: 1, y: 0, duration: .6 }, 23.4)
+  .fromTo('#phone', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .5 }, 23.65)
+  .fromTo('#url', { opacity: 0, y: 20 }, { opacity: 1, y: 0, duration: .5 }, 23.75)
+  .set({}, {}, DUR);
+
+window.tl = tl; window.DUR = DUR; window.W = W; window.H = H;
+window.ready = (async () => {
+  await document.fonts.ready;
+  await Promise.all(['Alexandria', 'IBM Plex Sans Arabic'].flatMap(f => [500, 700, 800].map(w => document.fonts.load(`${w} 40px "${f}"`, 'سلطان'))));
+  const urls = [...document.querySelectorAll('img')].map(i => i.src).concat([...document.querySelectorAll('[style*="background-image"]')].map(e => (e.style.backgroundImage.match(/url\("?(.*?)"?\)/) || [])[1]).filter(Boolean));
+  await Promise.all(urls.map(u => { const im = new Image(); im.src = u; return im.decode().catch(() => { throw new Error('img ' + u); }); }));
+  tl.seek(0);
+  return true;
+})();
+</script>
+</body>
+</html>
