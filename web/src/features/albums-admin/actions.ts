@@ -301,6 +301,7 @@ export async function retryAlbumVariants(_p: ActionResult, fd: FormData): Promis
 }
 
 export async function refreshAlbum(): Promise<void> {
+  if (!(await guard(ADMIN_ROLES))) return; // public cache busting is admin-only
   updateTag(TAGS.albums);
   refresh();
 }

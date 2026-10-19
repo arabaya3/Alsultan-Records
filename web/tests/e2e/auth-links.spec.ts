@@ -89,7 +89,7 @@ test.describe.configure({ mode: "serial" });
 // Precondition, not a flake: in token_hash mode the mailed link is built from config.toml `site_url`, so it can only
 // point at the app under test when site_url has the same origin as BASE_URL. Otherwise skip with the reason (a full
 // run usually targets another port); run this spec on its own as described in the header.
-const SITE_URL = /^site_urls*=s*"([^"]+)"/m.exec(fs.readFileSync(path.resolve(__dirname, "../../supabase/config.toml"), "utf8"))?.[1] ?? "";
+const SITE_URL = /^site_url\s*=\s*"([^"]+)"/m.exec(fs.readFileSync(path.resolve(__dirname, "../../supabase/config.toml"), "utf8"))?.[1] ?? "";
 const SITE_MATCH = MODE !== "token_hash" || (SITE_URL !== "" && new URL(SITE_URL).origin === new URL(BASE).origin);
 
 test.describe(`auth links — ${MODE} templates`, () => {

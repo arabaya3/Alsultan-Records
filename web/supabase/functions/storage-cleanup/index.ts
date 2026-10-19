@@ -16,6 +16,10 @@ const BUCKETS = new Set(["public-media", "private-media"]);
 // album_photos AFTER DELETE trigger (photo delete / album purge). Mirrors src/features/publishing/cleanup.ts.
 const ALBUM_BUCKET = "album-media";
 const ALBUM_PATH = /^albums\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+$/i;
+// site-media only for deleted brand logos: brand/<asset uuid>/logo.<ext> (queued solely by the brand_assets AFTER
+// DELETE trigger, 0017). Without this the worker dead-lettered every logo deletion and the files stayed in storage.
+const SITE_BUCKET = "site-media";
+const SITE_PATH = /^brand\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/logo\.(?:png|webp|jpe?g)$/i;
 const LIMIT = 100;
 
 type Item = { id: string; bucket: string; path: string; reason: string };
@@ -64,9 +68,10 @@ Deno.serve(async (req) => {
   const failed: { id: string; error: string }[] = [];
   for (const it of items) {
     try {
-      if (!BUCKETS.has(it.bucket) && it.bucket !== ALBUM_BUCKET) throw new Error(`invalid bucket ${it.bucket}`);
+      if (!BUCKETS.has(it.bucket) && it.bucket !== ALBUM_BUCKET && it.bucket !== SITE_BUCKET) throw new Error(`invalid bucket ${it.bucket}`);
       if (!it.path || it.path.includes("..") || it.path.startsWith("/") || it.path.includes("\\")) throw new Error("invalid path");
       if (it.bucket === ALBUM_BUCKET && !ALBUM_PATH.test(it.path)) throw new Error("invalid path");
+      if (it.bucket === SITE_BUCKET && !SITE_PATH.test(it.path)) throw new Error("invalid path");
       // Same endpoint supabase-js storage.remove() uses; absent objects are not an error.
       const r = await fetch(`${base}/storage/v1/object/${encodeURIComponent(it.bucket)}`, {
         method: "DELETE",

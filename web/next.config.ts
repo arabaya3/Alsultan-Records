@@ -61,6 +61,14 @@ const nextConfig: NextConfig = {
         ],
       },
       {
+        // Legacy service-worker kill switch (public/sw.js): browsers must always fetch the current file.
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-store" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      {
         // Studio promo: content-hashed filenames written by scripts/sync-promo.mjs (new file → new URL),
         // so long-lived immutable caching is safe. Range requests are served by the static file server/CDN.
         source: "/promo/:path*",

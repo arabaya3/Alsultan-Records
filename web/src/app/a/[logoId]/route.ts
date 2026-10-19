@@ -44,7 +44,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ logoId: string
   }
   const headers = new Headers({
     "Content-Type": ct,
-    "Cache-Control": "public, max-age=300",
+    "Cache-Control": "private, max-age=300",
     "CDN-Cache-Control": "no-store",
     "Vercel-CDN-Cache-Control": "no-store",
     "X-Content-Type-Options": "nosniff",

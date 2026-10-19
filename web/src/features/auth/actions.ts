@@ -1,6 +1,5 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { publicEnv } from "@/lib/env/public";
@@ -18,11 +17,9 @@ function str(fd: FormData, k: string) {
   return typeof v === "string" ? v : "";
 }
 
+/** Base URL for links sent by email: ONLY the configured site URL — never request headers a client can forge. */
 async function origin() {
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host");
-  const proto = h.get("x-forwarded-proto") ?? "http";
-  return host ? `${proto}://${host}` : publicEnv.NEXT_PUBLIC_SITE_URL;
+  return publicEnv.NEXT_PUBLIC_SITE_URL.replace(/\/+$/, "");
 }
 
 async function landing(next: string): Promise<string> {
@@ -95,6 +92,7 @@ export async function updatePassword(_prev: AuthState, fd: FormData): Promise<Au
   if (!data?.claims) return { status: "error", message: "انتهت صلاحية رابط إعادة التعيين. اطلب رابطاً جديداً." };
   const { error } = await supabase.auth.updateUser({ password: pw.data });
   if (error) return { status: "error", message: error.code === "same_password" ? "اختر كلمة مرور مختلفة عن السابقة." : GENERIC };
+  await supabase.auth.signOut({ scope: "others" }); // a reset ends every other session of the account
   redirect(await landing(""));
 }
 

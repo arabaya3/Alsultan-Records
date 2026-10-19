@@ -1458,6 +1458,9 @@ isOneToOne: false
 "admin_link_customer_user":
 { Args: { "p_customer_id": string,"p_user_id": string }; Returns: undefined
                            },
+"admin_revoke_user_sessions":
+{ Args: { "p_user_id": string }; Returns: number
+                           },
 "admin_set_user_disabled":
 { Args: { "p_disabled": boolean,"p_user_id": string }; Returns: undefined
                            },

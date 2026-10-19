@@ -77,6 +77,8 @@ export async function updateEvent(_p: ActionResult, fd: FormData): Promise<Actio
   const sb = await createClient();
   const { error } = await sb.from("events").update(parsed.data).eq("id", id);
   if (error) return fail(dbMessage(error, { ...SLUG_TAKEN, "23514": "لا يمكن إزالة الرابط العام لمناسبة منشورة. أوقف النشر أولاً." }));
+  updateTag("projects"); // a published event's public page/lists/sitemap must not stay stale
+  updateTag("media");
   refresh();
   return ok("حُفظت المناسبة.");
 }
@@ -178,6 +180,8 @@ export async function cleanupPublic(_p: ActionResult, fd: FormData): Promise<Act
   if (ev?.is_published && ev.publication_consent === "granted")
     return fail("المناسبة منشورة حالياً؛ أوقف نشر الصور فرادى من صفحة الوسائط.");
   const r = await retractEventPublicCopies(sb, id);
+  updateTag("projects");
+  updateTag("media");
   refresh();
   return ok(`أُزيلت ${r.rows} نسخة عامة من السجل. ${r.message}`.trim());
 }

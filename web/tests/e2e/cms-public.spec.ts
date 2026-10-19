@@ -194,7 +194,8 @@ test("active logo: /a/<id> serves only the active logo; header switches; fallbac
     const ok = await fetch(new URL(`/a/${id}`, BASE));
     expect(ok.status).toBe(200);
     expect(ok.headers.get("content-type")).toBe("image/webp");
-    expect(ok.headers.get("cache-control")).toBe("public, max-age=300");
+    // private (not public): shared proxies must not keep a replaced/withdrawn logo; browsers may for 5 min (PR #1 review).
+    expect(ok.headers.get("cache-control")).toBe("private, max-age=300");
     expect(ok.headers.get("cdn-cache-control")).toBe("no-store");
     expect((await fetch(new URL(`/a/${crypto.randomUUID()}`, BASE))).status).toBe(404);
     expect((await fetch(new URL("/a/not-a-uuid", BASE))).status).toBe(404);

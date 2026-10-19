@@ -100,7 +100,8 @@ export async function changeOwnPassword(_p: ActionResult, fd: FormData): Promise
   const sb = await createClient();
   const { error } = await sb.auth.updateUser({ password: parsed.data.password });
   if (error) return fail("تعذّر تغيير كلمة السر. حاول مرة ثانية.");
-  return ok("تغيّرت كلمة السر. استعملها بالدخول الجاي.");
+  await sb.auth.signOut({ scope: "others" }); // other devices must sign in again with the new password
+  return ok("تغيّرت كلمة السر. الأجهزة الثانية انسجّل خروجها، واستعمل الكلمة الجديدة بالدخول الجاي.");
 }
 
 const resetPassword = z
@@ -124,6 +125,10 @@ export async function setUserPassword(_p: ActionResult, fd: FormData): Promise<A
   const { error } = await admin.auth.admin.updateUserById(id, { password: parsed.data.password });
   if (error) return fail("تعذّر تعيين كلمة السر. حاول مرة ثانية.");
   const audit = await admin.from("audit_events").insert({ actor: session.userId, action: "password_set_by_owner", entity_type: "auth.users", entity_id: id, after: { by: "owner" } });
-  if (audit.error) return fail("تعيّنت كلمة السر، بس تعذّر تسجيلها بسجل التدقيق.");
-  return ok("تعيّنت كلمة السر الجديدة. أعطيها للشخص بطريقة آمنة، وبيقدر يغيّرها من «حسابي وكلمة السر».");
+  // End the account's existing sessions (owner-only, audited RPC under the owner's own session): a reset after a
+  // compromise must not leave the old sessions alive.
+  const revoke = await (await createClient()).rpc("admin_revoke_user_sessions", { p_user_id: id });
+  if (revoke.error) return fail("تعيّنت كلمة السر، بس تعذّر إنهاء جلسات الحساب المفتوحة. عطّل الحساب مؤقتاً وأعد المحاولة.");
+  if (audit.error) return fail("تعيّنت كلمة السر وانتهت جلساته، بس تعذّر تسجيل التعيين بسجل التدقيق.");
+  return ok("تعيّنت كلمة السر الجديدة وانسجّل خروج الحساب من كل الأجهزة. أعطيها للشخص بطريقة آمنة، وبيقدر يغيّرها من «حسابي وكلمة السر».");
 }

@@ -237,7 +237,20 @@ export function HeroIntro(p: HeroIntroProps) {
                 <WhatsAppIcon size={22} />
                 <span>{p.secondaryLabel ?? "تواصل عبر واتساب"}</span>
               </a>
-            ) : null}
+            ) : (
+              // No WhatsApp number configured: the hero must still offer a next step (gold when it is the only CTA).
+              // Same fallback as the shared <WhatsAppCta> (→ /contact «تواصل معنا»).
+              <Link
+                href="/contact"
+                data-intro="cta"
+                data-hero-cta="contact"
+                className={`inline-flex min-h-14 items-center justify-center rounded-sm px-7 text-lg font-medium transition-colors ${
+                  p.workHref ? "border border-ivory/55 hover:border-gold hover:text-gold" : "bg-gold text-ink hover:bg-gold-press"
+                }`}
+              >
+                تواصل معنا
+              </Link>
+            )}
           </div>
           {p.phone ? (
             <p data-intro="cta" className="mt-5">

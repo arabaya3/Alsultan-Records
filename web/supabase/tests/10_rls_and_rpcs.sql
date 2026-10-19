@@ -92,7 +92,7 @@ reset role;
 select is((select is_published from public.events where id = '00000000-0000-4000-8000-0000000000e2'), false, 'revoking consent unpublishes');
 select is((select title from public.events where id = '00000000-0000-4000-8000-0000000000e3'), '[DEV] Customer B engagement', 'A update on B event had no effect');
 select is((select title from public.events where id = '00000000-0000-4000-8000-0000000000e1'), '[DEV] Customer A wedding', 'customer cannot update even own event');
-select is((select count(*)::int from public.audit_events where entity_type = 'events' and entity_id = '00000000-0000-4000-8000-0000000000e2'), 1, 'consent change audited');
+select is((select count(*)::int from public.audit_events where entity_type = 'events' and action = 'update' and entity_id = '00000000-0000-4000-8000-0000000000e2'), 1, 'consent change audited'); -- update rows only: since 0023 the seed's event INSERT is audited too
 
 -- ================================================================== anon
 select set_config('request.jwt.claims', '{"role":"anon"}', true);

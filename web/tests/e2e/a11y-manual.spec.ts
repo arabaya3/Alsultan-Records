@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { BASE, EV, USERS, uiLogin, type Who, skipSiteIntro } from "./qa-helpers";
+import { BASE, EV, USERS, uiLogin, type Who, skipSiteIntro, resetSeedSelections } from "./qa-helpers";
 
 /**
  * A11y release blocker, part B: "manual" checks automated (keyboard, focus, dialogs, form errors,
@@ -138,6 +138,8 @@ test("form errors are announced (login, admin payment)", async ({ browser }) => 
 });
 
 test("portal keyboard: login, lightbox (RTL arrows, Esc, focus return), toggle selection and submit", async ({ browser }) => {
+  // Self-contained: this test SUBMITS (locks) A1's selection, and portal/qa-portal lock it too — start from the seed state.
+  resetSeedSelections([EV.A1, EV.A2]);
   const page = await newPage(browser);
   const log = focusLog();
   await keyboardLogin(page, "a", `/portal/events/${EV.A1}/gallery`, log);

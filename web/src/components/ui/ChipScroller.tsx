@@ -6,7 +6,9 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
  * Category chips: wrapped & centered from md up; on phones ONE horizontally scrollable row (design audit #3).
  * - RTL-correct: edge fades show where more chips exist (start = right, end = left), computed from rects so they
  *   work whatever the browser's RTL scrollLeft sign is.
- * - The selected chip ([aria-current=page]) is scrolled into view on load (container only — the page never jumps).
+ * - The selected chip ([aria-current=page]) is kept inside the row on load, on every selection change (client
+ *   navigation, browser back/forward — observed via aria-current, no remount needed) and on resize. Only the row
+ *   scrolls: the page never jumps and focus is never moved.
  * - Keyboard: chips are plain links in DOM order; focusing one scrolls it into view natively.
  * Children: the <li> items.
  */
@@ -33,16 +35,29 @@ export function ChipScroller({ children, label }: { children: ReactNode; label?:
       const pad = 48; // keep clear of the edge fades
       if (r.left < box.left + pad || r.right > box.right - pad) ul.scrollBy({ left: r.left - box.left - (box.width - r.width) / 2, behavior });
     };
-    reveal(ul.querySelector("[aria-current=page]")?.closest("li"), "instant");
-    const onFocus = (e: FocusEvent) => reveal((e.target as Element).closest("li"), matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth");
+    const motion = (): ScrollBehavior => (matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth");
+    const revealActive = (behavior: ScrollBehavior) => reveal(ul.querySelector("[aria-current=page]")?.closest("li"), behavior);
+    revealActive("instant");
+    // The selected chip changes WITHOUT a remount (client navigation, browser back/forward): follow aria-current.
+    const mo = new MutationObserver(() => {
+      revealActive(motion());
+      update();
+    });
+    mo.observe(ul, { subtree: true, attributes: true, attributeFilter: ["aria-current"], childList: true });
+    const onFocus = (e: FocusEvent) => reveal((e.target as Element).closest("li"), motion());
+    const onResize = () => {
+      revealActive("instant"); // phone ↔ desktop: the row may have been wrapped/unscrolled meanwhile
+      update();
+    };
     update();
     ul.addEventListener("scroll", update, { passive: true });
     ul.addEventListener("focusin", onFocus);
-    window.addEventListener("resize", update);
+    window.addEventListener("resize", onResize);
     return () => {
+      mo.disconnect();
       ul.removeEventListener("scroll", update);
       ul.removeEventListener("focusin", onFocus);
-      window.removeEventListener("resize", update);
+      window.removeEventListener("resize", onResize);
     };
   }, []);
 

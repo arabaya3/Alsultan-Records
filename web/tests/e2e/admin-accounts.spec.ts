@@ -1,5 +1,5 @@
 import { expect, test, type Browser } from "@playwright/test";
-import { BASE, db, newLoggedIn, USERS } from "./qa-helpers";
+import { BASE, db, newLoggedIn, psql, USERS } from "./qa-helpers";
 
 /**
  * Owner creates accounts with a password + role from /admin/users; everyone changes their own password at
@@ -107,6 +107,10 @@ test("A4: owner sets another account's password (audited); admin cannot", async 
   await box.getByRole("button", { name: "حفظ كلمة السر" }).click();
   await expect(box.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
   await page.context().close();
+  // The reset ended the account's existing sessions (owner-only admin_revoke_user_sessions, audited).
+  const target = (await db.auth.admin.listUsers({ perPage: 1000 })).data.users.find((x) => x.email === USERS.admin.email)!;
+  expect(Number(psql(`select count(*) from auth.sessions where user_id = '${target.id}'`).trim())).toBe(0);
+  expect((await db.from("audit_events").select("id").eq("action", "sessions_revoked").eq("entity_id", target.id)).data!.length).toBeGreaterThan(0);
   expect(await passwordLogin(browser, USERS.admin.email, NEW_PW)).toBe(true);
   const u = (await db.auth.admin.listUsers({ perPage: 1000 })).data.users.find((x) => x.email === USERS.admin.email)!;
   const audit = (await db.from("audit_events").select("action, after").eq("entity_id", u.id).eq("action", "password_set_by_owner")).data!;
