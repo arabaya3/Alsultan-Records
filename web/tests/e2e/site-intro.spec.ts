@@ -15,10 +15,14 @@ for (const [label, viewport] of [["desktop", { width: 1440, height: 900 }], ["mo
     const page = await ctx.newPage();
     const t0 = Date.now();
     await page.goto(`${BASE}/`, { waitUntil: "commit" });
-    await expect(overlay(page)).toBeVisible();
-    expect(await on(page)).toBe("on");
-    await expect(overlay(page).locator("img")).toHaveAttribute("src", "/brand/logo-main.webp");
-    await expect(overlay(page)).toContainText("فرحتك إلها حكاية");
+    // Read everything in one tick while it is up (on a slow live stream the 2 s window can be short for the test runner).
+    const seen = await page.waitForFunction(() => {
+      const o = document.querySelector(".site-intro");
+      return document.documentElement.getAttribute("data-site-intro") === "on" && o && getComputedStyle(o).display !== "none"
+        ? { src: o.querySelector("img")?.getAttribute("src"), text: o.textContent } : null;
+    }, null, { timeout: 4000 }).then((h) => h.jsonValue());
+    expect(seen!.src).toBe("/brand/logo-main.webp");
+    expect(seen!.text).toContain("فرحتك إلها حكاية");
     // The page loads behind it (no artificial wait): the hero heading is already in the DOM.
     await expect(page.locator("#hero-title")).toBeAttached();
     await expect(overlay(page)).toBeHidden({ timeout: 4000 });
