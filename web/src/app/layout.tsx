@@ -31,7 +31,9 @@ export const metadata: Metadata = {
     siteName: SITE_NAME_AR,
     images: [{ url: "/brand/logo-main.webp", width: 900, height: 748, alt: SITE_NAME_AR }],
   },
-  icons: { icon: "/favicon.ico" },
+  icons: { icon: "/favicon.ico", apple: "/icons/apple-touch-icon.png" },
+  // iOS home-screen app (Android uses app/manifest.ts).
+  appleWebApp: { capable: true, title: "السلطان", statusBarStyle: "black" },
 };
 
 export const viewport: Viewport = {
