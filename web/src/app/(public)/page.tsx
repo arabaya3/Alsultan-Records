@@ -20,6 +20,8 @@ import { durationLabel } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedServices } from "@/features/public-content/queries";
 import { CORE_SERVICES, SITE_NAME_AR } from "@/features/public-content/site";
 import { localBusinessJsonLd, pageMetadata, safeHttp } from "@/features/public-content/seo";
+import { ArrowStartIcon, GridIcon, IconLink } from "@/components/ui/IconLink";
+import { YouTubeIcon } from "@/components/ui/SocialIcons";
 import { SITE_TARGETS } from "@/lib/site-targets";
 
 export const metadata = pageMetadata({
@@ -105,16 +107,15 @@ export default async function HomePage() {
               title={c.title}
               lead={c.intro ?? undefined}
               action={
-                <div className="flex flex-wrap items-center gap-x-6">
+                <div className="flex items-center gap-3">
                   {channel ? (
-                    <a href={channel} target="_blank" rel="noopener noreferrer" className={linkCls}>
-                      قناتنا على YouTube
-                    </a>
+                    <IconLink href={channel} external label="قناتنا على YouTube">
+                      <YouTubeIcon size={18} />
+                    </IconLink>
                   ) : null}
-                  <Link href="/work" className={linkCls}>
-                    كل الأعمال
-                    <ChevronStart />
-                  </Link>
+                  <IconLink href="/work" label="كل الأعمال">
+                    <GridIcon />
+                  </IconLink>
                 </div>
               }
             />
@@ -143,10 +144,9 @@ export default async function HomePage() {
               title={c.title}
               lead={c.intro ?? undefined}
               action={
-                <Link href="/services" className={linkCls}>
-                  تفاصيل الخدمات
-                  <ChevronStart />
-                </Link>
+                <IconLink href="/services" label="تفاصيل الخدمات">
+                  <ArrowStartIcon />
+                </IconLink>
               }
             />
             <Reveal onScroll>
@@ -311,10 +311,9 @@ export default async function HomePage() {
           title="البكجات"
           lead="من باقات خدماتنا للأعراس والمناسبات، والأسعار بالشيكل."
           action={
-            <Link href="/packages" className={linkCls}>
-              عرض كل البكجات
-              <ChevronStart />
-            </Link>
+            <IconLink href="/packages" label="عرض كل البكجات">
+              <GridIcon />
+            </IconLink>
           }
         />
         <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

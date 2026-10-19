@@ -17,6 +17,7 @@ import { filterVideos, isWork, promoVideos, paginate, parseWorkQuery, toCardVide
 import { getPublishedAlbums, getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel, eventTypeLabel, formatDateAr } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedProjects } from "@/features/public-content/queries";
+import { IconLink } from "@/components/ui/IconLink";
 import { pageMetadata, safeHttp } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -187,10 +188,9 @@ async function Videos({ q }: { q: WorkQuery }) {
           {total ? `عرض ${shown.length.toLocaleString("ar-PS")} من ${total.toLocaleString("ar-PS")}` : ""}
         </p>
         {channel ? (
-          <a href={channel} target="_blank" rel="noopener noreferrer" className={`${linkCls} gap-2`}>
+          <IconLink href={channel} external label="المزيد على قناتنا في YouTube">
             <YouTubeIcon size={18} />
-            المزيد على قناتنا في YouTube
-          </a>
+          </IconLink>
         ) : null}
       </div>
     </>

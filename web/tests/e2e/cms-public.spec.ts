@@ -117,7 +117,7 @@ test("hidden home section is not rendered at all; visible ones keep their order"
   await expect(page.locator("#services-title")).toBeVisible();
   // Never an empty box: every rendered section has a heading and content.
   for (const s of await page.locator("main > section[aria-labelledby]").all()) {
-    expect((await s.innerText()).trim().length).toBeGreaterThan(10);
+    expect(((await s.textContent()) ?? "").trim().length).toBeGreaterThan(10); // textContent: scroll-reveal content counts too
   }
 });
 

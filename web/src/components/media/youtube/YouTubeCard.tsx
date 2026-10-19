@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRef, useState } from "react";
 import { PlayBadge } from "@/components/ui/Button";
 import { isYouTubeId, youTubeThumbUrl } from "@/lib/youtube";
+import { ArrowStartIcon, iconLinkCls } from "@/components/ui/IconLink";
 import { YouTubeDialog, type DialogVideo } from "./YouTubeDialog";
 
 export type CardVideo = DialogVideo & {
@@ -88,9 +89,10 @@ export function YouTubeCard({
             href={video.href}
             data-details-link
             aria-label={`تفاصيل: ${video.title}`}
-            className="ms-auto inline-flex min-h-11 min-w-11 items-center justify-center text-sm text-ivory-muted underline decoration-1 underline-offset-4 transition-colors hover:text-gold hover:decoration-gold"
+            title="تفاصيل"
+            className={`ms-auto ${iconLinkCls}`}
           >
-            تفاصيل
+            <ArrowStartIcon />
           </Link>
         ) : null}
       </div>
