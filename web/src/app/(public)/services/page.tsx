@@ -77,6 +77,41 @@ export default async function ServicesPage() {
             <ErrorState body="تعذّر تحميل تفاصيل الخدمات الآن. هذه لمحة عامة عمّا نقدّمه." />
           </div>
         ) : null}
+        {!rows.some((r) => r.media) ? (
+          // No service has a real cover yet: compact card grid instead of long single-column rows.
+          <ol className="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+            {rows.map((r, i) => (
+              <FadeRise as="li" key={r.key} delay={i * 80} className="h-full" data={{ "data-service-row": r.key }}>
+                <div className="flex h-full flex-col rounded-lg border border-hairline-gold bg-surface p-6 transition-colors duration-200 hover:border-gold/70 md:p-8">
+                  <p className="font-display text-4xl font-bold text-gold/80" aria-hidden="true">
+                    {num(i)}
+                  </p>
+                  <span className="gold-rule mt-4" aria-hidden="true" />
+                  <h2 className="mt-5 text-h3 font-bold tracking-tight">
+                    <bdi>{r.title}</bdi>
+                  </h2>
+                  {r.summary ? <p className="mt-3 text-ivory-muted">{r.summary}</p> : null}
+                  <div className="mt-auto flex flex-wrap gap-3 pt-7">
+                    {r.href ? <ButtonLink href={r.href}>التفاصيل</ButtonLink> : null}
+                    {r.photos ? (
+                      <ButtonLink href="/work?tab=photos" variant="outline">
+                        شاهد الصور
+                      </ButtonLink>
+                    ) : null}
+                    {r.videos ? (
+                      <ButtonLink href="/work" variant="outline">
+                        شاهد الفيديوهات
+                      </ButtonLink>
+                    ) : null}
+                    <ButtonLink href="/packages" variant="outline">
+                      البكجات
+                    </ButtonLink>
+                  </div>
+                </div>
+              </FadeRise>
+            ))}
+          </ol>
+        ) : (
         <ol className="space-y-16 md:space-y-24">
           {rows.map((r, i) => (
             <FadeRise as="li" key={r.key} data={{ "data-service-row": r.key }}>
@@ -114,7 +149,8 @@ export default async function ServicesPage() {
             </FadeRise>
           ))}
         </ol>
-        <div className="mt-16">
+        )}
+        <div className="mt-12 flex justify-center">
           <WhatsAppCta />
         </div>
       </Section>
