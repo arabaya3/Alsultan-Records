@@ -91,3 +91,30 @@ test("A3: change own password — wrong current refused; new one works, old one 
   expect(await passwordLogin(browser, USERS.admin.email, NEW_ADMIN_PW)).toBe(true);
   expect(await passwordLogin(browser, USERS.admin.email, USERS.admin.password)).toBe(false);
 });
+
+test("A4: owner sets another account's password (audited); admin cannot", async ({ browser }) => {
+  const NEW_PW = `OwnerSet!${STAMP}q`;
+  const page = await newLoggedIn(browser, "owner", "/admin/users");
+  const row = page.locator("tr", { hasText: "[DEV] Admin" });
+  await row.getByTestId("set-password").locator("summary").click();
+  const box = row.getByTestId("set-password");
+  await box.locator('input[name="password"]').fill(NEW_PW);
+  await box.locator('input[name="confirm"]').fill(NEW_PW + "x");
+  await box.getByRole("button", { name: "حفظ كلمة السر" }).click();
+  await expect(box.getByTestId("action-msg")).toHaveAttribute("data-ok", "0");
+  await box.locator('input[name="password"]').fill(NEW_PW);
+  await box.locator('input[name="confirm"]').fill(NEW_PW);
+  await box.getByRole("button", { name: "حفظ كلمة السر" }).click();
+  await expect(box.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+  await page.context().close();
+  expect(await passwordLogin(browser, USERS.admin.email, NEW_PW)).toBe(true);
+  const u = (await db.auth.admin.listUsers({ perPage: 1000 })).data.users.find((x) => x.email === USERS.admin.email)!;
+  const audit = (await db.from("audit_events").select("action, after").eq("entity_id", u.id).eq("action", "password_set_by_owner")).data!;
+  expect(audit.length).toBeGreaterThan(0);
+  expect(JSON.stringify(audit)).not.toContain(NEW_PW);
+  await db.auth.admin.updateUserById(u.id, { password: USERS.admin.password });
+  // Admin sees the forbidden page, not the control.
+  const p2 = await newLoggedIn(browser, "admin", "/admin/users");
+  await expect(p2.getByTestId("set-password")).toHaveCount(0);
+  await p2.context().close();
+});

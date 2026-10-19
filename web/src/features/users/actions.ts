@@ -102,3 +102,28 @@ export async function changeOwnPassword(_p: ActionResult, fd: FormData): Promise
   if (error) return fail("تعذّر تغيير كلمة السر. حاول مرة ثانية.");
   return ok("تغيّرت كلمة السر. استعملها بالدخول الجاي.");
 }
+
+const resetPassword = z
+  .object({ password: PASSWORD, confirm: z.string() })
+  .refine((v) => v.password === v.confirm, { message: "كلمتا السر غير متطابقتين." });
+
+/**
+ * Owner sets a new password for another account (e.g. a forgotten one — there is no email reset). Owner-only server
+ * guard; not for the owner's own account (that goes through /admin/account with the current password). Applied via the
+ * auth admin API, then recorded in audit_events (who, whose account, when — never the password).
+ */
+export async function setUserPassword(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  const session = await guard(OWNER_ONLY);
+  if (!session) return FORBIDDEN;
+  const id = uuid(fd, "id");
+  if (!id) return fail("طلب غير صالح.");
+  if (id === session.userId) return fail("لتغيير كلمة سرك استعمل صفحة «حسابي وكلمة السر».");
+  const parsed = resetPassword.safeParse({ password: String(fd.get("password") ?? ""), confirm: String(fd.get("confirm") ?? "") });
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "بيانات غير صالحة.");
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(id, { password: parsed.data.password });
+  if (error) return fail("تعذّر تعيين كلمة السر. حاول مرة ثانية.");
+  const audit = await admin.from("audit_events").insert({ actor: session.userId, action: "password_set_by_owner", entity_type: "auth.users", entity_id: id, after: { by: "owner" } });
+  if (audit.error) return fail("تعيّنت كلمة السر، بس تعذّر تسجيلها بسجل التدقيق.");
+  return ok("تعيّنت كلمة السر الجديدة. أعطيها للشخص بطريقة آمنة، وبيقدر يغيّرها من «حسابي وكلمة السر».");
+}

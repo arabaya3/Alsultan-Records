@@ -1,12 +1,12 @@
 import { createClient } from "@/lib/supabase/server";
 import { Forbidden, guard, OWNER_ONLY } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import { Badge, Card, Field, FilterChips, inputCls, LoadError, PageHeader, Pagination, SearchBox, Table } from "@/features/admin/ui";
+import { Badge, btn, Card, Field, FilterChips, inputCls, LoadError, PageHeader, Pagination, SearchBox, Table } from "@/features/admin/ui";
 import { cleanSearch, one, pageOf, PAGE_SIZE, pick, rangeOf, type SP } from "@/features/admin/query";
 import { fmtDate } from "@/features/admin/format";
 import { ROLE_LABEL } from "@/features/admin/labels";
 import { Constants } from "@/types/database";
-import { createUserAccount, setUserDisabled, setUserRole } from "./actions";
+import { createUserAccount, setUserDisabled, setUserRole, setUserPassword } from "./actions";
 
 export async function UsersPage({ searchParams }: { searchParams: SP }) {
   const session = await guard(OWNER_ONLY);
@@ -77,6 +77,21 @@ export async function UsersPage({ searchParams }: { searchParams: SP }) {
                   <td>{fmtDate(u.created_at)}</td>
                   <td>
                     {self ? null : (
+                      <div className="flex flex-wrap items-start gap-2">
+                      <details className="group relative" data-testid="set-password">
+                        <summary className={`${btn("ghost")} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>تعيين كلمة سر</summary>
+                        <div className="absolute end-0 top-full z-20 mt-1 w-72 rounded-md border border-cream-line bg-cream p-3 shadow-lg">
+                          <ActionForm action={setUserPassword} submitLabel="حفظ كلمة السر" kind="primary" resetOnSuccess>
+                            <input type="hidden" name="id" value={u.id} />
+                            <Field label="كلمة السر الجديدة" hint="10 أحرف على الأقل.">
+                              <input name="password" type="password" required minLength={10} maxLength={72} autoComplete="new-password" className={inputCls} />
+                            </Field>
+                            <Field label="تأكيد كلمة السر">
+                              <input name="confirm" type="password" required minLength={10} maxLength={72} autoComplete="new-password" className={inputCls} />
+                            </Field>
+                          </ActionForm>
+                        </div>
+                      </details>
                       <ActionForm
                         action={setUserDisabled}
                         submitLabel={u.disabled ? "إعادة تفعيل" : "تعطيل"}
@@ -87,6 +102,7 @@ export async function UsersPage({ searchParams }: { searchParams: SP }) {
                         <input type="hidden" name="id" value={u.id} />
                         <input type="hidden" name="disabled" value={u.disabled ? "0" : "1"} />
                       </ActionForm>
+                      </div>
                     )}
                   </td>
                 </tr>
