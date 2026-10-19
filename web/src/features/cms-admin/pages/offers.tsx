@@ -15,7 +15,7 @@ import { offerBadge, visibleBadge, type OfferStatus } from "../status";
 import { defaultOfferMessage } from "../schema";
 import { PAGE_TARGET_LABEL, PAGE_TARGETS } from "../targets";
 import { deleteRow, saveAnnouncement, saveOffer, saveOrder, setOfferPinned, setOfferStatus, setVisible } from "../actions";
-import { CmsLoadError, DATE_HELP, SectionIntroCard, today as todayLine } from "./shared";
+import { CmsLoadError, DATE_HELP, OFFERS_TABS, PageTabs, SectionIntroCard, today as todayLine } from "./shared";
 
 type OfferDb = {
   id: string;
@@ -54,13 +54,14 @@ export async function OffersPage({ searchParams }: { searchParams: SP }) {
       <PageHeader
         title="العروض"
         back={{ href: "/admin/content", label: "محتوى الموقع" }}
-        lead={todayLine(today)}
+        lead={`هون بتضيف عروض مؤقتة بتاريخ بداية ونهاية. ${todayLine(today)}`}
         actions={
           <Link href="/admin/content/offers/new" className={btn("primary")}>
             + عرض جديد
           </Link>
         }
       />
+      <PageTabs label="أقسام العروض" tabs={OFFERS_TABS} current="/admin/content/offers" />
       <FilterChips
         base="/admin/content/offers"
         param="filter"
@@ -375,6 +376,7 @@ export async function AnnouncementsPage() {
           </Link>
         }
       />
+      <PageTabs label="أقسام العروض" tabs={OFFERS_TABS} current="/admin/content/announcements" />
       {rows.length ? (
         <SortableList
           label="ترتيب الإعلانات"

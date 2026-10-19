@@ -8,6 +8,7 @@ import { guard, ADMIN_ROLES, OWNER_ONLY } from "@/features/admin/guard";
 import { dbMessage, fail, FORBIDDEN, ok, optStr, str, type ActionResult } from "@/features/admin/result";
 import type { Json } from "@/types/database";
 import { whatsappLinkUrl, youtubeChannelUrl } from "@/features/videos-admin/schema";
+import { MODULES } from "@/features/admin/nav";
 
 const urlOrNull = z.url("رابط غير صالح").max(500).nullable();
 
@@ -69,4 +70,20 @@ export async function saveAppSettings(_p: ActionResult, fd: FormData): Promise<A
   if (error) return fail(dbMessage(error));
   refresh();
   return ok("حُفظت إعدادات النظام.");
+}
+
+/** Owner-only: which operational sections appear in the sidebar (UX only; data and routes untouched). */
+export async function saveEnabledModules(_p: ActionResult, fd: FormData): Promise<ActionResult> {
+  if (!(await guard(OWNER_ONLY))) return FORBIDDEN;
+  const parsed = z
+    .array(z.enum(MODULES, "قسم غير معروف."))
+    .max(MODULES.length)
+    .safeParse(fd.getAll("modules").map(String));
+  if (!parsed.success) return fail(parsed.error.issues[0]?.message ?? "راجع الاختيارات.");
+  const enabled = MODULES.filter((m) => parsed.data.includes(m));
+  const sb = await createClient();
+  const { error } = await sb.from("app_settings").update({ enabled_modules: enabled }).eq("id", 1);
+  if (error) return fail(dbMessage(error));
+  refresh();
+  return ok("حُفظت الأقسام المفعّلة وتحدّثت القائمة.");
 }

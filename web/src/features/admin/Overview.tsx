@@ -6,6 +6,8 @@ import { fmtDate, isoInDays, todayISO } from "./format";
 import { formatMinor } from "./money";
 import { ActionForm } from "./ActionForm";
 import { runStorageCleanup } from "@/features/projects/actions";
+import { QuickActions } from "./overview/QuickActions";
+import { SiteStatus } from "./overview/SiteStatus";
 import { DELIVERABLE_STATUS, EVENT_STATUS, eventTypeLabel } from "./labels";
 
 /** Actionable alerts only, from real data. Counts use head:true (no rows transferred). */
@@ -87,39 +89,51 @@ export async function Overview() {
     { n: reviews.count ?? 0, label: "تقييمات بانتظار المراجعة", href: "/admin/reviews?status=pending" },
     { n: albums.count ?? 0, label: "اختيارات ألبوم مُرسلة", href: "/admin/production/albums" },
     { n: support.count ?? 0, label: "طلبات دعم مفتوحة", href: "/admin/support?status=open" },
-    { n: cleanup.data?.[0]?.pending ?? 0, label: "ملفات منشورة سابقاً بانتظار الحذف من التخزين", href: "/admin/media?orphans=1" },
-    { n: cleanup.data?.[0]?.dead ?? 0, label: "ملفات تعذّر حذفها بعد عدة محاولات", href: "/admin/media?orphans=1" },
   ];
   const active = alerts.filter((a) => a.n > 0);
+  // Pending items are normal (the worker runs every minute); only failed/dead-lettered ones need a human.
+  const stuckFiles = (cleanup.data?.[0]?.failing ?? 0) + (cleanup.data?.[0]?.dead ?? 0);
 
   return (
     <>
-      <PageHeader title="نظرة عامة" lead="ما يحتاج انتباهك الآن فقط." />
-      {active.length === 0 && outstanding <= 0 ? (
-        <p className="mb-6 rounded-md border border-cream-line bg-[#fffdf8] p-4 text-sm" data-testid="all-clear">
-          لا يوجد ما يحتاج متابعة الآن.
-        </p>
+      <PageHeader title="نظرة عامة" lead={`أهلاً ${session.fullName ?? ""} — من هون بتوصل لكل شي بسرعة.`} />
+      {stuckFiles > 0 ? (
+        <div
+          role="status"
+          className="mb-6 flex flex-col gap-3 rounded-md border border-gold bg-[#fffdf8] p-4 sm:flex-row sm:items-center sm:justify-between"
+          data-testid="cleanup-notice"
+        >
+          <p className="text-sm">
+            في ملفات صور محذوفة لسا موجودة بالتخزين ({stuckFiles}). اضغط الزر لحذفها نهائياً — ما بتأثر على أي صورة منشورة.
+          </p>
+          <ActionForm action={runStorageCleanup} submitLabel="نظّفها الآن" kind="primary" testId="cleanup-form" />
+        </div>
       ) : null}
-      <div className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3" data-testid="alerts">
-        {active.map((a) => (
-          <Stat key={a.href} label={a.label} value={a.n} href={a.href} tone="gold" />
-        ))}
-        {outstanding > 0 ? (
-          <Stat label="أرصدة غير مدفوعة على العقود المعتمدة" value={formatMinor(outstanding)} href="/admin/finance" tone="danger" />
-        ) : null}
-      </div>
-      <Card title="تنظيف التخزين" className="mb-6">
-        <p className="mb-3 text-sm text-on-cream-muted">
-          عند إيقاف نشر مناسبة أو سحب الموافقة أو حذف مناسبة تُوضع ملفاتها في قائمة حذف. يعمل التنظيف تلقائياً بعد إجراءات الإدارة، ويمكن تشغيله هنا (مثلاً بعد سحب العميل لموافقته من البوابة).
-        </p>
-        <ActionForm action={runStorageCleanup} submitLabel="تشغيل التنظيف الآن" kind="ghost" testId="cleanup-form" />
-      </Card>
+      <QuickActions />
+      <SiteStatus />
+      <section aria-labelledby="attention-h" className="mb-6">
+        <h2 id="attention-h" className="mb-3 font-display text-lg font-bold">يحتاج انتباهك</h2>
+        {active.length === 0 && outstanding <= 0 ? (
+          <p className="rounded-md border border-cream-line bg-[#fffdf8] p-4 text-sm" data-testid="all-clear">
+            كل شي تمام — ما في شي مستعجل.
+          </p>
+        ) : (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5" data-testid="alerts">
+            {active.map((a) => (
+              <Stat key={a.href} label={a.label} value={a.n} href={a.href} tone="gold" />
+            ))}
+            {outstanding > 0 ? (
+              <Stat label="أرصدة غير مدفوعة على العقود المعتمدة" value={formatMinor(outstanding)} href="/admin/finance" tone="danger" />
+            ) : null}
+          </div>
+        )}
+      </section>
       {upcoming.data?.length ? (
         <Card title="تسليمات قريبة">
           <ul className="divide-y divide-cream-line text-sm">
             {upcoming.data.map((d) => (
               <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <Link className="underline underline-offset-4" href={`/admin/production/${d.id}`}>{d.title}</Link>
+                <Link className="inline-flex min-h-11 items-center underline underline-offset-4" href={`/admin/production/${d.id}`}>{d.title}</Link>
                 <span className="flex items-center gap-2">
                   <Badge>{DELIVERABLE_STATUS[d.status]}</Badge>
                   <span className={d.due_at && d.due_at < nowIso ? "text-danger" : ""}>{fmtDate(d.due_at)}</span>

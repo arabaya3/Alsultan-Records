@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { Suspense, type ReactNode } from "react";
 import { connection } from "next/server";
 import { getSessionProfile, STAFF_ROLES } from "@/lib/permissions";
-import { navFor } from "@/features/admin/nav";
+import { DEFAULT_MODULES, navFor } from "@/features/admin/nav";
+import { createClient } from "@/lib/supabase/server";
 import { Sidebar } from "@/features/admin/Sidebar";
 import { ROLE_LABEL } from "@/features/admin/labels";
 import { signOutAction } from "@/features/admin/session-actions";
@@ -17,9 +18,12 @@ async function AdminSidebar() {
   await connection();
   const session = await getSessionProfile();
   if (!session || !STAFF_ROLES.includes(session.role)) return null;
+  // Enabled modules only hide nav entries (UX); on error fall back to the defaults.
+  const sb = await createClient();
+  const { data: enabled } = await sb.rpc("admin_enabled_modules");
   return (
     <Sidebar
-      groups={navFor(session.role)}
+      groups={navFor(session.role, enabled ?? DEFAULT_MODULES)}
       name={session.fullName ?? session.email ?? ""}
       roleLabel={ROLE_LABEL[session.role]}
       signOut={signOutAction}

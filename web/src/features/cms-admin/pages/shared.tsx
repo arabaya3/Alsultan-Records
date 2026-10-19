@@ -70,3 +70,37 @@ export function SectionIntroCard({ section, sectionKey, note }: { section: Secti
 
 export const today = (d: string) => `اليوم حسب توقيت الخليل/فلسطين: ${d}`;
 export const DATE_HELP = "التواريخ تُحسب بتوقيت فلسطين (Asia/Hebron) وتشمل يوم البداية ويوم النهاية. بعد يوم النهاية يختفي تلقائياً بدون أي إجراء.";
+
+/** In-page tab row linking a parent page and its sub-pages (replaces separate sidebar entries). */
+export function PageTabs({ label, tabs, current }: { label: string; tabs: { href: string; label: string }[]; current: string }) {
+  return (
+    <nav aria-label={label} className="-mt-2 mb-4 flex flex-wrap gap-2 border-b border-ink/10 pb-2" data-testid="page-tabs">
+      {tabs.map((t) => {
+        const on = t.href === current;
+        return (
+          <a
+            key={t.href}
+            href={t.href}
+            aria-current={on ? "page" : undefined}
+            className={`inline-flex min-h-10 items-center rounded-sm px-3 text-sm ${on ? "bg-ink text-on-dark" : "underline-offset-4 hover:underline"}`}
+          >
+            {t.label}
+          </a>
+        );
+      })}
+    </nav>
+  );
+}
+
+export const SERVICES_TABS = [
+  { href: "/admin/content/services", label: "الخدمات" },
+  { href: "/admin/content/process", label: "طريقة شغلنا" },
+];
+export const OFFERS_TABS = [
+  { href: "/admin/content/offers", label: "العروض" },
+  { href: "/admin/content/announcements", label: "الإعلانات" },
+];
+export const VIDEOS_TABS = [
+  { href: "/admin/videos", label: "الفيديوهات" },
+  { href: "/admin/videos/categories", label: "التصنيفات" },
+];

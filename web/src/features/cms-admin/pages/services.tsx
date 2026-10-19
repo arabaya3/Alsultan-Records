@@ -10,7 +10,7 @@ import { PhotoPicker, SlugField } from "../fields";
 import { SortableList } from "../SortableList";
 import { loadSection, pickAlbums, pickPhotos, pickVideos } from "../data";
 import { deleteRow, saveOrder, saveService, saveStep, setVisible } from "../actions";
-import { CheckList, CmsLoadError, SectionIntroCard } from "./shared";
+import { CheckList, CmsLoadError, PageTabs, SectionIntroCard, SERVICES_TABS } from "./shared";
 
 type Service = { id: string; slug: string; title: string; summary: string | null; body: string | null; cover_photo_id: string | null; is_published: boolean; sort_order: number };
 
@@ -38,13 +38,14 @@ export async function ServicesPage() {
       <PageHeader
         title="الخدمات"
         back={{ href: "/admin/content", label: "محتوى الموقع" }}
-        lead="اسحب ⋮⋮ أو استخدم الأسهم لتغيير الترتيب. المخفية لا تظهر للزوار."
+        lead="هون بتضيف الخدمات اللي بتظهر بالموقع وبترتّبها. اسحب ⋮⋮ أو استخدم الأسهم لتغيير الترتيب. المخفية لا تظهر للزوار."
         actions={
           <Link href="/admin/content/services/new" className={btn("primary")}>
             + خدمة جديدة
           </Link>
         }
       />
+      <PageTabs label="أقسام الخدمات" tabs={SERVICES_TABS} current="/admin/content/services" />
       <div className="space-y-4">
         {rows.length ? (
           <SortableList
@@ -186,7 +187,8 @@ export async function ProcessPage() {
   const steps = (data ?? []) as Step[];
   return (
     <>
-      <PageHeader title="طريقة شغلنا" back={{ href: "/admin/content", label: "محتوى الموقع" }} lead="الخطوات تظهر بالترتيب في الرئيسية." />
+      <PageHeader title="طريقة شغلنا" back={{ href: "/admin/content", label: "محتوى الموقع" }} lead="هون بتكتب خطوات الشغل مع العميل؛ بتظهر بالترتيب في الرئيسية." />
+      <PageTabs label="أقسام الخدمات" tabs={SERVICES_TABS} current="/admin/content/process" />
       <div className="space-y-4">
         {steps.length ? (
           <SortableList

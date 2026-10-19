@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { youTubeThumbUrl, youTubeWatchUrl } from "@/lib/youtube";
 import { ADMIN_ROLES, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
+import { PageTabs, VIDEOS_TABS } from "@/features/cms-admin/pages/shared";
 import { Badge, btn, Card, DL, Field, FilterChips, inputCls, LoadError, Notice, PageHeader, Table } from "@/features/admin/ui";
 import { isUuid } from "@/features/admin/result";
 import { PhotoPicker, type PickPhoto } from "@/features/cms-admin/fields";
@@ -179,12 +180,8 @@ export async function VideosPage({ searchParams }: { searchParams: SP }) {
       <PageHeader
         title="الفيديوهات"
         lead="مقاطع من قناة الاستوديو على يوتيوب تُعرض في الموقع العام بعناوينها الأصلية. يُحفظ معرّف الفيديو فقط."
-        actions={
-          <Link href="/admin/videos/categories" className={btn("ghost")}>
-            التصنيفات
-          </Link>
-        }
       />
+      <PageTabs label="أقسام الفيديوهات" tabs={VIDEOS_TABS} current="/admin/videos" />
       <FilterChips base="/admin/videos" param="filter" current={filter} options={[{ value: "review", label: "تحتاج مراجعة" }]} params={filter ? { filter } : {}} />
       <div className="space-y-4">
         <Table head={["الفيديو", "التصنيفات", "الترتيب", "الحالة", "إجراءات"]} empty={!rows.length} label="قائمة الفيديوهات">
@@ -409,6 +406,7 @@ export async function VideoCategoriesPage() {
   return (
     <>
       <PageHeader title="تصنيفات الفيديو" back={{ href: "/admin/videos", label: "الفيديوهات" }} lead="تُعرض المنشورة منها كمرشّحات في صفحة الفيديو العامة. الاستيراد لا يغيّر اسم أو ترتيب أو نشر تصنيف موجود." />
+      <PageTabs label="أقسام الفيديوهات" tabs={VIDEOS_TABS} current="/admin/videos/categories" />
       <div className="space-y-4">
         <ol className="space-y-3" aria-label="قائمة التصنيفات">
           {cats.map((c, i) => (

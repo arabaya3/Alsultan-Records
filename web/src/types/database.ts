@@ -187,14 +187,14 @@ isOneToOne: false
                   ]
                 },"app_settings": {
                   Row: {
-                    "booking_rules": NonNullable<Json>,"created_at": string,"id": number,"require_staff_mfa": boolean,"turnstile_enabled": boolean,"updated_at": string
+                    "booking_rules": NonNullable<Json>,"created_at": string,"enabled_modules": (string)[],"id": number,"require_staff_mfa": boolean,"turnstile_enabled": boolean,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "booking_rules"?: NonNullable<Json>,"created_at"?: string,"id"?: number,"require_staff_mfa"?: boolean,"turnstile_enabled"?: boolean,"updated_at"?: string
+                    "booking_rules"?: NonNullable<Json>,"created_at"?: string,"enabled_modules"?: (string)[],"id"?: number,"require_staff_mfa"?: boolean,"turnstile_enabled"?: boolean,"updated_at"?: string
                   }
                   Update: {
-                    "booking_rules"?: NonNullable<Json>,"created_at"?: string,"id"?: number,"require_staff_mfa"?: boolean,"turnstile_enabled"?: boolean,"updated_at"?: string
+                    "booking_rules"?: NonNullable<Json>,"created_at"?: string,"enabled_modules"?: (string)[],"id"?: number,"require_staff_mfa"?: boolean,"turnstile_enabled"?: boolean,"updated_at"?: string
                   }
                   Relationships: [
                     
@@ -1441,6 +1441,9 @@ isOneToOne: false
           Functions: {
             "active_logo_path":
 { Args: { "p_id": string }; Returns: string
+                           },
+"admin_enabled_modules":
+{ Args: Record<PropertyKey, never>; Returns: (string)[]
                            },
 "admin_event_prices":
 { Args: { "p_ids": (string)[] }; Returns: {
