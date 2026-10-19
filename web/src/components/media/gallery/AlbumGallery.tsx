@@ -100,11 +100,50 @@ function ShareButton({ title }: { title: string }) {
   );
 }
 
+const SLIDESHOW_EVENT = "album:slideshow";
+
 /**
- * Album view: actions (back, slideshow, share), a masonry grid (CSS columns) where every tile keeps the photo's
- * own ratio and shows it whole (contain; watermark visible), and a fullscreen lightbox (display variant only)
- * with source credit and an optional slideshow.
- * Props: photos, albumTitle, sourceLabel, sourceUrl, backHref? (shows «العودة للألبومات» when set).
+ * Album actions (back, slideshow, share). Rendered by AlbumGallery itself by default, or placed elsewhere (the public
+ * album page puts it inside the hero so the photos start higher) — it then opens the gallery's slideshow through a
+ * window event, so both stay server-rendered with no layout shift.
+ */
+export function AlbumActions({ backHref, title, canSlideshow, onSlideshow, className = "" }: { backHref?: string; title: string; canSlideshow: boolean; onSlideshow?: () => void; className?: string }) {
+  return (
+    <div data-album-actions className={`flex flex-wrap items-center justify-center gap-3 ${className}`}>
+      {backHref ? (
+        <Link href={backHref} title="العودة للألبومات" className={`${actionCls} max-sm:px-3 border-ivory/40 text-ivory hover:border-gold hover:text-gold`}>
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
+            {/* Points to the reading-start side (right in RTL) */}
+            <path d="M5 12h14M13 6l6 6-6 6" />
+          </svg>
+          {/* Phones: icon only (the breadcrumb right above offers the same link) so all actions fit one row. */}
+          <span className="max-sm:sr-only">العودة للألبومات</span>
+        </Link>
+      ) : null}
+      {canSlideshow ? (
+        <button
+          type="button"
+          aria-haspopup="dialog"
+          data-album-slideshow
+          onClick={() => (onSlideshow ? onSlideshow() : window.dispatchEvent(new Event(SLIDESHOW_EVENT)))}
+          className={`${actionCls} border-gold/70 text-gold hover:bg-gold hover:text-ink`}
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+            <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z" />
+          </svg>
+          عرض الشرائح
+        </button>
+      ) : null}
+      <ShareButton title={title} />
+    </div>
+  );
+}
+
+/**
+ * Album view: actions (back, slideshow, share — unless `actions={false}`, when <AlbumActions> is rendered elsewhere),
+ * a masonry grid (CSS columns) where every tile keeps the photo's own ratio and shows it whole (contain; watermark
+ * visible), and a fullscreen lightbox (display variant only) with source credit and an optional slideshow.
+ * Props: photos, albumTitle, sourceLabel, sourceUrl, backHref? (shows «العودة للألبومات» when set), actions?.
  */
 export function AlbumGallery({
   photos,
@@ -112,15 +151,27 @@ export function AlbumGallery({
   sourceLabel,
   sourceUrl,
   backHref,
+  actions = true,
 }: {
   photos: AlbumGalleryPhoto[];
   albumTitle: string;
   sourceLabel: string | null;
   sourceUrl: string | null;
   backHref?: string;
+  actions?: boolean;
 }) {
   const [open, setOpen] = useState<number | null>(null);
   const [slideshow, setSlideshow] = useState(false);
+  const startSlideshow = () => {
+    setSlideshow(true);
+    setOpen(0);
+  };
+  useEffect(() => {
+    if (actions) return;
+    const on = () => startSlideshow();
+    window.addEventListener(SLIDESHOW_EVENT, on);
+    return () => window.removeEventListener(SLIDESHOW_EVENT, on);
+  }, [actions]);
   const items: LightboxItem[] = photos.map((p) => ({ id: p.id, src: p.display, width: p.width, height: p.height, alt: p.alt || albumTitle }));
   const current = open !== null ? photos[open] : null;
   const credit = sourceLabel ? (
@@ -137,35 +188,7 @@ export function AlbumGallery({
   ) : null;
   return (
     <>
-      <div data-album-actions className="mb-8 flex flex-wrap items-center justify-center gap-3">
-        {backHref ? (
-          <Link href={backHref} className={`${actionCls} border-ivory/40 text-ivory hover:border-gold hover:text-gold`}>
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-              {/* Points to the reading-start side (right in RTL) */}
-              <path d="M5 12h14M13 6l6 6-6 6" />
-            </svg>
-            العودة للألبومات
-          </Link>
-        ) : null}
-        {photos.length > 1 ? (
-          <button
-            type="button"
-            aria-haspopup="dialog"
-            data-album-slideshow
-            onClick={() => {
-              setSlideshow(true);
-              setOpen(0);
-            }}
-            className={`${actionCls} border-gold/70 text-gold hover:bg-gold hover:text-ink`}
-          >
-            <svg aria-hidden="true" viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
-              <path d="M7 4.5v15a1 1 0 0 0 1.5.86l12-7.5a1 1 0 0 0 0-1.72l-12-7.5A1 1 0 0 0 7 4.5Z" />
-            </svg>
-            عرض الشرائح
-          </button>
-        ) : null}
-        <ShareButton title={albumTitle} />
-      </div>
+      {actions ? <AlbumActions backHref={backHref} title={albumTitle} canSlideshow={photos.length > 1} onSlideshow={startSlideshow} className="mb-8" /> : null}
 
       <ul data-photo-grid className="columns-2 gap-2 sm:columns-3 sm:gap-4 lg:columns-4">
         {photos.map((p, i) => (

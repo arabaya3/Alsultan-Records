@@ -133,6 +133,7 @@ export function HeroIntro(p: HeroIntroProps) {
       ) : null}
       <div className="mx-auto grid w-full max-w-[var(--content-max)] items-center gap-8 px-[var(--gutter)] py-10 md:py-12 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:py-14">
         <div className="min-w-0">
+          {/* Phones: the header already shows the logo, so only the gold name stays here (design audit #4). */}
           <div data-hero-mark className="flex items-center gap-4">
             {p.logoSrc ? (
               <ActiveLogoImg
@@ -141,7 +142,7 @@ export function HeroIntro(p: HeroIntroProps) {
                 alt=""
                 fetchPriority="high"
                 data-intro="logo"
-                className="h-16 w-auto max-w-40 origin-center object-contain md:h-20 md:max-w-48"
+                className="h-16 w-auto max-w-40 origin-center object-contain max-md:hidden md:h-20 md:max-w-48"
               />
             ) : (
               <Image
@@ -152,7 +153,7 @@ export function HeroIntro(p: HeroIntroProps) {
                 priority
                 sizes="96px"
                 data-intro="logo"
-                className="h-16 w-auto origin-center md:h-20"
+                className="h-16 w-auto origin-center max-md:hidden md:h-20"
               />
             )}
             <p

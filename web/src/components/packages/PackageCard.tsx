@@ -30,11 +30,11 @@ export function PackageCard({ pkg }: { pkg: Package }) {
       id={pkg.slug}
       data-package-card={pkg.slug}
       data-featured={pkg.featured ? "1" : undefined}
-      className={`flex h-full scroll-mt-24 flex-col rounded-lg border bg-surface p-5 text-ivory transition-colors duration-200 md:p-6 ${
+      className={`flex h-full min-w-0 scroll-mt-24 flex-col rounded-lg border bg-surface p-5 text-ivory transition-colors duration-200 md:p-6 ${
         pkg.featured ? "border-gold/80 shadow-[0_0_0_1px_rgb(233_185_73/0.25)]" : "border-hairline-gold hover:border-gold/70"
       }`}
     >
-      <h3 className="flex flex-wrap items-center gap-2 font-display text-xl font-semibold leading-snug break-words">
+      <h3 className="flex flex-wrap items-center gap-2 font-display text-xl font-semibold leading-snug break-words [overflow-wrap:anywhere]">
         <bdi>{pkg.title}</bdi>
         {pkg.featured ? <span data-package-featured className="rounded-sm bg-gold px-2 py-0.5 text-xs font-medium text-ink">مميّز</span> : null}
       </h3>
@@ -49,7 +49,7 @@ export function PackageCard({ pkg }: { pkg: Package }) {
           {pkg.items.map((it, i) => (
             <li key={i} className="flex items-start gap-2.5 break-words">
               <CheckIcon />
-              <span className="min-w-0">{it}</span>
+              <span className="min-w-0 [overflow-wrap:anywhere]">{it}</span>
             </li>
           ))}
         </ul>
@@ -58,7 +58,7 @@ export function PackageCard({ pkg }: { pkg: Package }) {
         {pkg.gift ? (
           <div className="mb-4 flex items-center gap-2.5 rounded-sm bg-night-deep px-3 py-2.5 text-sm">
             <GiftIcon />
-            <p data-package-gift className="min-w-0 break-words">
+            <p data-package-gift className="min-w-0 break-words [overflow-wrap:anywhere]">
               <span className="font-semibold text-gold">الهدية:</span> {pkg.gift}
             </p>
           </div>

@@ -283,9 +283,9 @@ test("public mobile menu dialog: role, aria-modal, label, trap, Esc", async ({ b
 test("RTL: directional chevrons and bidi isolation of Latin user content", async ({ browser }) => {
   const page = await newPage(browser);
   await page.goto(`${BASE}/`);
-  // "See all" chevrons on the home page point left (forward in RTL): path starts at x=15 and goes to x=9.
-  const chevrons = await page.locator('main svg path[d="M15 6l-6 6 6 6"]').count();
-  expect(chevrons).toBeGreaterThan(0);
+  // "See all"/details arrows (round IconLink buttons) point left — forward in RTL: shaft 19→5, head opening to the left.
+  const arrows = await page.locator('main svg path[d="M19 12H5M11 6l-6 6 6 6"]').count();
+  expect(arrows).toBeGreaterThan(0);
   // The published project title is LTR seed text: it must be isolated (<bdi>/dir=auto) wherever shown.
   for (const url of ["/", "/work", "/work/dev-sample-published-project"]) {
     await page.goto(`${BASE}${url}`);

@@ -18,6 +18,7 @@ import { getPublishedAlbums, getVideoGallery } from "@/features/public-content/g
 import { durationLabel, eventTypeLabel, formatDateAr } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedProjects } from "@/features/public-content/queries";
 import { IconLink } from "@/components/ui/IconLink";
+import { ChipScroller } from "@/components/ui/ChipScroller";
 import { pageMetadata, safeHttp } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -126,7 +127,7 @@ async function Videos({ q }: { q: WorkQuery }) {
     <>
       {g.categories.length ? (
         <nav aria-label="تصنيفات الفيديو" className="mb-10">
-          <ul className="flex flex-wrap justify-center gap-2">
+          <ChipScroller>
             <li>
               <Link href={workHref({})} scroll={false} aria-current={!q.cat ? "page" : undefined} data-cat-chip="" className={chipCls(!q.cat)}>
                 الكل
@@ -146,7 +147,7 @@ async function Videos({ q }: { q: WorkQuery }) {
                 </Link>
               </li>
             ))}
-          </ul>
+          </ChipScroller>
         </nav>
       ) : null}
 
@@ -231,7 +232,7 @@ async function Albums({ cat }: { cat: string | null }) {
     <>
       {used.length ? (
         <nav aria-label="تصنيفات الألبومات" className="mb-10">
-          <ul className="flex flex-wrap justify-center gap-2">
+          <ChipScroller>
             <li>
               <Link href={workHref({ tab: "photos" })} scroll={false} aria-current={!cat ? "page" : undefined} data-album-cat-chip="" className={chipCls(!cat)}>
                 الكل
@@ -251,7 +252,7 @@ async function Albums({ cat }: { cat: string | null }) {
                 </Link>
               </li>
             ))}
-          </ul>
+          </ChipScroller>
         </nav>
       ) : null}
       <h2 className="sr-only">ألبومات الصور</h2>

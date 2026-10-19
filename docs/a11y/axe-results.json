@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-19T11:56:02.305Z",
+  "generatedAt": "2026-10-19T14:33:34.250Z",
   "base": "http://localhost:3600",
   "tags": [
     "wcag2a",
@@ -636,7 +636,7 @@
       },
       "violations": [],
       "incomplete": 1,
-      "passes": 24
+      "passes": 25
     },
     {
       "page": "work-detail@390",
@@ -831,7 +831,7 @@
       },
       "violations": [],
       "incomplete": 0,
-      "passes": 26
+      "passes": 22
     },
     {
       "page": "admin-overview",

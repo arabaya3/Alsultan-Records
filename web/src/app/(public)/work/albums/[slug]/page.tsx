@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { AlbumGallery } from "@/components/media/gallery/AlbumGallery";
+import { AlbumActions, AlbumGallery } from "@/components/media/gallery/AlbumGallery";
 import { photoCountLabel } from "@/components/media/gallery/AlbumCard";
 import { ButtonLink } from "@/components/ui/Button";
 import { Container, Section } from "@/components/ui/Layout";
@@ -100,8 +100,11 @@ async function AlbumView({ params }: { params: PageProps<"/work/albums/[slug]">[
             ) : null}
           </>
         }
-      />
-      <Section className="pt-10! md:pt-12!">
+      >
+        {/* Actions live in the hero so the photos start right after it. */}
+        <AlbumActions backHref={ALBUMS} title={album.title} canSlideshow={photos.length > 1} />
+      </PageHero>
+      <Section>
         <h2 className="sr-only">صور الألبوم</h2>
         {photos.length === 0 ? (
           <EmptyState title="لا توجد صور منشورة في هذا الألبوم بعد" action={<ButtonLink href={ALBUMS} variant="outline">العودة للألبومات</ButtonLink>} />
@@ -110,7 +113,7 @@ async function AlbumView({ params }: { params: PageProps<"/work/albums/[slug]">[
             albumTitle={album.title}
             sourceLabel={album.source_label}
             sourceUrl={sourceUrl}
-            backHref={ALBUMS}
+            actions={false}
             photos={photos.map((p) => ({
               id: p.id,
               thumb: photoUrl(p.id, "thumb"),

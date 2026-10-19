@@ -250,11 +250,24 @@ html[data-site-intro="on"] .site-intro {
 }
 .site-footer-flow { position: relative; background: linear-gradient(to bottom, var(--color-night), var(--color-night-deep) 75%); }
 /* Heroes melt into the page below instead of ending on a hairline. */
-.hero-flow::after {
-  content: ""; position: absolute; inset-inline: 0; bottom: 0; height: 96px; pointer-events: none; z-index: 1;
+.hero-flow::after { /* behind the hero content (the hero is isolate), so it never dims the last text line */
+  content: ""; position: absolute; inset-inline: 0; bottom: 0; height: 72px; pointer-events: none; z-index: -1;
   background: linear-gradient(to bottom, transparent, var(--color-night));
 }
+/* Hero → first section: one rhythm step, not hero padding + full section padding stacked (design audit #1). */
+.hero-flow + section,
+.hero-flow + :not(section) > section:first-child { padding-top: clamp(1.5rem, 1rem + 2vw, 3rem); }
 .site-footer-flow::after { /* faint gold glint in place of the border line */
   content: ""; position: absolute; top: 0; inset-inline: 15%; height: 1px; pointer-events: none;
   background: linear-gradient(to right, transparent, color-mix(in srgb, var(--color-gold) 22%, transparent), transparent);
+}
+
+/* Mobile chip row (ChipScroller): hidden scrollbar + RTL edge fades where more chips exist. */
+@media (max-width: 767.98px) {
+  .chip-scroller { scrollbar-width: none; --fs: 0px; --fe: 0px; scroll-padding-inline: var(--gutter);
+    -webkit-mask-image: linear-gradient(to left, transparent 0, #000 var(--fs), #000 calc(100% - var(--fe)), transparent 100%);
+    mask-image: linear-gradient(to left, transparent 0, #000 var(--fs), #000 calc(100% - var(--fe)), transparent 100%); }
+  .chip-scroller::-webkit-scrollbar { display: none; }
+  .chip-scroller[data-more-start] { --fs: 28px; }
+  .chip-scroller[data-more-end] { --fe: 44px; }
 }

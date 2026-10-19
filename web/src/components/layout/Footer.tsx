@@ -47,7 +47,7 @@ export async function Footer() {
         <div className="order-1 flex flex-col items-center gap-1 md:order-2 md:justify-self-center">
           <Logo height={64} src={activeLogoSrc(s?.active_logo_id)} />
           {/* Owner-editable tagline (admin «الهوية»): the only public place it appears. */}
-          {s?.tagline ? <p data-footer-tagline className="max-w-xs text-center text-xs text-ivory-muted">{s.tagline}</p> : null}
+          {s?.tagline ? <p data-footer-tagline className="max-w-xs text-center text-sm text-ivory-muted">{s.tagline}</p> : null}
         </div>
 
         <ul aria-label="تواصل" className="order-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-0 text-sm md:order-3 md:justify-self-end">

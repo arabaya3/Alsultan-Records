@@ -62,7 +62,7 @@ export async function PageHero({
         </>
       ) : null}
       <div
-        className={`mx-auto flex w-full max-w-[var(--content-max)] flex-col px-[var(--gutter)] py-16 md:py-24 ${center ? "items-center text-center" : "items-start"}`}
+        className={`mx-auto flex w-full max-w-[var(--content-max)] flex-col px-[var(--gutter)] pt-10 pb-8 sm:pt-16 md:pt-24 md:pb-12 ${center ? "items-center text-center" : "items-start"}`}
       >
         {breadcrumb?.length ? (
           <nav aria-label="مسار التنقل" className="mb-5 text-sm text-ivory-muted">
@@ -89,7 +89,7 @@ export async function PageHero({
         <span aria-hidden="true" className={`gold-rule mt-5 ${center ? "mx-auto" : ""}`} />
         {lead ? <p className="mt-5 max-w-2xl text-lead text-ivory-muted">{lead}</p> : null}
         {children ? (
-          <div className={`mt-8 flex flex-wrap items-center gap-4 ${center ? "justify-center" : ""}`}>{children}</div>
+          <div className={`mt-6 flex flex-wrap items-center gap-4 md:mt-8 ${center ? "justify-center" : ""}`}>{children}</div>
         ) : null}
       </div>
     </div>
