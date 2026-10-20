@@ -130,9 +130,10 @@ select is((select to_path from public.slug_redirects where from_path = '/work/al
 update public.offers set slug = 'active-offer-v3' where slug = 'active-offer-renamed';
 select is((select to_path from public.slug_redirects where from_path = '/offers/active-offer'), '/offers/active-offer-v3', 'redirects stay flat (no chains)');
 select is((select string_agg(album_title, ',') from public.find_duplicate_photo(repeat('1', 64))), 'ألبوم حي', 'dedupe lookup returns album title');
-select throws_ok($$insert into public.album_photos (id, album_id, storage_path_original, mime, sha256)
+-- (0025: admin inserts must start 'uploading'; the duplicate index is still what rejects this one)
+select throws_ok($$insert into public.album_photos (id, album_id, storage_path_original, mime, sha256, upload_status)
   values ('00000000-0000-4000-8000-0000000cad08', '00000000-0000-4000-8000-0000000cab01',
-          'albums/00000000-0000-4000-8000-0000000cab01/00000000-0000-4000-8000-0000000cad08/original.jpg', 'image/jpeg', repeat('1', 64))$$,
+          'albums/00000000-0000-4000-8000-0000000cab01/00000000-0000-4000-8000-0000000cad08/original.jpg', 'image/jpeg', repeat('1', 64), 'uploading')$$,
   '23505', null, 'duplicate sha256 in the same album rejected');
 select throws_ok($$select public.purge_album('00000000-0000-4000-8000-0000000cab02', 'cms-trash')$$, '22023', null, 'purge requires the exact slug');
 select throws_ok($$select public.purge_album('00000000-0000-4000-8000-0000000cab01', 'cms-live-album-2')$$, '55000', null, 'purge requires the album in trash');

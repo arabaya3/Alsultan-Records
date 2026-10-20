@@ -1,6 +1,6 @@
 -- 0015: video categories + links, photo albums + photos, album-media storage policy.
 begin;
-select plan(44);
+select plan(46);
 
 update public.app_settings set require_staff_mfa = true where id = 1;
 
@@ -111,8 +111,13 @@ select lives_ok($$insert into public.showcase_video_categories (video_id, catego
 select is((select count(*)::int from public.showcase_video_categories), 4, 'admin sees every link');
 select lives_ok($$insert into public.photo_albums (slug, title) values ('new-album', 'ألبوم جديد')$$, 'admin inserts album');
 select is((select updated_by::text from public.photo_albums where slug = 'new-album'), '00000000-0000-4000-8000-0000000000a2', 'updated_by stamped');
-select lives_ok($$insert into storage.objects (bucket_id, name) values ('album-media', 'albums/a/b/original.jpg')$$, 'admin uploads to album-media');
-select is((select count(*)::int from storage.objects where bucket_id = 'album-media' and name ~ '^albums/(00000000-0000-4000-8000-0000000009|a/)'), 5, 'admin reads every album object');
+-- 0025: an admin uploads ONLY at a path the server reserved (row 'uploading'); arbitrary paths are refused.
+select lives_ok($$insert into public.album_photos (id, album_id, storage_path_original, mime, upload_status)
+  values ('00000000-0000-4000-8000-0000000009d9', '00000000-0000-4000-8000-0000000009b1',
+          'albums/00000000-0000-4000-8000-0000000009b1/00000000-0000-4000-8000-0000000009d9/original.jpg', 'image/jpeg', 'uploading')$$, 'admin reserves an upload');
+select lives_ok($$insert into storage.objects (bucket_id, name) values ('album-media', 'albums/00000000-0000-4000-8000-0000000009b1/00000000-0000-4000-8000-0000000009d9/original.jpg')$$, 'admin uploads to album-media at the reserved path');
+select throws_ok($$insert into storage.objects (bucket_id, name) values ('album-media', 'albums/a/b/original.jpg')$$, '42501', null, 'admin cannot upload at an unreserved path');
+select is((select count(*)::int from storage.objects where bucket_id = 'album-media' and name ~ '^albums/00000000-0000-4000-8000-0000000009'), 5, 'admin reads every album object');
 select lives_ok($$update public.showcase_videos set needs_review = true, review_note = 'check' where id = '00000000-0000-4000-8000-0000000009a1'$$,
   'admin sets needs_review');
 select isnt((select reviewed_at from public.showcase_video_admin_details where video_id = '00000000-0000-4000-8000-0000000009a1'), null,
@@ -124,7 +129,7 @@ reset role;
 select is((select count(*)::int from public.album_photos where album_id = '00000000-0000-4000-8000-0000000009b2'), 0, 'album delete cascades photos');
 select ok(exists (select 1 from private.storage_cleanup_queue where bucket = 'album-media'
   and path like 'albums/00000000-0000-4000-8000-0000000009b2/%'), 'deleted photos enqueue storage cleanup');
-select is((select count(*)::int from public.album_photos), 2, 'staff deletes affected nothing');
+select is((select count(*)::int from public.album_photos), 3, 'staff deletes affected nothing'); -- 2 seeded + the reservation made above (0025)
 select ok(has_table_privilege('service_role', 'public.video_categories', 'select, insert, update, delete')
   and has_table_privilege('service_role', 'public.showcase_video_categories', 'select, insert, update, delete')
   and has_table_privilege('service_role', 'public.photo_albums', 'select, insert, update, delete')

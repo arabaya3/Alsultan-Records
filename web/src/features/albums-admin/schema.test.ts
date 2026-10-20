@@ -33,7 +33,9 @@ describe("album upload rules", () => {
     expect(checkAlbumFile({ type: "image/gif", size: 1000 })).not.toBeNull();
     expect(checkAlbumFile({ type: "image/heic", size: 1000 })).not.toBeNull();
     expect(checkAlbumFile({ type: "image/png", size: 0 })).not.toBeNull();
-    expect(checkAlbumFile({ type: "image/png", size: 25 * 1024 ** 2 + 1 })).not.toBeNull();
+    expect(checkAlbumFile({ type: "image/png", size: 25 * 1024 ** 2 + 1 })).toBeNull(); // the old 25 MB wall is gone (0025)
+    expect(checkAlbumFile({ type: "image/png", size: 50 * 1024 ** 2 + 1 })).not.toBeNull(); // project cap 50 MB
+    expect(checkAlbumFile({ type: "image/x-canon-cr3", size: 30 * 1024 ** 2 })).toBeNull();
   });
   it("builds the storage path convention", () => {
     expect(albumObjectPath("a", "p", "image/webp")).toBe("albums/a/p/original.webp");
