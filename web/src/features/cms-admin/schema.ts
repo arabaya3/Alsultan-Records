@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PAGE_TARGETS, SECTION_KEYS } from "./targets";
+import { LONG_TEXT } from "@/lib/text-limits";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -124,10 +125,10 @@ export const identitySchema = z.object({
 export const homeSchema = z
   .object({
     hero_title: optText(120, "عنوان الواجهة"),
-    hero_subtitle: optText(600, "النص التعريفي"),
+    hero_subtitle: optText(LONG_TEXT, "النص التعريفي"),
     hero_primary_label: optText(40, "نص الزر الأساسي"),
     hero_secondary_label: optText(40, "نص الزر الثاني"),
-    booking_message: optText(600, "رسالة واتساب"),
+    booking_message: optText(LONG_TEXT, "رسالة واتساب"),
     hero_cover_photo_id: optUuid,
     hero_promo_source: z.enum(["site", "youtube"], { message: "مصدر الفيديو غير صالح" }),
     hero_promo_video_id: optUuid,
@@ -139,14 +140,14 @@ export const homeSchema = z
 export const sectionIntroSchema = z.object({
   key: z.enum(SECTION_KEYS),
   title: optText(120, "العنوان"),
-  intro: optText(600, "المقدمة"),
+  intro: optText(LONG_TEXT, "المقدمة"),
 });
 
 export const serviceSchema = z.object({
   title: reqText(120, "عنوان الخدمة", 2),
   slug,
-  summary: optText(300, "الملخص"),
-  body: optText(4000, "التفاصيل"),
+  summary: optText(LONG_TEXT, "الملخص"),
+  body: optText(LONG_TEXT, "التفاصيل"),
   cover_photo_id: optUuid,
   is_published: z.boolean(),
   video_ids: uuidList,
@@ -155,7 +156,7 @@ export const serviceSchema = z.object({
 
 export const stepSchema = z.object({
   title: reqText(80, "عنوان الخطوة", 2),
-  description: optText(300, "الوصف"),
+  description: optText(LONG_TEXT, "الوصف"),
   photo_id: optUuid,
   is_published: z.boolean(),
 });
@@ -176,21 +177,21 @@ export const offerSchema = z
   .object({
     title: reqText(120, "عنوان العرض", 2),
     slug,
-    description: optText(600, "الوصف"),
+    description: optText(LONG_TEXT, "الوصف"),
     image_photo_id: optUuid,
     price_minor: money,
     currency: z.enum(["ILS", "USD", "JOD"], { message: "عملة غير مدعومة" }),
     show_price: z.boolean(),
     starts_on: optDate,
     ends_on: optDate,
-    terms: optText(1000, "الشروط"),
-    whatsapp_message: optText(600, "رسالة واتساب"),
+    terms: optText(LONG_TEXT, "الشروط"),
+    whatsapp_message: optText(LONG_TEXT, "رسالة واتساب"),
     status: z.enum(["draft", "published", "archived"]),
     pinned_home: z.boolean(),
     target_month: optInt(1, 12, "الشهر المستهدف"),
     target_year: optInt(2000, 2100, "السنة المستهدفة"),
     package_id: optUuid,
-    items: z.array(reqText(120, "بند العرض")).max(20, "بنود كثيرة (20 حداً أقصى)"),
+    items: z.array(reqText(LONG_TEXT, "بند العرض")).max(20, "بنود كثيرة (20 حداً أقصى)"),
   })
   .refine((v) => (v.target_month === null) === (v.target_year === null), { message: "اختر الشهر والسنة المستهدفين معاً، أو اتركهما فارغين." })
   .refine((v) => !v.starts_on || !v.ends_on || v.ends_on >= v.starts_on, { message: "تاريخ النهاية يجب أن يكون بعد البداية أو مساوياً لها." })
@@ -200,18 +201,18 @@ export const packageSchema = z
   .object({
     title: reqText(120, "اسم البكج", 2),
     slug,
-    description: optText(1000, "الوصف"),
+    description: optText(LONG_TEXT, "الوصف"),
     image_photo_id: optUuid,
     price_minor: money,
     currency: z.enum(["ILS", "USD", "JOD"], { message: "عملة غير مدعومة" }),
     show_price: z.boolean(),
-    whatsapp_message: optText(600, "رسالة واتساب"),
+    whatsapp_message: optText(LONG_TEXT, "رسالة واتساب"),
     status: z.enum(["draft", "published", "hidden"]),
     featured: z.boolean(),
     group_label: optText(40, "المجموعة"),
-    gift: optText(200, "الهدية"),
-    internal_note: optText(1000, "الملاحظة الداخلية"),
-    items: z.array(reqText(120, "خدمة مشمولة")).max(30, "خدمات كثيرة (30 حداً أقصى)"),
+    gift: optText(LONG_TEXT, "الهدية"),
+    internal_note: optText(LONG_TEXT, "الملاحظة الداخلية"),
+    items: z.array(reqText(LONG_TEXT, "خدمة مشمولة")).max(30, "خدمات كثيرة (30 حداً أقصى)"),
   })
   .refine((v) => !v.show_price || v.price_minor !== null, { message: "أدخل السعر أو ألغِ «إظهار السعر»." });
 
@@ -241,8 +242,9 @@ export const navItemSchema = z.object({ label: reqText(30, "اسم الرابط"
 export const sectionSchema = z.object({
   key: z.enum(SECTION_KEYS),
   title: optText(120, "العنوان"),
-  intro: optText(600, "المقدمة"),
+  intro: optText(LONG_TEXT, "المقدمة"),
   is_visible: z.boolean(),
+  stat_value: optInt(1, 10_000_000, "الرقم"),
   item_limit: z.coerce.number({ message: "عدد العناصر رقم" }).int("عدد صحيح").min(1, "1 على الأقل").max(12, "12 كحد أقصى"),
   featured_ids: uuidList.max(12, "12 عنصراً مميزاً كحد أقصى"),
 });

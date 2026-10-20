@@ -5,6 +5,7 @@
  */
 import { z } from "zod";
 import { isSiteTarget, OFFER_SLUG, SITE_TARGETS, targetLabel, targetPath, type SiteTarget } from "@/lib/site-targets";
+import { LONG_TEXT } from "@/lib/text-limits";
 
 const text = (max: number) =>
   z
@@ -53,17 +54,18 @@ export const defaultNav = (targets: SiteTarget[]): NavLink[] =>
   targets.map((t) => ({ key: t, target: t, href: SITE_TARGETS[t].path, label: SITE_TARGETS[t].label }));
 
 /* ---------------- home sections ---------------- */
-export const SECTION_KEYS = ["works", "services", "offers", "promos", "albums", "process", "about", "contact"] as const;
+export const SECTION_KEYS = ["works", "services", "offers", "promos", "albums", "process", "about", "contact", "stats"] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 
 export const siteSectionRow = z.object({
   key: z.enum(SECTION_KEYS),
   title: text(120),
-  intro: text(600),
+  intro: text(LONG_TEXT),
   is_visible: bool(true),
   sort_order: num(0),
   item_limit: z.number().int().min(1).max(12).nullable().optional().catch(null).transform((v) => v ?? 6),
   featured_ids: z.array(z.string()).nullable().optional().catch(null).transform((v) => (v ?? []).filter((x) => uuid.safeParse(x).success)),
+  stat_value: z.number().int().min(1).nullable().optional().catch(null).transform((v) => v ?? null),
 });
 export type SectionConfig = {
   key: SectionKey;
@@ -72,6 +74,8 @@ export type SectionConfig = {
   visible: boolean;
   limit: number;
   featured: string[];
+  /** stats section only: the owner-entered number (null → the section is not rendered). */
+  stat: number | null;
 };
 
 export const SECTION_DEFAULTS: Record<SectionKey, { title: string; visible: boolean }> = {
@@ -83,9 +87,11 @@ export const SECTION_DEFAULTS: Record<SectionKey, { title: string; visible: bool
   process: { title: "كيف نشتغل", visible: true },
   about: { title: "من نحن", visible: false },
   contact: { title: "تواصل معنا", visible: false },
+  stats: { title: "فرحة وثّقناها", visible: false },
 };
-/** Today's home order. Offers render only when at least one offer is active. */
-const DEFAULT_ORDER: SectionKey[] = ["works", "services", "offers", "process", "promos", "albums", "about", "contact"];
+/** Home order (owner, 2026-10-20): offers → newest albums → counter → videos → services → process. Offers render only
+ *  when at least one offer is active; the counter only when the owner entered a number. */
+const DEFAULT_ORDER: SectionKey[] = ["offers", "albums", "stats", "works", "services", "process", "promos", "about", "contact"];
 
 export function resolveSections(rows: z.infer<typeof siteSectionRow>[] | null): SectionConfig[] {
   const byKey = new Map((rows ?? []).map((r) => [r.key, r]));
@@ -100,6 +106,7 @@ export function resolveSections(rows: z.infer<typeof siteSectionRow>[] | null): 
         visible: r ? r.is_visible : SECTION_DEFAULTS[key].visible,
         limit: r?.item_limit ?? 6,
         featured: r?.featured_ids ?? [],
+        stat: r?.stat_value ?? null,
       } satisfies SectionConfig,
     };
   });
@@ -110,7 +117,7 @@ export function resolveSections(rows: z.infer<typeof siteSectionRow>[] | null): 
 export const processStepRow = z.object({
   id: z.string(),
   title: z.string().min(1).transform((v) => v.slice(0, 80)),
-  description: text(300),
+  description: text(LONG_TEXT),
   photo_id: optUuid,
   sort_order: num(0),
 });
@@ -121,7 +128,7 @@ export const offerRow = z.object({
   id: z.string(),
   slug: z.string().regex(OFFER_SLUG),
   title: z.string().min(1).transform((v) => v.slice(0, 120)),
-  description: text(600),
+  description: text(LONG_TEXT),
   image_photo_id: optUuid,
   /** Anon reads display_price_minor (= price_minor only when show_price). */
   display_price_minor: z.union([z.number(), z.string()]).nullable().optional().catch(null).transform((v) => {
@@ -132,8 +139,8 @@ export const offerRow = z.object({
   show_price: bool(false),
   starts_on: isoDate,
   ends_on: isoDate,
-  terms: text(2000),
-  whatsapp_message: text(600),
+  terms: text(LONG_TEXT),
+  whatsapp_message: text(LONG_TEXT),
   status: z.string().nullable().optional(),
   pinned_home: bool(false),
   sort_order: num(0),
@@ -149,7 +156,7 @@ export const offerRow = z.object({
   package_id: optUuid,
 });
 export type OfferRow = z.infer<typeof offerRow>;
-export const offerItemRow = z.object({ offer_id: z.string(), label: z.string().min(1).transform((v) => v.slice(0, 120)), sort_order: num(0) });
+export const offerItemRow = z.object({ offer_id: z.string(), label: z.string().min(1).transform((v) => v.slice(0, LONG_TEXT)), sort_order: num(0) });
 export type Offer = OfferRow & { items: string[] };
 
 /** Today's date in Asia/Hebron as YYYY-MM-DD (same rule as app.hebron_today()). */
@@ -231,7 +238,7 @@ export const packageRow = z.object({
   id: z.string(),
   slug: z.string().regex(OFFER_SLUG),
   title: z.string().min(1).transform((v) => v.slice(0, 120)),
-  description: text(1000),
+  description: text(LONG_TEXT),
   image_photo_id: optUuid,
   display_price_minor: z.union([z.number(), z.string()]).nullable().optional().catch(null).transform((v) => {
     const n = v == null ? NaN : Number(v);
@@ -239,14 +246,14 @@ export const packageRow = z.object({
   }),
   currency: z.string().regex(/^[A-Z]{3}$/).nullable().optional().catch(null).transform((v) => v ?? "ILS"),
   show_price: bool(false),
-  whatsapp_message: text(600),
+  whatsapp_message: text(LONG_TEXT),
   featured: bool(false),
   sort_order: num(0),
   group_label: text(40),
-  gift: text(200),
+  gift: text(LONG_TEXT),
 });
 export type PackageRow = z.infer<typeof packageRow>;
-export const packageItemRow = z.object({ package_id: z.string(), label: z.string().min(1).transform((v) => v.slice(0, 120)), sort_order: num(0) });
+export const packageItemRow = z.object({ package_id: z.string(), label: z.string().min(1).transform((v) => v.slice(0, LONG_TEXT)), sort_order: num(0) });
 export type Package = PackageRow & { items: string[] };
 /** Groups in order of their first package (owner order); packages without a group go last. */
 export function groupPackages<T extends Pick<PackageRow, "group_label" | "sort_order">>(list: T[]): { label: string | null; items: T[] }[] {

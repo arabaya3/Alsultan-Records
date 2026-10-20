@@ -1,3 +1,4 @@
+import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 import Image from "next/image";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
@@ -120,8 +121,8 @@ function VideoFields({ v, cats, links, details, photos }: { v?: VideoRow; cats: 
           </p>
         )}
       </fieldset>
-      <Field label="الوصف المعروض (اختياري)" hint="حتى 500 حرف. وصف YouTube الأصلي يظهر في سجل المصدر للقراءة فقط." className="sm:col-span-2">
-        <textarea name="description" rows={3} maxLength={500} defaultValue={v?.description ?? ""} className={inputCls} />
+      <Field label="الوصف المعروض (اختياري)" hint={`${LONG_TEXT_HINT} وصف YouTube الأصلي يظهر في سجل المصدر للقراءة فقط.`} className="sm:col-span-2">
+        <textarea name="description" rows={3} maxLength={LONG_TEXT} defaultValue={v?.description ?? ""} className={inputCls} />
       </Field>
       <Field label="الترتيب" hint="الأصغر يظهر أولاً.">
         <input name="sort_order" type="number" inputMode="numeric" min={-1000} max={100000} step={1} defaultValue={v?.sort_order ?? 100} className={inputCls} />

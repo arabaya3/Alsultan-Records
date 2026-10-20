@@ -77,7 +77,7 @@ export async function getSiteSections(): Promise<SectionConfig[]> {
   try {
     const { data, error } = await sb
       .from("site_sections")
-      .select("key, title, intro, is_visible, sort_order, item_limit, featured_ids")
+      .select("key, title, intro, is_visible, sort_order, item_limit, featured_ids, stat_value")
       .order("sort_order", { ascending: true });
     if (error || !data?.length) return resolveSections(null);
     return resolveSections(parseRows(siteSectionRow, data));

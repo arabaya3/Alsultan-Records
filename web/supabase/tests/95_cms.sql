@@ -50,8 +50,8 @@ select is((select count(*)::int from public.process_steps where is_published), 4
 select is((select title from public.process_steps order by sort_order limit 1), 'راسلنا على واتساب', 'first step verbatim');
 select is((select string_agg(target, ',' order by sort_order) from public.nav_items where is_visible), 'work,packages,offers,services,about',
   'nav: current header + packages/offers (0019 owner order)');
-select is((select string_agg(key, ',' order by sort_order) from public.site_sections where is_visible), 'works,services,process',
-  'visible home sections match today''s homepage');
+select is((select string_agg(key, ',' order by sort_order) from public.site_sections where is_visible), 'offers,albums,works,services,process',
+  'visible home sections: owner order since 0024 (offers, albums, videos, services, process; stats hidden until a number exists)');
 
 -- ------------------------------------------------------------------ anon
 select set_config('request.jwt.claims', '{"role":"anon"}', true);
@@ -68,7 +68,7 @@ select throws_ok($$select status from public.offers$$, '42501', null, 'anon cann
 select is((select count(*)::int from public.offer_items), 1, 'anon sees items of active offers only');
 select is((select string_agg(text, ',') from public.announcements), 'إعلان فعال', 'announcements: active only');
 select is((select count(*)::int from public.nav_items), 7, 'anon reads nav items (0019 adds packages)');
-select is((select count(*)::int from public.site_sections), 8, 'anon reads home sections');
+select is((select count(*)::int from public.site_sections), 9, 'anon reads home sections (9 since 0024 added stats)');
 select throws_ok($$select updated_by from public.site_sections$$, '42501', null, 'site_sections.updated_by not anon-readable');
 select is((select count(*)::int from public.process_steps), 4, 'anon reads published steps');
 select is((select count(*)::int from public.photo_albums where id in ('00000000-0000-4000-8000-0000000cab02', '00000000-0000-4000-8000-0000000cab03')), 0,

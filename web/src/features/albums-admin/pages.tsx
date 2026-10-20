@@ -1,3 +1,4 @@
+import { LONG_TEXT } from "@/lib/text-limits";
 import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
@@ -98,7 +99,7 @@ function AlbumFields({ a, categories }: { a?: Album; categories: Category[] }) {
         <input name="event_date" type="date" defaultValue={a?.event_date ?? ""} className={inputCls} />
       </Field>
       <Field label="الوصف (اختياري)" className="sm:col-span-2">
-        <textarea name="description" rows={3} maxLength={2000} defaultValue={a?.description ?? ""} className={inputCls} />
+        <textarea name="description" rows={3} maxLength={LONG_TEXT} defaultValue={a?.description ?? ""} className={inputCls} />
       </Field>
       <Field label="الترتيب" hint="الأصغر يظهر أولاً.">
         <input name="sort_order" type="number" inputMode="numeric" min={-1000} max={100000} step={1} defaultValue={a?.sort_order ?? 100} className={inputCls} />

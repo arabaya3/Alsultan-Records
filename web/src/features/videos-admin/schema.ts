@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { parseYouTubeId } from "@/lib/youtube";
+import { LONG_TEXT } from "@/lib/text-limits";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -20,7 +21,7 @@ export const videoFormSchema = z.object({
       return id;
     }),
   title: z.string().trim().min(2, "العنوان قصير جداً (حرفان على الأقل)").max(200, "العنوان أطول من 200 حرف"),
-  description: z.string().trim().max(500, "الوصف أطول من 500 حرف").nullable(),
+  description: z.string().trim().max(LONG_TEXT, `الوصف أطول من ${LONG_TEXT} حرف`).nullable(),
   category_ids: z.array(z.string().regex(UUID, "تصنيف غير صالح")).max(20, "تصنيفات كثيرة"),
   primary_category: z.string().regex(UUID, "تصنيف رئيسي غير صالح").nullable(),
   needs_review: z.boolean(),

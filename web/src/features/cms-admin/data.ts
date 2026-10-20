@@ -33,7 +33,7 @@ export async function pickOffers(sb: SupabaseClient): Promise<Opt[]> {
   return ((data ?? []) as { id: string; title: string; status: string }[]).map((v) => ({ id: v.id, title: v.title, hidden: v.status !== "published" }));
 }
 
-export type SectionRow = { key: string; title: string | null; intro: string | null; is_visible: boolean; sort_order: number; item_limit: number; featured_ids: string[] };
+export type SectionRow = { key: string; title: string | null; intro: string | null; is_visible: boolean; sort_order: number; item_limit: number; featured_ids: string[]; stat_value?: number | null };
 export async function loadSection(sb: SupabaseClient, key: string): Promise<SectionRow | null> {
   const { data } = await sb.from("site_sections").select("key, title, intro, is_visible, sort_order, item_limit, featured_ids").eq("key", key).maybeSingle();
   return (data as SectionRow | null) ?? null;

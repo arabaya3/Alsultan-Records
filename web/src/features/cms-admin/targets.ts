@@ -6,7 +6,7 @@ export type PageTarget = SiteTarget;
 export const PAGE_TARGET_LABEL = Object.fromEntries(SITE_TARGET_KEYS.map((k) => [k, SITE_TARGETS[k].label])) as Record<SiteTarget, string>;
 export const PAGE_TARGET_PATH = (k: SiteTarget) => SITE_TARGETS[k].path;
 
-export const SECTION_KEYS = ["works", "services", "offers", "promos", "albums", "process", "about", "contact"] as const;
+export const SECTION_KEYS = ["works", "services", "offers", "promos", "albums", "process", "about", "contact", "stats"] as const;
 export type SectionKey = (typeof SECTION_KEYS)[number];
 export const SECTION_LABEL: Record<SectionKey, string> = {
   works: "أعمالنا (الفيديوهات)",
@@ -17,6 +17,7 @@ export const SECTION_LABEL: Record<SectionKey, string> = {
   process: "طريقة شغلنا",
   about: "من نحن",
   contact: "تواصل معنا",
+  stats: "عدّاد الحفلات",
 };
 /** Which entity a section's featured_ids point at (null = no featured picker). */
 export const SECTION_FEATURE: Record<SectionKey, "video" | "service" | "offer" | "album" | null> = {
@@ -28,4 +29,5 @@ export const SECTION_FEATURE: Record<SectionKey, "video" | "service" | "offer" |
   process: null,
   about: null,
   contact: null,
+  stats: null,
 };
