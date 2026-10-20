@@ -1,3 +1,4 @@
+import { photoErrorText } from "./photo-errors";
 import { LONG_TEXT } from "@/lib/text-limits";
 import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -369,7 +370,7 @@ export async function AlbumEditPage({ params }: { params: IdParams }) {
                         </span>
                       ) : null}
                     </div>
-                    {p.upload_status === "failed" && p.last_error ? <p className="mt-1 text-xs text-danger">{p.last_error}</p> : null}
+                    {p.upload_status === "failed" && p.last_error ? <p className="mt-1 text-xs text-danger" data-testid="photo-error">{photoErrorText(p.last_error)}</p> : null}
                     <div className="mt-2 flex flex-wrap gap-1">
                       <ActionForm action={movePhoto} submitLabel="↑ تقديم" kind="ghost" inline disabled={i === 0}>
                         <input type="hidden" name="id" value={p.id} />
