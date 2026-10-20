@@ -42,8 +42,8 @@ const nextConfig: NextConfig = {
   // node_modules; its .wasm must ship with every function that runs the photo worker.
   serverExternalPackages: ["libraw-wasm"],
   outputFileTracingIncludes: {
-    "/api/jobs/process-photos": ["./node_modules/libraw-wasm/dist/**"],
-    "/admin/albums/[id]": ["./node_modules/libraw-wasm/dist/**"],
+    "/api/jobs/process-photos": ["./node_modules/libraw-wasm/dist/**", "./node_modules/libraw-wasm/package.json"],
+    "/admin/albums/[id]": ["./node_modules/libraw-wasm/dist/**", "./node_modules/libraw-wasm/package.json"],
   },
   cacheComponents: true,
   partialPrefetching: true,
