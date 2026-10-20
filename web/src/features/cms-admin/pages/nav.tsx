@@ -9,6 +9,7 @@ import { pickAlbums, pickOffers, pickServices, pickVideos, type Opt, type Sectio
 import { PAGE_TARGET_LABEL, PAGE_TARGET_PATH, SECTION_FEATURE, SECTION_KEYS, SECTION_LABEL, type SectionKey } from "../targets";
 import { saveNavItem, saveOrder, saveSection, saveSectionOrder, setSectionVisible } from "../actions";
 import { CheckList, CmsLoadError } from "./shared";
+import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 
 type Nav = { id: string; label: string; target: string; sort_order: number; is_visible: boolean };
 
@@ -17,7 +18,7 @@ export async function NavSectionsPage() {
   const sb = await cms();
   const [nav, sec, videos, services, offers, albums] = await Promise.all([
     sb.from("nav_items").select("id, label, target, sort_order, is_visible").order("sort_order"),
-    sb.from("site_sections").select("key, title, intro, is_visible, sort_order, item_limit, featured_ids").order("sort_order"),
+    sb.from("site_sections").select("key, title, intro, is_visible, sort_order, item_limit, featured_ids, stat_value").order("sort_order"),
     pickVideos(sb),
     pickServices(sb),
     pickOffers(sb),
@@ -97,13 +98,22 @@ export async function NavSectionsPage() {
                     <Field label="العنوان">
                       <input name="title" maxLength={120} defaultValue={s.title ?? ""} className={inputCls} />
                     </Field>
-                    <Field label="المقدمة">
-                      <textarea name="intro" rows={2} maxLength={600} defaultValue={s.intro ?? ""} className={inputCls} />
+                    <Field label="المقدمة" hint={LONG_TEXT_HINT}>
+                      <textarea name="intro" rows={2} maxLength={LONG_TEXT} defaultValue={s.intro ?? ""} className={inputCls} />
                     </Field>
-                    <div className="grid grid-cols-2 gap-3">
-                      <Field label="عدد العناصر" hint="من 1 إلى 12">
-                        <input name="item_limit" type="number" inputMode="numeric" min={1} max={12} step={1} defaultValue={s.item_limit} className={inputCls} />
+                    {s.key === "stats" ? (
+                      <Field label="الرقم" hint="العدد الحقيقي للحفلات والمناسبات اللي وثّقها الاستوديو. القسم ما بظهر بالموقع بدون رقم.">
+                        <input name="stat_value" type="number" inputMode="numeric" min={1} max={10000000} step={1} defaultValue={s.stat_value ?? ""} className={inputCls} data-testid="stat-value" />
                       </Field>
+                    ) : null}
+                    <div className="grid grid-cols-2 gap-3">
+                      {s.key === "stats" ? (
+                        <input type="hidden" name="item_limit" value={s.item_limit} />
+                      ) : (
+                        <Field label="عدد العناصر" hint="من 1 إلى 12">
+                          <input name="item_limit" type="number" inputMode="numeric" min={1} max={12} step={1} defaultValue={s.item_limit} className={inputCls} />
+                        </Field>
+                      )}
                       <label className="flex min-h-10 items-center gap-2 self-end text-sm">
                         <input type="checkbox" name="is_visible" defaultChecked={s.is_visible} /> ظاهر
                       </label>

@@ -1,3 +1,4 @@
+import { ExpandableText } from "@/components/ui/ExpandableText";
 import { offerPriceLabel, packageWhatsappText, type Package } from "@/features/public-content/cms-model";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 
@@ -43,7 +44,7 @@ export function PackageCard({ pkg }: { pkg: Package }) {
           {price}
         </span>
       ) : null}
-      {pkg.description ? <p className="mt-3 whitespace-pre-line break-words text-ivory-muted">{pkg.description}</p> : null}
+      {pkg.description ? <ExpandableText text={pkg.description} className="mt-3 text-ivory-muted" /> : null}
       {pkg.items.length ? (
         <ul data-package-items className="mt-4 space-y-2.5 border-t border-hairline pt-4 text-[0.95rem]">
           {pkg.items.map((it, i) => (

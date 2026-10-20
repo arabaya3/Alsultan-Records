@@ -31,7 +31,8 @@ describe("readVideoForm", () => {
     expect(readVideoForm(fd({ title: "x".repeat(201) })).success).toBe(false);
     expect(readVideoForm(fd({ title: "استقبال العريس أحمد | تعليلة 2026 | الجديدة |" })).success).toBe(true);
     expect(readVideoForm(fd({ sort_order: "1.5" })).success).toBe(false);
-    expect(readVideoForm(fd({ description: "x".repeat(501) })).success).toBe(false);
+    expect(readVideoForm(fd({ description: "x".repeat(10_001) })).success).toBe(false); // 10,000 since 0024 (owner request)
+    expect(readVideoForm(fd({ description: "x".repeat(10_000) })).success).toBe(true);
   });
 });
 

@@ -61,6 +61,7 @@ const HEADING_ID: Record<SectionConfig["key"], string> = {
   albums: "albums-title",
   about: "about-title",
   contact: "contact-title",
+  stats: "stats-title",
 };
 
 export default async function HomePage() {
@@ -87,7 +88,12 @@ export default async function HomePage() {
       : FALLBACK_SERVICES.map((x) => ({ key: x.title, title: x.title, summary: x.summary, href: "/services" }));
   const offerList = offers.status === "ok" ? pick(offers.data, cfg("offers")) : [];
   const promoList = g ? pick(promoVideos(g), cfg("promos")) : [];
-  const albumList = albums.status === "ok" ? pick(albums.data.filter((a) => a.photoCount > 0), cfg("albums")) : [];
+  // Home shows the NEWEST albums unless the owner picked specific ones: the event date when the owner set one,
+  // otherwise when the album was added (imported albums have no event date).
+  const newest = (a: { event_date: string | null; created_at?: string | null }) => a.event_date ?? a.created_at?.slice(0, 10) ?? "";
+  const newestFirst = <T extends { event_date: string | null; created_at?: string | null }>(xs: T[]) =>
+    [...xs].sort((a, b) => newest(b).localeCompare(newest(a)) || (b.created_at ?? "").localeCompare(a.created_at ?? ""));
+  const albumList = albums.status === "ok" ? pick(newestFirst(albums.data.filter((a) => a.photoCount > 0)), cfg("albums")) : [];
 
   // Hero promo: the self-hosted studio promo by default; the owner may switch to a published YouTube promo.
   const ytPromo =
@@ -178,10 +184,9 @@ export default async function HomePage() {
                 title={c.title}
                 lead={c.intro ?? undefined}
                 action={
-                  <Link href="/offers" className={linkCls}>
-                    كل العروض
-                    <ChevronStart />
-                  </Link>
+                  <IconLink href="/offers" label="كل العروض">
+                    <GridIcon />
+                  </IconLink>
                 }
               />
               <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
@@ -230,13 +235,12 @@ export default async function HomePage() {
                 title={c.title}
                 lead={c.intro ?? undefined}
                 action={
-                  <Link href={SITE_TARGETS.albums.path} className={linkCls}>
-                    كل الألبومات
-                    <ChevronStart />
-                  </Link>
+                  <IconLink href={SITE_TARGETS.albums.path} label="كل الألبومات">
+                    <GridIcon />
+                  </IconLink>
                 }
               />
-              <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+              <ul className={`grid gap-x-6 gap-y-10 sm:grid-cols-2 ${albumList.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
                 {albumList.map((a) => (
                   <li key={a.id} className="h-full">
                     <AlbumCard album={a} />
@@ -281,6 +285,23 @@ export default async function HomePage() {
                 اعرف عنا أكثر
                 <ChevronStart />
               </Link>
+            </div>
+          </Section>
+        );
+      case "stats":
+        // Owner-entered number only (admin «عدّاد الحفلات»); never rendered without one.
+        if (!c.stat) return null;
+        return (
+          <Section key={c.key} tone={tone} labelledBy={hid}>
+            <div data-home-section="stats" className="flex flex-col items-center text-center">
+              <h2 id={hid} className="flex flex-col items-center gap-3">
+                <span data-stat-value className="font-display text-[clamp(3.5rem,11vw,7.5rem)] font-bold leading-none tracking-tight text-gold" dir="ltr">
+                  {c.stat.toLocaleString("en-US")}
+                </span>
+                <span className="text-h3 font-bold">{c.title}</span>
+              </h2>
+              <span aria-hidden="true" className="gold-rule mx-auto mt-5" />
+              {c.intro ? <p className="mt-5 max-w-2xl whitespace-pre-line text-lg text-ivory-muted">{c.intro}</p> : null}
             </div>
           </Section>
         );

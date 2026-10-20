@@ -13,6 +13,7 @@ import { packageBadge, type PackageStatus } from "../status";
 import { defaultPackageMessage } from "../schema";
 import { deleteRow, savePackage, saveOrder, setPackageFeatured, setPackageStatus } from "../actions";
 import { CmsLoadError } from "./shared";
+import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 
 type PackageDb = {
   id: string;
@@ -173,8 +174,8 @@ export async function PackageEditPage({ params, searchParams }: { params: IdPara
             <div className="sm:col-span-2">
               <SlugField defaultValue={p?.slug} prefix="/packages#" />
             </div>
-            <Field label="الوصف" hint="حتى 1000 حرف." className="sm:col-span-2">
-              <textarea name="description" rows={3} maxLength={1000} defaultValue={p?.description ?? ""} className={inputCls} />
+            <Field label="الوصف" hint={LONG_TEXT_HINT} className="sm:col-span-2">
+              <textarea name="description" rows={6} maxLength={LONG_TEXT} defaultValue={p?.description ?? ""} className={inputCls} />
             </Field>
             <Field label="المجموعة (اختياري)" hint="عنوان تتجمّع تحته البكجات في الموقع، مثل: العرسان، مناسبات الرجال، السهرات، DJ.">
               <input name="group_label" maxLength={40} list="package-groups" defaultValue={p?.group_label ?? ""} className={inputCls} />
@@ -185,7 +186,7 @@ export async function PackageEditPage({ params, searchParams }: { params: IdPara
               </datalist>
             </Field>
             <Field label="الهدية (اختياري)" hint="سطر «الهدية: …» في البطاقة. حتى 200 حرف.">
-              <input name="gift" maxLength={200} defaultValue={p?.gift ?? ""} className={inputCls} />
+              <input name="gift" maxLength={LONG_TEXT} defaultValue={p?.gift ?? ""} className={inputCls} />
             </Field>
             <div className="sm:col-span-2">
               <ItemsEditor legend="الخدمات المشمولة" max={30} defaultValue={((items.data ?? []) as { label: string }[]).map((i) => i.label)} />
@@ -204,13 +205,13 @@ export async function PackageEditPage({ params, searchParams }: { params: IdPara
               <input type="checkbox" name="show_price" defaultChecked={p?.show_price ?? false} /> إظهار السعر للزوار
             </label>
             <Field label="رسالة واتساب" hint={`اتركها فارغة لاستخدام: «${defaultPackageMessage(p?.title ?? "<اسم البكج>")}»`} className="sm:col-span-2">
-              <textarea name="whatsapp_message" rows={2} maxLength={600} defaultValue={p?.whatsapp_message ?? ""} className={inputCls} />
+              <textarea name="whatsapp_message" rows={2} maxLength={LONG_TEXT} defaultValue={p?.whatsapp_message ?? ""} className={inputCls} />
             </Field>
             <div className="sm:col-span-2">
               <PhotoPicker name="image_photo_id" label="صورة البكج (اختياري)" photos={photos} defaultValue={p?.image_photo_id} />
             </div>
             <Field label="ملاحظة داخلية (للإدارة فقط — لا تظهر للزوار)" hint="مثلاً سؤال مفتوح عن تفاصيل البكج. حتى 1000 حرف." className="sm:col-span-2">
-              <textarea name="internal_note" rows={2} maxLength={1000} defaultValue={p?.internal_note ?? ""} className={inputCls} data-testid="package-internal-note" />
+              <textarea name="internal_note" rows={2} maxLength={LONG_TEXT} defaultValue={p?.internal_note ?? ""} className={inputCls} data-testid="package-internal-note" />
             </Field>
             <label className="flex min-h-10 items-center gap-2 text-sm sm:col-span-2">
               <input type="checkbox" name="featured" defaultChecked={p?.featured ?? false} /> بكج مميّز (إطار ذهبي وشارة «مميّز»)

@@ -9,6 +9,7 @@ import { pickPhotos } from "../data";
 import { activateLogo, saveHome, saveIdentity } from "../actions";
 import { LogoUploader } from "../LogoUploader";
 import { CmsLoadError } from "./shared";
+import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 
 export const CONTENT_LINKS = [
   { href: "/admin/content/identity", label: "الهوية ومعلومات النشاط", lead: "الاسم، الأرقام، الروابط والشعار." },
@@ -205,8 +206,8 @@ export async function HomeContentPage() {
             <Field label="العنوان الرئيسي" hint="حتى 120 حرفاً." className="sm:col-span-2">
               <input name="hero_title" maxLength={120} defaultValue={h.hero_title ?? ""} className={inputCls} />
             </Field>
-            <Field label="النص تحت العنوان" hint="حتى 600 حرف." className="sm:col-span-2">
-              <textarea name="hero_subtitle" rows={3} maxLength={600} defaultValue={h.hero_subtitle ?? ""} className={inputCls} />
+            <Field label="النص تحت العنوان" hint={LONG_TEXT_HINT} className="sm:col-span-2">
+              <textarea name="hero_subtitle" rows={3} maxLength={LONG_TEXT} defaultValue={h.hero_subtitle ?? ""} className={inputCls} />
             </Field>
             <Field label="نص الزر الأساسي (واتساب)">
               <input name="hero_primary_label" maxLength={40} defaultValue={h.hero_primary_label ?? ""} className={inputCls} />
@@ -215,7 +216,7 @@ export async function HomeContentPage() {
               <input name="hero_secondary_label" maxLength={40} defaultValue={h.hero_secondary_label ?? ""} className={inputCls} />
             </Field>
             <Field label="رسالة واتساب الافتراضية للحجز" hint="تُكتب تلقائياً عند ضغط زر الحجز." className="sm:col-span-2">
-              <textarea name="booking_message" rows={2} maxLength={600} defaultValue={h.booking_message ?? ""} className={inputCls} />
+              <textarea name="booking_message" rows={2} maxLength={LONG_TEXT} defaultValue={h.booking_message ?? ""} className={inputCls} />
             </Field>
             <div className="sm:col-span-2">
               <PhotoPicker name="hero_cover_photo_id" label="صورة الغلاف (اختياري)" photos={photos} defaultValue={h.hero_cover_photo_id} />

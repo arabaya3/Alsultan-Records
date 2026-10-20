@@ -41,6 +41,7 @@ export const photoAlbumRow = z.object({
   cover_photo_id: nullableText,
   sort_order: z.number().nullable().optional().transform((v) => v ?? 0),
   category_id: nullableText,
+  created_at: nullableText,
 });
 export type PhotoAlbumRow = z.infer<typeof photoAlbumRow>;
 

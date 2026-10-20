@@ -11,6 +11,7 @@ import { SortableList } from "../SortableList";
 import { loadSection, pickAlbums, pickPhotos, pickVideos } from "../data";
 import { deleteRow, saveOrder, saveService, saveStep, setVisible } from "../actions";
 import { CheckList, CmsLoadError, PageTabs, SectionIntroCard, SERVICES_TABS } from "./shared";
+import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 
 type Service = { id: string; slug: string; title: string; summary: string | null; body: string | null; cover_photo_id: string | null; is_published: boolean; sort_order: number };
 
@@ -119,11 +120,11 @@ export async function ServiceEditPage({ params, searchParams }: { params: IdPara
                 <input name="title" required minLength={2} maxLength={120} defaultValue={s?.title ?? ""} className={inputCls} />
               </Field>
               <SlugField defaultValue={s?.slug} prefix="/services" />
-              <Field label="ملخص قصير" hint="حتى 300 حرف. يظهر في البطاقة.">
-                <textarea name="summary" rows={2} maxLength={300} defaultValue={s?.summary ?? ""} className={inputCls} />
+              <Field label="ملخص قصير" hint={`${LONG_TEXT_HINT} يظهر في البطاقة.`}>
+                <textarea name="summary" rows={2} maxLength={LONG_TEXT} defaultValue={s?.summary ?? ""} className={inputCls} />
               </Field>
               <Field label="التفاصيل" hint="نص عادي؛ اترك سطراً فارغاً بين الفقرات.">
-                <textarea name="body" rows={6} maxLength={4000} defaultValue={s?.body ?? ""} className={inputCls} />
+                <textarea name="body" rows={6} maxLength={LONG_TEXT} defaultValue={s?.body ?? ""} className={inputCls} />
               </Field>
               <PhotoPicker name="cover_photo_id" label="صورة الغلاف" photos={photos} defaultValue={s?.cover_photo_id} />
               <CheckList name="video_ids" legend="فيديوهات مرتبطة" options={videos} selected={l.filter((x) => x.kind === "video").map((x) => x.target_id)} />
@@ -164,8 +165,8 @@ function StepFields({ s, photos }: { s?: Step; photos: Awaited<ReturnType<typeof
       <Field label="عنوان الخطوة" hint="حتى 80 حرفاً.">
         <input name="title" required minLength={2} maxLength={80} defaultValue={s?.title ?? ""} className={inputCls} />
       </Field>
-      <Field label="الوصف" hint="حتى 300 حرف.">
-        <textarea name="description" rows={2} maxLength={300} defaultValue={s?.description ?? ""} className={inputCls} />
+      <Field label="الوصف" hint={LONG_TEXT_HINT}>
+        <textarea name="description" rows={2} maxLength={LONG_TEXT} defaultValue={s?.description ?? ""} className={inputCls} />
       </Field>
       <PhotoPicker name="photo_id" label="صورة (اختياري)" photos={photos} defaultValue={s?.photo_id} />
       <label className="flex min-h-10 items-center gap-2 text-sm">

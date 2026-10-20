@@ -1241,14 +1241,14 @@ isOneToOne: false
                   ]
                 },"site_sections": {
                   Row: {
-                    "featured_ids": (string)[],"intro": string | null,"is_visible": boolean,"item_limit": number,"key": string,"sort_order": number,"title": string | null,"updated_at": string,"updated_by": string | null
+                    "featured_ids": (string)[],"intro": string | null,"is_visible": boolean,"item_limit": number,"key": string,"sort_order": number,"stat_value": number | null,"title": string | null,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "featured_ids"?: (string)[],"intro"?: string | null,"is_visible"?: boolean,"item_limit"?: number,"key": string,"sort_order"?: number,"title"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "featured_ids"?: (string)[],"intro"?: string | null,"is_visible"?: boolean,"item_limit"?: number,"key": string,"sort_order"?: number,"stat_value"?: number | null,"title"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "featured_ids"?: (string)[],"intro"?: string | null,"is_visible"?: boolean,"item_limit"?: number,"key"?: string,"sort_order"?: number,"title"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "featured_ids"?: (string)[],"intro"?: string | null,"is_visible"?: boolean,"item_limit"?: number,"key"?: string,"sort_order"?: number,"stat_value"?: number | null,"title"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {

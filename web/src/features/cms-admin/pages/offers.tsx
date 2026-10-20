@@ -16,6 +16,7 @@ import { defaultOfferMessage } from "../schema";
 import { PAGE_TARGET_LABEL, PAGE_TARGETS } from "../targets";
 import { deleteRow, saveAnnouncement, saveOffer, saveOrder, setOfferPinned, setOfferStatus, setVisible } from "../actions";
 import { CmsLoadError, DATE_HELP, OFFERS_TABS, PageTabs, SectionIntroCard, today as todayLine } from "./shared";
+import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 
 type OfferDb = {
   id: string;
@@ -189,8 +190,8 @@ export async function OfferEditPage({ params, searchParams }: { params: IdParams
             <div className="sm:col-span-2">
               <SlugField defaultValue={o?.slug} prefix="/offers" />
             </div>
-            <Field label="الوصف" hint="حتى 600 حرف." className="sm:col-span-2">
-              <textarea name="description" rows={3} maxLength={600} defaultValue={o?.description ?? ""} className={inputCls} />
+            <Field label="الوصف" hint={LONG_TEXT_HINT} className="sm:col-span-2">
+              <textarea name="description" rows={6} maxLength={LONG_TEXT} defaultValue={o?.description ?? ""} className={inputCls} />
             </Field>
             <div className="sm:col-span-2">
               <ItemsEditor defaultValue={((items.data ?? []) as { label: string }[]).map((i) => i.label)} />
@@ -241,11 +242,11 @@ export async function OfferEditPage({ params, searchParams }: { params: IdParams
                 ))}
               </select>
             </Field>
-            <Field label="الشروط (اختياري)" hint="حتى 1000 حرف." className="sm:col-span-2">
-              <textarea name="terms" rows={3} maxLength={1000} defaultValue={o?.terms ?? ""} className={inputCls} />
+            <Field label="الشروط (اختياري)" hint={LONG_TEXT_HINT} className="sm:col-span-2">
+              <textarea name="terms" rows={3} maxLength={LONG_TEXT} defaultValue={o?.terms ?? ""} className={inputCls} />
             </Field>
             <Field label="رسالة واتساب" hint={`اتركها فارغة لاستخدام: «${defaultOfferMessage(o?.title ?? "<عنوان العرض>")}»`} className="sm:col-span-2">
-              <textarea name="whatsapp_message" rows={2} maxLength={600} defaultValue={o?.whatsapp_message ?? ""} className={inputCls} />
+              <textarea name="whatsapp_message" rows={2} maxLength={LONG_TEXT} defaultValue={o?.whatsapp_message ?? ""} className={inputCls} />
             </Field>
             <div className="sm:col-span-2">
               <PhotoPicker name="image_photo_id" label="صورة العرض (اختياري)" photos={photos} defaultValue={o?.image_photo_id} />

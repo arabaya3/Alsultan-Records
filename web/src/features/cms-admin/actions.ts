@@ -555,9 +555,11 @@ export async function saveSection(_p: ActionResult, fd: FormData): Promise<Actio
     is_visible: bool(fd, "is_visible"),
     item_limit: str(fd, "item_limit") || "6",
     featured_ids: all(fd, "featured_ids"),
+    stat_value: str(fd, "stat_value"),
   });
   if (!parsed.success) return fail(firstIssue(parsed.error));
   const { key, ...patch } = parsed.data;
+  if (key !== "stats") patch.stat_value = null; // the counter number belongs to the stats section only
   const sb = await cms();
   // Featured items must exist in the table that matches the section type.
   const kind = SECTION_FEATURE[key];

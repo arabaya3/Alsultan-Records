@@ -52,7 +52,7 @@ export async function getVideoGallery(): Promise<Loaded<VideoGallery>> {
   }
 }
 
-const ALBUM_COLUMNS = "id, slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order";
+const ALBUM_COLUMNS = "id, slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order, created_at";
 
 /** Published albums with their published photo count and a usable cover (falls back to the first photo). */
 export async function getPublishedAlbums(): Promise<Loaded<PhotoAlbum[]>> {

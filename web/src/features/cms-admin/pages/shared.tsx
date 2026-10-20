@@ -3,6 +3,7 @@ import { Card, Field, inputCls, LoadError } from "@/features/admin/ui";
 import { CmsForm } from "../CmsForm";
 import { saveSectionIntro } from "../actions";
 import type { Opt, SectionRow } from "../data";
+import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 
 /** Load-error view; says so plainly when the CMS migration is not applied yet. */
 export function CmsLoadError({ error, what }: { error?: { code?: string } | null; what: string }) {
@@ -59,8 +60,8 @@ export function SectionIntroCard({ section, sectionKey, note }: { section: Secti
           <Field label="العنوان" hint="حتى 120 حرفاً. اتركه فارغاً لاستخدام العنوان الافتراضي.">
             <input name="title" maxLength={120} defaultValue={section?.title ?? ""} className={inputCls} />
           </Field>
-          <Field label="المقدمة" hint="حتى 600 حرف. نص عادي.">
-            <textarea name="intro" rows={3} maxLength={600} defaultValue={section?.intro ?? ""} className={inputCls} />
+          <Field label="المقدمة" hint={`${LONG_TEXT_HINT} نص عادي.`}>
+            <textarea name="intro" rows={3} maxLength={LONG_TEXT} defaultValue={section?.intro ?? ""} className={inputCls} />
           </Field>
         </div>
       </CmsForm>
