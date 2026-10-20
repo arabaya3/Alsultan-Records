@@ -78,6 +78,10 @@ insert into public.site_sections (key, title, intro, is_visible, sort_order)
 values ('stats', 'فرحة وثّقناها', null, false, 30)
 on conflict (key) do nothing;
 
+-- «Newest albums» on the home page: imported albums have no event_date and new ones get the default sort_order, so
+-- the only reliable signal is when the album was added. Exposes just that timestamp of PUBLISHED albums (RLS).
+grant select (created_at) on public.photo_albums to anon;
+
 -- ------------------------------------------------------------------ 3. owner-requested home order
 update public.site_sections set sort_order = 10, is_visible = true where key = 'offers';
 update public.site_sections set sort_order = 20, is_visible = true, item_limit = 4 where key = 'albums';

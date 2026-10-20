@@ -1,6 +1,6 @@
 -- 0024 Long texts (10,000) + home stats section (owner-entered counter) + owner-requested home order.
 begin;
-select plan(12);
+select plan(13);
 
 -- long texts: 10,000 accepted, 10,001 rejected (packages / offers / items)
 insert into public.packages (slug, title, description, status) values ('pk-long', 'Long package', repeat('ب', 10000), 'draft');
@@ -19,6 +19,8 @@ select is((select is_visible from public.site_sections where key = 'stats'), fal
 select is((select stat_value from public.site_sections where key = 'stats'), null, 'no number until the owner enters one');
 select throws_ok($$update public.site_sections set stat_value = 0 where key = 'stats'$$, '23514', null, 'counter must be ≥ 1');
 select ok(has_column_privilege('anon', 'public.site_sections', 'stat_value', 'select'), 'anon can read the counter');
+select ok(has_column_privilege('anon', 'public.photo_albums', 'created_at', 'select') and not has_column_privilege('anon', 'public.photo_albums', 'rights_note', 'select'),
+  'anon reads album created_at (newest albums) but still not private columns');
 
 -- owner-requested order: offers → albums → stats → works
 select is((select array_agg(key order by sort_order) from (select key, sort_order from public.site_sections order by sort_order limit 4) s),

@@ -88,9 +88,11 @@ export default async function HomePage() {
       : FALLBACK_SERVICES.map((x) => ({ key: x.title, title: x.title, summary: x.summary, href: "/services" }));
   const offerList = offers.status === "ok" ? pick(offers.data, cfg("offers")) : [];
   const promoList = g ? pick(promoVideos(g), cfg("promos")) : [];
-  // Home shows the NEWEST albums (event date, newest first) unless the owner picked specific ones.
-  const newestFirst = <T extends { event_date: string | null }>(xs: T[]) =>
-    [...xs].sort((a, b) => (b.event_date ?? "").localeCompare(a.event_date ?? ""));
+  // Home shows the NEWEST albums unless the owner picked specific ones: the event date when the owner set one,
+  // otherwise when the album was added (imported albums have no event date).
+  const newest = (a: { event_date: string | null; created_at?: string | null }) => a.event_date ?? a.created_at?.slice(0, 10) ?? "";
+  const newestFirst = <T extends { event_date: string | null; created_at?: string | null }>(xs: T[]) =>
+    [...xs].sort((a, b) => newest(b).localeCompare(newest(a)) || (b.created_at ?? "").localeCompare(a.created_at ?? ""));
   const albumList = albums.status === "ok" ? pick(newestFirst(albums.data.filter((a) => a.photoCount > 0)), cfg("albums")) : [];
 
   // Hero promo: the self-hosted studio promo by default; the owner may switch to a published YouTube promo.

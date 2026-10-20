@@ -38,6 +38,8 @@ describe("cms schema", () => {
     expect(sectionSchema.safeParse({ ...s, item_limit: "13" }).success).toBe(false);
     expect(sectionSchema.safeParse({ ...s, item_limit: "0" }).success).toBe(false);
     expect(sectionSchema.safeParse({ ...s, item_limit: "12" }).success).toBe(true);
+    expect(sectionSchema.safeParse({ ...s, item_limit: "6", key: "stats", stat_value: "1250" }).data?.stat_value).toBe(1250);
+    expect(sectionSchema.safeParse({ ...s, item_limit: "6", key: "stats", stat_value: "0" }).success).toBe(false);
   });
   it("slug suggestion and Hebron status", () => {
     expect(suggestSlug("Wedding  Photography!")).toBe("wedding-photography");

@@ -244,7 +244,7 @@ export const sectionSchema = z.object({
   title: optText(120, "العنوان"),
   intro: optText(LONG_TEXT, "المقدمة"),
   is_visible: z.boolean(),
-  stat_value: optInt(1, 10_000_000, "الرقم"),
+  stat_value: optInt(1, 10_000_000, "الرقم").optional(), // only the stats section sends it
   item_limit: z.coerce.number({ message: "عدد العناصر رقم" }).int("عدد صحيح").min(1, "1 على الأقل").max(12, "12 كحد أقصى"),
   featured_ids: uuidList.max(12, "12 عنصراً مميزاً كحد أقصى"),
 });

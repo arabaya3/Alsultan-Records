@@ -202,12 +202,13 @@ test("video page: h1, categories, in-page player on click, fallback link, relate
   expect((await request.get(`/work/v/${withCat.youtube_id}`)).status()).toBe(200);
 });
 
-test("home: ≤6 works, no promo, no duplicates, one per category first; chips link to filtered /work", async ({ page }) => {
+test("home: works ≤ section limit (owner sets it; 3 since 0024), no promo, no duplicates, one per category first; chips link to filtered /work", async ({ page }) => {
+  const limit = (await anon().from("site_sections").select("item_limit").eq("key", "works").single()).data!.item_limit as number;
   await page.goto("/");
   const section = page.locator("#work-title").locator("xpath=ancestor::section");
   const ids = await section.locator("[data-youtube-card]").evaluateAll((els) => els.map((e) => e.getAttribute("data-youtube-card")));
   expect(ids.length).toBeGreaterThan(0);
-  expect(ids.length).toBeLessThanOrEqual(6);
+  expect(ids.length).toBeLessThanOrEqual(limit);
   expect(new Set(ids).size).toBe(ids.length);
   const promo = vids.find((v) => v.is_promo);
   if (promo) expect(ids).not.toContain(promo.youtube_id);
@@ -218,7 +219,7 @@ test("home: ≤6 works, no promo, no duplicates, one per category first; chips l
     }),
   );
   const catsWithPrimary = new Set(links.filter((l) => l.is_primary && vids.some((v) => v.id === l.video_id && !v.is_promo)).map((l) => l.category_id));
-  expect(primaries.size).toBe(Math.min(6, catsWithPrimary.size));
+  expect(primaries.size).toBe(Math.min(limit, catsWithPrimary.size));
 
   const chip = section.locator("[data-category-chip]").first();
   const slug = await chip.getAttribute("data-category-chip");
