@@ -179,7 +179,7 @@ export async function purgeAlbum(_p: ActionResult, fd: FormData): Promise<Action
 export type ReserveInput = { name: string; size: number; sha256: string; format: FormatId };
 export type Reserved =
   | { ok: true; photoId: string; path: string; contentType: string; resumed: boolean; warning?: string }
-  | { ok: false; message: string; skipped?: boolean };
+  | { ok: false; message: string; skipped?: boolean; photoId?: string };
 
 type Dup = { album_id: string; album_title: string; photo_id: string };
 
@@ -217,7 +217,7 @@ export async function reserveAlbumUpload(albumId: string, f: ReserveInput): Prom
         }
       }
     }
-    return { ok: false, skipped: true, message: "الصورة موجودة في هذا الألبوم — تم تخطيها." };
+    return { ok: false, skipped: true, photoId: same.photo_id, message: "الصورة موجودة في هذا الألبوم — تم تخطيها." };
   }
   const other = dups.find((d) => d.album_id !== albumId);
   const { data: last } = await sb.from("album_photos").select("sort_order").eq("album_id", albumId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
@@ -266,14 +266,15 @@ export async function completeAlbumUpload(photoId: string): Promise<{ ok: boolea
   return { ok: true };
 }
 
-/** Cancel one upload: drop the reservation (and any stored object) while it is still `uploading`. */
+/** Cancel one upload: drop the reservation (and any stored object) while it is still `uploading`.
+ *  The row goes first, conditionally: if completeAlbumUpload already flipped it to `pending`, nothing is
+ *  deleted (the confirmed original is kept); only after the row is gone is its object removed. */
 export async function cancelAlbumUpload(photoId: string): Promise<void> {
   if (!(await guard(ADMIN_ROLES)) || !isUuid(photoId)) return;
   const sb = await db();
-  const { data: p } = await sb.from("album_photos").select("storage_path_original, upload_status").eq("id", photoId).maybeSingle();
-  if (!p || p.upload_status !== "uploading") return;
-  await sb.storage.from(ALBUM_BUCKET).remove([p.storage_path_original]);
-  await sb.from("album_photos").delete().eq("id", photoId).eq("upload_status", "uploading");
+  const { data: gone } = await sb.from("album_photos").delete().eq("id", photoId).eq("upload_status", "uploading").select("storage_path_original");
+  const path = gone?.[0]?.storage_path_original;
+  if (path) await sb.storage.from(ALBUM_BUCKET).remove([path]);
 }
 
 export type PhotoStatus = { id: string; status: "uploading" | "pending" | "processing" | "ready" | "failed"; error: string | null; attempts: number };
@@ -310,8 +311,9 @@ export async function processUploadedPhotos(albumId: string, photoIds: string[])
 }
 
 /** Polling: current state of the given photos (the uploader follows them from «جارٍ التجهيز» to «جاهز»). */
-export async function getPhotoStatuses(albumId: string, photoIds: string[]): Promise<PhotoStatus[]> {
-  if (!(await guard(ADMIN_ROLES)) || !isUuid(albumId)) return [];
+export async function getPhotoStatuses(albumId: string, photoIds: string[]): Promise<PhotoStatus[] | null> {
+  // null = not allowed / bad request (the uploader keeps waiting) — distinct from "these photos no longer exist"
+  if (!(await guard(ADMIN_ROLES)) || !isUuid(albumId)) return null;
   const ids = (Array.isArray(photoIds) ? photoIds : []).filter(isUuid).slice(0, ALBUM_MAX_FILES_PER_BATCH);
   if (!ids.length) return [];
   return statuses(await db(), { albumId, ids });

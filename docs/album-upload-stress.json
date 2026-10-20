@@ -1,0 +1,94 @@
+{
+  "when": "2026-10-20T18:24:24.386Z",
+  "env": {
+    "os": "Windows_NT 10.0.26200",
+    "cpu": "12th Gen Intel(R) Core(TM) i5-12400F",
+    "cores": 12,
+    "ramGB": 16,
+    "node": "v22.15.0",
+    "stack": "local Supabase (Docker) + next start; Chromium (Playwright)",
+    "uploadThrottleMbit": "none (loopback)"
+  },
+  "batch": {
+    "files": 100,
+    "totalMB": 1853,
+    "minMB": 6.3,
+    "maxMB": 25.9,
+    "byExt": {
+      "jpg": {
+        "n": 60,
+        "mb": 1269
+      },
+      "cr2": {
+        "n": 4,
+        "mb": 25
+      },
+      "cr3": {
+        "n": 4,
+        "mb": 29
+      },
+      "nef": {
+        "n": 4,
+        "mb": 48
+      },
+      "nrw": {
+        "n": 4,
+        "mb": 101
+      },
+      "dng": {
+        "n": 4,
+        "mb": 51
+      },
+      "orf": {
+        "n": 4,
+        "mb": 41
+      },
+      "pef": {
+        "n": 4,
+        "mb": 51
+      },
+      "rw2": {
+        "n": 3,
+        "mb": 42
+      },
+      "srw": {
+        "n": 3,
+        "mb": 61
+      },
+      "raf": {
+        "n": 3,
+        "mb": 61
+      },
+      "arw": {
+        "n": 3,
+        "mb": 73
+      }
+    },
+    "jpegDims": [
+      "5472×3648",
+      "5472×3648"
+    ]
+  },
+  "result": {
+    "ready": 100,
+    "failed": 0,
+    "failedFiles": [],
+    "dbStatus": {
+      "ready": 100
+    },
+    "maxInFlight": 3,
+    "uploadPhaseS": 52,
+    "allReadyS": 175,
+    "processingTailS": 123,
+    "perFileUploadS": {
+      "p50": 1.2,
+      "p90": 2.637,
+      "max": 3.26
+    }
+  },
+  "memory": {
+    "pageJsHeapPeakMB": 55,
+    "browserAllProcessesPeakMB": 598,
+    "serverProcessPeakMB": 868
+  }
+}

@@ -201,3 +201,170 @@ test("V4: 100 photos in one pick — all ready, a few at a time, browser memory 
   console.log(JSON.stringify({ maxInFlight, maxHeapMB: Math.round(maxHeapMB) }));
   await page.context().close();
 });
+
+// ---------------------------------------------------------------- review fixes (cancel races, previous-session rows)
+const throttle = async (page: Page, mbit: number) => {
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send("Network.enable");
+  await cdp.send("Network.emulateNetworkConditions", { offline: false, latency: 40, uploadThroughput: (mbit * 1e6) / 8, downloadThroughput: (100 * 1e6) / 8 });
+};
+const objectExists = async (p: string) => !!(await db.storage.from("album-media").info(p)).data;
+/** Rows of this album: none may stay `uploading`, every row's original must exist, no object folder without a row. */
+async function noOrphans(albumId: string) {
+  const ps = (await db.from("album_photos").select("id, upload_status, storage_path_original").eq("album_id", albumId)).data!;
+  expect(ps.filter((p) => p.upload_status === "uploading")).toEqual([]);
+  for (const p of ps) expect(await objectExists(p.storage_path_original)).toBe(true);
+  const listed = await db.storage.from("album-media").list(`albums/${albumId}`, { limit: 1000 });
+  expect((listed.data ?? []).map((o) => o.name).sort()).toEqual(ps.map((p) => p.id).sort());
+  return ps;
+}
+/** A row as an earlier session left it: dead `uploading`, or failed with/without a stored original. */
+async function seedRow(albumId: string, file: string, status: "uploading" | "failed", opts: { store?: boolean; error?: string } = {}) {
+  const id = randomUUID();
+  const p = `albums/${albumId}/${id}/original.jpg`;
+  const buf = fs.readFileSync(file);
+  if (opts.store) await db.storage.from("album-media").upload(p, buf, { contentType: "image/jpeg" });
+  await db.from("album_photos").insert({ id, album_id: albumId, storage_path_original: p, mime: "image/jpeg", bytes: buf.length, sha256: sha(file), upload_status: "uploading", sort_order: 10 });
+  if (status === "failed") psql(`update public.album_photos set upload_status = 'failed', attempts = 5, last_error = '${opts.error ?? "original not found in storage"}' where id = '${id}'`);
+  return id;
+}
+
+test("V5: earlier-session rows merge with the re-chosen file — reload mid-upload, the 67-photo case, failed processing, late list", async ({ browser }) => {
+  // a) reload while uploading, choose the same file again: one row in the UI and in the DB, ends ready (admin role)
+  const a = await newDraft("reload");
+  const page = await newLoggedIn(browser, "admin", `/admin/albums/${a}`);
+  await throttle(page, 12);
+  await page.getByTestId("album-upload-input").setInputFiles([path.join(FIX, "med-05.jpg")]);
+  await page.getByTestId("album-upload-start").click();
+  await expect(row(page, "med-05.jpg")).toHaveAttribute("data-state", "uploading", { timeout: 60_000 });
+  await page.waitForTimeout(3000);
+  page.once("dialog", (d) => void d.accept()); // «leave the page?» while uploading
+  await page.reload();
+  await expect(rows(page)).toHaveCount(1); // the unfinished row from the earlier session
+  await expect(rows(page).first()).toHaveAttribute("data-state", "failed");
+  await page.getByTestId("album-upload-input").setInputFiles([path.join(FIX, "med-05.jpg")]);
+  await page.getByTestId("album-upload-start").click();
+  await expect(rows(page).first()).toHaveAttribute("data-state", "ready", { timeout: 5 * 60_000 });
+  await expect(rows(page)).toHaveCount(1);
+  expect((await noOrphans(a)).map((p) => p.upload_status)).toEqual(["ready"]);
+  await page.context().close();
+
+  // b) the 67-photo case: failed, original never stored → the same row is reopened and completed
+  // c) original stored but processing failed → choosing it again merges into that row; «إعادة المحاولة» finishes it
+  const b = await newDraft("dead");
+  const dead = await seedRow(b, path.join(FIX, "med-06.jpg"), "failed");
+  const stuck = await seedRow(b, path.join(FIX, "med-07.jpg"), "failed", { store: true, error: "variant upload failed" });
+  const p2 = await newLoggedIn(browser, "admin", `/admin/albums/${b}`);
+  await expect(rows(p2)).toHaveCount(2);
+  await p2.getByTestId("album-upload-input").setInputFiles([path.join(FIX, "med-06.jpg"), path.join(FIX, "med-07.jpg")]);
+  await p2.getByTestId("album-upload-start").click();
+  await expect(p2.locator(`[data-testid="album-upload-row"][data-photo-id="${dead}"]`)).toHaveAttribute("data-state", "ready", { timeout: 5 * 60_000 });
+  const stuckRow = p2.locator(`[data-testid="album-upload-row"][data-photo-id="${stuck}"]`);
+  await expect(stuckRow).toHaveAttribute("data-state", "failed");
+  await expect(rows(p2)).toHaveCount(2);
+  await stuckRow.getByTestId("album-upload-retry").click();
+  await expect(stuckRow).toHaveAttribute("data-state", "ready", { timeout: 5 * 60_000 });
+  await expect(rows(p2)).toHaveCount(2);
+  expect((await noOrphans(b)).map((p) => p.id).sort()).toEqual([dead, stuck].sort());
+  await p2.context().close();
+
+  // d) the earlier-session list arrives late (after the re-upload started): still one row
+  const d = await newDraft("late");
+  const dId = await seedRow(d, path.join(FIX, "med-09.jpg"), "uploading");
+  const p3 = await newLoggedIn(browser, "admin", `/admin`);
+  let delayed = false;
+  await p3.route("**/admin/albums/**", async (route) => {
+    const req = route.request();
+    const body = req.postData() ?? "";
+    // the page's first server action is getUnfinishedPhotos(albumId) — the only one carrying just the album id
+    if (!delayed && req.method() === "POST" && req.headers()["next-action"] && body.includes(d) && !body.includes("sha256")) {
+      delayed = true;
+      await new Promise((r) => setTimeout(r, 8000));
+    }
+    await route.continue();
+  });
+  await p3.goto(`/admin/albums/${d}`);
+  await p3.getByTestId("album-upload-input").setInputFiles([path.join(FIX, "med-09.jpg")]);
+  await p3.getByTestId("album-upload-start").click();
+  await expect(rows(p3).first()).toHaveAttribute("data-state", "ready", { timeout: 5 * 60_000 });
+  await p3.waitForTimeout(9000); // the delayed list has arrived by now
+  expect(delayed).toBe(true);
+  await expect(rows(p3)).toHaveCount(1);
+  expect((await noOrphans(d)).map((p) => p.id)).toEqual([dId]);
+  await p3.context().close();
+});
+
+test("V6: cancelling active uploads frees their slots — 6 files, cancel 1 of 3, then all 3 active, then a new batch; no orphans", async ({ browser }) => {
+  const albumId = await newDraft("cancel");
+  const page = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
+  await throttle(page, 24);
+  const six = ["med-02", "med-03", "med-04", "med-05", "med-06", "med-07"].map((n) => path.join(FIX, `${n}.jpg`));
+  await page.getByTestId("album-upload-input").setInputFiles(six);
+  await page.getByTestId("album-upload-start").click();
+  const uploading = page.locator('[data-testid="album-upload-row"][data-state="uploading"]');
+  const canceled = page.locator('[data-testid="album-upload-row"][data-state="canceled"]');
+  await expect(uploading).toHaveCount(3, { timeout: 60_000 });
+  await uploading.first().getByTestId("album-upload-cancel").click();
+  await expect(canceled).toHaveCount(1);
+  await expect(uploading).toHaveCount(3, { timeout: 60_000 }); // the 4th file took the freed slot
+  for (let i = 0; i < 3; i++) {
+    await uploading.first().getByTestId("album-upload-cancel").click();
+    await expect(canceled).toHaveCount(2 + i);
+  }
+  await expect(page.locator('[data-testid="album-upload-row"][data-state="ready"]')).toHaveCount(2, { timeout: 5 * 60_000 }); // the waiting 2 ran
+  await page.getByTestId("album-upload-input").setInputFiles([path.join(FIX, "med-09.jpg"), path.join(FIX, "med-11.jpg")]);
+  await page.getByTestId("album-upload-start").click();
+  await expect(page.locator('[data-testid="album-upload-row"][data-state="ready"]')).toHaveCount(4, { timeout: 5 * 60_000 });
+  await page.waitForTimeout(3000); // late releases of cancelled reservations
+  expect((await noOrphans(albumId)).length).toBe(4);
+  await page.context().close();
+});
+
+test("V7: cancel while the reservation is in flight — the late reservation is released, the next file still runs, no orphan row", async ({ browser }) => {
+  const albumId = await newDraft("cancel-reserve");
+  const page = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
+  let held = 0;
+  await page.route("**/admin/albums/**", async (route) => {
+    const req = route.request();
+    // hold the first reservation (the only action carrying a sha256) for 5 s
+    if (held === 0 && req.method() === "POST" && req.headers()["next-action"] && (req.postData() ?? "").includes("sha256")) {
+      held++;
+      await new Promise((r) => setTimeout(r, 5000));
+    }
+    await route.continue();
+  });
+  await page.getByTestId("album-upload-input").setInputFiles([path.join(FIX, "med-02.jpg")]);
+  await page.getByTestId("album-upload-start").click();
+  await expect(row(page, "med-02.jpg")).toHaveAttribute("data-state", "checking");
+  await page.waitForTimeout(1500); // hash done, reservation held
+  await row(page, "med-02.jpg").getByTestId("album-upload-cancel").click();
+  await expect(row(page, "med-02.jpg")).toHaveAttribute("data-state", "canceled");
+  await page.getByTestId("album-upload-input").setInputFiles([path.join(FIX, "med-03.jpg")]);
+  await page.getByTestId("album-upload-start").click();
+  await expect(row(page, "med-03.jpg")).toHaveAttribute("data-state", "ready", { timeout: 5 * 60_000 });
+  await page.waitForTimeout(6000); // the held reservation has landed and been released
+  expect(held).toBe(1);
+  await expect(row(page, "med-02.jpg")).toHaveAttribute("data-state", "canceled");
+  expect((await noOrphans(albumId)).length).toBe(1);
+  await page.context().close();
+});
+
+test("V8: a RAW decode that exceeds the timeout fails (original kept, no retry loop) and the next RAW is still processed", async ({ browser }) => {
+  // Needs the SERVER started with a tiny limit: ALBUM_RAW_DECODE_TIMEOUT_MS=300 npx next start -p 3600
+  test.skip(process.env.ALBUM_RAW_DECODE_TIMEOUT_MS !== "300", "opt-in: server and test with ALBUM_RAW_DECODE_TIMEOUT_MS=300");
+  const albumId = await newDraft("raw-timeout");
+  const page = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
+  await page.getByTestId("album-upload-input").setInputFiles([path.join(RAW, "sample.raf"), path.join(FIX, "med-11.jpg")]);
+  await page.getByTestId("album-upload-start").click();
+  await expect(row(page, "sample.raf")).toHaveAttribute("data-state", "failed", { timeout: 5 * 60_000 });
+  await expect(row(page, "sample.raf")).toContainText("أخذ وقتاً أطول");
+  const ps = (await db.from("album_photos").select("storage_path_original, upload_status, last_error, attempts, sha256").eq("album_id", albumId)).data!;
+  const raf = ps.find((p) => p.storage_path_original.endsWith(".raf"))!;
+  expect(raf.last_error).toMatch(/RAW decode timed out/);
+  expect(raf.attempts).toBe(5); // parked: no automatic retry loop
+  const orig = Buffer.from(await (await db.storage.from("album-media").download(raf.storage_path_original)).data!.arrayBuffer());
+  expect(createHash("sha256").update(orig).digest("hex")).toBe(raf.sha256); // original intact
+  // the queue is not stuck: the next file is processed
+  await expect(row(page, "med-11.jpg")).toHaveAttribute("data-state", "ready", { timeout: 5 * 60_000 });
+  await page.context().close();
+});
