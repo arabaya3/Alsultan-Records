@@ -3,7 +3,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ALBUM_BUCKET, ALBUM_MAX_PIXELS, FORMATS, formatByMime, maxBytesFor, sniffFormat } from "@/features/albums-admin/rules";
 import { JOB_BATCH, JOB_TIME_BUDGET_MS, SHA256_RE, makeVariants, sha256Hex, variantPaths } from "./core";
-import { decodeRaw } from "./raw";
+import { RAW_DECODE_TIMEOUT_MS, decodeRaw } from "./raw";
 
 /**
  * Server-side photo processing queue worker (docs/cms-contract.md → Albums → Processing; migration 0018).
@@ -42,7 +42,21 @@ async function complete(sb: Untyped, id: string, r: Done) {
   if (error) throw new Error(`complete_photo_job: ${error.message}`);
 }
 
-async function processOne(sb: Untyped, job: Claimed): Promise<JobOutcome> {
+/** Decode a RAW within what is left of this invocation. A decode cut short by the function's own deadline is a
+ *  transient failure (retried with backoff); one that used the full RAW_DECODE_TIMEOUT_MS is permanent. */
+async function decodeRawInBudget(input: Buffer, deadline: number) {
+  const left = deadline - Date.now();
+  if (left < 5_000) throw new Error("RAW decode deferred (worker time budget) — retried automatically");
+  const full = left >= RAW_DECODE_TIMEOUT_MS;
+  try {
+    return await decodeRaw(input, { timeoutMs: full ? RAW_DECODE_TIMEOUT_MS : left });
+  } catch (e) {
+    if (!full && e instanceof Error && /timed out/.test(e.message)) throw new Error("RAW decode deferred (worker time budget) — retried automatically");
+    throw e;
+  }
+}
+
+async function processOne(sb: Untyped, job: Claimed, deadline: number): Promise<JobOutcome> {
   const path = job.storage_path_original;
   let format: ReturnType<typeof formatByMime> = null;
   try {
@@ -58,7 +72,7 @@ async function processOne(sb: Untyped, job: Claimed): Promise<JobOutcome> {
     const { data: row } = await sb.from("album_photos").select("sha256").eq("id", job.id).maybeSingle();
     const expected = (row?.sha256 as string | null | undefined) ?? null;
     if (expected && SHA256_RE.test(expected) && expected !== actual) throw new Error("checksum mismatch (upload corrupted)");
-    const v = FORMATS[format].kind === "raw" ? await makeVariants(await decodeRaw(input)) : await makeVariants(input, ALBUM_MAX_PIXELS);
+    const v = FORMATS[format].kind === "raw" ? await makeVariants(await decodeRawInBudget(input, deadline)) : await makeVariants(input, ALBUM_MAX_PIXELS);
     const paths = variantPaths(path);
     const opts = { contentType: "image/webp", upsert: true, cacheControl: "31536000" };
     const [t, d] = await Promise.all([
@@ -88,7 +102,7 @@ async function processOne(sb: Untyped, job: Claimed): Promise<JobOutcome> {
 
 /** Failures that will be identical on every attempt (content problems), as opposed to transient storage/network
  *  errors which keep their automatic retries (with backoff, migration 0025). */
-const PERMANENT = /RAW file could not be read|RAW decode failed|unexpected pixel format|truncated image|image could not be decoded|file content does not match|image too large|checksum mismatch|size out of range|unsupported type|original not found/i;
+const PERMANENT = /RAW file could not be read|RAW decode failed|RAW decode timed out|unexpected pixel format|truncated image|image could not be decoded|file content does not match|image too large|checksum mismatch|size out of range|unsupported type|original not found/i;
 
 /** Uploads abandoned mid-way (tab closed, never completed): rows still `uploading` after 24 h. Their partial TUS
  *  data expires on its own; the row (no original stored) is removed so the album does not keep ghost entries.
@@ -131,6 +145,9 @@ async function runPhotoJobsOnce(opts: { limit?: number; budgetMs?: number }): Pr
   const started = Date.now();
   const limit = Math.max(1, Math.min(opts.limit ?? JOB_BATCH, JOB_BATCH));
   const budget = opts.budgetMs ?? JOB_TIME_BUDGET_MS;
+  // Hard stop for a single decode: new jobs start until `budget`, a running RAW decode is cut at budget + 10 s
+  // (inside the 60 s function limit).
+  const deadline = started + budget + 10_000;
   const sb = createAdminClient() as unknown as Untyped;
   try {
     await pruneAbandonedUploads(sb);
@@ -143,7 +160,7 @@ async function runPhotoJobsOnce(opts: { limit?: number; budgetMs?: number }): Pr
     if (error) throw new Error(`claim_photo_jobs: ${error.message}`);
     const jobs = (data ?? []) as Claimed[];
     if (!jobs.length) break;
-    for (const job of jobs) outcomes.push(await processOne(sb, job));
+    for (const job of jobs) outcomes.push(await processOne(sb, job, deadline));
   }
   return {
     claimed: outcomes.length,

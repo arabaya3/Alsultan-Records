@@ -37,6 +37,7 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
   const [queue] = useState(() => new AlbumUploadQueue(albumId, setItems, () => router.refresh()));
 
   useEffect(() => {
+    queue.attach(); // after a StrictMode/dev re-mount the same queue continues
     const handed = takeHandoff(albumId);
     if (handed.length) queue.add(handed);
     getUnfinishedPhotos(albumId)
@@ -157,7 +158,7 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
                     إعادة المحاولة
                   </button>
                 ) : null}
-                {["waiting", "checking", "uploading"].includes(r.state) ? (
+                {["waiting", "checking", "uploading"].includes(r.state) && !r.locked ? (
                   <button type="button" onClick={() => queue.cancel(r.key)} data-testid="album-upload-cancel" className="min-h-9 rounded-sm border border-cream-line px-2 text-xs hover:border-danger">
                     إلغاء
                   </button>

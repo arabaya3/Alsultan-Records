@@ -2,6 +2,8 @@
  *  Every failure keeps the original untouched in private storage; only the web copies are missing. */
 const MAP: [RegExp, string][] = [
   [/original not found/i, "الصورة ما وصلت للتخزين (انقطع الرفع). اختر نفس الصورة مرة ثانية من «إضافة صور» وبتنرفع مكانها."],
+  [/RAW decode timed out/i, "فك ملف RAW هذا أخذ وقتاً أطول من المسموح فتوقّف. الأصل محفوظ كما هو — جرّب «إعادة المحاولة» لاحقاً."],
+  [/RAW decode deferred|RAW decoder unavailable/i, "قارئ RAW مشغول حالياً — بتنعاد المعالجة تلقائياً خلال دقائق."],
   [/RAW file could not be read|RAW decode failed|unexpected pixel format|truncated image/i, "ملف RAW هذا غير مدعوم (كاميرا أو ضغط أحدث من قارئ RAW) أو تالف. الأصل محفوظ كما هو، بس ما انعملت له نسخة عرض."],
   [/image could not be decoded/i, "الصورة تالفة أو صيغتها غير مدعومة. الأصل محفوظ كما هو، بس ما انعملت له نسخة عرض."],
   [/file content does not match/i, "محتوى الملف ما بطابق نوعه (امتداد مزوّر أو ملف تالف)."],
