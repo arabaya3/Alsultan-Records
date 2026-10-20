@@ -158,7 +158,20 @@ export type PreparedAlbumUpload =
   | { ok: true; name: string; photoId: string; path: string; token: string; warning?: string }
   | { ok: false; name: string; message: string; skipped?: boolean };
 
-type Dup = { album_id: string; album_title: string };
+type Dup = { album_id: string; album_title: string; photo_id: string };
+
+/** A same-album "duplicate" that never became a photo: its upload was interrupted (page closed, connection lost),
+ *  so the row is pending/failed and its original is NOT in storage. Re-selecting the same file must replace it —
+ *  otherwise the owner can never finish the album (the sha256 match would skip the file forever). Deletes only such
+ *  dead rows (audited via the album_photos trigger); a row whose original exists is left untouched. */
+async function replaceDeadUpload(sb: SB, photoId: string): Promise<boolean> {
+  const { data: p } = await sb.from("album_photos").select("id, upload_status, storage_path_original").eq("id", photoId).maybeSingle();
+  if (!p || (p.upload_status !== "pending" && p.upload_status !== "failed")) return false;
+  const info = await sb.storage.from(ALBUM_BUCKET).info(p.storage_path_original);
+  if (info.data) return false; // the original is there: it is a real photo (retry processing instead)
+  const del = await sb.from("album_photos").delete().eq("id", photoId).in("upload_status", ["pending", "failed"]).select("id");
+  return !del.error && (del.data?.length ?? 0) === 1;
+}
 
 /**
  * Step 1: validate each file (type/size/sha256), dedupe by sha256 (same album → skip; another album →
@@ -196,9 +209,14 @@ export async function prepareAlbumUploads(
     seen.add(sha);
     const dup = await sb.rpc("find_duplicate_photo", { p_sha256: sha });
     const dups = ((dup.data ?? []) as Dup[]).filter(Boolean);
-    if (dups.some((d) => d.album_id === albumId)) {
-      items.push({ ok: false, name, skipped: true, message: "الصورة موجودة في هذا الألبوم — تم تخطيها." });
-      continue;
+    const same = dups.filter((d) => d.album_id === albumId);
+    if (same.length) {
+      // Only a dead, never-uploaded row may be replaced; a real photo stays a duplicate.
+      const replaced = same.length === 1 && (await replaceDeadUpload(sb, same[0].photo_id));
+      if (!replaced) {
+        items.push({ ok: false, name, skipped: true, message: "الصورة موجودة في هذا الألبوم — تم تخطيها." });
+        continue;
+      }
     }
     const other = dups.find((d) => d.album_id !== albumId);
     const photoId = randomUUID();

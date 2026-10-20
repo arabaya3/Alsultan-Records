@@ -1,5 +1,6 @@
 "use client";
 
+import { photoErrorText } from "./photo-errors";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ALBUM_ACCEPT, ALBUM_BUCKET, ALBUM_MAX_FILES_PER_BATCH, checkAlbumFile, fileSha256 } from "./rules";
 import {
@@ -69,6 +70,16 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [rows, setRows] = useState<Row[]>([]);
   const [busy, setBusy] = useState(false);
+  // Leaving mid-upload interrupts it (the remaining photos never reach storage): ask the browser to confirm.
+  useEffect(() => {
+    if (!busy) return;
+    const warn = (e: BeforeUnloadEvent) => {
+      e.preventDefault();
+      e.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [busy]);
   const [summary, setSummary] = useState("");
   const rowsRef = useRef<Row[]>([]);
   useEffect(() => {
@@ -82,7 +93,7 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
       r.map((row) => {
         const s = row.photoId ? byId.get(row.photoId) : undefined;
         if (!s) return row;
-        return { ...row, state: s.status, message: s.status === "failed" ? `${s.error ?? "تعذّرت المعالجة"} (محاولات: ${s.attempts})` : row.message };
+        return { ...row, state: s.status, message: s.status === "failed" ? `${photoErrorText(s.error)} (محاولات: ${s.attempts})` : row.message };
       }),
     );
   }, []);
@@ -100,7 +111,7 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
             key: `db-${s.id}`,
             name: `صورة من جلسة سابقة (${s.id.slice(0, 8)})`,
             state: s.status as State,
-            message: s.status === "failed" ? `${s.error ?? "تعذّرت المعالجة"} (محاولات: ${s.attempts})` : "",
+            message: s.status === "failed" ? `${photoErrorText(s.error)} (محاولات: ${s.attempts})` : "",
             progress: 100,
             photoId: s.id,
             fromDb: true,

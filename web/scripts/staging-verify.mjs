@@ -274,10 +274,12 @@ async function run(F) {
     showcase_video_categories: "video_id category_id is_primary".split(" "),
     photo_albums: "id slug title description event_date source_label source_url cover_photo_id sort_order".split(" ")
       // migration 0018 (CMS) — album category id; archived_at/deleted_at stay admin-only
-      .concat(["category_id"]),
+      .concat(["category_id"])
+      // migration 0024 — when a published album was added («newest albums» on the home page)
+      .concat(["created_at"]),
     album_photos: "id album_id width height alt_text sort_order".split(" "),
     // migration 0017 (CMS) — home section config (all rows, incl. is_visible); updated_by admin-only
-    site_sections: "key title intro is_visible sort_order item_limit featured_ids".split(" "),
+    site_sections: "key title intro is_visible sort_order item_limit featured_ids stat_value".split(" "), // stat_value: owner-entered home counter (0024)
     // migration 0017 — header nav (allow-listed targets only)
     nav_items: "id label target sort_order is_visible".split(" "),
     // migration 0017 — old slug -> new slug paths (trigger-written)

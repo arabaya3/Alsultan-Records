@@ -58,12 +58,12 @@ export default async function ContactPage() {
                     </span>
                     {r.name}
                   </dt>
-                  <dd className="text-lg break-words">
+                  <dd className="min-w-0 text-lg break-words [overflow-wrap:anywhere]">
                     {r.href ? (
                       <a
                         href={r.href}
                         dir={r.ltr ? "ltr" : undefined}
-                        className="inline-flex min-h-11 items-center underline decoration-1 underline-offset-4 hover:decoration-gold"
+                        className="inline-flex min-h-11 max-w-full min-w-0 items-center underline decoration-1 underline-offset-4 [overflow-wrap:anywhere] hover:decoration-gold"
                         {...(r.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
                       >
                         {r.label}
