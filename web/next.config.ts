@@ -5,6 +5,9 @@ const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
 const supabase = supabaseUrl ? new URL(supabaseUrl) : null;
 const supabaseOrigin = supabase?.origin ?? "";
 const supabaseWs = supabaseOrigin.replace(/^http/, "ws");
+// Hosted projects: album uploads use the direct storage hostname (<ref>.storage.supabase.co, recommended for large
+// files) — see src/features/albums-admin/upload-engine.ts. Only that exact host is allowed, never a wildcard.
+const storageDirect = /^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(supabaseOrigin) ? supabaseOrigin.replace(".supabase.co", ".storage.supabase.co") : "";
 
 // Next injects inline bootstrap scripts; moving to a nonce-based CSP via proxy.ts would allow
 // dropping 'unsafe-inline' at the cost of disabling static rendering. Tracked in docs/security-model.md.
@@ -15,7 +18,7 @@ const csp = [
   `img-src 'self' data: blob: https://i.ytimg.com ${supabaseOrigin}`,
   `media-src 'self' blob: ${supabaseOrigin}`,
   "font-src 'self'",
-  `connect-src 'self' ${supabaseOrigin} ${supabaseWs} https://challenges.cloudflare.com`,
+  `connect-src 'self' ${supabaseOrigin} ${storageDirect} ${supabaseWs} https://challenges.cloudflare.com`.replace(/\s+/g, " "),
   "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -35,6 +38,13 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // RAW decoding (src/features/photo-processing/raw.ts): LibRaw as WebAssembly, loaded at runtime from
+  // node_modules; its .wasm must ship with every function that runs the photo worker.
+  serverExternalPackages: ["libraw-wasm"],
+  outputFileTracingIncludes: {
+    "/api/jobs/process-photos": ["./node_modules/libraw-wasm/dist/**"],
+    "/admin/albums/[id]": ["./node_modules/libraw-wasm/dist/**"],
+  },
   cacheComponents: true,
   partialPrefetching: true,
   poweredByHeader: false,

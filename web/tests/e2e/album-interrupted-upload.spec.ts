@@ -47,16 +47,15 @@ test("IU1: a dead (never-uploaded) photo is replaced when the same file is chose
   const page = await newLoggedIn(browser, "owner", `/admin/albums/${ALBUM.id}`);
   await expect(page.getByTestId("photo-error").first()).toContainText("اختر نفس الصورة مرة ثانية");
 
-  // Choose the same file again → uploaded (not «skipped»), the dead row is gone, exactly one photo with that hash.
+  // Choose the same file again → uploaded (not «skipped») INTO THE SAME reserved row (0025 album_upload_reopen:
+  // same id/path, so a partial TUS upload could resume), exactly one photo with that hash.
   await page.getByTestId("album-upload-input").setInputFiles([{ name: "lost.jpg", mimeType: "image/jpeg", buffer: lost }]);
   await page.getByTestId("album-upload-start").click();
   await expect(page.locator('[data-testid="album-upload-row"][data-state="ready"]')).toHaveCount(1, { timeout: 120_000 });
   const rows = (await db.from("album_photos").select("id, upload_status").eq("album_id", ALBUM.id).eq("sha256", sha(lost))).data!;
   expect(rows).toHaveLength(1);
-  expect(rows[0].id).not.toBe(deadId);
+  expect(rows[0].id).toBe(deadId); // reopened, not replaced (since 0025)
   expect(rows[0].upload_status).toBe("ready");
-  // The replacement is audited (album_photos audit trigger) — the dead row's delete is on record.
-  expect((await db.from("audit_events").select("id").eq("entity_type", "album_photos").eq("action", "delete").eq("entity_id", deadId)).data!.length).toBe(1);
 
   // Choosing it once more: now a real, stored photo → still a duplicate (skipped).
   await page.getByTestId("album-upload-input").setInputFiles([{ name: "lost-again.jpg", mimeType: "image/jpeg", buffer: lost }]);

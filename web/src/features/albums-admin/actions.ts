@@ -10,7 +10,8 @@ import { guard, ADMIN_ROLES } from "@/features/admin/guard";
 import { dbMessage, fail, FORBIDDEN, isUuid, ok, str, uuid, type ActionResult } from "@/features/admin/result";
 import { runPhotoJobs } from "@/features/photo-processing/runner";
 import { readAlbumForm, altTextSchema, readCategoryForm } from "./schema";
-import { ALBUM_BUCKET, ALBUM_MAX_FILES_PER_BATCH, albumObjectPath, checkAlbumFile, SHA256_RE } from "./rules";
+import { after } from "next/server";
+import { ALBUM_BUCKET, ALBUM_MAX_FILES_PER_BATCH, albumObjectPath, FORMATS, fmtMb, maxBytesFor, SHA256_RE, type FormatId } from "./rules";
 
 const SLUG_DUP = { "23505": "هذا المعرّف مستخدم لألبوم آخر." };
 const CAT_DUP = { "23505": "هذا المعرّف مستخدم لتصنيف آخر." };
@@ -68,6 +69,18 @@ export async function createAlbum(_p: ActionResult, fd: FormData): Promise<Actio
   const { data, error } = await (await db()).from("photo_albums").insert({ ...parsed.data, is_published: false }).select("id").single();
   if (error || !data) return fail(dbMessage(error, SLUG_DUP));
   redirect(`/admin/albums/${data.id}`);
+}
+
+/** «ألبوم جديد → إنشاء ورفع»: same validation/RLS as createAlbum, but returns the id (no redirect) so the browser
+ *  can carry the chosen photos to the editor and start uploading. Always a draft (is_published = false). */
+export async function createAlbumDraft(fd: FormData): Promise<{ ok: boolean; id?: string; message?: string }> {
+  if (!(await guard(ADMIN_ROLES))) return { ok: false, message: FORBIDDEN.message };
+  const parsed = readAlbumForm(fd);
+  if (!parsed.success) return { ok: false, message: parsed.error.issues[0]?.message ?? "راجع الحقول." };
+  const { data, error } = await (await db()).from("photo_albums").insert({ ...parsed.data, is_published: false }).select("id").single();
+  if (error || !data) return { ok: false, message: fail(dbMessage(error, SLUG_DUP)).message };
+  updateTag(TAGS.albums);
+  return { ok: true, id: data.id };
 }
 
 export async function updateAlbum(_p: ActionResult, fd: FormData): Promise<ActionResult> {
@@ -152,104 +165,118 @@ export async function purgeAlbum(_p: ActionResult, fd: FormData): Promise<Action
   redirect("/admin/albums?view=trash");
 }
 
-// ------------------------------------------------------------------ uploads
-export type UploadFile = { name: string; type: string; size: number; sha256: string };
-export type PreparedAlbumUpload =
-  | { ok: true; name: string; photoId: string; path: string; token: string; warning?: string }
-  | { ok: false; name: string; message: string; skipped?: boolean };
+// ------------------------------------------------------------------ uploads (v2, migration 0025)
+/**
+ * Upload flow (one call per file; the browser runs a few files in parallel):
+ *   1. reserveAlbumUpload  — validates name/format/size/sha256, dedupes, creates the row `uploading` at a fixed
+ *                            path. The storage policy lets an admin write ONLY at a reserved `uploading` path.
+ *   2. (browser) TUS resumable upload straight to Storage with the admin's own JWT — no file passes through Vercel.
+ *   3. completeAlbumUpload — checks the object exists and its size matches, flips the row to `pending`, and starts
+ *                            processing AFTER the response (next/server after()); the cron worker is the fallback.
+ * Resume: choosing the same file again (same sha256) returns the same reservation, so the TUS client continues
+ * the stored partial upload instead of starting over.
+ */
+export type ReserveInput = { name: string; size: number; sha256: string; format: FormatId };
+export type Reserved =
+  | { ok: true; photoId: string; path: string; contentType: string; resumed: boolean; warning?: string }
+  | { ok: false; message: string; skipped?: boolean };
 
 type Dup = { album_id: string; album_title: string; photo_id: string };
 
-/** A same-album "duplicate" that never became a photo: its upload was interrupted (page closed, connection lost),
- *  so the row is pending/failed and its original is NOT in storage. Re-selecting the same file must replace it —
- *  otherwise the owner can never finish the album (the sha256 match would skip the file forever). Deletes only such
- *  dead rows (audited via the album_photos trigger); a row whose original exists is left untouched. */
-async function replaceDeadUpload(sb: SB, photoId: string): Promise<boolean> {
-  const { data: p } = await sb.from("album_photos").select("id, upload_status, storage_path_original").eq("id", photoId).maybeSingle();
-  if (!p || (p.upload_status !== "pending" && p.upload_status !== "failed")) return false;
-  const info = await sb.storage.from(ALBUM_BUCKET).info(p.storage_path_original);
-  if (info.data) return false; // the original is there: it is a real photo (retry processing instead)
-  const del = await sb.from("album_photos").delete().eq("id", photoId).in("upload_status", ["pending", "failed"]).select("id");
-  return !del.error && (del.data?.length ?? 0) === 1;
-}
-
-/**
- * Step 1: validate each file (type/size/sha256), dedupe by sha256 (same album → skip; another album →
- * upload with a warning naming that album's title only), create a `pending` album_photos row (id = storage
- * folder) and a signed upload URL into the private `album-media` bucket. Admin only (RLS + storage policy).
- */
-export async function prepareAlbumUploads(
-  albumId: string,
-  files: UploadFile[],
-): Promise<{ ok: boolean; message?: string; items: PreparedAlbumUpload[] }> {
-  if (!(await guard(ADMIN_ROLES))) return { ok: false, message: FORBIDDEN.message, items: [] };
-  if (!isUuid(albumId) || !Array.isArray(files) || !files.length) return { ok: false, message: "لا توجد ملفات.", items: [] };
-  if (files.length > ALBUM_MAX_FILES_PER_BATCH) return { ok: false, message: `الحد ${ALBUM_MAX_FILES_PER_BATCH} صورة في كل دفعة.`, items: [] };
+export async function reserveAlbumUpload(albumId: string, f: ReserveInput): Promise<Reserved> {
+  if (!(await guard(ADMIN_ROLES))) return { ok: false, message: FORBIDDEN.message ?? "غير مصرّح." };
+  if (!isUuid(albumId) || !f || typeof f !== "object") return { ok: false, message: "طلب غير صالح." };
+  const name = String(f.name ?? "").slice(0, 200);
+  const size = Number(f.size ?? 0);
+  const sha = String(f.sha256 ?? "").toLowerCase();
+  const format = String(f.format ?? "") as FormatId;
+  const def = FORMATS[format];
+  const ext = (name.split(".").pop() ?? "").toLowerCase();
+  if (!def || !def.exts.includes(ext)) return { ok: false, message: "نوع الملف غير مدعوم، أو امتداده لا يطابق محتواه." };
+  if (!(size > 0)) return { ok: false, message: "الملف فارغ." };
+  if (size > maxBytesFor(format)) return { ok: false, message: `الملف أكبر من الحد (${fmtMb(maxBytesFor(format))}).` };
+  if (!SHA256_RE.test(sha)) return { ok: false, message: "تعذّر حساب بصمة الملف." };
   const sb = await db();
   const { data: album } = await sb.from("photo_albums").select("id, deleted_at").eq("id", albumId).maybeSingle();
-  if (!album || album.deleted_at) return { ok: false, message: "الألبوم غير موجود أو في سلة المحذوفات.", items: [] };
-  const { data: last } = await sb.from("album_photos").select("sort_order").eq("album_id", albumId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
-  let sort = (last?.sort_order ?? 0) + 10;
-  const items: PreparedAlbumUpload[] = [];
-  const seen = new Set<string>();
-  for (const f of files) {
-    const name = String(f?.name ?? "").slice(0, 200);
-    const type = String(f?.type ?? "");
-    const size = Number(f?.size ?? 0);
-    const sha = String(f?.sha256 ?? "").toLowerCase();
-    const problem = checkAlbumFile({ type, size }) ?? (SHA256_RE.test(sha) ? null : "تعذّر حساب بصمة الملف.");
-    if (problem) {
-      items.push({ ok: false, name, message: problem });
-      continue;
-    }
-    if (seen.has(sha)) {
-      items.push({ ok: false, name, skipped: true, message: "مكرر داخل هذه الدفعة — تم تخطيه." });
-      continue;
-    }
-    seen.add(sha);
-    const dup = await sb.rpc("find_duplicate_photo", { p_sha256: sha });
-    const dups = ((dup.data ?? []) as Dup[]).filter(Boolean);
-    const same = dups.filter((d) => d.album_id === albumId);
-    if (same.length) {
-      // Only a dead, never-uploaded row may be replaced; a real photo stays a duplicate.
-      const replaced = same.length === 1 && (await replaceDeadUpload(sb, same[0].photo_id));
-      if (!replaced) {
-        items.push({ ok: false, name, skipped: true, message: "الصورة موجودة في هذا الألبوم — تم تخطيها." });
-        continue;
+  if (!album || album.deleted_at) return { ok: false, message: "الألبوم غير موجود أو في سلة المحذوفات." };
+
+  const dup = await sb.rpc("find_duplicate_photo", { p_sha256: sha });
+  const dups = ((dup.data ?? []) as Dup[]).filter(Boolean);
+  const same = dups.find((d) => d.album_id === albumId);
+  if (same) {
+    const { data: p } = await sb.from("album_photos").select("id, upload_status, storage_path_original, mime").eq("id", same.photo_id).maybeSingle();
+    if (p && p.mime === def.mime) {
+      // An unfinished upload of this very file: hand back the same reservation (the browser resumes it).
+      if (p.upload_status === "uploading") return { ok: true, photoId: p.id, path: p.storage_path_original, contentType: def.mime, resumed: true };
+      // A dead row from an interrupted session (failed/pending, nothing stored): reopen it for this upload.
+      if (p.upload_status === "failed" || p.upload_status === "pending") {
+        const info = await sb.storage.from(ALBUM_BUCKET).info(p.storage_path_original);
+        if (!info.data) {
+          const re = await sb.rpc("album_upload_reopen", { p_photo_id: p.id, p_bytes: size });
+          if (!re.error && re.data === true) return { ok: true, photoId: p.id, path: p.storage_path_original, contentType: def.mime, resumed: true };
+        }
       }
     }
-    const other = dups.find((d) => d.album_id !== albumId);
-    const photoId = randomUUID();
-    const path = albumObjectPath(albumId, photoId, type);
-    const ins = await sb
-      .from("album_photos")
-      .insert({ id: photoId, album_id: albumId, storage_path_original: path, mime: type, bytes: size, sha256: sha, sort_order: sort, upload_status: "pending" })
-      .select("id")
-      .single();
-    if (ins.error || !ins.data) {
-      items.push(ins.error?.code === "23505" ? { ok: false, name, skipped: true, message: "الصورة موجودة في هذا الألبوم — تم تخطيها." } : { ok: false, name, message: dbMessage(ins.error) });
-      continue;
-    }
-    sort += 10;
-    const signed = await sb.storage.from(ALBUM_BUCKET).createSignedUploadUrl(path);
-    if (signed.error || !signed.data) {
-      await sb.from("album_photos").delete().eq("id", photoId).eq("upload_status", "pending");
-      items.push({ ok: false, name, message: "تعذّر تجهيز الرفع لهذا الملف." });
-      continue;
-    }
-    items.push({
-      ok: true,
-      name,
-      photoId,
-      path,
-      token: signed.data.token,
-      warning: other ? `تنبيه: الصورة نفسها موجودة في ألبوم «${other.album_title}».` : undefined,
-    });
+    return { ok: false, skipped: true, message: "الصورة موجودة في هذا الألبوم — تم تخطيها." };
   }
-  return { ok: items.some((i) => i.ok), items };
+  const other = dups.find((d) => d.album_id !== albumId);
+  const { data: last } = await sb.from("album_photos").select("sort_order").eq("album_id", albumId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
+  const photoId = randomUUID();
+  const path = albumObjectPath(albumId, photoId, format);
+  const ins = await sb
+    .from("album_photos")
+    .insert({ id: photoId, album_id: albumId, storage_path_original: path, mime: def.mime, bytes: size, sha256: sha, sort_order: (last?.sort_order ?? 0) + 10, upload_status: "uploading" })
+    .select("id")
+    .single();
+  if (ins.error || !ins.data) {
+    return ins.error?.code === "23505" ? { ok: false, skipped: true, message: "الصورة موجودة في هذا الألبوم — تم تخطيها." } : { ok: false, message: dbMessage(ins.error) };
+  }
+  return { ok: true, photoId, path, contentType: def.mime, resumed: false, warning: other ? `تنبيه: الصورة نفسها موجودة في ألبوم «${other.album_title}».` : undefined };
 }
 
-export type PhotoStatus = { id: string; status: "pending" | "processing" | "ready" | "failed"; error: string | null; attempts: number };
+/** Step 3: the browser says the upload finished. Trust nothing: the object must exist with the reserved size. */
+export async function completeAlbumUpload(photoId: string): Promise<{ ok: boolean; message?: string }> {
+  if (!(await guard(ADMIN_ROLES))) return { ok: false, message: FORBIDDEN.message };
+  if (!isUuid(photoId)) return { ok: false, message: "طلب غير صالح." };
+  const sb = await db();
+  const { data: p } = await sb.from("album_photos").select("id, upload_status, storage_path_original, bytes, mime").eq("id", photoId).is("deleted_at", null).maybeSingle();
+  if (!p) return { ok: false, message: "الصورة غير موجودة." };
+  if (p.upload_status !== "uploading") return { ok: ["pending", "processing", "ready"].includes(p.upload_status) }; // repeated call: idempotent
+  const info = await sb.storage.from(ALBUM_BUCKET).info(p.storage_path_original);
+  if (!info.data) return { ok: false, message: "الملف لم يكتمل رفعه بعد." };
+  const stored = Number((info.data as { size?: number }).size ?? -1);
+  const format = (Object.keys(FORMATS) as FormatId[]).find((k) => FORMATS[k].mime === p.mime);
+  if (!format || stored <= 0 || stored !== Number(p.bytes) || stored > maxBytesFor(format)) {
+    // Incomplete or tampered object: remove it so the same reservation can be uploaded again.
+    await sb.storage.from(ALBUM_BUCKET).remove([p.storage_path_original]);
+    return { ok: false, message: "حجم الملف المرفوع لا يطابق الملف الأصلي — أعد المحاولة." };
+  }
+  const up = await sb.rpc("album_upload_complete", { p_photo_id: photoId });
+  if (up.error) return { ok: false, message: dbMessage(up.error) };
+  if (up.data !== true) return { ok: false, message: "تغيّرت حالة الصورة أثناء الرفع — حدّث الصفحة." };
+  // Heavy work after the response (and in the cron worker if this instance stops): the admin is never blocked.
+  after(async () => {
+    try {
+      const r = await runPhotoJobs({ limit: 2, budgetMs: 40_000 });
+      console.info(`[album-upload] after-complete worker: claimed ${r.claimed}, ready ${r.ready}, failed ${r.failed}, ${r.ms} ms`);
+    } catch (e) {
+      console.error("[album-upload] after-complete worker error (the cron worker retries):", e instanceof Error ? e.message : e);
+    }
+  });
+  return { ok: true };
+}
+
+/** Cancel one upload: drop the reservation (and any stored object) while it is still `uploading`. */
+export async function cancelAlbumUpload(photoId: string): Promise<void> {
+  if (!(await guard(ADMIN_ROLES)) || !isUuid(photoId)) return;
+  const sb = await db();
+  const { data: p } = await sb.from("album_photos").select("storage_path_original, upload_status").eq("id", photoId).maybeSingle();
+  if (!p || p.upload_status !== "uploading") return;
+  await sb.storage.from(ALBUM_BUCKET).remove([p.storage_path_original]);
+  await sb.from("album_photos").delete().eq("id", photoId).eq("upload_status", "uploading");
+}
+
+export type PhotoStatus = { id: string; status: "uploading" | "pending" | "processing" | "ready" | "failed"; error: string | null; attempts: number };
 
 async function statuses(sb: SB, where: { albumId?: string; ids?: string[] }): Promise<PhotoStatus[]> {
   let q = sb.from("album_photos").select("id, upload_status, last_error, attempts").is("deleted_at", null);
@@ -280,6 +307,14 @@ export async function processUploadedPhotos(albumId: string, photoIds: string[])
     /* the cron worker retries */
   }
   return statuses(sb, { ids });
+}
+
+/** Polling: current state of the given photos (the uploader follows them from «جارٍ التجهيز» to «جاهز»). */
+export async function getPhotoStatuses(albumId: string, photoIds: string[]): Promise<PhotoStatus[]> {
+  if (!(await guard(ADMIN_ROLES)) || !isUuid(albumId)) return [];
+  const ids = (Array.isArray(photoIds) ? photoIds : []).filter(isUuid).slice(0, ALBUM_MAX_FILES_PER_BATCH);
+  if (!ids.length) return [];
+  return statuses(await db(), { albumId, ids });
 }
 
 /** Resume after reload: photos of this album that are not finished yet (pending/processing/failed). */
@@ -349,7 +384,12 @@ export async function setPhotoPublished(_p: ActionResult, fd: FormData): Promise
   const id = uuid(fd, "id");
   if (!id) return fail("طلب غير صالح.");
   const publish = fd.get("publish") === "1";
-  const { data, error } = await (await db()).from("album_photos").update({ is_published: publish }).eq("id", id).select("id");
+  const sb = await db();
+  if (publish) {
+    const { data: p } = await sb.from("album_photos").select("upload_status").eq("id", id).maybeSingle();
+    if (p && p.upload_status !== "ready") return fail("الصورة لسا مش جاهزة (ما اكتملت نسخة العرض) — بتقدر تظهرها بعد ما تجهز.");
+  }
+  const { data, error } = await sb.from("album_photos").update({ is_published: publish }).eq("id", id).select("id");
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("الصورة غير موجودة.");
   published();

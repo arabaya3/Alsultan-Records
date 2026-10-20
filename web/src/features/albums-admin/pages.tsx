@@ -10,10 +10,10 @@ import { isUuid } from "@/features/admin/result";
 import { one, pick, type IdParams, type SP } from "@/features/admin/query";
 import { AlbumGallery } from "@/components/media/gallery/AlbumGallery";
 import { AlbumUploader } from "./AlbumUploader";
+import { NewAlbumForm } from "./NewAlbumForm";
 import { PhotoReorder } from "./PhotoReorder";
 import { ALBUM_BUCKET } from "./rules";
 import {
-  createAlbum,
   createCategory,
   deleteCategory,
   movePhoto,
@@ -57,7 +57,7 @@ type Photo = {
   alt_text: string | null;
   sort_order: number;
   is_published: boolean;
-  upload_status: "pending" | "processing" | "ready" | "failed";
+  upload_status: "uploading" | "pending" | "processing" | "ready" | "failed";
   last_error: string | null;
   attempts: number | null;
   deleted_at: string | null;
@@ -68,7 +68,7 @@ const PHOTO_COLS = "id, storage_path_original, variants, width, height, bytes, a
 // Generated DB types may lag the CMS migration: read through an untyped client.
 const db = async () => (await createClient()) as unknown as SupabaseClient;
 
-const STATUS_LABEL: Record<Photo["upload_status"], string> = { pending: "بانتظار", processing: "قيد المعالجة", ready: "جاهز", failed: "فشل" };
+const STATUS_LABEL: Record<Photo["upload_status"], string> = { uploading: "جارٍ الرفع", pending: "جارٍ التجهيز", processing: "جارٍ التجهيز", ready: "جاهز", failed: "فشل" };
 
 function albumState(a: Album) {
   if (a.deleted_at) return <Badge tone="danger">في سلة المحذوفات</Badge>;
@@ -239,10 +239,10 @@ export async function AlbumsPage({ searchParams }: { searchParams: SP }) {
         {view === "active" ? (
           <>
             <Card title="ألبوم جديد">
-              <ActionForm action={createAlbum} submitLabel="إنشاء الألبوم" kind="primary" testId="album-create">
+              <NewAlbumForm>
                 <AlbumFields categories={categories} />
-              </ActionForm>
-              <p className="mt-2 text-xs text-on-cream-muted">يُنشأ الألبوم مسودة؛ ارفع الصور، عاينه، ثم انشره من صفحته.</p>
+              </NewAlbumForm>
+              <p className="mt-2 text-xs text-on-cream-muted">يُنشأ الألبوم مسودة (ما بينشر تلقائياً). الصور المختارة تبلّش ترفع فوراً بصفحة الألبوم، وبتقدر تضيف صور لاحقاً من نفس الصفحة.</p>
             </Card>
             <CategoriesCard categories={categories} />
           </>
@@ -280,6 +280,7 @@ export async function AlbumEditPage({ params }: { params: IdParams }) {
   const urlByPath = await signedMap(sb, all.map((p) => p.variants?.thumb).filter((x): x is string => !!x));
   const thumbOf = (p: Photo) => (p.variants?.thumb ? (urlByPath.get(p.variants.thumb) ?? null) : null);
   const visible = photos.filter((p) => p.is_published && p.upload_status === "ready").length;
+  const notReady = photos.filter((p) => p.upload_status !== "ready").length;
   const locked = !!(a.archived_at || a.deleted_at);
 
   const stateForm = (op: string, label: string, kind: "ghost" | "danger" = "ghost", confirm?: { title: string; body: string; confirmLabel: string }) => (
@@ -297,6 +298,11 @@ export async function AlbumEditPage({ params }: { params: IdParams }) {
         lead={
           <span className="flex flex-wrap items-center gap-2">
             {albumState(a)} · {visible} صورة ظاهرة من {photos.length}
+            {notReady ? (
+              <span className="text-xs text-gold-press" data-testid="album-not-ready">
+                · {notReady} صورة لسا مش جاهزة (رفع/تجهيز/فشل) — ما بتظهر بالموقع حتى تجهز
+              </span>
+            ) : null}
           </span>
         }
         actions={
@@ -321,7 +327,7 @@ export async function AlbumEditPage({ params }: { params: IdParams }) {
                 submitLabel="نشر الألبوم"
                 kind="primary"
                 testId="album-publish"
-                confirm={{ title: "نشر هذا الألبوم؟", body: "تظهر الصور الظاهرة للعامة مع اسم المصدر ورابطه. تأكد من وجود موافقة على نشر الصور.", confirmLabel: "نشر" }}
+                confirm={{ title: "نشر هذا الألبوم؟", body: `تظهر الصور الظاهرة والجاهزة فقط للعامة مع اسم المصدر ورابطه${notReady ? ` (${notReady} صورة غير جاهزة لن تظهر حتى تجهز)` : ""}. تأكد من وجود موافقة على نشر الصور.`, confirmLabel: "نشر" }}
               >
                 <input type="hidden" name="id" value={a.id} />
                 <input type="hidden" name="publish" value="1" />
@@ -385,7 +391,7 @@ export async function AlbumEditPage({ params }: { params: IdParams }) {
                           <input type="hidden" name="id" value={p.id} />
                         </ActionForm>
                       ) : null}
-                      <ActionForm action={setPhotoPublished} submitLabel={p.is_published ? "إخفاء" : "إظهار"} kind="ghost" inline>
+                      <ActionForm action={setPhotoPublished} submitLabel={p.is_published ? "إخفاء" : "إظهار"} kind="ghost" inline disabled={!p.is_published && p.upload_status !== "ready"}>
                         <input type="hidden" name="id" value={p.id} />
                         <input type="hidden" name="publish" value={p.is_published ? "0" : "1"} />
                       </ActionForm>

@@ -1,76 +1,52 @@
 "use client";
 
-import { photoErrorText } from "./photo-errors";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { ALBUM_ACCEPT, ALBUM_BUCKET, ALBUM_MAX_FILES_PER_BATCH, checkAlbumFile, fileSha256 } from "./rules";
-import {
-  discardFailedUpload,
-  getUnfinishedPhotos,
-  prepareAlbumUploads,
-  processUploadedPhotos,
-  refreshAlbum,
-  retryPhoto,
-  type PhotoStatus,
-} from "./actions";
+import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import { getUnfinishedPhotos } from "./actions";
+import { ALBUM_ACCEPT, ALBUM_IMAGE_MAX_BYTES, ALBUM_MAX_FILES_PER_BATCH, ALBUM_RAW_MAX_BYTES, FORMATS, FORMAT_IDS, fmtMb } from "./rules";
+import { AlbumUploadQueue, type ItemState, type UploadItem } from "./upload-engine";
+import { takeHandoff } from "./upload-handoff";
 
-type State = "waiting" | "hashing" | "uploading" | "pending" | "processing" | "ready" | "failed" | "skipped";
-type Row = {
-  key: string;
-  name: string;
-  state: State;
-  message: string;
-  progress: number;
-  photoId?: string;
-  file?: File;
-  /** failed before the original reached storage → retry re-uploads the file */
-  uploadFailed?: boolean;
-  warning?: string;
-  fromDb?: boolean;
-};
-
-const LABEL: Record<State, string> = {
-  waiting: "بانتظار",
-  hashing: "بانتظار · فحص التكرار…",
-  uploading: "يُرفع",
-  pending: "بانتظار المعالجة",
-  processing: "قيد المعالجة",
+const LABEL: Record<ItemState, string> = {
+  waiting: "في الانتظار",
+  checking: "في الانتظار · فحص الملف",
+  uploading: "جارٍ الرفع",
+  processing: "جارٍ التجهيز",
   ready: "جاهز",
   failed: "فشل",
   skipped: "تم التخطي",
+  canceled: "أُلغي",
 };
-const PROCESS_CHUNK = 8;
-const POLL_MS = 5000;
-
-/** PUT to the signed upload URL with XHR so we get real per-file progress. */
-function putSigned(path: string, token: string, file: File, onProgress: (p: number) => void): Promise<boolean> {
-  const base = (process.env.NEXT_PUBLIC_SUPABASE_URL ?? "").replace(/\/$/, "");
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? "";
-  const url = `${base}/storage/v1/object/upload/sign/${ALBUM_BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}?token=${encodeURIComponent(token)}`;
-  return new Promise((resolve) => {
-    const xhr = new XMLHttpRequest();
-    xhr.open("PUT", url);
-    xhr.setRequestHeader("x-upsert", "false");
-    xhr.setRequestHeader("content-type", file.type);
-    xhr.setRequestHeader("cache-control", "max-age=31536000");
-    if (key) xhr.setRequestHeader("apikey", key);
-    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(Math.round((e.loaded / e.total) * 100));
-    xhr.onload = () => resolve(xhr.status >= 200 && xhr.status < 300);
-    xhr.onerror = () => resolve(false);
-    xhr.onabort = () => resolve(false);
-    xhr.send(file);
-  });
-}
+const TONE: Partial<Record<ItemState, string>> = { failed: "text-danger", ready: "text-success" };
+const IMAGE_FORMATS = FORMAT_IDS.filter((f) => FORMATS[f].kind === "image").map((f) => FORMATS[f].label).join("، ");
+const RAW_FORMATS = FORMAT_IDS.filter((f) => FORMATS[f].kind === "raw").map((f) => FORMATS[f].label.split(" ").pop()).join("، ");
+const mb = (b: number) => (b / 1024 / 1024).toFixed(b < 10 * 1024 * 1024 ? 1 : 0);
 
 /**
- * Bulk upload. The browser only uploads originals (signed URLs into the private bucket); the server
- * produces variants in a queue (cron worker + an immediate run here for feedback). Closing the tab after
- * the uploads finish does not stop processing. On reload, unfinished photos are read back from the DB.
+ * Album photo uploader (admin): pick or drop many photos; they upload straight to private storage, a few at a
+ * time, resumable; the server prepares the web copies in the background and the grid fills in as they get ready.
+ * Files handed over by «ألبوم جديد → إنشاء ورفع» start automatically.
  */
 export function AlbumUploader({ albumId }: { albumId: string }) {
+  const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [rows, setRows] = useState<Row[]>([]);
-  const [busy, setBusy] = useState(false);
-  // Leaving mid-upload interrupts it (the remaining photos never reach storage): ask the browser to confirm.
+  const [items, setItems] = useState<UploadItem[]>([]);
+  const [note, setNote] = useState("");
+  const [drag, setDrag] = useState(false);
+  // One queue per mounted editor (the album id is part of the route, so it never changes here).
+  const [queue] = useState(() => new AlbumUploadQueue(albumId, setItems, () => router.refresh()));
+
+  useEffect(() => {
+    const handed = takeHandoff(albumId);
+    if (handed.length) queue.add(handed);
+    getUnfinishedPhotos(albumId)
+      .then((list) => queue.addPrevious(list))
+      .catch(() => undefined);
+    return () => queue.dispose();
+  }, [albumId, queue]);
+
+  const busy = items.some((i) => i.state === "waiting" || i.state === "checking" || i.state === "uploading");
+  // Leaving mid-upload stops the transfer (it can be resumed by choosing the same files again).
   useEffect(() => {
     if (!busy) return;
     const warn = (e: BeforeUnloadEvent) => {
@@ -80,200 +56,110 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [busy]);
-  const [summary, setSummary] = useState("");
-  const rowsRef = useRef<Row[]>([]);
+  const settled = items.length > 0 && items.every((i) => ["ready", "failed", "skipped", "canceled"].includes(i.state));
   useEffect(() => {
-    rowsRef.current = rows;
-  }, [rows]);
-  const patch = (key: string, p: Partial<Row>) => setRows((r) => r.map((row) => (row.key === key ? { ...row, ...p } : row)));
+    if (settled) router.refresh();
+  }, [settled, router]);
 
-  const applyStatuses = useCallback((list: PhotoStatus[]) => {
-    const byId = new Map(list.map((s) => [s.id, s]));
-    setRows((r) =>
-      r.map((row) => {
-        const s = row.photoId ? byId.get(row.photoId) : undefined;
-        if (!s) return row;
-        return { ...row, state: s.status, message: s.status === "failed" ? `${photoErrorText(s.error)} (محاولات: ${s.attempts})` : row.message };
-      }),
-    );
-  }, []);
-
-  // Resume after reload: show what is still pending/processing/failed in the DB.
-  useEffect(() => {
-    let alive = true;
-    getUnfinishedPhotos(albumId).then((list) => {
-      if (!alive || !list.length) return;
-      setRows((r) => [
-        ...r,
-        ...list
-          .filter((s) => !r.some((x) => x.photoId === s.id))
-          .map((s) => ({
-            key: `db-${s.id}`,
-            name: `صورة من جلسة سابقة (${s.id.slice(0, 8)})`,
-            state: s.status as State,
-            message: s.status === "failed" ? `${photoErrorText(s.error)} (محاولات: ${s.attempts})` : "",
-            progress: 100,
-            photoId: s.id,
-            fromDb: true,
-          })),
-      ]);
-    });
-    return () => {
-      alive = false;
-    };
-  }, [albumId]);
-
-  // Poll while anything is waiting for the server queue.
-  const waiting = rows.some((r) => r.photoId && (r.state === "pending" || r.state === "processing"));
-  useEffect(() => {
-    if (!waiting || busy) return;
-    const t = setInterval(async () => {
-      const list = await getUnfinishedPhotos(albumId);
-      const open = new Set(list.map((s) => s.id));
-      const tracked = rowsRef.current.filter((r) => r.photoId && (r.state === "pending" || r.state === "processing"));
-      applyStatuses([...list, ...tracked.filter((r) => !open.has(r.photoId!)).map((r) => ({ id: r.photoId!, status: "ready" as const, error: null, attempts: 0 }))]);
-      if (tracked.some((r) => !open.has(r.photoId!))) await refreshAlbum();
-    }, POLL_MS);
-    return () => clearInterval(t);
-  }, [waiting, busy, albumId, applyStatuses]);
-
-  async function processNow(ids: string[]) {
-    for (let i = 0; i < ids.length; i += PROCESS_CHUNK) {
-      const chunk = ids.slice(i, i + PROCESS_CHUNK);
-      chunk.forEach((id) => setRows((r) => r.map((row) => (row.photoId === id && row.state === "pending" ? { ...row, state: "processing" } : row))));
-      try {
-        applyStatuses(await processUploadedPhotos(albumId, chunk));
-      } catch {
-        /* the cron worker will finish them */
-      }
-    }
-  }
-
-  async function uploadRows(targets: Row[]) {
-    const prepared = await prepareAlbumUploads(
-      albumId,
-      targets.map((t) => ({ name: t.file!.name, type: t.file!.type, size: t.file!.size, sha256: t.message })),
-    ).catch(() => ({ ok: false, message: "تعذّر الاتصال بالخادم.", items: [] as Awaited<ReturnType<typeof prepareAlbumUploads>>["items"] }));
-    if (!prepared.items.length) {
-      targets.forEach((t) => patch(t.key, { state: "failed", uploadFailed: true, message: prepared.message ?? "تعذّر التجهيز." }));
-      return [];
-    }
-    const uploaded: string[] = [];
-    for (let k = 0; k < prepared.items.length; k++) {
-      const item = prepared.items[k];
-      const t = targets[k];
-      if (!item.ok) {
-        patch(t.key, { state: item.skipped ? "skipped" : "failed", uploadFailed: !item.skipped, message: item.message });
-        continue;
-      }
-      patch(t.key, { state: "uploading", photoId: item.photoId, warning: item.warning, message: "", progress: 0 });
-      const okUp = await putSigned(item.path, item.token, t.file!, (p) => patch(t.key, { progress: p }));
-      if (!okUp) {
-        await discardFailedUpload(item.photoId).catch(() => undefined);
-        patch(t.key, { state: "failed", uploadFailed: true, photoId: undefined, message: "انقطع الرفع أو رُفض الملف." });
-        continue;
-      }
-      patch(t.key, { state: "pending", progress: 100 });
-      uploaded.push(item.photoId);
-    }
-    return uploaded;
-  }
-
-  async function start() {
-    const files = Array.from(inputRef.current?.files ?? []);
-    if (!files.length) return setSummary("اختر صوراً أولاً.");
-    if (files.length > ALBUM_MAX_FILES_PER_BATCH) return setSummary(`الحد ${ALBUM_MAX_FILES_PER_BATCH} صورة في كل دفعة.`);
-    setBusy(true);
-    setSummary("");
-    const stamp = Date.now();
-    const fresh: Row[] = files.map((f, i) => {
-      const problem = checkAlbumFile(f);
-      return { key: `${stamp}-${i}`, name: f.name, file: f, state: problem ? "failed" : "hashing", message: problem ?? "", progress: 0 };
-    });
-    setRows((r) => [...fresh, ...r.filter((x) => x.fromDb || x.state !== "ready")]);
-    const valid = fresh.filter((r) => r.state === "hashing");
-    for (const r of valid) {
-      try {
-        r.message = await fileSha256(r.file!); // carried to the server in `message` until prepared
-        patch(r.key, { state: "waiting" });
-      } catch {
-        r.state = "failed";
-        patch(r.key, { state: "failed", message: "تعذّرت قراءة الملف." });
-      }
-    }
-    const ids = await uploadRows(valid.filter((r) => r.state !== "failed"));
-    await processNow(ids);
-    setBusy(false);
+  function enqueue(list: FileList | File[] | null) {
+    const files = Array.from(list ?? []);
+    if (!files.length) return setNote("اختر صوراً أولاً.");
+    if (files.length > ALBUM_MAX_FILES_PER_BATCH) return setNote(`الحد ${ALBUM_MAX_FILES_PER_BATCH} ملفاً في كل اختيار.`);
+    setNote("");
+    queue.add(files);
     if (inputRef.current) inputRef.current.value = "";
-    await refreshAlbum();
   }
 
-  async function retry(row: Row) {
-    setBusy(true);
-    try {
-      if (row.uploadFailed && row.file) {
-        patch(row.key, { state: "hashing", message: "" });
-        const sha = await fileSha256(row.file);
-        const ids = await uploadRows([{ ...row, message: sha }]);
-        await processNow(ids);
-      } else if (row.photoId) {
-        patch(row.key, { state: "processing", message: "" });
-        applyStatuses(await retryPhoto(albumId, row.photoId));
-      }
-    } finally {
-      setBusy(false);
-      await refreshAlbum();
-    }
-  }
-
-  const n = (s: State) => rows.filter((r) => r.state === s).length;
-  const counts = rows.length ? `جاهز ${n("ready")} · قيد المعالجة ${n("pending") + n("processing") + n("uploading")} · تم التخطي ${n("skipped")} · فشل ${n("failed")}` : "";
+  const live = items.filter((i) => i.state !== "canceled" && i.state !== "skipped" && i.size > 0);
+  const total = live.reduce((a, i) => a + i.size, 0);
+  const sent = live.reduce((a, i) => a + (["processing", "ready"].includes(i.state) ? i.size : i.sent), 0);
+  const n = (s: ItemState) => items.filter((i) => i.state === s).length;
+  const counts = items.length
+    ? `جاهز ${n("ready")} · جارٍ الرفع ${n("uploading") + n("checking")} · في الانتظار ${n("waiting")} · جارٍ التجهيز ${n("processing")} · فشل ${n("failed")} · تم التخطي ${n("skipped")}`
+    : "";
 
   return (
     <div className="space-y-3" data-testid="album-uploader">
-      <div className="flex flex-wrap items-center gap-3">
-        <label className="text-sm">
-          <span className="mb-1 block font-medium">اختر الصور</span>
-          <input ref={inputRef} type="file" multiple accept={ALBUM_ACCEPT} disabled={busy} data-testid="album-upload-input" className="text-sm" />
-        </label>
-        <button
-          type="button"
-          onClick={start}
-          disabled={busy}
-          data-testid="album-upload-start"
-          className="inline-flex min-h-10 items-center rounded-sm bg-gold px-4 text-sm font-medium text-ink hover:bg-gold-press disabled:opacity-50"
-        >
-          {busy ? "جارٍ الرفع…" : "رفع الصور"}
-        </button>
+      <div
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDrag(true);
+        }}
+        onDragLeave={() => setDrag(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDrag(false);
+          enqueue(e.dataTransfer.files);
+        }}
+        data-testid="album-dropzone"
+        className={`rounded-md border-2 border-dashed p-4 transition-colors ${drag ? "border-gold bg-gold/10" : "border-cream-line"}`}
+      >
+        <div className="flex flex-wrap items-end gap-3">
+          <label className="text-sm">
+            <span className="mb-1 block font-medium">اختر الصور أو اسحبها هنا</span>
+            <input ref={inputRef} type="file" multiple accept={ALBUM_ACCEPT} data-testid="album-upload-input" className="text-sm" />
+          </label>
+          <button
+            type="button"
+            onClick={() => enqueue(inputRef.current?.files ?? null)}
+            data-testid="album-upload-start"
+            className="inline-flex min-h-11 items-center rounded-sm bg-gold px-4 text-sm font-medium text-ink hover:bg-gold-press"
+          >
+            رفع الصور
+          </button>
+          {busy ? (
+            <button type="button" onClick={() => queue.cancelAll()} data-testid="album-upload-cancel-all" className="inline-flex min-h-11 items-center rounded-sm border border-cream-line px-3 text-sm hover:border-danger">
+              إلغاء الكل
+            </button>
+          ) : null}
+        </div>
+        <p className="mt-2 text-xs text-on-cream-muted" data-testid="album-upload-limits">
+          الصور ({IMAGE_FORMATS}) حتى {fmtMb(ALBUM_IMAGE_MAX_BYTES)} للملف · ملفات RAW ({RAW_FORMATS}) حتى {fmtMb(ALBUM_RAW_MAX_BYTES)} للملف. HEIC غير مدعوم
+          حالياً. يُحفظ الأصل كما هو بلا أي تعديل، وتُجهَّز نسخ العرض على الخادم — بتقدر تسكّر الصفحة بعد ما يخلص الرفع.
+        </p>
       </div>
-      <p className="text-xs text-on-cream-muted">
-        JPEG أو PNG أو WebP أو AVIF، حتى 25MB للصورة و{ALBUM_MAX_FILES_PER_BATCH} صورة في الدفعة. يُحفظ الأصل كما هو (لا قصّ ولا إزالة للعلامة المائية)،
-        وتُنشأ نسختا العرض على الخادم — يمكنك إغلاق الصفحة بعد اكتمال الرفع وستكتمل المعالجة تلقائياً.
-      </p>
-      {rows.length ? (
+
+      {note ? <p className="text-sm text-danger">{note}</p> : null}
+
+      {total > 0 ? (
+        <div className="space-y-1" data-testid="album-upload-total">
+          <progress max={total} value={sent} className="h-2 w-full" aria-label="التقدّم الإجمالي للرفع" />
+          <p className="text-xs text-on-cream-muted" dir="rtl">
+            {mb(sent)} من {mb(total)} MB
+          </p>
+        </div>
+      ) : null}
+
+      {items.length ? (
         <ul className="divide-y divide-cream-line rounded-md border border-cream-line text-sm" aria-live="polite">
-          {rows.map((r) => (
+          {items.map((r) => (
             <li key={r.key} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2" data-testid="album-upload-row" data-state={r.state} data-photo-id={r.photoId}>
-              <span className="min-w-0 truncate" dir="auto">
+              <span className="min-w-0 truncate" dir="auto" data-file-name={r.name}>
                 {r.name}
+                {r.size ? <span className="ms-2 text-xs text-on-cream-muted">{mb(r.size)} MB</span> : null}
               </span>
               <span className="flex flex-wrap items-center gap-2">
                 {r.state === "uploading" ? (
-                  <progress max={100} value={r.progress} className="h-2 w-24" aria-label={`تقدّم رفع ${r.name}`} />
+                  <progress max={r.size || 1} value={r.sent} className="h-2 w-28" aria-label={`تقدّم رفع ${r.name}`} />
                 ) : null}
-                <span className={r.state === "failed" ? "text-danger" : r.state === "ready" ? "text-success" : "text-on-cream-muted"}>
+                <span className={TONE[r.state] ?? "text-on-cream-muted"}>
                   {LABEL[r.state]}
-                  {r.state === "uploading" ? ` ${r.progress}%` : ""}
-                  {r.state !== "hashing" && r.state !== "waiting" && r.message ? ` · ${r.message}` : ""}
+                  {r.state === "uploading" && r.size ? ` ${Math.floor((r.sent / r.size) * 100)}%` : ""}
+                  {r.message ? ` · ${r.message}` : ""}
                 </span>
                 {r.warning ? (
                   <span className="text-xs text-gold-press" data-testid="album-upload-warning">
                     {r.warning}
                   </span>
                 ) : null}
-                {r.state === "failed" && (r.photoId || (r.uploadFailed && r.file)) ? (
-                  <button type="button" disabled={busy} onClick={() => retry(r)} data-testid="album-upload-retry" className="rounded-sm border border-cream-line px-2 py-1 text-xs hover:border-on-cream-muted disabled:opacity-50">
+                {r.state === "failed" && (r.file || r.failedAt === "processing") ? (
+                  <button type="button" onClick={() => void queue.retry(r.key)} data-testid="album-upload-retry" className="min-h-9 rounded-sm border border-cream-line px-2 text-xs hover:border-on-cream-muted">
                     إعادة المحاولة
+                  </button>
+                ) : null}
+                {["waiting", "checking", "uploading"].includes(r.state) ? (
+                  <button type="button" onClick={() => queue.cancel(r.key)} data-testid="album-upload-cancel" className="min-h-9 rounded-sm border border-cream-line px-2 text-xs hover:border-danger">
+                    إلغاء
                   </button>
                 ) : null}
               </span>
@@ -281,9 +167,9 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
           ))}
         </ul>
       ) : null}
-      {summary || counts ? (
+      {counts ? (
         <p role="status" data-testid="album-upload-summary" className="text-sm font-medium">
-          {summary || counts}
+          {counts}
         </p>
       ) : null}
     </div>

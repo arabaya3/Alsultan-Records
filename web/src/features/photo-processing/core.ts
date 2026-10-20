@@ -31,15 +31,24 @@ export function secretMatches(presented: string | null | undefined, expected: st
 
 export type Variants = { thumb: Buffer; display: Buffer; width: number | null; height: number | null };
 
-/** Fit-inside resize (never cropped, never enlarged), EXIF-rotated; the original is never modified. */
-export async function makeVariants(input: Buffer): Promise<Variants> {
-  const img = sharp(input, { failOn: "error" }).rotate();
-  const meta = await img.metadata();
+/** Fit-inside resize (never cropped, never enlarged), EXIF-rotated, converted to sRGB; the original is never
+ *  modified. Web copies carry NO metadata (sharp drops EXIF/GPS/XMP unless asked), so location data in the
+ *  original never reaches the public. In-image watermarks are kept as they are (whole frame, no crop).
+ *  `input` is an encoded image (JPEG/PNG/WebP/AVIF/TIFF) or decoded RGB pixels from the RAW decoder. */
+export async function makeVariants(
+  input: Buffer | { data: Buffer; width: number; height: number; channels: 3 },
+  maxPixels = 150_000_000,
+): Promise<Variants> {
+  const img = Buffer.isBuffer(input)
+    ? sharp(input, { failOn: "error", limitInputPixels: maxPixels }).rotate()
+    : sharp(input.data, { raw: { width: input.width, height: input.height, channels: input.channels } });
+  const meta = Buffer.isBuffer(input) ? await img.metadata() : { width: input.width, height: input.height, orientation: 1 };
   const [thumb, display] = await Promise.all(
     (["thumb", "display"] as const).map((k) =>
       img
         .clone()
         .resize({ width: VARIANTS[k].size, height: VARIANTS[k].size, fit: "inside", withoutEnlargement: true })
+        .toColourspace("srgb")
         .webp({ quality: VARIANTS[k].quality })
         .toBuffer(),
     ),

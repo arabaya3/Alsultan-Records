@@ -39,14 +39,14 @@ export type Database = {
                   ]
                 },"album_photos": {
                   Row: {
-                    "album_id": string,"alt_text": string | null,"attempts": number,"bytes": number | null,"created_at": string,"deleted_at": string | null,"height": number | null,"id": string,"is_published": boolean,"last_error": string | null,"mime": string,"processing_started_at": string | null,"sha256": string | null,"sort_order": number,"source_url": string | null,"storage_path_original": string,"updated_at": string,"upload_status": string,"variants": NonNullable<Json>,"width": number | null
+                    "album_id": string,"alt_text": string | null,"attempts": number,"bytes": number | null,"created_at": string,"deleted_at": string | null,"format": string | null,"height": number | null,"id": string,"is_published": boolean,"last_error": string | null,"mime": string,"processing_started_at": string | null,"sha256": string | null,"sort_order": number,"source_url": string | null,"storage_path_original": string,"updated_at": string,"upload_status": string,"variants": NonNullable<Json>,"width": number | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "album_id": string,"alt_text"?: string | null,"attempts"?: number,"bytes"?: number | null,"created_at"?: string,"deleted_at"?: string | null,"height"?: number | null,"id"?: string,"is_published"?: boolean,"last_error"?: string | null,"mime": string,"processing_started_at"?: string | null,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path_original": string,"updated_at"?: string,"upload_status"?: string,"variants"?: NonNullable<Json>,"width"?: number | null
+                    "album_id": string,"alt_text"?: string | null,"attempts"?: number,"bytes"?: number | null,"created_at"?: string,"deleted_at"?: string | null,"format"?: string | null,"height"?: number | null,"id"?: string,"is_published"?: boolean,"last_error"?: string | null,"mime": string,"processing_started_at"?: string | null,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path_original": string,"updated_at"?: string,"upload_status"?: string,"variants"?: NonNullable<Json>,"width"?: number | null
                   }
                   Update: {
-                    "album_id"?: string,"alt_text"?: string | null,"attempts"?: number,"bytes"?: number | null,"created_at"?: string,"deleted_at"?: string | null,"height"?: number | null,"id"?: string,"is_published"?: boolean,"last_error"?: string | null,"mime"?: string,"processing_started_at"?: string | null,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path_original"?: string,"updated_at"?: string,"upload_status"?: string,"variants"?: NonNullable<Json>,"width"?: number | null
+                    "album_id"?: string,"alt_text"?: string | null,"attempts"?: number,"bytes"?: number | null,"created_at"?: string,"deleted_at"?: string | null,"format"?: string | null,"height"?: number | null,"id"?: string,"is_published"?: boolean,"last_error"?: string | null,"mime"?: string,"processing_started_at"?: string | null,"sha256"?: string | null,"sort_order"?: number,"source_url"?: string | null,"storage_path_original"?: string,"updated_at"?: string,"upload_status"?: string,"variants"?: NonNullable<Json>,"width"?: number | null
                   }
                   Relationships: [
                     {
@@ -1469,6 +1469,12 @@ isOneToOne: false
                            },
 "album_photo_object_path":
 { Args: { "p_photo_id": string,"p_variant": string }; Returns: string
+                           },
+"album_upload_complete":
+{ Args: { "p_photo_id": string }; Returns: boolean
+                           },
+"album_upload_reopen":
+{ Args: { "p_bytes": number,"p_photo_id": string }; Returns: boolean
                            },
 "bootstrap_initial_owner":
 { Args: { "p_token": string }; Returns: undefined
