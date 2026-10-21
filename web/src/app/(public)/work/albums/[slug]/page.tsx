@@ -13,7 +13,8 @@ import { photoUrl, workHref } from "@/features/public-content/gallery-model";
 import { getAlbumBySlug } from "@/features/public-content/gallery-queries";
 import { formatDateAr } from "@/features/public-content/labels";
 import { getBusinessSettings } from "@/features/public-content/queries";
-import { pageMetadata, safeHttp } from "@/features/public-content/seo";
+import { JsonLd } from "@/components/ui/JsonLd";
+import { breadcrumbJsonLd, metaDescription, pageMetadata, safeHttp } from "@/features/public-content/seo";
 import { projectText } from "@/lib/whatsapp";
 
 const SLUG = /^[a-z0-9][a-z0-9-]{1,79}$/;
@@ -26,8 +27,10 @@ export async function generateMetadata({ params }: PageProps<"/work/albums/[slug
   if (!a) return { title: "ألبومات الصور", robots: { index: false } };
   return pageMetadata({
     title: a.title,
-    description: a.description?.slice(0, 160) || `${a.title} — ألبوم صور من ستوديو وتسجيلات السلطان.`,
+    description: metaDescription(a.description, `${a.title} — ألبوم صور من ستوديو وتسجيلات السلطان.`),
     path: `/work/albums/${a.slug}`,
+    // share image: the album's published cover through the public route (never a storage URL / original)
+    image: a.coverId ? photoUrl(a.coverId, "display") : null,
   });
 }
 
@@ -78,6 +81,7 @@ async function AlbumView({ params }: { params: PageProps<"/work/albums/[slug]">[
 
   return (
     <article data-album-page={album.slug}>
+      <JsonLd data={breadcrumbJsonLd([{ name: "الرئيسية", path: "/" }, { name: "أعمالنا", path: "/work" }, { name: album.title, path: `/work/albums/${album.slug}` }])} />
       <PageHero
         photoId={null}
         breadcrumb={[{ label: "أعمالنا", href: "/work" }, { label: "ألبومات الصور", href: ALBUMS }]}

@@ -12,7 +12,8 @@ import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { relatedVideos, toCardVideo, workHref } from "@/features/public-content/gallery-model";
 import { getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel, formatDateAr } from "@/features/public-content/labels";
-import { pageMetadata } from "@/features/public-content/seo";
+import { JsonLd } from "@/components/ui/JsonLd";
+import { breadcrumbJsonLd, metaDescription, pageMetadata, youTubeVideoJsonLd } from "@/features/public-content/seo";
 import { projectText } from "@/lib/whatsapp";
 import { isYouTubeId, youTubeThumbUrl, youTubeWatchUrl } from "@/lib/youtube";
 
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: PageProps<"/work/v/[youtubeId
   if (!video) return { title: "أعمالنا", robots: { index: false } };
   return pageMetadata({
     title: video.title,
-    description: video.description?.slice(0, 160) || `${video.title} — من أعمال ستوديو وتسجيلات السلطان.`,
+    description: metaDescription(video.description, `${video.title} — من أعمال ستوديو وتسجيلات السلطان.`),
     path: `/work/v/${video.youtube_id}`,
     image: youTubeThumbUrl(video.youtube_id),
   });
@@ -49,8 +50,11 @@ async function VideoView({ params }: { params: PageProps<"/work/v/[youtubeId]">[
   const related = relatedVideos(gallery, video);
   const meta = [durationLabel(video.duration_seconds), formatDateAr(video.published_at)].filter(Boolean);
 
+  const videoLd = youTubeVideoJsonLd(video);
   return (
     <article data-video-page={video.youtube_id}>
+      {videoLd ? <JsonLd data={videoLd} /> : null}
+      <JsonLd data={breadcrumbJsonLd([{ name: "الرئيسية", path: "/" }, { name: "أعمالنا", path: "/work" }, { name: video.title, path: `/work/v/${video.youtube_id}` }])} />
       <div className="ink-texture hero-flow relative text-ivory">
         <Container className="flex flex-col items-center pb-14 pt-12 text-center md:pb-20 md:pt-16">
           <nav aria-label="مسار التنقل" className="mb-4 text-sm text-ivory-muted">
