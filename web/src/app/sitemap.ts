@@ -5,7 +5,9 @@ import { getPublishedProjects, getPublishedServices } from "@/features/public-co
 import { siteUrl } from "@/features/public-content/site";
 import { offerPath } from "@/lib/site-targets";
 
-const STATIC_PATHS = ["/", "/work", "/services", "/offers", "/about", "/contact", "/book", "/faq", "/privacy", "/terms"];
+// Public pages only (admin, portal, login, track are private and noindex). No lastmod: the public (anon) data
+// has no real modification date, and stamping today's date would be misleading (docs/seo-launch.md).
+const STATIC_PATHS = ["/work", "/packages", "/services", "/offers", "/about", "/contact", "/book", "/faq", "/privacy", "/terms"];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
@@ -16,7 +18,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     getPublishedAlbums(),
     getActiveOffers(),
   ]);
-  const entries: MetadataRoute.Sitemap = STATIC_PATHS.map((p) => ({ url: new URL(p, base).toString() }));
+  // Home as the bare origin, exactly like its canonical.
+  const entries: MetadataRoute.Sitemap = [{ url: base }, ...STATIC_PATHS.map((p) => ({ url: new URL(p, base).toString() }))];
   if (projects.status === "ok") {
     for (const p of projects.data) entries.push({ url: new URL(`/work/${p.public_slug}`, base).toString() });
   }

@@ -11,7 +11,7 @@ import { Container, Section } from "@/components/ui/Layout";
 import { ErrorState } from "@/components/ui/States";
 import { eventTypeLabel, formatDateAr } from "@/features/public-content/labels";
 import { getProjectBySlug } from "@/features/public-content/queries";
-import { pageMetadata, projectJsonLd } from "@/features/public-content/seo";
+import { breadcrumbJsonLd, metaDescription, pageMetadata, projectJsonLd } from "@/features/public-content/seo";
 
 export async function generateMetadata({ params }: PageProps<"/work/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -21,7 +21,7 @@ export async function generateMetadata({ params }: PageProps<"/work/[slug]">): P
   const image = p.cover ? (p.cover.kind === "image" ? p.cover.src : p.cover.poster) : null;
   return pageMetadata({
     title: p.seo_title ?? p.title,
-    description: p.seo_description ?? p.highlight ?? `${p.title} — من أعمال ستوديو وتسجيلات السلطان.`,
+    description: metaDescription(p.seo_description ?? p.highlight, `${p.title} — من أعمال ستوديو وتسجيلات السلطان.`),
     path: `/work/${p.public_slug}`,
     image,
   });
@@ -51,6 +51,7 @@ async function ProjectView({ params }: { params: PageProps<"/work/[slug]">["para
   return (
     <article>
       <JsonLd data={projectJsonLd(p)} />
+      <JsonLd data={breadcrumbJsonLd([{ name: "الرئيسية", path: "/" }, { name: "أعمالنا", path: "/work" }, { name: p.title, path: `/work/${p.public_slug}` }])} />
       <div className="ink-texture border-b border-hairline text-ivory">
         <Container className="pb-10 pt-12 md:pt-16">
           <nav aria-label="مسار التنقل" className="mb-6 text-sm text-ivory-muted">

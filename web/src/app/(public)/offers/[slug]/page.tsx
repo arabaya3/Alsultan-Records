@@ -10,7 +10,7 @@ import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { offerDatesLabel, offerPeriodLabel, offerPriceLabel, offerWhatsappText, type Offer } from "@/features/public-content/cms-model";
 import { getOfferBySlug, getPublishedPackages } from "@/features/public-content/cms-queries";
 import { photoUrl } from "@/features/public-content/gallery-model";
-import { pageMetadata } from "@/features/public-content/seo";
+import { breadcrumbJsonLd, metaDescription, pageMetadata } from "@/features/public-content/seo";
 import { SITE_NAME_AR, siteUrl } from "@/features/public-content/site";
 import { OFFER_SLUG, offerPath, packagePath } from "@/lib/site-targets";
 
@@ -25,7 +25,7 @@ export async function generateMetadata({ params }: PageProps<"/offers/[slug]">):
   if (!o) return { title: "العروض", robots: { index: false } };
   return pageMetadata({
     title: o.title,
-    description: o.description ?? `${o.title} — عرض من ${SITE_NAME_AR}.`,
+    description: metaDescription(o.description, `${o.title} — عرض من ${SITE_NAME_AR}.`),
     path: offerPath(o.slug),
     image: o.image_photo_id ? photoUrl(o.image_photo_id, "display") : null,
   });
@@ -69,6 +69,7 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
   return (
     <article data-offer={o.slug}>
       {ld ? <JsonLd data={ld} /> : null}
+      <JsonLd data={breadcrumbJsonLd([{ name: "الرئيسية", path: "/" }, { name: "العروض", path: "/offers" }, { name: o.title, path: offerPath(o.slug) }])} />
       <PageHero
         align="start"
         breadcrumb={[{ label: "العروض", href: "/offers" }, { label: o.title }]}

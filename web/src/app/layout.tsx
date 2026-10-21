@@ -16,6 +16,10 @@ const plexArabic = IBM_Plex_Sans_Arabic({
   display: "swap",
 });
 
+// Google Search Console ownership token (docs/seo-launch.md): set GOOGLE_SITE_VERIFICATION in Vercel, then redeploy.
+// Nothing is emitted when it is not set (never an empty or made-up tag).
+const googleVerification = process.env.GOOGLE_SITE_VERIFICATION?.trim();
+
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl()),
   title: {
@@ -34,6 +38,7 @@ export const metadata: Metadata = {
   icons: { icon: "/favicon.ico", apple: "/icons/apple-touch-icon.png" },
   // iOS home-screen app (Android uses app/manifest.ts).
   appleWebApp: { capable: true, title: "السلطان", statusBarStyle: "black" },
+  ...(googleVerification ? { verification: { google: googleVerification } } : {}),
 };
 
 export const viewport: Viewport = {

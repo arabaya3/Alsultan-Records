@@ -13,7 +13,8 @@ import { toCardVideo } from "@/features/public-content/gallery-model";
 import { getPublishedAlbums, getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel } from "@/features/public-content/labels";
 import { getServiceBySlug } from "@/features/public-content/queries";
-import { pageMetadata } from "@/features/public-content/seo";
+import { JsonLd } from "@/components/ui/JsonLd";
+import { breadcrumbJsonLd, metaDescription, pageMetadata } from "@/features/public-content/seo";
 
 export async function generateMetadata({ params }: PageProps<"/services/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -22,7 +23,7 @@ export async function generateMetadata({ params }: PageProps<"/services/[slug]">
   if (!s) return { title: "الخدمات", robots: { index: false } };
   return pageMetadata({
     title: s.title,
-    description: s.summary ?? `${s.title} — ستوديو وتسجيلات السلطان.`,
+    description: metaDescription(s.summary, `${s.title} — ستوديو وتسجيلات السلطان.`),
     path: `/services/${s.slug}`,
     image: s.coverPhotoSrc ?? (s.cover?.kind === "image" ? s.cover.src : null),
   });
@@ -50,6 +51,7 @@ async function ServiceView({ params }: { params: PageProps<"/services/[slug]">["
   const linkedAlbums = mine.filter((l) => l.kind === "album").flatMap((l) => albs.filter((a) => a.id === l.target_id));
   return (
     <article>
+      <JsonLd data={breadcrumbJsonLd([{ name: "الرئيسية", path: "/" }, { name: "الخدمات", path: "/services" }, { name: s.title, path: `/services/${s.slug}` }])} />
       <PageHero
         align="start"
         breadcrumb={[{ label: "الخدمات", href: "/services" }, { label: s.title }]}
