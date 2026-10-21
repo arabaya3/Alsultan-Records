@@ -58,6 +58,9 @@ class Stopped extends Error {}
 const CHUNK = 6 * 1024 * 1024; // Supabase TUS requires 6 MB chunks
 const RETRY_DELAYS = [0, 1000, 3000, 6000, 12000, 20000];
 const POLL_MS = 2500;
+/** TUS stores a resume point only once the server has acknowledged the first 6 MB chunk; before that, the same
+ *  file starts again from zero (still on the same reservation, so no duplicate row). Never promise more. */
+export const RESUME_HINT = "سنستكمل الأجزاء المحفوظة، وقد يبدأ الرفع من جديد إذا لم يُحفظ أي جزء.";
 
 /** Hosted projects: the direct storage hostname is recommended for large uploads (bypasses the API gateway). */
 function storageBase(): string {
@@ -107,7 +110,7 @@ export class AlbumUploadQueue {
     for (const s of list) {
       if (this.items.some((i) => i.photoId === s.id)) continue;
       const base = { key: `db-${s.id}`, name: `صورة من جلسة سابقة (${s.id.slice(0, 8)})`, size: 0, sent: 0, photoId: s.id };
-      if (s.status === "uploading") this.items.push({ ...base, state: "failed", failedAt: "upload", message: "الرفع لم يكتمل — اختر نفس الملف مرة ثانية ليُستكمل من حيث توقّف." });
+      if (s.status === "uploading") this.items.push({ ...base, state: "failed", failedAt: "upload", message: `الرفع لم يكتمل — أعد اختيار نفس الملف؛ ${RESUME_HINT}` });
       else if (s.status === "failed") this.items.push({ ...base, state: "failed", failedAt: "processing", message: photoErrorText(s.error) });
       else this.items.push({ ...base, state: s.status === "ready" ? "ready" : "processing", message: "" });
     }
@@ -275,7 +278,7 @@ export class AlbumUploadQueue {
         return this.set(it, { state: r.skipped ? "skipped" : "failed", failedAt: "upload", message: r.message, photoId: r.skipped ? r.photoId : undefined });
       }
       if (this.absorb(it, r.photoId) === "busy") return this.set(it, { state: "skipped", message: "الملف نفسه قيد الرفع في صف آخر." });
-      this.set(it, { state: "uploading", photoId: r.photoId, format: checked.format, warning: r.warning, resumed: r.resumed, message: r.resumed ? "يُستكمل رفع سابق…" : "" });
+      this.set(it, { state: "uploading", photoId: r.photoId, format: checked.format, warning: r.warning, resumed: r.resumed, message: r.resumed ? "متابعة رفع سابق لنفس الملف…" : "" });
       task.phase = "upload";
       await this.guard(task, this.tusUpload(task, file, r.path, r.contentType));
       task.phase = "commit"; // from here on the upload is kept (cancel() ignores it)
@@ -334,7 +337,7 @@ export class AlbumUploadQueue {
                 ? "لا توجد صلاحية للرفع إلى هذا الألبوم (انتهت الجلسة أو تغيّرت الصلاحية)."
                 : status === 413
                   ? "الملف أكبر من الحد المسموح على الخادم."
-                  : "انقطع الرفع بعد عدة محاولات — اضغط «إعادة المحاولة» ليُستكمل من حيث توقّف.",
+                  : `انقطع الرفع بعد عدة محاولات — اضغط «إعادة المحاولة»؛ ${RESUME_HINT}`,
             ),
           );
         },

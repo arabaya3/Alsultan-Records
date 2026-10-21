@@ -355,3 +355,14 @@ describe("previous-session rows merge with re-chosen files (item 2)", () => {
     expect(server.pollCalls).toBe(n);
   });
 });
+
+describe("resume wording matches TUS behaviour", () => {
+  it("an unfinished earlier-session row asks for the same file without promising a resume from the same point", async () => {
+    const { RESUME_HINT } = await import("./upload-engine");
+    q.addPrevious([{ id: "00000000-0000-4000-8000-000000000997", status: "uploading", error: null, attempts: 0 } as never]);
+    const msg = q.items[0].message;
+    expect(msg).toContain("أعد اختيار نفس الملف");
+    expect(msg).toContain(RESUME_HINT);
+    expect(msg).not.toMatch(/من حيث توقّف/);
+  });
+});
