@@ -43,7 +43,8 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["libraw-wasm"],
   outputFileTracingIncludes: {
     "/api/jobs/process-photos": ["./node_modules/libraw-wasm/dist/**", "./node_modules/libraw-wasm/package.json"],
-    "/admin/albums/[id]": ["./node_modules/libraw-wasm/dist/**", "./node_modules/libraw-wasm/package.json"],
+    // keys are globs: brackets escaped so `[id]` is the literal route segment, not a character class
+    "/admin/albums/\\[id\\]": ["./node_modules/libraw-wasm/dist/**", "./node_modules/libraw-wasm/package.json"],
   },
   cacheComponents: true,
   partialPrefetching: true,

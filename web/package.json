@@ -12,7 +12,8 @@
     "test:db": "supabase test db",
     "test:e2e": "playwright test",
     "backup": "node scripts/backup-now.mjs --target staging",
-    "e2e:reset": "node scripts/e2e-reset-local.mjs"
+    "e2e:reset": "node scripts/e2e-reset-local.mjs",
+    "postbuild": "node scripts/check-raw-trace.mjs"
   },
   "dependencies": {
     "@noble/hashes": "1.8.0",
