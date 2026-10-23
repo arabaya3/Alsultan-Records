@@ -63,6 +63,7 @@ async function clipped(page: Page) {
       const cs = getComputedStyle(el);
       if (cs.webkitLineClamp && cs.webkitLineClamp !== "none") continue;
       if (cs.textOverflow === "ellipsis") continue;
+      if (el.clientWidth <= 1 || el.clientHeight <= 1) continue; // visually-hidden (sr-only) until focused, e.g. «تخطَّ إلى المحتوى»
       if (el.scrollWidth > el.clientWidth + 2 && cs.overflowX !== "visible") out.push(`${el.tagName.toLowerCase()} «${el.textContent.trim().slice(0, 40)}» ${el.scrollWidth}>${el.clientWidth}`);
     }
     return out;

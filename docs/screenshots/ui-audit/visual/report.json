@@ -1,0 +1,290 @@
+[
+ {
+  "w": 320,
+  "page": "home",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 320,
+  "page": "offers",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 320,
+  "page": "offer-detail",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 320,
+  "page": "work-photos",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 320,
+  "page": "album",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 320,
+  "page": "services",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 320,
+  "page": "privacy",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 320,
+  "page": "contact",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 390,
+  "page": "home",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 390,
+  "page": "offers",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 390,
+  "page": "offer-detail",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 390,
+  "page": "work-photos",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 390,
+  "page": "album",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 390,
+  "page": "services",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 390,
+  "page": "privacy",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 390,
+  "page": "contact",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 768,
+  "page": "home",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 768,
+  "page": "offers",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 768,
+  "page": "offer-detail",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 768,
+  "page": "work-photos",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 768,
+  "page": "album",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 768,
+  "page": "services",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 768,
+  "page": "privacy",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 768,
+  "page": "contact",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1024,
+  "page": "home",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1024,
+  "page": "offers",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1024,
+  "page": "offer-detail",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1024,
+  "page": "work-photos",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1024,
+  "page": "album",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1024,
+  "page": "services",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1024,
+  "page": "privacy",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1024,
+  "page": "contact",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1440,
+  "page": "home",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1440,
+  "page": "offers",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1440,
+  "page": "offer-detail",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1440,
+  "page": "work-photos",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1440,
+  "page": "album",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1440,
+  "page": "services",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1440,
+  "page": "privacy",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1440,
+  "page": "contact",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1920,
+  "page": "home",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1920,
+  "page": "offers",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1920,
+  "page": "offer-detail",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1920,
+  "page": "work-photos",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1920,
+  "page": "album",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1920,
+  "page": "services",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1920,
+  "page": "privacy",
+  "overflowX": 0,
+  "clipped": []
+ },
+ {
+  "w": 1920,
+  "page": "contact",
+  "overflowX": 0,
+  "clipped": []
+ }
+]
