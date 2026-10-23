@@ -483,3 +483,40 @@ export async function restorePhoto(_p: ActionResult, fd: FormData): Promise<Acti
   published();
   return ok("استُرجعت الصورة.");
 }
+
+export type AltSaveResult = { ok: boolean; message: string; results: { id: string; ok: boolean; message?: string }[] };
+
+/**
+ * «حفظ الأوصاف»: several alt texts of ONE album at once. Each row is validated and saved on its own, so one bad value
+ * (too long, photo gone) never blocks the others; the result says which rows failed and why. Only rows of this album
+ * are touched (album_id filter). Texts are saved exactly as typed (trimmed) — nothing is generated.
+ */
+export async function setPhotoAlts(albumId: string, items: { id: string; alt: string }[]): Promise<AltSaveResult> {
+  if (!(await guard(ADMIN_ROLES))) return { ok: false, message: FORBIDDEN.message ?? "غير مصرّح.", results: [] };
+  if (!isUuid(albumId) || !Array.isArray(items) || !items.length || items.length > 500) return { ok: false, message: "طلب غير صالح.", results: [] };
+  const sb = await db();
+  const results: AltSaveResult["results"] = [];
+  for (const it of items) {
+    const id = String(it?.id ?? "");
+    if (!isUuid(id)) {
+      results.push({ id, ok: false, message: "طلب غير صالح." });
+      continue;
+    }
+    const alt = altTextSchema.safeParse(String(it?.alt ?? ""));
+    if (!alt.success) {
+      results.push({ id, ok: false, message: alt.error.issues[0]?.message ?? "نص غير صالح." });
+      continue;
+    }
+    const { data, error } = await sb.from("album_photos").update({ alt_text: alt.data || null }).eq("id", id).eq("album_id", albumId).select("id");
+    if (error) results.push({ id, ok: false, message: dbMessage(error) });
+    else if (!data?.length) results.push({ id, ok: false, message: "الصورة غير موجودة في هذا الألبوم." });
+    else results.push({ id, ok: true });
+  }
+  const failed = results.filter((r) => !r.ok).length;
+  if (failed < results.length) published();
+  return {
+    ok: failed === 0,
+    message: failed === 0 ? `حُفظت الأوصاف (${results.length}).` : `حُفظ ${results.length - failed} من ${results.length}؛ تعذّر حفظ ${failed} — راجع الحقول المعلّمة.`,
+    results,
+  };
+}

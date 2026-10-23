@@ -23,6 +23,8 @@ import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { EXPECTED_REF, FORBIDDEN_REFS, WEB_ROOT, loadStagingEnv, mgmt, parseEnvFile } from "./staging-lib.mjs";
+import { assertProdWriteAllowed } from "./prod-write-guard.mjs";
+assertProdWriteAllowed("staging-admin-check"); // writes [STAGING-TEST] data to the production project
 
 // ------------------------------------------------------------------ target (staging only)
 const E = parseEnvFile(resolve(WEB_ROOT, ".env.staging.app.local"));

@@ -11,6 +11,7 @@ import { FALLBACK_SERVICES } from "@/features/public-content/home-content";
 import { getPublishedServices } from "@/features/public-content/queries";
 import { pageMetadata } from "@/features/public-content/seo";
 import type { Service } from "@/features/public-content/schema";
+import { bidiDir } from "@/lib/bidi";
 
 export const metadata = pageMetadata({
   title: "الخدمات",
@@ -88,7 +89,7 @@ export default async function ServicesPage() {
                   </p>
                   <span className="gold-rule mt-4" aria-hidden="true" />
                   <h2 className="mt-5 text-h3 font-bold tracking-tight">
-                    <bdi>{r.title}</bdi>
+                    <bdi dir={bidiDir(r.title)}>{r.title}</bdi>
                   </h2>
                   {r.summary ? <p className="mt-3 text-ivory-muted">{r.summary}</p> : null}
                   <div className="mt-auto flex flex-wrap gap-3 pt-7">
@@ -122,7 +123,7 @@ export default async function ServicesPage() {
                     {num(i)}
                   </p>
                   <h2 className="mt-3 text-h2 font-bold tracking-tight">
-                    <bdi>{r.title}</bdi>
+                    <bdi dir={bidiDir(r.title)}>{r.title}</bdi>
                   </h2>
                   {r.summary ? <p className="mt-4 max-w-xl text-lead text-ivory-muted">{r.summary}</p> : null}
                   <div className="mt-7 flex flex-wrap gap-3">

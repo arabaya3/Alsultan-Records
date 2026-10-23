@@ -1,9 +1,10 @@
 import { createClient } from "@/lib/supabase/server";
 import { ADMIN_ROLES, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import { Card, Field, inputCls, LoadError, PageHeader } from "@/features/admin/ui";
+import Link from "next/link";
+import { Card, LoadError, PageHeader } from "@/features/admin/ui";
 import { MODULE_LABEL, MODULES } from "@/features/admin/nav";
-import { saveAppSettings, saveBusinessSettings, saveEnabledModules } from "./actions";
+import { saveAppSettings, saveEnabledModules } from "./actions";
 
 export async function SettingsPage() {
   const session = await guard(ADMIN_ROLES);
@@ -11,43 +12,48 @@ export async function SettingsPage() {
   const isOwner = session.role === "owner";
   const sb = await createClient();
   const [biz, app] = await Promise.all([
-    sb.from("business_settings").select("name, tagline, phone, whatsapp, email, address, instagram, facebook, youtube_url, whatsapp_url, canonical_base_url").eq("id", 1).maybeSingle(),
-    isOwner ? sb.from("app_settings").select("require_staff_mfa, turnstile_enabled, booking_rules, enabled_modules").eq("id", 1).maybeSingle() : Promise.resolve({ data: null, error: null }),
+    sb.from("business_settings").select("name, phone, whatsapp, email, address").eq("id", 1).maybeSingle(),
+    isOwner ? sb.from("app_settings").select("require_staff_mfa, turnstile_enabled, enabled_modules").eq("id", 1).maybeSingle() : Promise.resolve({ data: null, error: null }),
   ]);
   if (biz.error || !biz.data) return <LoadError what="الإعدادات" />;
   const b = biz.data;
-  const text = (name: keyof typeof b, label: string, ltr = false) => (
-    <Field label={label}><input name={name} dir={ltr ? "ltr" : undefined} defaultValue={(b[name] as string | null) ?? ""} className={inputCls} /></Field>
-  );
+  const summary: [string, string | null, boolean][] = [
+    ["اسم النشاط", b.name, false],
+    ["الهاتف", b.phone, true],
+    ["واتساب", b.whatsapp, true],
+    ["البريد", b.email, true],
+    ["العنوان", b.address, false],
+  ];
   return (
     <>
-      <PageHeader title="إعدادات اللوحة" lead="بيانات النشاط، أمان الدخول، والأقسام اللي بتظهر بالقائمة." />
+      <PageHeader title="إعدادات اللوحة" lead="أمان الدخول والأقسام اللي بتظهر بالقائمة. بيانات النشاط تُعدَّل من «الهوية ومعلومات النشاط»." />
       <div className="grid gap-4 lg:grid-cols-2">
+        {/* One place to edit the studio's details (same columns, same validation): «الهوية ومعلومات النشاط». */}
         <Card title="بيانات النشاط (تظهر في الموقع العام)">
-          <ActionForm action={saveBusinessSettings} submitLabel="حفظ البيانات">
-            <div className="grid gap-3 sm:grid-cols-2">
-              {text("name", "اسم النشاط")}
-              {text("tagline", "الشعار")}
-              {text("phone", "الهاتف", true)}
-              {text("whatsapp", "واتساب", true)}
-              {text("email", "البريد", true)}
-              {text("address", "العنوان")}
-              {text("instagram", "رابط إنستغرام", true)}
-              {text("facebook", "رابط فيسبوك", true)}
-              {text("youtube_url", "رابط قناة يوتيوب", true)}
-              {text("whatsapp_url", "رابط واتساب (wa.me)", true)}
-              {text("canonical_base_url", "عنوان الموقع الأساسي", true)}
-            </div>
-          </ActionForm>
+          <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[auto_1fr]" data-testid="settings-business-summary">
+            {summary.map(([label, value, ltr]) => (
+              <div key={label} className="contents">
+                <dt className="font-medium text-on-cream-muted">{label}</dt>
+                <dd dir={ltr && value ? "ltr" : undefined} className="min-w-0 break-words sm:text-start">
+                  {value || "—"}
+                </dd>
+              </div>
+            ))}
+          </dl>
+          <Link
+            href="/admin/content/identity"
+            data-testid="settings-edit-identity"
+            className="mt-4 inline-flex min-h-11 items-center rounded-sm border border-gold px-4 text-sm font-medium hover:bg-gold/15"
+          >
+            تعديل بيانات النشاط في «الهوية ومعلومات النشاط»
+          </Link>
+          <p className="mt-2 text-xs text-on-cream-muted">عنوان الموقع في الروابط والبحث يأتي من إعداد الاستضافة (NEXT_PUBLIC_SITE_URL)، لا من هنا.</p>
         </Card>
         {isOwner && app.data ? (
           <Card title="إعدادات النظام (المالك فقط)">
             <ActionForm action={saveAppSettings} submitLabel="حفظ الإعدادات" confirm={{ title: "حفظ إعدادات النظام؟", body: "تؤثر على أمان الدخول ونماذج الحجز لكل المستخدمين." }}>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="require_staff_mfa" defaultChecked={app.data.require_staff_mfa} /> إلزام الطاقم والإدارة بالتحقق بخطوتين</label>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="turnstile_enabled" defaultChecked={app.data.turnstile_enabled} /> حماية النماذج العامة من الرسائل الآلية</label>
-              <Field label="قواعد الحجز (JSON)" hint="للاستخدام التقني؛ اتركها كما هي إن لم تكن متأكداً.">
-                <textarea name="booking_rules" rows={5} dir="ltr" defaultValue={JSON.stringify(app.data.booking_rules ?? {}, null, 2)} className={`${inputCls} font-mono`} />
-              </Field>
             </ActionForm>
           </Card>
         ) : null}

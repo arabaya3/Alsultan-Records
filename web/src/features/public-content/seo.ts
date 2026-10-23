@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { GalleryVideo } from "./gallery-model";
+import { cleanVideoTitle } from "./labels";
 import type { BusinessSettings, Project } from "./schema";
 import { SITE_NAME_AR, siteUrl } from "./site";
 
@@ -65,7 +66,7 @@ export function youTubeVideoJsonLd(v: Pick<GalleryVideo, "youtube_id" | "title" 
   const data: Record<string, unknown> = {
     "@context": "https://schema.org",
     "@type": "VideoObject",
-    name: v.title,
+    name: cleanVideoTitle(v.title),
     description: metaDescription(v.description, v.title, 500),
     thumbnailUrl: [`https://i.ytimg.com/vi/${v.youtube_id}/hqdefault.jpg`],
     uploadDate: v.published_at,

@@ -16,6 +16,7 @@ import { getBusinessSettings } from "@/features/public-content/queries";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { breadcrumbJsonLd, metaDescription, pageMetadata, safeHttp } from "@/features/public-content/seo";
 import { projectText } from "@/lib/whatsapp";
+import { bidiDir } from "@/lib/bidi";
 
 const SLUG = /^[a-z0-9][a-z0-9-]{1,79}$/;
 const ALBUMS = workHref({ tab: "photos" });
@@ -85,7 +86,7 @@ async function AlbumView({ params }: { params: PageProps<"/work/albums/[slug]">[
       <PageHero
         photoId={null}
         breadcrumb={[{ label: "أعمالنا", href: "/work" }, { label: "ألبومات الصور", href: ALBUMS }]}
-        title={<bdi dir="auto">{album.title}</bdi>}
+        title={<bdi dir={bidiDir(album.title)}>{album.title}</bdi>}
         lead={
           <>
             <span className="block">{meta.join(" · ")}</span>

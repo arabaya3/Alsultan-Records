@@ -6,6 +6,7 @@ import { listDeliverables, listEventFiles } from "@/features/deliverables/data";
 import { PanelSkeleton, StatusPill, Unavailable } from "@/features/portal/components/PortalUi";
 import { loadEventPage } from "@/features/portal/event-page";
 import { dateAr, DELIVERABLE_KIND } from "@/features/portal/format";
+import { bidiDir } from "@/lib/bidi";
 
 export const metadata: Metadata = { title: "الملفات" };
 
@@ -35,7 +36,7 @@ async function Files({ params }: { params: Promise<{ eventId: string }> }) {
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <p>
                     <span className="text-on-cream-muted">{DELIVERABLE_KIND[d.kind]} · </span>
-                    <span className="font-semibold"><bdi dir="auto">{d.title}</bdi></span>
+                    <span className="font-semibold"><bdi dir={bidiDir(d.title)}>{d.title}</bdi></span>
                   </p>
                   <StatusPill status={d.status} />
                 </div>

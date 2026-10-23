@@ -2,6 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import path from "node:path";
 import { anon } from "./qa-helpers";
+import { cleanVideoTitle } from "../../src/features/public-content/labels";
 
 /**
  * Works gallery (videos): categories, URL state, pagination, dialog + video page, home selection.
@@ -104,7 +105,9 @@ test("pagination: 9 per page, «تحميل المزيد» keeps URL state, no if
   await expect(page.locator("[data-video-grid]:visible [data-youtube-card]")).toHaveCount(9);
 });
 
-test("titles are the original DB titles verbatim; long titles clamp without uneven cards", async ({ page }) => {
+// Titles are the stored YouTube titles; the only display change is cleanVideoTitle (trailing / doubled «|» removed,
+// docs/ui-audit-followup.md §2.3) — the stored title itself is untouched.
+test("titles are the original DB titles (display-only separator cleanup); long titles clamp without uneven cards", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 1000 });
   await page.goto("/work?page=3");
   const cards = page.locator("[data-video-grid] [data-work-card]");
@@ -114,8 +117,8 @@ test("titles are the original DB titles verbatim; long titles clamp without unev
     const id = await cards.nth(i).getAttribute("data-work-card");
     const db = vids.find((v) => v.youtube_id === id)!;
     const title = cards.nth(i).locator("[data-card-title]");
-    await expect(title).toHaveAttribute("title", db.title);
-    expect(await title.locator("bdi").textContent()).toBe(db.title);
+    await expect(title).toHaveAttribute("title", cleanVideoTitle(db.title));
+    expect(await title.locator("bdi").textContent()).toBe(cleanVideoTitle(db.title));
   }
   // Rows of 3: every card in a row has the same height, and its footer starts at the same y.
   const boxes = await cards.evaluateAll((els) =>
@@ -145,7 +148,7 @@ test("dialog: plays in-page, shows title + category links + video page link", as
   const db = vids.find((v) => v.youtube_id === id)!;
   await card.click();
   const dialog = page.locator("[data-youtube-dialog]");
-  await expect(dialog.locator("h2")).toHaveText(db.title);
+  await expect(dialog.locator("h2")).toHaveText(cleanVideoTitle(db.title));
   await expect(dialog.locator("[data-dialog-details]")).toHaveAttribute("href", `/work/v/${id}`);
   const catIds = links.filter((l) => l.video_id === db.id).map((l) => cats.find((c) => c.id === l.category_id)!.slug);
   for (const s of catIds) await expect(dialog.locator(`[data-dialog-category='${s}']`)).toHaveAttribute("href", `/work?cat=${s}`);
@@ -171,7 +174,7 @@ test("dialog: plays in-page, shows title + category links + video page link", as
   await card.click();
   await dialog.locator("[data-dialog-details]").click();
   await expect(page).toHaveURL(new RegExp(`/work/v/${id}$`));
-  await expect(page.locator("h1[data-video-title]")).toHaveText(db.title);
+  await expect(page.locator("h1[data-video-title]")).toHaveText(cleanVideoTitle(db.title));
   await ctx.close();
 });
 

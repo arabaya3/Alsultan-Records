@@ -5,6 +5,7 @@ import { useRef, useState, type ReactNode } from "react";
 import { createAlbumDraft } from "./actions";
 import { ALBUM_ACCEPT, ALBUM_IMAGE_MAX_BYTES, ALBUM_RAW_MAX_BYTES, fmtMb } from "./rules";
 import { putHandoff } from "./upload-handoff";
+import { FilePicker } from "./FilePicker";
 
 /**
  * «ألبوم جديد»: details + photos on one form → «إنشاء ورفع». The album is created as a DRAFT (never published
@@ -57,22 +58,14 @@ export function NewAlbumForm({ children }: { children: ReactNode }) {
         }}
         className={`rounded-md border-2 border-dashed p-3 ${drag ? "border-gold bg-gold/10" : "border-cream-line"}`}
       >
-        <label className="block text-sm">
+        <div className="block text-sm">
           <span className="mb-1 block font-medium">صور الألبوم (اختياري — بتقدر تضيف لاحقاً)</span>
-          <input
-            name="photos"
-            type="file"
-            multiple
-            accept={ALBUM_ACCEPT}
-            data-testid="album-create-photos"
-            onChange={(e) => setFiles(Array.from(e.target.files ?? []))}
-            className="text-sm"
+          <FilePicker
+            files={files}
+            hint={`اختر أو اسحب الصور هنا · الصور حتى ${fmtMb(ALBUM_IMAGE_MAX_BYTES)} وملفات RAW حتى ${fmtMb(ALBUM_RAW_MAX_BYTES)} للملف.`}
+            inputProps={{ name: "photos", multiple: true, accept: ALBUM_ACCEPT, "data-testid": "album-create-photos", onChange: (e) => setFiles(Array.from(e.currentTarget.files ?? [])) }}
           />
-        </label>
-        <p className="mt-1 text-xs text-on-cream-muted">
-          {files.length ? `${files.length} ملف مختار · ` : "اختر أو اسحب الصور هنا · "}
-          الصور حتى {fmtMb(ALBUM_IMAGE_MAX_BYTES)} وملفات RAW حتى {fmtMb(ALBUM_RAW_MAX_BYTES)} للملف.
-        </p>
+        </div>
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <button type="submit" disabled={busy} className="inline-flex min-h-11 items-center rounded-sm bg-gold px-5 text-sm font-medium text-ink hover:bg-gold-press disabled:opacity-50">

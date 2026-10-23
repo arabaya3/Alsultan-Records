@@ -1,0 +1,145 @@
+{
+ "base": "https://sultan-records.vercel.app",
+ "report": [
+  {
+   "page": "/",
+   "width": 390,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "home-390.png"
+  },
+  {
+   "page": "/offers",
+   "width": 390,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "offers-390.png"
+  },
+  {
+   "page": "/offers/wedding-complete",
+   "width": 390,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "offer-detail-390.png"
+  },
+  {
+   "page": "/work",
+   "width": 390,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "work-videos-390.png"
+  },
+  {
+   "page": "/work?tab=photos",
+   "width": 390,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "work-photos-390.png"
+  },
+  {
+   "page": "/work?tab=promos",
+   "width": 390,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "work-promos-390.png"
+  },
+  {
+   "page": "/work/v/y0-ajKb7Umw",
+   "width": 390,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "video-390.png"
+  },
+  {
+   "page": "/work/albums/wedding-yousef-farah-2026",
+   "width": 390,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "album-390.png"
+  },
+  {
+   "page": "/services",
+   "width": 390,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "services-390.png"
+  },
+  {
+   "page": "/contact",
+   "width": 390,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "contact-390.png"
+  },
+  {
+   "page": "/",
+   "width": 1440,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "home-1440.png"
+  },
+  {
+   "page": "/offers",
+   "width": 1440,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "offers-1440.png"
+  },
+  {
+   "page": "/offers/wedding-complete",
+   "width": 1440,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "offer-detail-1440.png"
+  },
+  {
+   "page": "/work",
+   "width": 1440,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "work-videos-1440.png"
+  },
+  {
+   "page": "/work?tab=photos",
+   "width": 1440,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "work-photos-1440.png"
+  },
+  {
+   "page": "/work?tab=promos",
+   "width": 1440,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "work-promos-1440.png"
+  },
+  {
+   "page": "/work/v/y0-ajKb7Umw",
+   "width": 1440,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "video-1440.png"
+  },
+  {
+   "page": "/work/albums/wedding-yousef-farah-2026",
+   "width": 1440,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "album-1440.png"
+  },
+  {
+   "page": "/services",
+   "width": 1440,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "services-1440.png"
+  },
+  {
+   "page": "/contact",
+   "width": 1440,
+   "status": 200,
+   "overflowPx": 0,
+   "file": "contact-1440.png"
+  }
+ ]
+}

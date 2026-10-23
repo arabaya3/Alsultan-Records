@@ -103,9 +103,10 @@ test("header nav labels and order come from nav_items; footer uses the same; nev
   expect(items[0]).toEqual({ text: NAV_LABEL, href: "/services" });
   expect(items.some((i) => i.href === "/about")).toBe(false);
 
-  // The footer no longer repeats the site nav (it lives in the header); only the legal links remain there.
+  // The footer does not repeat the site nav (it lives in the header): only «تواصل معنا» (always one click away,
+  // docs/ui-audit-followup.md §2.2) and the legal links.
   const footer = await page.locator("[data-site-footer] nav a").evaluateAll((as) => as.map((a) => a.textContent?.trim()));
-  expect(footer).toEqual(["الخصوصية", "الشروط"]);
+  expect(footer).toEqual(["تواصل معنا", "الخصوصية", "الشروط"]);
   const all = await page.locator("a[href]").evaluateAll((as) => as.map((a) => a.getAttribute("href") ?? ""));
   expect(all.filter((h) => /^\/admin/.test(h))).toEqual([]);
   // «تسجيل الدخول» entry (owner request): plain /login only — never a deep link into the admin/portal.

@@ -23,11 +23,17 @@ import { pageMetadata, safeHttp } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
   title: "أعمالنا",
-  description: "فيديوهات وصور من أعراس ومناسبات وثّقها ستوديو وتسجيلات السلطان، مصنّفة حسب نوع المناسبة.",
+  description: "فيديوهات وألبومات صور من أعراس ومناسبات وثّقها ستوديو وتسجيلات السلطان.",
   path: "/work",
 });
 
-const LEAD = "فيديوهات وصور من أعراس ومناسبات وثّقناها. اختر تصنيفاً، واضغط على أي مقطع لمشاهدته هنا.";
+// Lead per tab: guidance only where it applies (categories and clips belong to videos, not to albums or promos).
+const LEAD: Record<WorkQuery["tab"], string> = {
+  videos: "فيديوهات من أعراس ومناسبات وثّقناها. اختر تصنيفاً، واضغط على أي مقطع لمشاهدته هنا.",
+  photos: "ألبومات صور من أعراس ومناسبات وثّقناها. افتح أي ألبوم لتصفّح صوره كاملة.",
+  promos: "فيديوهات تعريفية قصيرة بستوديو وتسجيلات السلطان.",
+};
+const LEAD_GENERIC = "فيديوهات وصور من أعراس ومناسبات وثّقناها.";
 
 /* Segmented tabs (gold = active) and category chips. Each is a real, shareable URL (server-rendered). */
 const tabCls = (active: boolean) =>
@@ -333,17 +339,17 @@ async function Projects() {
 }
 
 /** Hero with the CMS-chosen real photo (business_settings.hero_cover_photo_id) when set, else the ink texture. */
-async function WorkHero() {
-  const settings = await getBusinessSettings();
+async function WorkHero({ searchParams }: { searchParams: PageProps<"/work">["searchParams"] }) {
+  const [settings, sp] = await Promise.all([getBusinessSettings(), searchParams]);
   const photoId = settings.status === "ok" ? (settings.data?.hero_cover_photo_id ?? null) : null;
-  return <PageHero title="أعمالنا" lead={LEAD} photoId={photoId} />;
+  return <PageHero title="أعمالنا" lead={LEAD[parseWorkQuery(sp).tab]} photoId={photoId} />;
 }
 
 export default function WorkPage(props: PageProps<"/work">) {
   return (
     <>
-      <Suspense fallback={<PageHero title="أعمالنا" lead={LEAD} />}>
-        <WorkHero />
+      <Suspense fallback={<PageHero title="أعمالنا" lead={LEAD_GENERIC} titleAs="p" />}>
+        <WorkHero searchParams={props.searchParams} />
       </Suspense>
       <Section className="pt-10! md:pt-12!">
         <Suspense fallback={<GridSkeleton />}>

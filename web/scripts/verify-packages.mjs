@@ -12,9 +12,11 @@ import { readFileSync } from "node:fs";
 import { createHmac, randomBytes } from "node:crypto";
 import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { assertProdWriteAllowed } from "./prod-write-guard.mjs";
 
 const argv = process.argv.slice(2);
 const target = argv[argv.indexOf("--target") + 1];
+if (target === "staging") assertProdWriteAllowed("verify-packages"); // the staging target is the production project
 if (!["local", "staging"].includes(target)) { console.error("--target local|staging"); process.exit(2); }
 const BASE = process.env.BASE_URL ?? (target === "staging" ? "https://sultan-records.vercel.app" : "http://localhost:3600");
 const env = Object.fromEntries(readFileSync(target === "staging" ? ".env.staging.app.local" : ".env.local", "utf8").split(/\r?\n/).filter((l) => l.includes("=") && !l.startsWith("#")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));

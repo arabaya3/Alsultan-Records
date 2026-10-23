@@ -6,6 +6,7 @@ import { eventTypeLabel } from "@/features/public-content/labels";
 import { dateAr, EVENT_STATUS } from "@/features/portal/format";
 import { DeliverableList, EventProgress, Unavailable } from "@/features/portal/components/PortalUi";
 import { listMyEvents } from "@/features/portal/queries";
+import { bidiDir } from "@/lib/bidi";
 
 async function Events() {
   const res = await listMyEvents();
@@ -28,7 +29,7 @@ async function Events() {
                 <p className="text-sm text-on-cream-muted">
                   {[eventTypeLabel(e.event_type), dateAr(e.event_date), e.city].filter(Boolean).join(" · ")}
                 </p>
-                <h2 className="mt-1 text-2xl font-bold"><bdi dir="auto">{e.title}</bdi></h2>
+                <h2 className="mt-1 text-2xl font-bold"><bdi dir={bidiDir(e.title)}>{e.title}</bdi></h2>
               </div>
               <span className="shrink-0 rounded-sm bg-ink px-2.5 py-1 text-xs text-on-dark">{EVENT_STATUS[e.status] ?? e.status}</span>
             </div>

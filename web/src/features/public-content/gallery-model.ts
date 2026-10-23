@@ -3,6 +3,7 @@
  * (migration 20261017000015) and the selection / filtering / pagination rules.
  * Rows are validated with Zod because the generated database types may lag the migration.
  */
+import { cleanVideoTitle } from "./labels";
 import { z } from "zod";
 import { isYouTubeId } from "@/lib/youtube";
 import type { ShowcaseVideo } from "./schema";
@@ -185,7 +186,7 @@ export function paginate<T>(items: T[], page: number, size = PAGE_SIZE) {
 export function toCardVideo(v: GalleryVideo, duration: string | null) {
   return {
     youtubeId: v.youtube_id,
-    title: v.title,
+    title: cleanVideoTitle(v.title),
     duration,
     categories: v.categories,
     href: `/work/v/${v.youtube_id}`,

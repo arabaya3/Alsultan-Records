@@ -3,6 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { JsonLd } from "@/components/ui/JsonLd";
+import { PlainTextBlocks } from "@/components/ui/PlainTextBlocks";
+import { parseTextBlocks } from "@/lib/text-blocks";
 import { Section } from "@/components/ui/Layout";
 import { PageHero } from "@/components/ui/PageHero";
 import { ErrorState } from "@/components/ui/States";
@@ -13,6 +15,7 @@ import { photoUrl } from "@/features/public-content/gallery-model";
 import { breadcrumbJsonLd, metaDescription, pageMetadata } from "@/features/public-content/seo";
 import { SITE_NAME_AR, siteUrl } from "@/features/public-content/site";
 import { OFFER_SLUG, offerPath, packagePath } from "@/lib/site-targets";
+import { bidiDir } from "@/lib/bidi";
 
 async function load(slug: string) {
   return OFFER_SLUG.test(slug) ? getOfferBySlug(slug) : ({ status: "ok", data: null } as const);
@@ -66,6 +69,10 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
   const pk = o.package_id ? await getPublishedPackages() : null;
   const pkg = pk?.status === "ok" ? pk.data.find((p) => p.id === o.package_id) : undefined;
   const ld = offerJsonLd(o);
+  // A short plain description stays the hero lead; a long or list-shaped one is shown in full, with its structure,
+  // in the page body (never squeezed into the hero, never merged into one line).
+  const blocks = parseTextBlocks(o.description);
+  const descInHero = !!o.description && o.description.length <= 220 && blocks.every((b) => b.kind === "p");
   return (
     <article data-offer={o.slug}>
       {ld ? <JsonLd data={ld} /> : null}
@@ -75,11 +82,11 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
         breadcrumb={[{ label: "العروض", href: "/offers" }, { label: o.title }]}
         title={
           <>
-            <bdi className="break-words">{o.title}</bdi>
+            <bdi dir={bidiDir(o.title)} className="break-words">{o.title}</bdi>
             <span className="text-gold">.</span>
           </>
         }
-        lead={o.description ? <span className="whitespace-pre-line">{o.description}</span> : undefined}
+        lead={descInHero ? <span className="whitespace-pre-line">{o.description}</span> : undefined}
       >
         {period || price || dates ? (
           <div className="flex flex-col gap-2">
@@ -96,6 +103,13 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
       <Section>
         <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr]">
           <div className="min-w-0">
+            {o.description && !descInHero ? (
+              <div className="mb-10">
+                <h2 className="text-h3 font-bold">تفاصيل العرض</h2>
+                <span aria-hidden="true" className="gold-rule mt-3" />
+                <PlainTextBlocks text={o.description} data-offer-description="" className="mt-5 text-lg text-ivory-muted" />
+              </div>
+            ) : null}
             {o.items.length ? (
               <>
                 <h2 className="text-h3 font-bold">يشمل العرض</h2>
@@ -122,7 +136,7 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
               <p data-offer-package className="mt-8">
                 العرض على بكج:{" "}
                 <Link href={packagePath(pkg.slug)} className="font-medium text-gold underline underline-offset-4">
-                  <bdi>{pkg.title}</bdi>
+                  <bdi dir={bidiDir(pkg.title)}>{pkg.title}</bdi>
                 </Link>
               </p>
             ) : null}

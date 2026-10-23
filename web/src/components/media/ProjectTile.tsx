@@ -7,6 +7,7 @@ import type { PublicMedia } from "@/features/public-content/schema";
 import { PlayBadge } from "@/components/ui/Button";
 import { MOTION_OK, prefersSaveData } from "@/components/motion/gsap";
 import { PlaceholderMedia } from "./Placeholder";
+import { bidiDir } from "@/lib/bidi";
 
 /**
  * Showcase tile.
@@ -104,7 +105,7 @@ export function ProjectTile({
           <div className="flex min-w-0 items-center gap-4">
             <span className="min-w-0">
               <span className="block truncate font-display text-xl font-semibold md:text-[1.75rem]">
-                <bdi dir="auto">{title}</bdi>
+                <bdi dir={bidiDir(title)}>{title}</bdi>
               </span>
               {meta ? <span className="mt-1 block text-sm text-ivory/75">{meta}</span> : null}
             </span>

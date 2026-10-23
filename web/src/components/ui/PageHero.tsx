@@ -18,6 +18,8 @@ export type Crumb = { label: string; href?: string };
  *              Without a photo the CSS ink texture is used. Never pass stock/generated images.
  *   align?   — "center" (default, as in the references) | "start"
  *   children? — optional actions row (e.g. ButtonLink / WhatsAppCta)
+ *   titleAs? — "h1" (default) | "p": a Suspense fallback renders the title as a plain paragraph, so the streamed
+ *              HTML never carries two h1 (the fallback's and the resolved hero's).
  */
 export async function PageHero({
   title,
@@ -27,7 +29,9 @@ export async function PageHero({
   photoId,
   align = "center",
   children,
+  titleAs = "h1",
 }: {
+  titleAs?: "h1" | "p";
   title: ReactNode;
   lead?: ReactNode;
   eyebrow?: ReactNode;
@@ -85,7 +89,11 @@ export async function PageHero({
           </nav>
         ) : null}
         {eyebrow ? <p className="mb-3 text-sm font-medium text-gold">{eyebrow}</p> : null}
-        <h1 className="max-w-4xl text-h1 font-bold tracking-tight">{title}</h1>
+        {titleAs === "h1" ? (
+          <h1 className="max-w-4xl text-h1 font-bold tracking-tight">{title}</h1>
+        ) : (
+          <p className="max-w-4xl text-h1 font-bold tracking-tight">{title}</p>
+        )}
         <span aria-hidden="true" className={`gold-rule mt-5 ${center ? "mx-auto" : ""}`} />
         {lead ? <p className="mt-5 max-w-2xl text-lead text-ivory-muted">{lead}</p> : null}
         {children ? (

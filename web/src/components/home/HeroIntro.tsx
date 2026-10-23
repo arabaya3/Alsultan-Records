@@ -271,7 +271,9 @@ export function HeroIntro(p: HeroIntroProps) {
               {p.promo.youtube ? (
                 <PromoPlayer youtubeId={p.promo.youtube.youtubeId} title={p.promo.youtube.title} caption={p.promo.caption} />
               ) : (
-                <SitePromoPlayer caption={p.promo.caption} coverSrc={p.promo.coverSrc} priority />
+                // Same video → same poster everywhere (home, أعمالنا, من نحن): the promo's own cover frames.
+                // The owner's hero photo stays the hero backdrop above.
+                <SitePromoPlayer caption={p.promo.caption} priority />
               )}
             </div>
           ) : null}

@@ -15,6 +15,7 @@ import { durationLabel } from "@/features/public-content/labels";
 import { getServiceBySlug } from "@/features/public-content/queries";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { breadcrumbJsonLd, metaDescription, pageMetadata } from "@/features/public-content/seo";
+import { bidiDir } from "@/lib/bidi";
 
 export async function generateMetadata({ params }: PageProps<"/services/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -57,7 +58,7 @@ async function ServiceView({ params }: { params: PageProps<"/services/[slug]">["
         breadcrumb={[{ label: "الخدمات", href: "/services" }, { label: s.title }]}
         title={
           <>
-            <bdi dir="auto">{s.title}</bdi>
+            <bdi dir={bidiDir(s.title)}>{s.title}</bdi>
             <span className="text-gold">.</span>
           </>
         }

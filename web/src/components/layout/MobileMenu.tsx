@@ -1,9 +1,36 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import { useEffect, useId, useRef, useState } from "react";
-import { isActivePath } from "./HeaderNav";
+import { Suspense, useEffect, useId, useRef, useState } from "react";
+import { useActiveHref, usePathActiveHref } from "./HeaderNav";
+
+type NavLink = { href: string; label: string };
+
+function MenuLinks({ links, active, onNavigate }: { links: NavLink[]; active: string | null; onNavigate: () => void }) {
+  return (
+    <ul className="flex flex-col gap-1 font-display text-2xl">
+      {links.map((l) => (
+        <li key={l.href}>
+          <Link
+            href={l.href}
+            aria-current={active === l.href ? "page" : undefined}
+            className={`flex min-h-14 items-center justify-between gap-4 border-b border-hairline py-3 transition-colors hover:text-gold ${active === l.href ? "text-gold" : ""}`}
+            onClick={onNavigate}
+          >
+            {l.label}
+            {active === l.href ? <span aria-hidden="true" className="h-0.5 w-8 rounded-full bg-gold" /> : null}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+function LiveMenuLinks(p: { links: NavLink[]; onNavigate: () => void }) {
+  return <MenuLinks {...p} active={useActiveHref(p.links)} />;
+}
+function PathMenuLinks(p: { links: NavLink[]; onNavigate: () => void }) {
+  return <MenuLinks {...p} active={usePathActiveHref(p.links)} />;
+}
 
 /**
  * Accessible mobile menu: focus trap, Escape to close, focus returns to the toggle.
@@ -11,8 +38,9 @@ import { isActivePath } from "./HeaderNav";
  */
 export function MobileMenu({ bookHref, links }: { bookHref: string | null; links: { href: string; label: string }[] }) {
   const [open, setOpen] = useState(false);
-  const pathname = usePathname();
   const panelId = useId();
+  // «تواصل معنا» is always one tap away in the menu, even when the CMS nav does not list it.
+  const menuLinks = links.some((l) => l.href === "/contact") ? links : [...links, { href: "/contact", label: "تواصل معنا" }];
   const toggleRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
@@ -81,23 +109,9 @@ export function MobileMenu({ bookHref, links }: { bookHref: string | null; links
         className="menu-panel fixed inset-0 z-40 overflow-y-auto bg-night-deep pt-[var(--header-h)] text-ivory"
       >
         <nav aria-label="القائمة الرئيسية" className="border-t border-hairline px-[var(--gutter)] py-6">
-          <ul className="flex flex-col gap-1 font-display text-2xl">
-            {(links.some((l) => l.href === "/contact") ? links : [...links, { href: "/contact", label: "تواصل معنا" }]).map((l) => (
-              <li key={l.href}>
-                <Link
-                  href={l.href}
-                  aria-current={isActivePath(pathname, l.href) ? "page" : undefined}
-                  className={`flex min-h-14 items-center justify-between gap-4 border-b border-hairline py-3 transition-colors hover:text-gold ${
-                    isActivePath(pathname, l.href) ? "text-gold" : ""
-                  }`}
-                  onClick={() => setOpen(false)}
-                >
-                  {l.label}
-                  {isActivePath(pathname, l.href) ? <span aria-hidden="true" className="h-0.5 w-8 rounded-full bg-gold" /> : null}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <Suspense fallback={<PathMenuLinks links={menuLinks} onNavigate={() => setOpen(false)} />}>
+            <LiveMenuLinks links={menuLinks} onNavigate={() => setOpen(false)} />
+          </Suspense>
           <a
             href={bookHref ?? "/contact"}
             {...(bookHref ? { target: "_blank", rel: "noopener noreferrer" } : {})}

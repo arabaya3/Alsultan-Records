@@ -6,7 +6,7 @@ import type { ActionResult } from "./result";
 type Action = (prev: ActionResult, fd: FormData) => Promise<ActionResult>;
 
 const btnBase =
-  "inline-flex min-h-10 items-center justify-center gap-2 rounded-sm px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
 const KIND = {
   primary: "bg-gold text-ink hover:bg-gold-press",
   secondary: "bg-ink text-on-dark hover:bg-ink-2",

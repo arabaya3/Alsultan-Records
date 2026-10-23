@@ -7,6 +7,7 @@ import { PlayBadge } from "@/components/ui/Button";
 import { isYouTubeId, youTubeThumbUrl } from "@/lib/youtube";
 import { ArrowStartIcon, iconLinkCls } from "@/components/ui/IconLink";
 import { YouTubeDialog, type DialogVideo } from "./YouTubeDialog";
+import { bidiDir } from "@/lib/bidi";
 
 export type CardVideo = DialogVideo & {
   /** e.g. "٩ د" */
@@ -74,7 +75,7 @@ export function YouTubeCard({
           className="mt-3 line-clamp-3 font-display text-lg font-semibold leading-snug break-words text-ivory transition-colors group-hover:text-gold"
         >
           <span className="sr-only">تشغيل: </span>
-          <bdi>{video.title}</bdi>
+          <bdi dir={bidiDir(video.title)}>{video.title}</bdi>
         </span>
       </button>
       <div data-card-footer className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-2 pt-3">
