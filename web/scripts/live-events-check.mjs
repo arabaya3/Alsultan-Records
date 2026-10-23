@@ -12,7 +12,7 @@ import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
 import sharp from "sharp";
 import { assertProdWriteAllowed } from "./prod-write-guard.mjs";
-assertProdWriteAllowed("live-events-check"); // writes [STAGING-TEST] data to the production project
+await assertProdWriteAllowed("live-events-check", { siteDefault: "https://sultan-records.vercel.app" }); // writes [STAGING-TEST] data to the production project
 
 const BASE = process.env.BASE_URL ?? "https://sultan-records.vercel.app";
 const env = Object.fromEntries(readFileSync(".env.staging.app.local", "utf8").split(/\r?\n/).filter((l) => l.includes("=") && !l.startsWith("#")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));

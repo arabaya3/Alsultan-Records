@@ -30,6 +30,7 @@ import {
 import { bidiDir } from "@/lib/bidi";
 import { AutoSlug } from "./AutoSlug";
 import { AltField, BulkAltProvider } from "./BulkAlt";
+import { PhotoViews } from "./PhotoViews";
 
 type Album = {
   id: string;
@@ -366,29 +367,11 @@ export async function AlbumEditPage({ params, searchParams }: { params: IdParams
         )}
 
         <Card title={`الصور (${photos.length})`}>
-          {photos.length > 1 ? (
-            <nav aria-label="طريقة عرض الصور" className="mb-4 flex flex-wrap gap-2" data-testid="photo-view-switch">
-              {(
-                [
-                  ["details", "التفاصيل والأوصاف"],
-                  ["order", "ترتيب الصور"],
-                ] as const
-              ).map(([v, label]) => (
-                <Link
-                  key={v}
-                  href={v === "details" ? `/admin/albums/${a.id}` : `/admin/albums/${a.id}?view=order`}
-                  aria-current={view === v ? "page" : undefined}
-                  data-testid={`photo-view-${v}`}
-                  className={`inline-flex min-h-11 items-center rounded-sm border px-4 text-sm font-medium ${view === v ? "border-gold bg-gold text-ink" : "border-cream-line hover:border-gold"}`}
-                >
-                  {label}
-                </Link>
-              ))}
-            </nav>
-          ) : null}
-          {photos.length > 1 && view === "order" ? (
-            <PhotoReorder albumId={a.id} items={photos.map((p, i) => ({ id: p.id, thumb: thumbOf(p), label: `الصورة ${i + 1}` }))} />
-          ) : photos.length ? (
+          {photos.length ? (
+            <PhotoViews
+              initial={view}
+              order={photos.length > 1 ? <PhotoReorder albumId={a.id} items={photos.map((p, i) => ({ id: p.id, thumb: thumbOf(p), label: `الصورة ${i + 1}` }))} /> : null}
+              details={
             <BulkAltProvider albumId={a.id}>
             <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="صور الألبوم" data-testid="album-photos">
               {photos.map((p, i) => {
@@ -454,6 +437,8 @@ export async function AlbumEditPage({ params, searchParams }: { params: IdParams
               })}
             </ol>
             </BulkAltProvider>
+              }
+            />
           ) : (
             <Notice>لا توجد صور بعد.</Notice>
           )}

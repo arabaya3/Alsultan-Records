@@ -20,6 +20,7 @@ const STAMP = Date.now().toString(36);
 const ALBUM = { id: randomUUID(), slug: `qa-ui-${STAMP}`, title: "ألبوم اختبار الواجهة — عرس تجريبي 2026" };
 const PHOTOS = [0, 1, 2].map((i) => ({ id: randomUUID(), alt: i === 0 ? "وصف كتبه المستخدم" : null }));
 const OFFER = { id: randomUUID(), slug: `qa-offer-${STAMP}` };
+const PRICED = { id: randomUUID(), slug: `qa-offer-priced-${STAMP}` };
 const OFFER_TEXT = "1. تصوير سهرة العريس\n- كاميرا صور لتوثيق النقوط.\n- كاميرا فيديو لتوثيق النقوط.\n2. تصوير حمّام العريس\n- جلسة مع الأهل\n3. فيديو الحفلة كاملة\n4. ألبوم مطبوع\n5. فيلم قصير للمناسبة\n6. تسليم على فلاشة";
 const uploaded: string[] = [];
 let navAlbumsWasVisible: boolean | null = null;
@@ -40,7 +41,7 @@ async function cleanup() {
   await db.from("photo_albums").delete().eq("id", ALBUM.id);
   if (uploaded.length) await db.storage.from("album-media").remove(uploaded);
   await db.from("offer_items").delete().eq("offer_id", OFFER.id);
-  await db.from("offers").delete().eq("id", OFFER.id);
+  await db.from("offers").delete().in("id", [OFFER.id, PRICED.id]);
   if (navAlbumsWasVisible !== null) await db.from("nav_items").update({ is_visible: navAlbumsWasVisible }).eq("target", "albums");
   if (navContactWasVisible !== null) await db.from("nav_items").update({ is_visible: navContactWasVisible }).eq("target", "contact");
 }
@@ -73,6 +74,8 @@ test.beforeAll(async () => {
   await db.from("photo_albums").update({ cover_photo_id: PHOTOS[0].id }).eq("id", ALBUM.id);
   const { error: oe } = await db.from("offers").insert({ id: OFFER.id, slug: OFFER.slug, title: "عرض اختبار القوائم", description: OFFER_TEXT, status: "published", currency: "ILS", show_price: false });
   if (oe) throw new Error(oe.message);
+  const { error: pe } = await db.from("offers").insert({ id: PRICED.id, slug: PRICED.slug, title: "عرض بسعر ظاهر", description: "وصف قصير", status: "published", currency: "ILS", show_price: true, price_minor: 150000 });
+  if (pe) throw new Error(pe.message);
   const nav = (await db.from("nav_items").select("target, is_visible").in("target", ["albums", "contact"])).data ?? [];
   navAlbumsWasVisible = nav.find((n) => n.target === "albums")?.is_visible ?? null;
   navContactWasVisible = nav.find((n) => n.target === "contact")?.is_visible ?? null;
@@ -94,6 +97,9 @@ test("UA1 offers: list-shaped description keeps its structure — card preview +
   await expect(card.locator("[data-offer-preview] li")).toHaveCount(4);
   await expect(card.locator("[data-offer-preview] li").first()).toHaveText("تصوير سهرة العريس");
   await expect(card.locator("[data-offer-more]")).toContainText("٢");
+  // prices untouched by this change: hidden price → no price; shown price → the same «1,500 شيكل» format as before
+  await expect(card.locator("[data-offer-price]")).toHaveCount(0);
+  await expect(page.locator(`[data-offer-card='${PRICED.slug}'] [data-offer-price]`)).toHaveText("1,500 شيكل");
   await page.screenshot({ path: path.join(SHOTS, "after", "offers-local-1440.png"), fullPage: true });
   await card.click();
   const desc = page.locator("[data-offer-description]");
@@ -166,6 +172,7 @@ test("UA4 viewer: visible loading, error + retry recovers, fast arrows show the 
   await page.locator(`[data-album-photo='${PHOTOS[0].id}']`).click();
   const lb = page.getByTestId("lightbox");
   await expect(lb.locator("[data-lightbox-loading]")).toContainText("جارِ تحميل الصورة");
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden"); // scroll locked while open
   await expect(lb.locator(`[data-lightbox-image='${PHOTOS[0].id}']`)).toHaveCSS("opacity", "1", { timeout: 10_000 });
   // neighbours only: the opened photo + the next one (no previous on the first), never the whole album at once
   await expect.poll(() => new Set(displayRequests.map((u) => u.split("/p/")[1].split("/")[0])).size).toBeLessThanOrEqual(2);
@@ -187,6 +194,7 @@ test("UA4 viewer: visible loading, error + retry recovers, fast arrows show the 
   await page.keyboard.press("Escape");
   await expect(lb).toHaveCount(0);
   await expect(page.locator(`[data-album-photo='${PHOTOS[0].id}']`)).toBeFocused();
+  expect(await page.evaluate(() => document.body.style.overflow)).toBe(""); // and released on close
   // opener removed while open → focus falls back to the current photo's grid item (not <body>)
   await page.locator(`[data-album-photo='${PHOTOS[1].id}']`).click();
   await expect(lb).toBeVisible();
@@ -214,6 +222,16 @@ test("UA5 admin categories + album: visible labels; slug suggested for a NEW ite
   await create.getByTestId("album-category-slug").fill("graduations-qa-" + STAMP);
   await create.getByLabel("عنوان التصنيف").fill("حفلات تخرج ٢٠٢٧"); // edited by hand → no longer follows the title
   await expect(create.getByTestId("album-category-slug")).toHaveValue("graduations-qa-" + STAMP);
+  await create.getByRole("button", { name: "إضافة تصنيف" }).click();
+  await expect(page.locator(`[data-testid=album-category-row][data-slug="graduations-qa-${STAMP}"]`)).toHaveCount(1);
+  // the same slug again → the server refuses it clearly; what was typed stays in the form
+  await create.getByLabel("عنوان التصنيف").fill("نسخة ثانية");
+  await create.getByTestId("album-category-slug").fill("graduations-qa-" + STAMP);
+  await create.getByRole("button", { name: "إضافة تصنيف" }).click();
+  await expect(create.getByTestId("action-msg")).toContainText("مستخدم");
+  await expect(create.getByTestId("album-category-slug")).toHaveValue("graduations-qa-" + STAMP);
+  await expect(page.locator(`[data-testid=album-category-row][data-slug="graduations-qa-${STAMP}"]`)).toHaveCount(1);
+  await db.from("album_categories").delete().eq("slug", "graduations-qa-" + STAMP);
   // existing album: title edit leaves the slug alone
   await page.goto(`${BASE}/admin/albums/${ALBUM.id}`);
   const slug = page.getByTestId("album-slug");
@@ -237,7 +255,7 @@ test("UA6 album photos: one list (details / order views), «الغلاف الح�
   await page.goto(`${BASE}/admin/albums/${ALBUM.id}`);
   // details view: no separate reorder grid at the same time
   await expect(page.getByTestId("album-photos")).toBeVisible();
-  await expect(page.getByTestId("photo-reorder")).toHaveCount(0);
+  await expect(page.getByTestId("photo-reorder")).toBeHidden();
   await expect(page.locator(`[data-testid=album-photo][data-photo-id="${PHOTOS[0].id}"] [data-testid=photo-cover-badge]`)).toHaveText("الغلاف الحالي");
   // the user's own alt text is shown as is (never replaced)
   await expect(page.locator(`[data-testid=photo-alt][data-photo-id="${PHOTOS[0].id}"]`)).toHaveValue("وصف كتبه المستخدم");
@@ -259,6 +277,25 @@ test("UA6 album photos: one list (details / order views), «الغلاف الح�
   expect((await db.from("album_photos").select("alt_text").eq("id", PHOTOS[1].id).single()).data!.alt_text).toBe("نص بديل للصورة الثانية");
   expect((await db.from("album_photos").select("alt_text").eq("id", PHOTOS[0].id).single()).data!.alt_text).toBe("وصف كتبه المستخدم");
   await expect(page.getByTestId("bulk-alt-bar")).toHaveAttribute("data-dirty", "1");
+  // switching views keeps unsaved text (both views stay mounted)
+  await page.getByTestId("photo-view-order").click();
+  await page.getByTestId("photo-view-details").click();
+  await expect(alt2).toHaveValue(tooLong);
+  // someone else edits photo 2 meanwhile → saving does NOT overwrite it: conflict, current text shown, typed text kept
+  await alt1.fill("نصي الجديد للصورة الثانية");
+  await db.from("album_photos").update({ alt_text: "تعديل من تبويب آخر" }).eq("id", PHOTOS[1].id);
+  await alt2.fill("نص بديل للصورة الثالثة");
+  await page.getByTestId("bulk-alt-save").click();
+  await expect(page.getByTestId("bulk-alt-msg")).toContainText("حُفظ 1 من 2");
+  await expect(page.getByTestId("photo-alt-conflict")).toContainText("تعديل من تبويب آخر");
+  await expect(alt1).toHaveValue("نصي الجديد للصورة الثانية");
+  expect((await db.from("album_photos").select("alt_text").eq("id", PHOTOS[1].id).single()).data!.alt_text).toBe("تعديل من تبويب آخر");
+  expect((await db.from("album_photos").select("alt_text").eq("id", PHOTOS[2].id).single()).data!.alt_text).toBe("نص بديل للصورة الثالثة");
+  await page.screenshot({ path: path.join(SHOTS, "after", "admin-alt-conflict-1280.png"), fullPage: true });
+  // a deliberate second save (after seeing the current text) is applied
+  await page.getByTestId("bulk-alt-save").click();
+  await expect(page.getByTestId("bulk-alt-msg")).toHaveAttribute("data-ok", "1");
+  expect((await db.from("album_photos").select("alt_text").eq("id", PHOTOS[1].id).single()).data!.alt_text).toBe("نصي الجديد للصورة الثانية");
   await page.screenshot({ path: path.join(SHOTS, "after", "admin-album-photos-1280.png"), fullPage: true });
   // trash: explicit confirmation, nothing happens before it
   await page.locator(`[data-testid=album-photo][data-photo-id="${PHOTOS[1].id}"]`).getByTestId("photo-trash").getByRole("button").click();
@@ -268,7 +305,8 @@ test("UA6 album photos: one list (details / order views), «الغلاف الح�
   expect((await db.from("album_photos").select("deleted_at").eq("id", PHOTOS[1].id).single()).data!.deleted_at).toBeNull();
   // order view: keyboard reorder + save
   await page.getByTestId("photo-view-order").click();
-  await expect(page.getByTestId("album-photos")).toHaveCount(0);
+  await expect(page.getByTestId("album-photos")).toBeHidden();
+  await expect(page).toHaveURL(/view=order/);
   const first = page.locator(`[data-testid=photo-reorder] li[data-photo-id="${PHOTOS[1].id}"] [data-move="up"]`);
   await first.focus();
   await page.keyboard.press("Enter");

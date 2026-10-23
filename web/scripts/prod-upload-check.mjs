@@ -14,7 +14,7 @@ import * as tus from "tus-js-client";
 import sharp from "sharp";
 import { createClient } from "@supabase/supabase-js";
 import { assertProdWriteAllowed } from "./prod-write-guard.mjs";
-assertProdWriteAllowed("prod-upload-check"); // writes [STAGING-TEST] data to the production project
+await assertProdWriteAllowed("prod-upload-check", {}); // writes [STAGING-TEST] data to the production project
 
 const env = Object.fromEntries(fs.readFileSync(".env.staging.app.local", "utf8").split(/\r?\n/).filter((l) => l.includes("=") && !l.startsWith("#")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));
 const URL_ = env.NEXT_PUBLIC_SUPABASE_URL;

@@ -4,8 +4,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState, useTransition } from "react";
 import { arNum } from "@/features/public-content/labels";
 import { reorderPhotos } from "./actions";
+import { mergeOrder, type ReorderItem } from "./reorder-merge";
 
-export type ReorderItem = { id: string; thumb: string | null; label: string };
+export type { ReorderItem } from "./reorder-merge";
 
 /**
  * Order of the album's photos: drag & drop (pointer) AND keyboard/touch buttons «تقديم/تأخير» (44px targets), which
@@ -15,6 +16,12 @@ export type ReorderItem = { id: string; thumb: string | null; label: string };
 export function PhotoReorder({ albumId, items }: { albumId: string; items: ReorderItem[] }) {
   const router = useRouter();
   const [order, setOrder] = useState(items);
+  // The page refreshes while photos upload/process: follow the server list without losing an unsaved order.
+  const [seenItems, setSeenItems] = useState(items);
+  if (items !== seenItems) {
+    setSeenItems(items);
+    setOrder((o) => mergeOrder(o, items));
+  }
   const [drag, setDrag] = useState<number | null>(null);
   const [msg, setMsg] = useState("");
   const [announce, setAnnounce] = useState("");

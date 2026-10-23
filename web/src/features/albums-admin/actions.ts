@@ -484,14 +484,22 @@ export async function restorePhoto(_p: ActionResult, fd: FormData): Promise<Acti
   return ok("استُرجعت الصورة.");
 }
 
-export type AltSaveResult = { ok: boolean; message: string; results: { id: string; ok: boolean; message?: string }[] };
+export type AltSaveResult = {
+  ok: boolean;
+  message: string;
+  results: { id: string; ok: boolean; message?: string; conflict?: boolean; current?: string }[];
+};
 
 /**
  * «حفظ الأوصاف»: several alt texts of ONE album at once. Each row is validated and saved on its own, so one bad value
- * (too long, photo gone) never blocks the others; the result says which rows failed and why. Only rows of this album
- * are touched (album_id filter). Texts are saved exactly as typed (trimmed) — nothing is generated.
+ * (too long, photo gone, edited elsewhere) never blocks the others; the result says which rows failed and why.
+ * - Only rows of this album are touched (album_id filter) and the admin RLS policies still apply to every row.
+ * - Optimistic concurrency: each item carries `expected` — the text the editor last loaded/saved. The update only
+ *   applies while the stored text is still that value (one conditional UPDATE); if someone changed it meanwhile the row
+ *   is reported as a conflict with the current text, and nothing is overwritten silently.
+ * - Texts are saved exactly as typed (trimmed) — nothing is generated.
  */
-export async function setPhotoAlts(albumId: string, items: { id: string; alt: string }[]): Promise<AltSaveResult> {
+export async function setPhotoAlts(albumId: string, items: { id: string; alt: string; expected: string }[]): Promise<AltSaveResult> {
   if (!(await guard(ADMIN_ROLES))) return { ok: false, message: FORBIDDEN.message ?? "غير مصرّح.", results: [] };
   if (!isUuid(albumId) || !Array.isArray(items) || !items.length || items.length > 500) return { ok: false, message: "طلب غير صالح.", results: [] };
   const sb = await db();
@@ -507,10 +515,29 @@ export async function setPhotoAlts(albumId: string, items: { id: string; alt: st
       results.push({ id, ok: false, message: alt.error.issues[0]?.message ?? "نص غير صالح." });
       continue;
     }
-    const { data, error } = await sb.from("album_photos").update({ alt_text: alt.data || null }).eq("id", id).eq("album_id", albumId).select("id");
-    if (error) results.push({ id, ok: false, message: dbMessage(error) });
-    else if (!data?.length) results.push({ id, ok: false, message: "الصورة غير موجودة في هذا الألبوم." });
-    else results.push({ id, ok: true });
+    const expected = String(it?.expected ?? "").trim();
+    let q = sb.from("album_photos").update({ alt_text: alt.data || null }).eq("id", id).eq("album_id", albumId);
+    q = expected ? q.eq("alt_text", expected) : q.or("alt_text.is.null,alt_text.eq.");
+    const { data, error } = await q.select("id");
+    if (error) {
+      results.push({ id, ok: false, message: dbMessage(error) });
+      continue;
+    }
+    if (data?.length) {
+      results.push({ id, ok: true });
+      continue;
+    }
+    // Nothing updated: either the photo is not in this album (or not visible to this admin), or its text changed.
+    const { data: now } = await sb.from("album_photos").select("alt_text").eq("id", id).eq("album_id", albumId).maybeSingle();
+    if (!now) results.push({ id, ok: false, message: "الصورة غير موجودة في هذا الألبوم." });
+    else
+      results.push({
+        id,
+        ok: false,
+        conflict: true,
+        current: now.alt_text ?? "",
+        message: "تغيّر هذا الوصف من مكان آخر بعد فتح الصفحة، فلم يُحفظ فوقه. النص الحالي معروض تحت الحقل؛ اختر ما تريده واحفظ من جديد.",
+      });
   }
   const failed = results.filter((r) => !r.ok).length;
   if (failed < results.length) published();

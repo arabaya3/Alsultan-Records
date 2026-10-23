@@ -21,7 +21,7 @@ import { assertProdWriteAllowed } from "./prod-write-guard.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const TARGET = args.target;
-if (TARGET === "staging") assertProdWriteAllowed("staging-verify"); // the staging target is the production project
+if (TARGET === "staging") await assertProdWriteAllowed("staging-verify", {}); // the staging target is the production project
 if (!["local", "staging"].includes(TARGET)) {
   console.error("usage: node scripts/staging-verify.mjs --target local|staging");
   process.exit(1);

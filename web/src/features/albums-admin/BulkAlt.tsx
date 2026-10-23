@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useId, useMemo, useState, type ReactNode } from "react";
 import { inputCls } from "@/features/admin/ui";
+import { bidiDir } from "@/lib/bidi";
 import { setPhotoAlts } from "./actions";
 
 /**
@@ -13,6 +14,8 @@ import { setPhotoAlts } from "./actions";
 type Ctx = {
   setValue: (id: string, value: string, baseline: string) => void;
   error: (id: string) => string | undefined;
+  /** The text stored by someone else, when saving this field hit a conflict. */
+  conflict: (id: string) => string | undefined;
   baseline: (id: string, initial: string) => string;
 };
 const BulkAltCtx = createContext<Ctx | null>(null);
@@ -21,6 +24,7 @@ export function BulkAltProvider({ albumId, children }: { albumId: string; childr
   const [values, setValues] = useState<Record<string, string>>({});
   const [baselines, setBaselines] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [conflicts, setConflicts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const [initials, setInitials] = useState<Record<string, string>>({});
@@ -51,15 +55,25 @@ export function BulkAltProvider({ albumId, children }: { albumId: string; childr
     setBusy(true);
     setMsg(null);
     try {
-      const res = await setPhotoAlts(albumId, dirtyIds.map((id) => ({ id, alt: values[id] })));
+      // `expected` = the text this editor last loaded or saved: the server refuses to overwrite a newer edit.
+      const res = await setPhotoAlts(albumId, dirtyIds.map((id) => ({ id, alt: values[id], expected: baselines[id] ?? initials[id] ?? "" })));
       const nextErrors: Record<string, string> = {};
+      const nextConflicts: Record<string, string> = {};
       const saved: Record<string, string> = {};
       for (const r of res.results) {
         if (r.ok) saved[r.id] = values[r.id];
-        else nextErrors[r.id] = r.message ?? "تعذّر الحفظ.";
+        else {
+          nextErrors[r.id] = r.message ?? "تعذّر الحفظ.";
+          // Conflict: the newer stored text becomes the baseline, so saving again is a deliberate overwrite.
+          if (r.conflict) {
+            nextConflicts[r.id] = r.current ?? "";
+            saved[r.id] = r.current ?? "";
+          }
+        }
       }
       setBaselines((b) => ({ ...b, ...saved }));
       setErrors(nextErrors);
+      setConflicts(nextConflicts);
       setMsg({ ok: res.ok, text: res.message });
     } catch {
       setMsg({ ok: false, text: "تعذّر الاتصال بالخادم — لم يُحفظ شيء، والنصوص ما زالت في الحقول." });
@@ -72,9 +86,10 @@ export function BulkAltProvider({ albumId, children }: { albumId: string; childr
     () => ({
       setValue,
       error: (id) => errors[id],
+      conflict: (id) => conflicts[id],
       baseline: (id, init) => baselines[id] ?? init,
     }),
-    [setValue, errors, baselines],
+    [setValue, errors, conflicts, baselines],
   );
 
   return (
@@ -115,6 +130,7 @@ export function AltField({ photoId, initial, index }: { photoId: string; initial
   const id = useId();
   const [value, setValue] = useState(initial);
   const error = ctx?.error(photoId);
+  const conflict = ctx?.conflict(photoId);
   const dirty = value !== (ctx?.baseline(photoId, initial) ?? initial);
   return (
     <div className="mt-2 text-sm">
@@ -136,9 +152,14 @@ export function AltField({ photoId, initial, index }: { photoId: string; initial
         className={`${inputCls} w-full ${error ? "!border-danger" : ""}`}
       />
       {error ? (
-        <p id={`${id}-err`} role="alert" data-testid="photo-alt-error" className="mt-1 text-xs text-danger">
-          {error}
-        </p>
+        <div id={`${id}-err`} role="alert" data-testid="photo-alt-error" className="mt-1 text-xs text-danger">
+          <p>{error}</p>
+          {conflict !== undefined ? (
+            <p data-testid="photo-alt-conflict" className="mt-1 rounded-sm bg-cream-2 p-2 text-on-cream">
+              النص المحفوظ حالياً: <bdi dir={bidiDir(conflict)}>{conflict || "(فارغ)"}</bdi>
+            </p>
+          ) : null}
+        </div>
       ) : (
         <p id={`${id}-help`} className="mt-1 text-xs text-on-cream-muted">
           وصف قصير لما في الصورة لمن لا يراها. يُحفظ مع «حفظ الأوصاف».
