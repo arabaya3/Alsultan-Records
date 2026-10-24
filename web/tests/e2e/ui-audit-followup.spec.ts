@@ -297,6 +297,14 @@ test("UA6 album photos: one list (details / order views), «الغلاف الح�
   await expect(page.getByTestId("bulk-alt-msg")).toHaveAttribute("data-ok", "1");
   expect((await db.from("album_photos").select("alt_text").eq("id", PHOTOS[1].id).single()).data!.alt_text).toBe("نصي الجديد للصورة الثانية");
   await page.screenshot({ path: path.join(SHOTS, "after", "admin-album-photos-1280.png"), fullPage: true });
+  // legacy text stored with stray spaces is still saveable (the baseline is compared exactly, not trimmed)
+  await db.from("album_photos").update({ alt_text: "  نص قديم بمسافات  " }).eq("id", PHOTOS[2].id);
+  await page.reload();
+  await alt2.fill("نص جديد بعد القديم");
+  await page.getByTestId("bulk-alt-save").click();
+  await expect(page.getByTestId("bulk-alt-msg")).toHaveAttribute("data-ok", "1");
+  await expect(page.getByTestId("photo-alt-conflict")).toHaveCount(0);
+  expect((await db.from("album_photos").select("alt_text").eq("id", PHOTOS[2].id).single()).data!.alt_text).toBe("نص جديد بعد القديم");
   // trash: explicit confirmation, nothing happens before it
   await page.locator(`[data-testid=album-photo][data-photo-id="${PHOTOS[1].id}"]`).getByTestId("photo-trash").getByRole("button").click();
   await expect(page.locator("dialog[open]")).toContainText("نقل الصورة");

@@ -20,6 +20,7 @@ if (target === "staging") await assertProdWriteAllowed("verify-packages", { site
 if (!["local", "staging"].includes(target)) { console.error("--target local|staging"); process.exit(2); }
 const BASE = process.env.BASE_URL ?? (target === "staging" ? "https://sultan-records.vercel.app" : "http://localhost:3600");
 const env = Object.fromEntries(readFileSync(target === "staging" ? ".env.staging.app.local" : ".env.local", "utf8").split(/\r?\n/).filter((l) => l.includes("=") && !l.startsWith("#")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));
+if (target === "local" && !["127.0.0.1", "localhost"].includes(new URL(env.NEXT_PUBLIC_SUPABASE_URL).hostname)) { console.error("✗ --target local refuses a non-local NEXT_PUBLIC_SUPABASE_URL"); process.exit(3); }
 const db = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SECRET_KEY, { auth: { persistSession: false } });
 const anon = createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY, { auth: { persistSession: false } });
 const { PACKAGES } = await import("./seed-packages-data.mjs");

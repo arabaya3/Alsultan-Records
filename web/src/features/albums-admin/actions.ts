@@ -515,7 +515,8 @@ export async function setPhotoAlts(albumId: string, items: { id: string; alt: st
       results.push({ id, ok: false, message: alt.error.issues[0]?.message ?? "نص غير صالح." });
       continue;
     }
-    const expected = String(it?.expected ?? "").trim();
+    // compared exactly as stored: trimming would never match legacy text with stray spaces (stuck in "conflict")
+    const expected = String(it?.expected ?? "");
     let q = sb.from("album_photos").update({ alt_text: alt.data || null }).eq("id", id).eq("album_id", albumId);
     q = expected ? q.eq("alt_text", expected) : q.or("alt_text.is.null,alt_text.eq.");
     const { data, error } = await q.select("id");

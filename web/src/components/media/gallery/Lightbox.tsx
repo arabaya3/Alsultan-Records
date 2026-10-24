@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, useLayoutEffect } from "react";
 
 export type LightboxItem = { id: string; src: string | null; width: number | null; height: number | null; alt: string };
 
@@ -174,7 +174,8 @@ export function Lightbox({
 
   // The photo currently shown: load/error events of any other <img> are stale and ignored.
   const token = item ? `${item.id}|${attempt[item.id] ?? 0}` : "";
-  useEffect(() => {
+  // layout effect: set before the browser can fire onLoad for a cached image (a passive effect may run later)
+  useLayoutEffect(() => {
     currentToken.current = token;
   }, [token]);
 
