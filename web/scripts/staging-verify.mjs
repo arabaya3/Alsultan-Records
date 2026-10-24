@@ -17,9 +17,11 @@ import { createHmac, randomBytes, randomUUID } from "node:crypto";
 import { writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { EXPECTED_REF, StepError, WEB_ROOT, loadStagingEnv, mgmt, parseArgs, parseEnvFile, resolvePath } from "./staging-lib.mjs";
+import { assertProdWriteAllowed } from "./prod-write-guard.mjs";
 
 const args = parseArgs(process.argv.slice(2));
 const TARGET = args.target;
+if (TARGET === "staging") await assertProdWriteAllowed("staging-verify", {}); // the staging target is the production project
 if (!["local", "staging"].includes(TARGET)) {
   console.error("usage: node scripts/staging-verify.mjs --target local|staging");
   process.exit(1);

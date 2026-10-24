@@ -45,9 +45,27 @@ const VIDEO_CATEGORY: Record<string, string> = {
 export const videoCategoryLabel = (v: string) => VIDEO_CATEGORY[v] ?? VIDEO_CATEGORY.other;
 
 const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
-const toArabicDigits = (n: number) => String(n).replace(/\d/g, (d) => AR_DIGITS[Number(d)]);
-/** "٩ د" from seconds (rounded to the nearest minute, min 1). */
+/** Numbers the interface generates (counts, durations, page numbers) in Arabic-Indic digits — the one helper for
+ *  that. Owner content, phone numbers, prices, links and ids are never passed through it. */
+export const arNum = (n: number) => String(n).replace(/\d/g, (d) => AR_DIGITS[Number(d)]);
+/** "٩ د" under an hour; "١ س ١٥ د" / "٢ س" from an hour on (rounded to the nearest minute, min 1). */
 export function durationLabel(seconds: number | null | undefined): string | null {
   if (!seconds || seconds <= 0) return null;
-  return `${toArabicDigits(Math.max(1, Math.round(seconds / 60)))} د`;
+  const minutes = Math.max(1, Math.round(seconds / 60));
+  if (minutes < 60) return `${arNum(minutes)} د`;
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  return m ? `${arNum(h)} س ${arNum(m)} د` : `${arNum(h)} س`;
+}
+
+/** A YouTube title for display: trailing separators («… | الجديدة |») and doubled ones («| |») removed. The stored
+ *  title is not changed. */
+export function cleanVideoTitle(title: string): string {
+  const t = title
+    .replace(/\s*\|(?:\s*\|)+\s*/g, " | ")
+    .replace(/[\s|\-–—·•:،,]+$/u, "")
+    .replace(/^[\s|\-–—·•:،,]+/u, "")
+    .replace(/\s{2,}/g, " ")
+    .trim();
+  return t || title.trim();
 }

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { createPortal } from "react-dom";
 import { gsap, MOTION_OK } from "@/components/motion/gsap";
 import { isYouTubeId, youTubeEmbedUrl, youTubeWatchUrl } from "@/lib/youtube";
+import { bidiDir } from "@/lib/bidi";
 
 export type DialogVideo = {
   youtubeId: string;
@@ -124,7 +125,7 @@ export function YouTubeDialog({
       >
         <div className="mb-2 flex items-start justify-between gap-4">
           <h2 id={titleId} className="min-w-0 pt-2 text-base font-semibold break-words sm:text-lg">
-            <bdi>{video.title}</bdi>
+            <bdi dir={bidiDir(video.title)}>{video.title}</bdi>
           </h2>
           <button
             ref={closeRef}

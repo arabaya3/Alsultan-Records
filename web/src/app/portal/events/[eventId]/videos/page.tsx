@@ -7,6 +7,7 @@ import { listDeliverables } from "@/features/deliverables/data";
 import { PanelSkeleton, StatusPill, Unavailable } from "@/features/portal/components/PortalUi";
 import { loadEventPage } from "@/features/portal/event-page";
 import { dateAr } from "@/features/portal/format";
+import { bidiDir } from "@/lib/bidi";
 
 export const metadata: Metadata = { title: "الأفلام" };
 
@@ -28,7 +29,7 @@ async function Videos({ params }: { params: Promise<{ eventId: string }> }) {
               <PlayBadge size={32} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-display text-lg font-semibold"><bdi dir="auto">{d.title}</bdi></span>
+              <span className="block truncate font-display text-lg font-semibold"><bdi dir={bidiDir(d.title)}>{d.title}</bdi></span>
               <span className="mt-1 flex flex-wrap items-center gap-2 text-sm text-on-cream-muted">
                 <StatusPill status={d.status} />
                 {d.revisions.length ? `${d.revisions.length} نسخ · آخرها ${dateAr(d.revisions[0].createdAt)}` : "لا توجد نسخ بعد"}

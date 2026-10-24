@@ -17,6 +17,7 @@ import { PAGE_TARGET_LABEL, PAGE_TARGETS } from "../targets";
 import { deleteRow, saveAnnouncement, saveOffer, saveOrder, setOfferPinned, setOfferStatus, setVisible } from "../actions";
 import { CmsLoadError, DATE_HELP, OFFERS_TABS, PageTabs, SectionIntroCard, today as todayLine } from "./shared";
 import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
+import { bidiDir } from "@/lib/bidi";
 
 type OfferDb = {
   id: string;
@@ -350,7 +351,7 @@ function AnnPreview({ a }: { a: Pick<Ann, "template" | "text" | "dismissible"> }
     <div className={`rounded-sm ${banner ? "bg-gold px-4 py-4 text-ink" : "bg-ink-2 px-4 py-2 text-on-dark"}`} data-testid="announcement-preview">
       <div className="flex items-center gap-3">
         <p className={`min-w-0 flex-1 break-words ${banner ? "text-lg font-semibold" : "text-sm"}`}>
-          <bdi>{a.text}</bdi>
+          <bdi dir={bidiDir(a.text)}>{a.text}</bdi>
         </p>
         {a.dismissible ? <span aria-hidden="true">×</span> : null}
       </div>

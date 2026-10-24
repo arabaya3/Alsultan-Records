@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode, useLayoutEffect } from "react";
 
 export type LightboxItem = { id: string; src: string | null; width: number | null; height: number | null; alt: string };
 
@@ -17,6 +17,10 @@ const reducedMotion = () => typeof window !== "undefined" && window.matchMedia("
  * - Smooth open (CSS @starting-style), fade between photos and a short fade-out on close; all of it is
  *   neutralized by prefers-reduced-motion (globals.css + the close delay is skipped).
  * - Optional slideshow (`slideshow` starts it playing; a toggle is always shown when there is >1 item).
+ * - Loading shows a visible «جارِ تحميل الصورة…» status; a failed photo shows an error with «إعادة المحاولة» (a fresh
+ *   request), never a blank frame. A late load/error event of a photo that is no longer shown is ignored.
+ * - Only the previous and next photos are preloaded (display variant), never the whole album.
+ * - If the opener is gone when the viewer closes, focus goes to `fallbackFocus()` or the page's <main>.
  */
 export function Lightbox({
   items,
@@ -28,7 +32,10 @@ export function Lightbox({
   label = "عارض الصور",
   footer,
   slideshow = false,
+  fallbackFocus,
 }: {
+  /** Where focus goes on close when the opener no longer exists (e.g. the grid item of the current photo). */
+  fallbackFocus?: (item: LightboxItem) => HTMLElement | null;
   /** Shown under the image (e.g. alt text + source credit). */
   footer?: ReactNode;
   items: LightboxItem[];
@@ -51,6 +58,19 @@ export function Lightbox({
   const count = items.length;
   const [failed, setFailed] = useState<Set<string>>(() => new Set());
   const [loaded, setLoaded] = useState<Set<string>>(() => new Set());
+  // Retry count per photo: a retry bumps it, which remounts the <img> with a cache-busting query (a new request).
+  const [attempt, setAttempt] = useState<Record<string, number>>({});
+  const currentToken = useRef("");
+  const preloads = useRef(new Map<string, HTMLImageElement>());
+  // Latest values for the unmount cleanup (it would otherwise see the values of its first render).
+  const itemsRef = useRef(items);
+  const indexRef = useRef(index);
+  const fallbackFocusRef = useRef(fallbackFocus);
+  useEffect(() => {
+    itemsRef.current = items;
+    indexRef.current = index;
+    fallbackFocusRef.current = fallbackFocus;
+  });
   const [playing, setPlaying] = useState(slideshow && count > 1);
   const [closing, setClosing] = useState(false);
 
@@ -79,9 +99,28 @@ export function Lightbox({
     return () => {
       document.body.style.overflow = prevOverflow;
       const opener = openerRef.current as HTMLElement | null;
-      if (opener && typeof opener.focus === "function") opener.focus();
+      if (opener && opener.isConnected && opener !== document.body && typeof opener.focus === "function") return opener.focus();
+      // The opener is gone (re-rendered list, removed card…): a sensible place instead of <body>.
+      const shown = itemsRef.current[indexRef.current];
+      const target = (shown && fallbackFocusRef.current?.(shown)) || document.querySelector<HTMLElement>("main");
+      if (target) {
+        if (target.tagName === "MAIN" && !target.hasAttribute("tabindex")) target.setAttribute("tabindex", "-1");
+        target.focus();
+      }
     };
   }, []);
+
+  // Preload only the neighbours of the current photo (display variant), so arrows feel instant without fetching the
+  // whole album. Kept in a ref so the requests are not garbage-collected mid-flight.
+  useEffect(() => {
+    for (const n of [items[index + 1], items[index - 1]]) {
+      if (!n?.src || preloads.current.has(n.id)) continue;
+      const img = new Image();
+      img.decoding = "async";
+      img.src = n.src;
+      preloads.current.set(n.id, img);
+    }
+  }, [index, items]);
 
   // Slideshow: advance (looping) while playing; any manual navigation restarts the timer via `index`.
   useEffect(() => {
@@ -133,7 +172,27 @@ export function Lightbox({
     go(forward ? 1 : -1);
   }
 
+  // The photo currently shown: load/error events of any other <img> are stale and ignored.
+  const token = item ? `${item.id}|${attempt[item.id] ?? 0}` : "";
+  // layout effect: set before the browser can fire onLoad for a cached image (a passive effect may run later)
+  useLayoutEffect(() => {
+    currentToken.current = token;
+  }, [token]);
+
   if (!item) return null;
+  const tries = attempt[item.id] ?? 0;
+  const src = item.src && tries ? `${item.src}${item.src.includes("?") ? "&" : "?"}r=${tries}` : item.src;
+  const retry = () => {
+    setFailed((s) => {
+      const n = new Set(s);
+      n.delete(item.id);
+      return n;
+    });
+    setAttempt((a) => ({ ...a, [item.id]: (a[item.id] ?? 0) + 1 }));
+    // The retry button is about to disappear: keep focus inside the dialog so Esc and the arrows keep working.
+    closeRef.current?.focus();
+  };
+  const markLoaded = () => setLoaded((s) => (s.has(item.id) ? s : new Set(s).add(item.id)));
   const ratio = item.width && item.height ? `${item.width} / ${item.height}` : "3 / 2";
   const w = item.width && item.height ? item.width / item.height : 1.5;
   const navBtn =
@@ -197,20 +256,45 @@ export function Lightbox({
           style={{ aspectRatio: ratio, maxWidth: `min(100%, calc((100dvh - 9rem) * ${w.toFixed(4)}))` }}
         >
           {status === "error" || failed.has(item.id) || (!item.src && status !== "loading") ? (
-            <div role="alert" data-lightbox-error className="absolute inset-0 grid place-items-center rounded-sm bg-surface text-center text-ivory-muted">
+            <div role="alert" data-lightbox-error className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-sm bg-surface p-4 text-center text-ivory-muted">
               <p>تعذّر عرض هذه الصورة الآن.</p>
+              {item.src ? (
+                <button
+                  type="button"
+                  onClick={retry}
+                  data-lightbox-retry
+                  className="min-h-11 rounded-sm border border-gold px-5 text-ivory transition-colors hover:bg-gold hover:text-ink focus-visible:bg-gold focus-visible:text-ink"
+                >
+                  إعادة المحاولة
+                </button>
+              ) : null}
             </div>
-          ) : item.src ? (
+          ) : src ? (
             <>
-              {!loaded.has(item.id) ? <div aria-hidden="true" className="absolute inset-0 animate-pulse rounded-sm bg-surface" /> : null}
+              {!loaded.has(item.id) ? (
+                <div role="status" data-lightbox-loading className="absolute inset-0 flex flex-col items-center justify-center gap-3 rounded-sm bg-surface text-sm text-ivory-muted">
+                  <span aria-hidden="true" className="size-8 animate-spin rounded-full border-2 border-hairline border-t-gold motion-reduce:animate-none" />
+                  <span>جارِ تحميل الصورة…</span>
+                </div>
+              ) : null}
               {/* Gated short-lived display variant (never the original): plain <img>, whole image (contain). */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                key={item.id}
-                src={item.src}
+                key={token}
+                src={src}
                 alt={item.alt}
-                onLoad={() => setLoaded((s) => new Set(s).add(item.id))}
-                onError={() => setFailed((s) => new Set(s).add(item.id))}
+                decoding="async"
+                data-lightbox-image={item.id}
+                ref={(el) => {
+                  // Already in the browser cache (or finished before hydration): no load event will come.
+                  if (el?.complete && el.naturalWidth > 0) markLoaded();
+                }}
+                onLoad={() => {
+                  if (token === currentToken.current) markLoaded(); // ignore a photo we already navigated away from
+                }}
+                onError={() => {
+                  if (token === currentToken.current) setFailed((s) => new Set(s).add(item.id));
+                }}
                 className={`absolute inset-0 h-full w-full object-contain transition-opacity duration-300 ${loaded.has(item.id) ? "opacity-100" : "opacity-0"}`}
               />
             </>

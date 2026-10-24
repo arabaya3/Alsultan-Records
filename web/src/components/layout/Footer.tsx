@@ -27,6 +27,8 @@ export async function Footer() {
   const s = settings.status === "ok" ? settings.data : null;
   const contacts = contactItems(s).filter((c) => c.href && c.key in SOCIAL);
   const legal = [
+    // One click to the contact page from every footer, whatever the CMS nav and contact settings are.
+    { href: "/contact", label: "تواصل معنا" },
     { href: "/privacy", label: "الخصوصية" },
     { href: "/terms", label: "الشروط" },
   ];
@@ -35,7 +37,7 @@ export async function Footer() {
     <footer data-site-footer className="site-footer-flow bg-night-deep text-ivory">
       <Container className="grid items-center justify-items-center gap-x-8 gap-y-3 py-6 md:justify-items-stretch md:grid-cols-[1fr_auto_1fr] md:py-5">
         {/* Site pages live in the header nav; only the legal links stay here, inline with the copyright. */}
-        <nav aria-label="روابط قانونية" className="order-3 flex flex-wrap items-center justify-center gap-x-4 text-sm text-ivory-muted md:order-1 md:justify-self-start">
+        <nav aria-label="روابط الصفحة" className="order-3 flex flex-wrap items-center justify-center gap-x-4 text-sm text-ivory-muted md:order-1 md:justify-self-start">
           <span>© جميع الحقوق محفوظة</span>
           {legal.map((l) => (
             <Link key={l.href} href={l.href} className={linkCls}>
@@ -51,8 +53,7 @@ export async function Footer() {
         </div>
 
         <ul aria-label="تواصل" className="order-2 flex flex-wrap items-center justify-center gap-x-5 gap-y-0 text-sm md:order-3 md:justify-self-end">
-          {contacts.length ? (
-            contacts.map((c) => (
+          {contacts.map((c) => (
               <li key={c.key}>
                 <a
                   href={c.href!}
@@ -70,14 +71,7 @@ export async function Footer() {
                   )}
                 </a>
               </li>
-            ))
-          ) : (
-            <li>
-              <Link href="/contact" className={linkCls}>
-                تواصل معنا
-              </Link>
-            </li>
-          )}
+          ))}
         </ul>
       </Container>
 

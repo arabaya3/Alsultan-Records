@@ -1,9 +1,9 @@
 import Link from "next/link";
 import { photoUrl, type PhotoAlbum } from "@/features/public-content/gallery-model";
-import { formatDateAr } from "@/features/public-content/labels";
+import { arNum, formatDateAr } from "@/features/public-content/labels";
+import { bidiDir } from "@/lib/bidi";
 
-const AR_DIGITS = "٠١٢٣٤٥٦٧٨٩";
-export const arNum = (n: number) => String(n).replace(/\d/g, (d) => AR_DIGITS[Number(d)]);
+export { arNum };
 export const photoCountLabel = (n: number) => (n === 1 ? "صورة واحدة" : n === 2 ? "صورتان" : n <= 10 ? `${arNum(n)} صور` : `${arNum(n)} صورة`);
 
 /** Album tile: whole cover (contain, never cropped or stretched, no hover zoom) in a reserved 2:3 portrait frame,
@@ -26,7 +26,7 @@ export function AlbumCard({ album, priority = false }: { album: PhotoAlbum; prio
         ) : null}
       </span>
       <span className="mt-3 line-clamp-2 font-display text-lg font-semibold leading-snug break-words text-ivory transition-colors group-hover:text-gold">
-        <bdi>{album.title}</bdi>
+        <bdi dir={bidiDir(album.title)}>{album.title}</bdi>
       </span>
       {meta ? <span className="mt-auto pt-1 text-sm text-ivory-muted">{meta}</span> : null}
     </Link>

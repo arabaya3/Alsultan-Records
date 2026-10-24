@@ -104,10 +104,13 @@ export async function overflowPx(page: Page) {
 }
 
 /** Runs SQL as postgres inside the LOCAL supabase db container (fixtures/verification only). */
+/** Local db container (an isolated stack sets E2E_DB_CONTAINER; default = the main local stack). */
+export const DB_CONTAINER = process.env.E2E_DB_CONTAINER ?? "supabase_db_alsultan-records";
+
 export function psql(sql: string): string {
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
-  return execFileSync("docker", ["exec", "-i", "supabase_db_alsultan-records", "psql", "-U", "postgres", "-At", "-v", "ON_ERROR_STOP=1"], {
+  return execFileSync("docker", ["exec", "-i", DB_CONTAINER, "psql", "-U", "postgres", "-At", "-v", "ON_ERROR_STOP=1"], {
     input: sql,
     encoding: "utf8",
   }).trim();

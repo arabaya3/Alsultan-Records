@@ -97,15 +97,21 @@ test("A2: bulk upload with per-file results, variants, reorder, cover, hide, pub
   expect((await anon().from("album_photos").select("id").eq("album_id", a.id)).data).toHaveLength(0);
   expect(await anonObject(v.thumb)).not.toBe(200);
 
-  // reorder: move the second photo up
+  // reorder (the «ترتيب الصور» view is the one place to order): move the second photo up, nothing saved until «حفظ الترتيب»
   await page.reload();
-  const second = page.locator(`[data-testid=album-photo][data-photo-id="${ps[1].id}"]`);
-  await second.getByRole("button", { name: "↑ تقديم" }).click();
+  await page.getByTestId("photo-view-order").click();
+  const second = page.locator(`[data-testid=photo-reorder] li[data-photo-id="${ps[1].id}"]`);
+  await second.getByRole("button", { name: /^تقديم/ }).click();
+  expect((await photos())[0].id).toBe(ps[0].id);
+  await page.getByTestId("photo-reorder-save").click();
   await expect.poll(async () => (await photos())[0].id).toBe(ps[1].id);
+  await expect(page.getByTestId("photo-reorder-msg")).toBeVisible(); // saved (the page refresh after a save has run)
+  await page.getByTestId("photo-view-details").click();
+  await expect(page.getByTestId("album-photos")).toBeVisible();
 
   // cover
   await page.reload();
-  await page.locator(`[data-testid=album-photo][data-photo-id="${ps[0].id}"]`).getByRole("button", { name: "غلاف" }).click();
+  await page.locator(`[data-testid=album-photo][data-photo-id="${ps[0].id}"]`).getByRole("button", { name: "تعيين كغلاف" }).click();
   await expect.poll(async () => (await db.from("photo_albums").select("cover_photo_id").eq("id", a.id).single()).data!.cover_photo_id).toBe(ps[0].id);
 
   // publish (confirm)
@@ -130,6 +136,9 @@ test("A2: bulk upload with per-file results, variants, reorder, cover, hide, pub
   const victim = ps.find((p) => p.id !== bigId && p.is_published)!;
   await page.reload();
   await page.locator(`[data-testid=album-photo][data-photo-id="${victim.id}"]`).getByTestId("photo-trash").getByRole("button").click();
+  // explicit confirmation before anything moves to the trash
+  expect((await db.from("album_photos").select("deleted_at").eq("id", victim.id).single()).data!.deleted_at).toBeNull();
+  await page.locator("dialog[open] [data-testid=confirm-yes]").click();
   await expect.poll(async () => (await db.from("album_photos").select("deleted_at").eq("id", victim.id).single()).data!.deleted_at).not.toBeNull();
   expect((await anon().from("album_photos").select("id").eq("id", victim.id)).data).toHaveLength(0);
   expect((await db.storage.from(BUCKET).download(victim.storage_path_original)).error).toBeNull();

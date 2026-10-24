@@ -11,11 +11,12 @@ import { ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { relatedVideos, toCardVideo, workHref } from "@/features/public-content/gallery-model";
 import { getVideoGallery } from "@/features/public-content/gallery-queries";
-import { durationLabel, formatDateAr } from "@/features/public-content/labels";
+import { cleanVideoTitle, durationLabel, formatDateAr } from "@/features/public-content/labels";
 import { JsonLd } from "@/components/ui/JsonLd";
 import { breadcrumbJsonLd, metaDescription, pageMetadata, youTubeVideoJsonLd } from "@/features/public-content/seo";
 import { projectText } from "@/lib/whatsapp";
 import { isYouTubeId, youTubeThumbUrl, youTubeWatchUrl } from "@/lib/youtube";
+import { bidiDir } from "@/lib/bidi";
 
 async function findVideo(youtubeId: string) {
   if (!isYouTubeId(youtubeId)) return { status: "ok" as const, video: null, gallery: null };
@@ -28,9 +29,10 @@ export async function generateMetadata({ params }: PageProps<"/work/v/[youtubeId
   const { youtubeId } = await params;
   const { video } = await findVideo(youtubeId);
   if (!video) return { title: "أعمالنا", robots: { index: false } };
+  const title = cleanVideoTitle(video.title);
   return pageMetadata({
-    title: video.title,
-    description: metaDescription(video.description, `${video.title} — من أعمال ستوديو وتسجيلات السلطان.`),
+    title,
+    description: metaDescription(video.description, `${title} — من أعمال ستوديو وتسجيلات السلطان.`),
     path: `/work/v/${video.youtube_id}`,
     image: youTubeThumbUrl(video.youtube_id),
   });
@@ -54,7 +56,7 @@ async function VideoView({ params }: { params: PageProps<"/work/v/[youtubeId]">[
   return (
     <article data-video-page={video.youtube_id}>
       {videoLd ? <JsonLd data={videoLd} /> : null}
-      <JsonLd data={breadcrumbJsonLd([{ name: "الرئيسية", path: "/" }, { name: "أعمالنا", path: "/work" }, { name: video.title, path: `/work/v/${video.youtube_id}` }])} />
+      <JsonLd data={breadcrumbJsonLd([{ name: "الرئيسية", path: "/" }, { name: "أعمالنا", path: "/work" }, { name: cleanVideoTitle(video.title), path: `/work/v/${video.youtube_id}` }])} />
       <div className="ink-texture hero-flow relative text-ivory">
         <Container className="flex flex-col items-center pb-14 pt-12 text-center md:pb-20 md:pt-16">
           <nav aria-label="مسار التنقل" className="mb-4 text-sm text-ivory-muted">
@@ -75,13 +77,13 @@ async function VideoView({ params }: { params: PageProps<"/work/v/[youtubeId]">[
             </ol>
           </nav>
           <h1 data-video-title className="max-w-4xl text-h2 font-bold leading-snug break-words">
-            <bdi dir="auto">{video.title}</bdi>
+            <bdi dir={bidiDir(cleanVideoTitle(video.title))}>{cleanVideoTitle(video.title)}</bdi>
           </h1>
           <span aria-hidden="true" className="gold-rule mx-auto mt-4" />
           {meta.length ? <p className="mt-4 text-ivory-muted">{meta.join(" · ")}</p> : null}
 
           <div className="mt-8 w-full max-w-5xl text-start">
-            <InlinePlayer youtubeId={video.youtube_id} title={video.title} />
+            <InlinePlayer youtubeId={video.youtube_id} title={cleanVideoTitle(video.title)} />
           </div>
 
           {video.description ? (

@@ -1,6 +1,7 @@
 import { ExpandableText } from "@/components/ui/ExpandableText";
 import { offerPriceLabel, packageWhatsappText, type Package } from "@/features/public-content/cms-model";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
+import { bidiDir } from "@/lib/bidi";
 
 function CheckIcon() {
   return (
@@ -36,7 +37,7 @@ export function PackageCard({ pkg }: { pkg: Package }) {
       }`}
     >
       <h3 className="flex flex-wrap items-center gap-2 font-display text-xl font-semibold leading-snug break-words [overflow-wrap:anywhere]">
-        <bdi>{pkg.title}</bdi>
+        <bdi dir={bidiDir(pkg.title)}>{pkg.title}</bdi>
         {pkg.featured ? <span data-package-featured className="rounded-sm bg-gold px-2 py-0.5 text-xs font-medium text-ink">مميّز</span> : null}
       </h3>
       {price ? (

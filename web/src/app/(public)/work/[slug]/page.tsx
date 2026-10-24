@@ -12,6 +12,7 @@ import { ErrorState } from "@/components/ui/States";
 import { eventTypeLabel, formatDateAr } from "@/features/public-content/labels";
 import { getProjectBySlug } from "@/features/public-content/queries";
 import { breadcrumbJsonLd, metaDescription, pageMetadata, projectJsonLd } from "@/features/public-content/seo";
+import { bidiDir } from "@/lib/bidi";
 
 export async function generateMetadata({ params }: PageProps<"/work/[slug]">): Promise<Metadata> {
   const { slug } = await params;
@@ -61,7 +62,7 @@ async function ProjectView({ params }: { params: PageProps<"/work/[slug]">["para
           </nav>
           <Reveal>
             <h1 data-reveal className="text-h1 font-bold tracking-tight">
-              <bdi dir="auto">{p.title}</bdi>
+              <bdi dir={bidiDir(p.title)}>{p.title}</bdi>
               
             </h1>
             {meta.length ? (

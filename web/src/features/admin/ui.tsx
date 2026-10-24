@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { bidiDir } from "@/lib/bidi";
 
 /** Admin UI primitives: calm, dense, ink/cream/gold. Server-safe (no hooks). */
 
@@ -99,7 +100,7 @@ export function Table({ head, children, empty, label }: { head: string[]; childr
 export function RowLink({ href, children }: { href: string; children: ReactNode }) {
   return (
     <Link href={href} className="font-medium underline decoration-cream-line underline-offset-4 hover:decoration-gold">
-      <bdi dir="auto">{children}</bdi>
+      <bdi dir={bidiDir(children)}>{children}</bdi>
     </Link>
   );
 }
@@ -206,7 +207,7 @@ export function SearchBox({
       <label className="sr-only" htmlFor="admin-q">
         بحث
       </label>
-      <input id="admin-q" name="q" defaultValue={q} placeholder={placeholder} className="field !min-h-10 flex-1" />
+      <input id="admin-q" name="q" defaultValue={q} placeholder={placeholder} className="field !min-h-11 flex-1" />
       <button type="submit" className={btn("secondary")}>
         بحث
       </button>
@@ -216,7 +217,7 @@ export function SearchBox({
 
 export function btn(kind: "primary" | "secondary" | "ghost" | "danger" = "secondary", extra = "") {
   const base =
-    "inline-flex min-h-10 items-center justify-center gap-2 rounded-sm px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
   const k =
     kind === "primary"
       ? "bg-gold text-ink hover:bg-gold-press"
@@ -248,7 +249,7 @@ export function Field({
   );
 }
 
-export const inputCls = "field !min-h-10 !py-1.5 text-sm";
+export const inputCls = "field !min-h-11 !py-1.5 text-sm";
 
 export function Stat({ label, value, href, tone }: { label: string; value: ReactNode; href?: string; tone?: Tone }) {
   const inner = (

@@ -1,10 +1,11 @@
+import { arNum } from "@/features/public-content/labels";
 import { siteUrl } from "@/features/public-content/site";
 import { PROMO_ASSETS } from "./promo-assets";
 
 const SECONDS = PROMO_ASSETS.landscape.durationSeconds;
 
 /** «فيديو تعريفي · ٢٨ ث» */
-export const PROMO_CAPTION = `فيديو تعريفي · ${SECONDS.toLocaleString("ar-EG")} ث`;
+export const PROMO_CAPTION = `فيديو تعريفي · ${arNum(SECONDS)} ث`;
 
 /** schema.org VideoObject for the self-hosted promo (absolute URLs). */
 export function promoVideoJsonLd(): Record<string, unknown> {

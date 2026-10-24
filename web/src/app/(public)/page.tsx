@@ -23,6 +23,7 @@ import { localBusinessJsonLd, pageMetadata, safeHttp } from "@/features/public-c
 import { ArrowStartIcon, GridIcon, IconLink } from "@/components/ui/IconLink";
 import { YouTubeIcon } from "@/components/ui/SocialIcons";
 import { SITE_TARGETS } from "@/lib/site-targets";
+import { bidiDir } from "@/lib/bidi";
 
 export const metadata = pageMetadata({
   description: "ستوديو وتسجيلات السلطان في ميثلون – جنين. نوثّق أعراسكم ومناسباتكم بالصوت والصورة: تصوير فوتوغرافي، أفلام أعراس وDJ.",
@@ -164,7 +165,7 @@ export default async function HomePage() {
                         {String(i + 1).padStart(2, "0")}
                       </span>
                       <span className="font-display text-2xl font-semibold transition-colors group-hover:text-gold md:text-3xl">
-                        <bdi>{x.title}</bdi>
+                        <bdi dir={bidiDir(x.title)}>{x.title}</bdi>
                       </span>
                       {x.summary ? <span className="text-ivory-muted md:text-lg">{x.summary}</span> : null}
                     </Link>

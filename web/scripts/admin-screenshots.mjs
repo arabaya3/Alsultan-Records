@@ -9,6 +9,8 @@ import { readFileSync, mkdirSync } from "node:fs";
 import { createHmac, randomBytes } from "node:crypto";
 import { chromium } from "@playwright/test";
 import { createClient } from "@supabase/supabase-js";
+import { assertProdWriteAllowed } from "./prod-write-guard.mjs";
+await assertProdWriteAllowed("admin-screenshots", { siteDefault: "https://sultan-records.vercel.app" }); // writes [STAGING-TEST] data to the production project
 
 const BASE = process.env.BASE_URL ?? "https://sultan-records.vercel.app";
 const OUT = process.argv.includes("--out") ? process.argv[process.argv.indexOf("--out") + 1] : "../docs/screenshots/admin";

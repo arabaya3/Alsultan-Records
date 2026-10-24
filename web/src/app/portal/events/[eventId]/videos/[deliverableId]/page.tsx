@@ -8,6 +8,7 @@ import { PanelSkeleton, StatusPill, Unavailable } from "@/features/portal/compon
 import { loadEventPage } from "@/features/portal/event-page";
 import { isUuid } from "@/features/portal/session";
 import { VideoReview } from "@/features/video-reviews/components/VideoReview";
+import { bidiDir } from "@/lib/bidi";
 
 export const metadata: Metadata = { title: "مراجعة الفيلم" };
 
@@ -28,7 +29,7 @@ async function Review({ params }: { params: Promise<{ eventId: string; deliverab
         </Link>
       </p>
       <div className="mb-6 flex flex-wrap items-center gap-3">
-        <h2 className="text-2xl font-bold"><bdi dir="auto">{d.title}</bdi></h2>
+        <h2 className="text-2xl font-bold"><bdi dir={bidiDir(d.title)}>{d.title}</bdi></h2>
         <StatusPill status={d.status} />
       </div>
       <VideoReview

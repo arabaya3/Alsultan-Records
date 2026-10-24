@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { getUnfinishedPhotos } from "./actions";
 import { ALBUM_ACCEPT, ALBUM_IMAGE_MAX_BYTES, ALBUM_MAX_FILES_PER_BATCH, ALBUM_RAW_MAX_BYTES, FORMATS, FORMAT_IDS, fmtMb } from "./rules";
 import { AlbumUploadQueue, type ItemState, type UploadItem } from "./upload-engine";
+import { FilePicker } from "./FilePicker";
 import { takeHandoff } from "./upload-handoff";
 
 const LABEL: Record<ItemState, string> = {
@@ -33,6 +34,7 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
   const [items, setItems] = useState<UploadItem[]>([]);
   const [note, setNote] = useState("");
   const [drag, setDrag] = useState(false);
+  const [picked, setPicked] = useState<File[]>([]);
   // One queue per mounted editor (the album id is part of the route, so it never changes here).
   const [queue] = useState(() => new AlbumUploadQueue(albumId, setItems, () => router.refresh()));
 
@@ -69,6 +71,7 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
     setNote("");
     queue.add(files);
     if (inputRef.current) inputRef.current.value = "";
+    setPicked([]);
   }
 
   const live = items.filter((i) => i.state !== "canceled" && i.state !== "skipped" && i.size > 0);
@@ -96,10 +99,13 @@ export function AlbumUploader({ albumId }: { albumId: string }) {
         className={`rounded-md border-2 border-dashed p-4 transition-colors ${drag ? "border-gold bg-gold/10" : "border-cream-line"}`}
       >
         <div className="flex flex-wrap items-end gap-3">
-          <label className="text-sm">
+          <div className="text-sm">
             <span className="mb-1 block font-medium">اختر الصور أو اسحبها هنا</span>
-            <input ref={inputRef} type="file" multiple accept={ALBUM_ACCEPT} data-testid="album-upload-input" className="text-sm" />
-          </label>
+            <FilePicker
+              files={picked}
+              inputProps={{ ref: inputRef, multiple: true, accept: ALBUM_ACCEPT, "data-testid": "album-upload-input", onChange: (e) => setPicked(Array.from(e.currentTarget.files ?? [])) }}
+            />
+          </div>
           <button
             type="button"
             onClick={() => enqueue(inputRef.current?.files ?? null)}

@@ -16,19 +16,21 @@ import { ALBUM_BUCKET } from "./rules";
 import {
   createCategory,
   deleteCategory,
-  movePhoto,
   purgeAlbum,
   restorePhoto,
   retryAlbumVariants,
   setAlbumCover,
   setAlbumPublished,
   setAlbumState,
-  setPhotoAlt,
   setPhotoPublished,
   trashPhoto,
   updateAlbum,
   updateCategory,
 } from "./actions";
+import { bidiDir } from "@/lib/bidi";
+import { AutoSlug } from "./AutoSlug";
+import { AltField, BulkAltProvider } from "./BulkAlt";
+import { PhotoViews } from "./PhotoViews";
 
 type Album = {
   id: string;
@@ -82,9 +84,14 @@ function AlbumFields({ a, categories }: { a?: Album; categories: Category[] }) {
       <Field label="العنوان">
         <input name="title" required minLength={2} maxLength={160} defaultValue={a?.title ?? ""} className={inputCls} />
       </Field>
-      <Field label="المعرّف في الرابط (slug)" hint="أحرف إنجليزية صغيرة وأرقام و -">
-        <input name="slug" required pattern="[a-z0-9][a-z0-9\-]{1,79}" maxLength={80} dir="ltr" defaultValue={a?.slug ?? ""} className={inputCls} />
-      </Field>
+      <AutoSlug
+        label="المعرّف في الرابط (slug)"
+        hint="أحرف إنجليزية صغيرة وأرقام و -."
+        defaultValue={a?.slug}
+        pattern="[a-z0-9][a-z0-9\-]{1,79}"
+        maxLength={80}
+        testId="album-slug"
+      />
       <Field label="التصنيف">
         <select name="category_id" defaultValue={a?.category_id ?? ""} className={inputCls} data-testid="album-category">
           <option value="">بلا تصنيف</option>
@@ -130,12 +137,18 @@ function CategoriesCard({ categories }: { categories: Category[] }) {
             <div key={c.id} className="flex flex-wrap items-end gap-2 rounded-md border border-cream-line p-2" data-testid="album-category-row" data-slug={c.slug}>
               <ActionForm action={updateCategory} submitLabel="حفظ" kind="ghost" className="flex-1">
                 <input type="hidden" name="id" value={c.id} />
-                <div className="grid gap-2 sm:grid-cols-4">
-                  <input name="title" required minLength={2} maxLength={80} defaultValue={c.title} aria-label="عنوان التصنيف" className={inputCls} />
-                  <input name="slug" required maxLength={80} dir="ltr" defaultValue={c.slug} aria-label="معرّف التصنيف" className={inputCls} />
-                  <input name="sort_order" type="number" defaultValue={c.sort_order} aria-label="الترتيب" className={inputCls} />
-                  <label className="flex items-center gap-2 text-sm">
-                    <input type="checkbox" name="is_published" defaultChecked={c.is_published} /> ظاهر
+                <div className="grid items-end gap-2 sm:grid-cols-4">
+                  <label className="block text-sm">
+                    <span className="mb-1 block font-medium">عنوان التصنيف</span>
+                    <input name="title" required minLength={2} maxLength={80} defaultValue={c.title} className={`${inputCls} w-full`} />
+                  </label>
+                  <AutoSlug label="المعرّف في الرابط" hint="أحرف إنجليزية صغيرة وأرقام و -." defaultValue={c.slug} pattern="[a-z0-9][a-z0-9\-]{1,59}" maxLength={60} />
+                  <label className="block text-sm">
+                    <span className="mb-1 block font-medium">الترتيب</span>
+                    <input name="sort_order" type="number" defaultValue={c.sort_order} className={`${inputCls} w-full`} />
+                  </label>
+                  <label className="flex min-h-11 items-center gap-2 text-sm">
+                    <input type="checkbox" name="is_published" defaultChecked={c.is_published} className="size-5" /> ظاهر للزوار
                   </label>
                 </div>
               </ActionForm>
@@ -154,12 +167,19 @@ function CategoriesCard({ categories }: { categories: Category[] }) {
           <Notice>لا توجد تصنيفات بعد.</Notice>
         )}
         <ActionForm action={createCategory} submitLabel="إضافة تصنيف" kind="primary" resetOnSuccess testId="album-category-create">
-          <div className="grid gap-2 sm:grid-cols-4">
-            <input name="title" required minLength={2} maxLength={80} placeholder="العنوان (مثال: أعراس)" aria-label="عنوان التصنيف" className={inputCls} />
-            <input name="slug" required maxLength={80} dir="ltr" placeholder="weddings" aria-label="معرّف التصنيف" className={inputCls} />
-            <input name="sort_order" type="number" defaultValue={100} aria-label="الترتيب" className={inputCls} />
-            <label className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="is_published" defaultChecked /> ظاهر
+          <p className="text-sm font-semibold">تصنيف جديد</p>
+          <div className="grid items-end gap-2 sm:grid-cols-4">
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium">عنوان التصنيف</span>
+              <input name="title" required minLength={2} maxLength={80} placeholder="مثال: أعراس" className={`${inputCls} w-full`} />
+            </label>
+            <AutoSlug label="المعرّف في الرابط" hint="أحرف إنجليزية صغيرة وأرقام و -." pattern="[a-z0-9][a-z0-9\-]{1,59}" maxLength={60} testId="album-category-slug" />
+            <label className="block text-sm">
+              <span className="mb-1 block font-medium">الترتيب</span>
+              <input name="sort_order" type="number" defaultValue={100} className={`${inputCls} w-full`} />
+            </label>
+            <label className="flex min-h-11 items-center gap-2 text-sm">
+              <input type="checkbox" name="is_published" defaultChecked className="size-5" /> ظاهر للزوار
             </label>
           </div>
         </ActionForm>
@@ -260,9 +280,11 @@ async function signedMap(sb: SupabaseClient, paths: string[]) {
   return new Map((signed.data ?? []).filter((s) => s.signedUrl && s.path).map((s) => [s.path as string, s.signedUrl]));
 }
 
-export async function AlbumEditPage({ params }: { params: IdParams }) {
+export async function AlbumEditPage({ params, searchParams }: { params: IdParams; searchParams?: SP }) {
   if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
   const { id } = await params;
+  // One photo list, two views of it: «التفاصيل» (cover, visibility, status, alt texts, trash) or «الترتيب» (order).
+  const view = one((await searchParams)?.view) === "order" ? "order" : "details";
   if (!isUuid(id)) return <LoadError what="الألبوم" />;
   const sb = await db();
   const [albumRes, photosRes, cats] = await Promise.all([
@@ -344,14 +366,13 @@ export async function AlbumEditPage({ params }: { params: IdParams }) {
           </Card>
         )}
 
-        {photos.length > 1 ? (
-          <Card title="الترتيب (اسحب أو استخدم الأسهم)">
-            <PhotoReorder albumId={a.id} items={photos.map((p, i) => ({ id: p.id, thumb: thumbOf(p), label: `الصورة ${i + 1}` }))} />
-          </Card>
-        ) : null}
-
         <Card title={`الصور (${photos.length})`}>
           {photos.length ? (
+            <PhotoViews
+              initial={view}
+              order={photos.length > 1 ? <PhotoReorder albumId={a.id} items={photos.map((p, i) => ({ id: p.id, thumb: thumbOf(p), label: `الصورة ${i + 1}` }))} /> : null}
+              details={
+            <BulkAltProvider albumId={a.id}>
             <ol className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3" aria-label="صور الألبوم" data-testid="album-photos">
               {photos.map((p, i) => {
                 const url = thumbOf(p);
@@ -366,7 +387,11 @@ export async function AlbumEditPage({ params }: { params: IdParams }) {
                     )}
                     <div className="mt-2 flex flex-wrap gap-1">
                       <span className="text-xs text-on-cream-muted">#{i + 1}</span>
-                      {isCover ? <Badge tone="gold">الغلاف</Badge> : null}
+                      {isCover ? (
+                        <span data-testid="photo-cover-badge">
+                          <Badge tone="gold">الغلاف الحالي</Badge>
+                        </span>
+                      ) : null}
                       {p.is_published ? <Badge tone="success">ظاهرة</Badge> : <Badge>مخفية</Badge>}
                       {p.upload_status !== "ready" ? <Badge tone={p.upload_status === "failed" ? "danger" : "neutral"}>{STATUS_LABEL[p.upload_status]}</Badge> : null}
                       {p.upload_status === "ready" && !p.variants?.thumb ? <Badge tone="danger">بلا معاينات</Badge> : null}
@@ -378,16 +403,8 @@ export async function AlbumEditPage({ params }: { params: IdParams }) {
                     </div>
                     {p.upload_status === "failed" && p.last_error ? <p className="mt-1 text-xs text-danger" data-testid="photo-error">{photoErrorText(p.last_error)}</p> : null}
                     <div className="mt-2 flex flex-wrap gap-1">
-                      <ActionForm action={movePhoto} submitLabel="↑ تقديم" kind="ghost" inline disabled={i === 0}>
-                        <input type="hidden" name="id" value={p.id} />
-                        <input type="hidden" name="dir" value="up" />
-                      </ActionForm>
-                      <ActionForm action={movePhoto} submitLabel="↓ تأخير" kind="ghost" inline disabled={i === photos.length - 1}>
-                        <input type="hidden" name="id" value={p.id} />
-                        <input type="hidden" name="dir" value="down" />
-                      </ActionForm>
                       {!isCover && p.upload_status === "ready" ? (
-                        <ActionForm action={setAlbumCover} submitLabel="غلاف" kind="ghost" inline testId="photo-set-cover">
+                        <ActionForm action={setAlbumCover} submitLabel="تعيين كغلاف" kind="ghost" inline testId="photo-set-cover">
                           <input type="hidden" name="id" value={p.id} />
                         </ActionForm>
                       ) : null}
@@ -400,20 +417,28 @@ export async function AlbumEditPage({ params }: { params: IdParams }) {
                           <input type="hidden" name="id" value={p.id} />
                         </ActionForm>
                       ) : null}
-                      <ActionForm action={trashPhoto} submitLabel="إلى السلة" kind="danger" inline testId="photo-trash">
+                    </div>
+                    <AltField photoId={p.id} initial={p.alt_text ?? ""} index={i + 1} />
+                    {/* Destructive action apart from the everyday ones, with an explicit confirmation. */}
+                    <div className="mt-3 flex justify-end border-t border-cream-line pt-2">
+                      <ActionForm
+                        action={trashPhoto}
+                        submitLabel="نقل إلى السلة"
+                        kind="danger"
+                        inline
+                        testId="photo-trash"
+                        confirm={{ title: `نقل الصورة ${i + 1} إلى السلة؟`, body: "تختفي من الألبوم والموقع، ويمكن استرجاعها من «صور في سلة المحذوفات» أسفل الصفحة.", confirmLabel: "نقل إلى السلة" }}
+                      >
                         <input type="hidden" name="id" value={p.id} />
                       </ActionForm>
                     </div>
-                    <ActionForm action={setPhotoAlt} submitLabel="حفظ الوصف" kind="ghost" className="mt-2">
-                      <input type="hidden" name="id" value={p.id} />
-                      <Field label="وصف الصورة (نص بديل)">
-                        <input name="alt_text" maxLength={300} defaultValue={p.alt_text ?? ""} className={inputCls} />
-                      </Field>
-                    </ActionForm>
                   </li>
                 );
               })}
             </ol>
+            </BulkAltProvider>
+              }
+            />
           ) : (
             <Notice>لا توجد صور بعد.</Notice>
           )}
@@ -502,7 +527,7 @@ export async function AlbumPreviewPage({ params }: { params: IdParams }) {
       />
       <article className="rounded-md bg-ink p-6 text-on-dark">
         <h2 className="text-3xl font-bold">
-          <bdi dir="auto">{a.title}</bdi>
+          <bdi dir={bidiDir(a.title)}>{a.title}</bdi>
           <span className="text-gold">.</span>
         </h2>
         {a.description ? <p className="mt-3 max-w-3xl whitespace-pre-line text-on-dark/90">{a.description}</p> : null}

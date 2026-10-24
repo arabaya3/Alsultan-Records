@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getActiveAnnouncements } from "@/features/public-content/cms-queries";
 import { DismissButton } from "./DismissButton";
+import { bidiDir } from "@/lib/bidi";
 
 /**
  * Owner announcements (fixed templates: thin «bar» or larger «banner»), top of every public page.
@@ -31,10 +32,10 @@ export async function Announcements() {
               <p className={`min-w-0 flex-1 break-words ${banner ? "text-lg font-semibold md:text-xl" : "text-sm md:text-base"}`}>
                 {a.href ? (
                   <Link href={a.href} data-announcement-link className={`inline-flex min-h-11 items-center underline decoration-1 underline-offset-4 transition-colors hover:decoration-2 ${banner ? "" : "decoration-gold/70 hover:text-gold"}`}>
-                    <bdi>{a.text}</bdi>
+                    <bdi dir={bidiDir(a.text)}>{a.text}</bdi>
                   </Link>
                 ) : (
-                  <bdi>{a.text}</bdi>
+                  <bdi dir={bidiDir(a.text)}>{a.text}</bdi>
                 )}
               </p>
               {a.dismissible ? <DismissButton id={a.id} dark={!banner} /> : null}

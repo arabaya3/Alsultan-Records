@@ -209,6 +209,7 @@ export function AlbumGallery({
           items={items}
           index={open}
           onIndexChange={setOpen}
+          fallbackFocus={(it) => document.querySelector<HTMLElement>(`[data-album-photo="${CSS.escape(it.id)}"]`)}
           onClose={() => setOpen(null)}
           slideshow={slideshow}
           label={`صور: ${albumTitle}`}

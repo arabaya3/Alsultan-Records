@@ -6,6 +6,7 @@ import { eventTypeLabel } from "@/features/public-content/labels";
 import { EventTabs } from "@/features/portal/components/EventTabs";
 import { loadEventPage } from "@/features/portal/event-page";
 import { dateAr, EVENT_STATUS } from "@/features/portal/format";
+import { bidiDir } from "@/lib/bidi";
 
 async function EventHeader({ params }: { params: Promise<{ eventId: string }> }) {
   const { overview, eventId } = await loadEventPage(params);
@@ -21,7 +22,7 @@ async function EventHeader({ params }: { params: Promise<{ eventId: string }> })
       </p>
       <div className="mt-2 flex flex-wrap items-end justify-between gap-4">
         <h1 className="text-3xl font-bold md:text-4xl" data-testid="event-title">
-          <bdi dir="auto">{e.title}</bdi>
+          <bdi dir={bidiDir(e.title)}>{e.title}</bdi>
           <span className="text-gold">.</span>
         </h1>
         <p className="text-muted">

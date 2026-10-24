@@ -92,6 +92,8 @@ test("V3: create from URL, toggle publish, make promo, edit, delete", async ({ b
   await edit.locator('textarea[name="review_note"]').fill("تحقق من التصنيف");
   await edit.getByRole("button", { name: "حفظ" }).click();
   await expect(edit.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+  // the message above may still be the previous save's: wait for THIS save to be stored before leaving the page
+  await expect.poll(async () => (await db.from("showcase_videos").select("needs_review").eq("id", created.id).single()).data!.needs_review).toBe(true);
   await page.goto("/admin/videos?filter=review");
   await expect(page.locator(`[data-testid=video-row][data-youtube-id="${TEST_ID}"]`)).toBeVisible();
   await page.locator(`[data-testid=video-row][data-youtube-id="${TEST_ID}"]`).getByRole("button", { name: "تمت المراجعة" }).click();
