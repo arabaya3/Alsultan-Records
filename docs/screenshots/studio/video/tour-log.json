@@ -1,0 +1,366 @@
+{
+  "desktop": [
+    {
+      "step": "reception",
+      "url": "/",
+      "station": "reception",
+      "mode": "scene",
+      "stats": {
+        "textures": 19,
+        "calls": 141,
+        "triangles": 21096,
+        "tier": "high",
+        "moving": true,
+        "camera": [
+          -2,
+          2.35,
+          2.42
+        ],
+        "target": [
+          7.9,
+          2.05,
+          2.41
+        ],
+        "station": "reception"
+      }
+    },
+    {
+      "step": "album wall",
+      "url": "/work?tab=photos",
+      "station": "albums",
+      "mode": "scene",
+      "stats": {
+        "textures": 24,
+        "calls": 153,
+        "triangles": 13776,
+        "tier": "high",
+        "moving": false,
+        "camera": [
+          0,
+          3.55,
+          4.13
+        ],
+        "target": [
+          0,
+          3.05,
+          -5.86
+        ],
+        "station": "albums"
+      }
+    },
+    {
+      "step": "wall: next group",
+      "url": "/work?tab=photos",
+      "station": "albums",
+      "mode": "scene",
+      "stats": {
+        "textures": 26,
+        "calls": 138,
+        "triangles": 13656,
+        "tier": "high",
+        "moving": false,
+        "camera": [
+          0,
+          3.55,
+          4.13
+        ],
+        "target": [
+          0,
+          3.05,
+          -5.86
+        ],
+        "station": "albums"
+      }
+    },
+    {
+      "step": "album open",
+      "url": "/work/albums/wedding-dawood-nairat-2026",
+      "station": "album",
+      "mode": "scene",
+      "stats": {
+        "textures": 25,
+        "calls": 117,
+        "triangles": 15076,
+        "tier": "high",
+        "moving": false,
+        "camera": [
+          1.27,
+          3.25,
+          0.78
+        ],
+        "target": [
+          0.86,
+          0.84,
+          -2.65
+        ],
+        "station": "album"
+      }
+    },
+    {
+      "step": "next album",
+      "url": "/work/albums/wedding-laith-jarrar-2026",
+      "station": "album",
+      "mode": "scene",
+      "stats": {
+        "textures": 25,
+        "calls": 117,
+        "triangles": 15076,
+        "tier": "high",
+        "moving": false,
+        "camera": [
+          1.27,
+          3.25,
+          0.78
+        ],
+        "target": [
+          0.86,
+          0.84,
+          -2.65
+        ],
+        "station": "album"
+      }
+    },
+    {
+      "step": "viewer",
+      "url": "/work/albums/wedding-laith-jarrar-2026",
+      "station": "album",
+      "mode": "scene",
+      "stats": {
+        "textures": 25,
+        "calls": 117,
+        "triangles": 15076,
+        "tier": "high",
+        "moving": false,
+        "camera": [
+          1.27,
+          3.25,
+          0.78
+        ],
+        "target": [
+          0.86,
+          0.84,
+          -2.65
+        ],
+        "station": "album"
+      }
+    },
+    {
+      "step": "back",
+      "url": "/work/albums/wedding-dawood-nairat-2026",
+      "station": "album",
+      "mode": "scene",
+      "stats": {
+        "textures": 25,
+        "calls": 117,
+        "triangles": 15076,
+        "tier": "high",
+        "moving": false,
+        "camera": [
+          1.27,
+          3.25,
+          0.78
+        ],
+        "target": [
+          0.86,
+          0.84,
+          -2.65
+        ],
+        "station": "album"
+      }
+    },
+    {
+      "step": "back again",
+      "url": "/work?tab=photos",
+      "station": "albums",
+      "mode": "scene",
+      "stats": {
+        "textures": 25,
+        "calls": 153,
+        "triangles": 13776,
+        "tier": "high",
+        "moving": false,
+        "camera": [
+          0,
+          3.55,
+          4.13
+        ],
+        "target": [
+          0,
+          3.05,
+          -5.86
+        ],
+        "station": "albums"
+      }
+    }
+  ],
+  "mobile": [
+    {
+      "step": "reception",
+      "url": "/",
+      "station": "reception",
+      "mode": "scene",
+      "stats": {
+        "textures": 14,
+        "calls": 48,
+        "triangles": 3264,
+        "tier": "low",
+        "moving": false,
+        "camera": [
+          3.82,
+          2.17,
+          0
+        ],
+        "target": [
+          7.9,
+          2.05,
+          0
+        ],
+        "station": "reception"
+      }
+    },
+    {
+      "step": "album wall",
+      "url": "/work?tab=photos",
+      "station": "albums",
+      "mode": "scene",
+      "stats": {
+        "textures": 19,
+        "calls": 44,
+        "triangles": 2110,
+        "tier": "low",
+        "moving": false,
+        "camera": [
+          0,
+          2.17,
+          -1.54
+        ],
+        "target": [
+          0,
+          1.95,
+          -5.86
+        ],
+        "station": "albums"
+      }
+    },
+    {
+      "step": "album open",
+      "url": "/work/albums/wedding-dawood-nairat-2026",
+      "station": "album",
+      "mode": "scene",
+      "stats": {
+        "textures": 20,
+        "calls": 50,
+        "triangles": 4028,
+        "tier": "low",
+        "moving": false,
+        "camera": [
+          0.15,
+          1.7,
+          -1.33
+        ],
+        "target": [
+          0,
+          0.84,
+          -2.55
+        ],
+        "station": "album"
+      }
+    },
+    {
+      "step": "next album",
+      "url": "/work/albums/wedding-laith-jarrar-2026",
+      "station": "album",
+      "mode": "scene",
+      "stats": {
+        "textures": 20,
+        "calls": 50,
+        "triangles": 4028,
+        "tier": "low",
+        "moving": false,
+        "camera": [
+          0.15,
+          1.7,
+          -1.33
+        ],
+        "target": [
+          0,
+          0.84,
+          -2.55
+        ],
+        "station": "album"
+      }
+    },
+    {
+      "step": "viewer",
+      "url": "/work/albums/wedding-laith-jarrar-2026",
+      "station": "album",
+      "mode": "scene",
+      "stats": {
+        "textures": 20,
+        "calls": 50,
+        "triangles": 4028,
+        "tier": "low",
+        "moving": false,
+        "camera": [
+          0.15,
+          1.7,
+          -1.33
+        ],
+        "target": [
+          0,
+          0.84,
+          -2.55
+        ],
+        "station": "album"
+      }
+    },
+    {
+      "step": "back",
+      "url": "/work/albums/wedding-dawood-nairat-2026",
+      "station": "album",
+      "mode": "scene",
+      "stats": {
+        "textures": 20,
+        "calls": 50,
+        "triangles": 4028,
+        "tier": "low",
+        "moving": false,
+        "camera": [
+          0.15,
+          1.7,
+          -1.33
+        ],
+        "target": [
+          0,
+          0.84,
+          -2.55
+        ],
+        "station": "album"
+      }
+    },
+    {
+      "step": "back again",
+      "url": "/work?tab=photos",
+      "station": "albums",
+      "mode": "scene",
+      "stats": {
+        "textures": 20,
+        "calls": 50,
+        "triangles": 4028,
+        "tier": "low",
+        "moving": false,
+        "camera": [
+          0,
+          2.17,
+          -1.54
+        ],
+        "target": [
+          0,
+          1.95,
+          -5.86
+        ],
+        "station": "albums"
+      }
+    }
+  ]
+}
