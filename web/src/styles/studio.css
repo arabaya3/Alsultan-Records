@@ -30,8 +30,8 @@ html[data-studio-station] .studio-backdrop {
   contain: strict;
 }
 /* everything else in the public wrapper paints above the room */
-html[data-studio-station] .site-public > :not(.studio-backdrop):not(script) { position: relative; z-index: 1; }
-html[data-studio-station] .site-public > header { z-index: 40; }
+/* zero-specificity on purpose: components keep their own stacking (the header and its menu stay at z-40) */
+:where(html[data-studio-station] .site-public > :not(.studio-backdrop, script, header)) { position: relative; z-index: 1; }
 
 /* ---------------------------------------------------------------- the static studio (also shown while the scene loads)
    Warm plaster wall, pools of picture light, walnut wainscot and floor — CSS only, no image download. */
