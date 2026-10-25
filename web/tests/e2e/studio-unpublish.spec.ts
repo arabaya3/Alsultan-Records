@@ -64,7 +64,10 @@ test.beforeAll(async () => {
 });
 test.afterAll(cleanup);
 
-test("ST12 hiding an album from the admin while the site is open: list, wall, link and images follow; no broken print, no retry loop", async ({ browser }) => {
+test("ST12 hiding an album from the admin while the site is open: list, wall, link and images follow; no broken print, no retry loop", async ({ browser, browserName }) => {
+  // the admin sign-in sets Secure cookies; WebKit refuses them over plain http even on localhost (Chromium allows
+  // localhost) — the admin half cannot run on WebKit against a local http build. The visitor checks run in ST1–ST11.
+  test.skip(browserName === "webkit", "admin sign-in needs https on WebKit (local http build)");
   const visitor = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "ar" });
   const page = await visitor.newPage();
   const coverReq: string[] = [];
