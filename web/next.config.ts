@@ -18,7 +18,8 @@ const csp = [
   `img-src 'self' data: blob: https://i.ytimg.com ${supabaseOrigin}`,
   `media-src 'self' blob: ${supabaseOrigin}`,
   "font-src 'self'",
-  `connect-src 'self' ${supabaseOrigin} ${storageDirect} ${supabaseWs} https://challenges.cloudflare.com`.replace(/\s+/g, " "),
+  // blob: = in-memory data the page itself created (the studio's glTF props decode their embedded textures that way)
+  `connect-src 'self' blob: ${supabaseOrigin} ${storageDirect} ${supabaseWs} https://challenges.cloudflare.com`.replace(/\s+/g, " "),
   "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",

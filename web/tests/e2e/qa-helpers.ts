@@ -136,3 +136,19 @@ export function resetSeedSelections(eventIds: string[]) {
 export async function skipSiteIntro(target: Page | import("@playwright/test").BrowserContext) {
   await target.addInitScript(() => { try { sessionStorage.setItem("sultan-intro-v1", "1"); } catch {} });
 }
+
+/**
+ * Suites that seed or remove public rows directly in the local DB call this afterwards, so the app's cached reads
+ * (tagged with TAGS) are expired through the app itself — the same effect the admin actions' updateTag has.
+ * Needs the server started with E2E_REVALIDATE_SECRET (and the same value in this process); otherwise a no-op.
+ */
+export async function revalidatePublic(tags: string[]) {
+  const secret = process.env.E2E_REVALIDATE_SECRET;
+  if (!secret) return;
+  const res = await fetch(`${BASE}/api/e2e/revalidate`, {
+    method: "POST",
+    headers: { "content-type": "application/json", "x-e2e-secret": secret },
+    body: JSON.stringify({ tags }),
+  });
+  if (res.status !== 204) throw new Error(`revalidate ${tags.join(",")} → ${res.status}`);
+}

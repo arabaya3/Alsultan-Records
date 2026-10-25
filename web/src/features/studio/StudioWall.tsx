@@ -5,6 +5,7 @@ import { arNum } from "@/features/public-content/labels";
 import { photoUrl } from "@/features/public-content/gallery-model";
 import { wallGroup } from "./poses";
 import { getStudioState, StudioPage, useStudio, useStudioState } from "./StudioProvider";
+import { useScrollFocus } from "./useScrollFocus";
 
 /**
  * The album list as the studio's photo wall.
@@ -109,6 +110,22 @@ export function StudioWall({ albums, children, className = "" }: { albums: WallA
     },
     [albums.length, group],
   );
+
+  // phones: scrolling the list walks along the wall — the centred card's group hangs on the rope and the camera
+  // turns to its print
+  const onScrollFocus = useCallback(
+    (i: number | null) => {
+      if (i === null) return ctx?.focus(null);
+      const g = Math.floor(i / 5);
+      setGroup((cur) => {
+        if (cur !== g) setDir(g > cur ? 1 : -1);
+        return g;
+      });
+      ctx?.focus(`wall:${i % 5}`);
+    },
+    [ctx],
+  );
+  useScrollFocus(ul, onScrollFocus);
 
   const slice = albums.slice(start, end);
   const images = slice.map((a) => (a.coverId ? { key: a.slug, src: photoUrl(a.coverId, "thumb") } : null));

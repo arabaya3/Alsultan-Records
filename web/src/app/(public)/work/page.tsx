@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { Suspense } from "react";
 import { AlbumCard } from "@/components/media/gallery/AlbumCard";
 import { ProjectTile } from "@/components/media/ProjectTile";
 import { SitePromoPlayer } from "@/components/media/promo/SitePromoPlayer";
@@ -10,7 +9,7 @@ import { buttonClasses } from "@/components/ui/Button";
 import { Section, SectionHeading } from "@/components/ui/Layout";
 import { PageHero } from "@/components/ui/PageHero";
 import { YouTubeIcon } from "@/components/ui/SocialIcons";
-import { EmptyState, ErrorState, Skeleton, TileGridSkeleton } from "@/components/ui/States";
+import { EmptyState, ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { getAlbumCategories } from "@/features/public-content/cms-queries";
 import { filterVideos, isWork, promoVideos, paginate, parseWorkQuery, toCardVideo, workHref, type WorkQuery } from "@/features/public-content/gallery-model";
@@ -35,7 +34,6 @@ const LEAD: Record<WorkQuery["tab"], string> = {
   photos: "ألبومات صور من أعراس ومناسبات وثّقناها. افتح أي ألبوم لتصفّح صوره كاملة.",
   promos: "فيديوهات تعريفية قصيرة بستوديو وتسجيلات السلطان.",
 };
-const LEAD_GENERIC = "فيديوهات وصور من أعراس ومناسبات وثّقناها.";
 
 /* Segmented tabs (gold = active) and category chips. Each is a real, shareable URL (server-rendered). */
 const tabCls = (active: boolean) =>
@@ -94,19 +92,6 @@ function Tabs({ tab, promos }: { tab: WorkQuery["tab"]; promos: boolean }) {
         ) : null}
       </ul>
     </nav>
-  );
-}
-
-function GridSkeleton({ ratio = "aspect-video" }: { ratio?: string }) {
-  return (
-    <div role="status" aria-busy="true" aria-label="جارِ التحميل" className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-      {Array.from({ length: 6 }, (_, i) => (
-        <div key={i}>
-          <Skeleton className={`${ratio} rounded-lg`} />
-          <Skeleton className="mt-3 h-5 w-3/4" />
-        </div>
-      ))}
-    </div>
   );
 }
 
@@ -302,19 +287,7 @@ async function WorkBody({ searchParams }: { searchParams: PageProps<"/work">["se
   return (
     <>
       <Tabs tab={q.tab} promos={hasPromos} />
-      {q.tab === "photos" ? (
-        <Suspense fallback={<GridSkeleton ratio="aspect-[2/3]" />}>
-          <Albums cat={q.cat} />
-        </Suspense>
-      ) : q.tab === "promos" ? (
-        <Suspense fallback={<GridSkeleton />}>
-          <Promos />
-        </Suspense>
-      ) : (
-        <Suspense fallback={<GridSkeleton />}>
-          <Videos q={q} />
-        </Suspense>
-      )}
+      {q.tab === "photos" ? <Albums cat={q.cat} /> : q.tab === "promos" ? <Promos /> : <Videos q={q} />}
     </>
   );
 }
@@ -358,27 +331,19 @@ async function WorkHero({ searchParams }: { searchParams: PageProps<"/work">["se
   return <PageHero title="أعمالنا" lead={LEAD[parseWorkQuery(sp).tab]} photoId={photoId} />;
 }
 
+// Resolved on the server before the response (no streamed fallbacks): the lists and links are in the HTML itself,
+// so /work is complete without JavaScript. The data comes from cached, tagged queries — this is fast.
+export const instant = false;
+
 export default function WorkPage(props: PageProps<"/work">) {
   return (
     <>
-      <Suspense fallback={<PageHero title="أعمالنا" lead={LEAD_GENERIC} titleAs="p" />}>
-        <WorkHero searchParams={props.searchParams} />
-      </Suspense>
+      <WorkHero searchParams={props.searchParams} />
       <Section className="pt-10! md:pt-12!">
-        <Suspense fallback={<GridSkeleton />}>
-          <WorkBody searchParams={props.searchParams} />
-        </Suspense>
+        <WorkBody searchParams={props.searchParams} />
       </Section>
       {/* Published + consented event case studies; hidden when there are none. */}
-      <Suspense
-        fallback={
-          <Section tone="darker">
-            <TileGridSkeleton />
-          </Section>
-        }
-      >
-        <Projects />
-      </Suspense>
+      <Projects />
     </>
   );
 }

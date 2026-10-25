@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
-import { BASE, db, newLoggedIn } from "./qa-helpers";
+import { BASE, db, newLoggedIn, revalidatePublic } from "./qa-helpers";
 
 /**
  * UI audit follow-up (docs/ui-audit-followup.md) — regression tests for the behaviours this change introduced.
@@ -335,3 +335,8 @@ test("UA7 mobile + tablet widths: no horizontal overflow on the changed pages", 
     await page.close();
   }
 });
+
+// this suite seeds/removes albums directly in the DB: expire the public album cache through the app afterwards, so
+// no later page shows an album that no longer exists (what the admin actions do with updateTag)
+test.beforeAll(() => revalidatePublic(["photo-albums"]));
+test.afterAll(() => revalidatePublic(["photo-albums"]));

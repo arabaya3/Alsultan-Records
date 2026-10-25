@@ -1,7 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useHotspot } from "./StudioProvider";
+import { useCallback, useRef } from "react";
+import { useHotspot, useStudio } from "./StudioProvider";
+import { useScrollFocus } from "./useScrollFocus";
 
 export type ReceptionItem = { href: string; label: string; caption: string; image: string | null };
 
@@ -44,9 +46,14 @@ function Frame({ item, index }: { item: ReceptionItem; index: number }) {
 }
 
 export function ReceptionFrames({ items }: { items: ReceptionItem[] }) {
+  const ctx = useStudio();
+  const list = useRef<HTMLUListElement>(null);
+  // phones: the print whose tile is in the middle of the screen is the one the camera looks at
+  const onFocus = useCallback((i: number | null) => ctx?.focus(i === null ? null : `reception:${i}`), [ctx]);
+  useScrollFocus(list, onFocus);
   return (
     <nav aria-label="زوايا الاستوديو" className="studio-reception-nav">
-      <ul className="studio-hotspots" data-studio-layer="">
+      <ul ref={list} className="studio-hotspots" data-studio-layer="">
         {items.map((it, i) => (
           <Frame key={it.href} item={it} index={i} />
         ))}

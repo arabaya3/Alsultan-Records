@@ -1,6 +1,6 @@
 import sharp from "sharp";
 import { expect, test } from "@playwright/test";
-import { anon, as, db, newLoggedIn, PUB_KEY, SB_URL } from "./qa-helpers";
+import { anon, as, db, newLoggedIn, PUB_KEY, SB_URL, revalidatePublic } from "./qa-helpers";
 
 /**
  * Admin photo albums (local stack, seed users). Run: BASE_URL=http://localhost:3400 npx playwright test admin-albums
@@ -191,3 +191,8 @@ test("A3: staff and customers are denied (UI + API + storage)", async ({ browser
     expect((await c.storage.from(BUCKET).upload("albums/x/y/original.jpg", Buffer.from("x"), { contentType: "image/jpeg" })).error).not.toBeNull();
   }
 });
+
+// this suite seeds/removes albums directly in the DB: expire the public album cache through the app afterwards, so
+// no later page shows an album that no longer exists (what the admin actions do with updateTag)
+test.beforeAll(() => revalidatePublic(["photo-albums"]));
+test.afterAll(() => revalidatePublic(["photo-albums"]));

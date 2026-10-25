@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { test } from "@playwright/test";
-import { db, newLoggedIn } from "./qa-helpers";
+import { db, newLoggedIn, revalidatePublic } from "./qa-helpers";
 
 /**
  * Upload timing (docs/album-upload-release.md). Same files, same emulated connection, old vs new uploader.
@@ -77,3 +77,8 @@ test("measure upload", async ({ browser }) => {
   console.log(JSON.stringify({ ...result, perFile: undefined }));
   await page.context().close();
 });
+
+// this suite seeds/removes albums directly in the DB: expire the public album cache through the app afterwards, so
+// no later page shows an album that no longer exists (what the admin actions do with updateTag)
+test.beforeAll(() => revalidatePublic(["photo-albums"]));
+test.afterAll(() => revalidatePublic(["photo-albums"]));

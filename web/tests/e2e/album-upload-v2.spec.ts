@@ -3,7 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
 import { expect, test, type Page } from "@playwright/test";
-import { db, newLoggedIn, psql, USERS } from "./qa-helpers";
+import { db, newLoggedIn, psql, USERS, revalidatePublic } from "./qa-helpers";
 
 /**
  * Album upload v2 (docs/album-upload-release.md): create + upload from one screen, resumable direct uploads,
@@ -368,3 +368,8 @@ test("V8: a RAW decode that exceeds the timeout fails (original kept, no retry l
   await expect(row(page, "med-11.jpg")).toHaveAttribute("data-state", "ready", { timeout: 5 * 60_000 });
   await page.context().close();
 });
+
+// this suite seeds/removes albums directly in the DB: expire the public album cache through the app afterwards, so
+// no later page shows an album that no longer exists (what the admin actions do with updateTag)
+test.beforeAll(() => revalidatePublic(["photo-albums"]));
+test.afterAll(() => revalidatePublic(["photo-albums"]));

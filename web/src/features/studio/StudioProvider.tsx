@@ -47,6 +47,8 @@ type Ctx = {
   register: (key: string, el: HTMLElement | null) => void;
   hover: (key: string | null) => void;
   preview: (key: string) => void;
+  /** phones: turn the camera toward a print while its card is in the middle of the screen */
+  focus: (key: string | null) => void;
   setPage: (station: Station, data: PageData) => void;
   setPreference: (pref: "scene" | "static") => void;
 };
@@ -69,6 +71,18 @@ function StationWatcher({ onStation }: { onStation: (s: Station | null) => void 
   return null;
 }
 
+let arrivalTimer = 0;
+function beginArrival() {
+  if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  document.documentElement.setAttribute("data-studio-arriving", "");
+  clearTimeout(arrivalTimer);
+  arrivalTimer = window.setTimeout(endArrival, 1900); // never longer than the longest move
+}
+function endArrival() {
+  clearTimeout(arrivalTimer);
+  document.documentElement.removeAttribute("data-studio-arriving");
+}
+
 function setHtmlMode(m: "scene" | "static") {
   document.documentElement.setAttribute("data-studio", m);
 }
@@ -83,6 +97,7 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
   const applied = useRef(false);
   const stationRef = useRef<Station | null>(null);
   const pendingApply = useRef(0);
+  const lastStation = useRef<Station | null>(null);
 
   // ---------------------------------------------------------------- hotspot placement
   const onRects = useCallback((rects: Record<string, Rect | null>) => {
@@ -137,6 +152,10 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
         entry = false;
       }
     }
+    // a client-side move to ANOTHER corner: the new page's hero fades in as the camera arrives (never on direct
+    // links, never hiding content longer than the move; links stay usable throughout)
+    if (applied.current && lastStation.current && lastStation.current !== s && e.stats().tier !== "static") beginArrival();
+    lastStation.current = s;
     e.set(input, { instant: !applied.current && !entry, entry });
     applied.current = true;
   }, [shared]);
@@ -214,11 +233,18 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
           onRects,
           onFail: () => fail(),
           onTier: (t) => document.documentElement.setAttribute("data-studio-tier", t),
-          onMoving: (m) => document.documentElement.toggleAttribute("data-studio-moving", m),
+          onMoving: (m) => {
+            document.documentElement.toggleAttribute("data-studio-moving", m);
+            if (!m) endArrival();
+          },
+          // the canvas replaces the static studio only once the corner's own images are drawn (no empty frames)
+          onReady: () => stageRef.current?.setAttribute("data-ready", "1"),
         });
         engine.current = e;
         // read-only stats for tests and the perf script (no control surface)
-        (window as Window & { __studioStats?: () => unknown }).__studioStats = () => e.stats();
+        const w = window as Window & { __studioStats?: () => unknown; __studioFrames?: () => unknown };
+        w.__studioStats = () => e.stats();
+        w.__studioFrames = () => e.takeFrameStats();
         document.documentElement.setAttribute("data-studio-tier", tier);
         const stage = stageRef.current!;
         const size = () => e.resize(stage.clientWidth, stage.clientHeight);
@@ -233,8 +259,6 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
         document.addEventListener("visibilitychange", onVis);
         patchState({ mode: "scene" });
         apply();
-        // the canvas fades in over the static studio once its first frame is drawn
-        requestAnimationFrame(() => requestAnimationFrame(() => stage.setAttribute("data-ready", "1")));
       } catch {
         fail();
       }
@@ -269,6 +293,7 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
   }, []);
   const hover = useCallback((key: string | null) => engine.current?.hover(key), []);
   const preview = useCallback((key: string) => engine.current?.preview(key), []);
+  const focus = useCallback((key: string | null) => engine.current?.focus(key), []);
   const setPage = useCallback(
     (s: Station, data: PageData) => {
       page.current = { station: s, data };
@@ -287,7 +312,7 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
   }, [fail]);
 
   // stable: only functions (see the note on StudioState)
-  const value = useMemo<Ctx>(() => ({ register, hover, preview, setPage, setPreference }), [register, hover, preview, setPage, setPreference]);
+  const value = useMemo<Ctx>(() => ({ register, hover, preview, focus, setPage, setPreference }), [register, hover, preview, focus, setPage, setPreference]);
 
   return (
     <StudioContext.Provider value={value}>

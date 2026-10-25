@@ -33,17 +33,17 @@ export const ROOM = { w: 16, d: 12, h: 4.4 } as const;
 /** Album wall: one rope, five frames per group (bigger, legible covers; groups page through the list). */
 export const WALL = { z: -5.86, ropeY: 2.92, frameY: 1.98, frameW: 1.36, frameH: 1.7, spacing: 2.05, perGroup: 5 } as const;
 /** Reception: three hanging frames under the logo (RTL: the first item is on the visitor's right = +z). */
-export const RECEPTION = { x: 7.86, frameY: 1.92, frameW: 1.2, frameH: 1.5, z: [1.75, 0, -1.75] as const, logoY: 3.45 } as const;
+export const RECEPTION = { x: 7.86, frameY: 2.2, frameW: 1.12, frameH: 1.4, z: [2.0, 0, -2.0] as const, logoY: 3.7 } as const;
 export const TABLE = { x: 0, y: 0.8, z: -2.55 } as const;
 
 export const POSES: Record<Station, Pose> = {
-  reception: { target: [7.9, 2.05, 0], dir: [-1, 0.03, 0], fit: [6.4, 3.2], fov: 40, fitTall: [3.4, 3.4] },
+  reception: { target: [7.6, 1.85, 0.2], dir: [-1, 0.09, -0.08], fit: [7.4, 3.9], fov: 42, fitTall: [2.6, 3.6] },
   albums: { target: [0, 1.95, WALL.z], dir: [0, 0.05, 1], fit: [10.6, 3.4], fov: 38, fitTall: [3.6, 3.2], screenY: 0.66 },
-  album: { target: [TABLE.x, TABLE.y + 0.04, TABLE.z], dir: [0.12, 0.7, 1], fit: [2.3, 1.45], fov: 34, fitTall: [1.25, 1.0] },
+  album: { target: [TABLE.x, TABLE.y + 0.03, TABLE.z + 0.05], dir: [0.1, 0.95, 0.85], fit: [1.3, 0.9], fov: 34, fitTall: [1.05, 0.95] },
   videos: { target: [-7.9, 1.95, -0.6], dir: [1, 0.04, 0.12], fit: [3.8, 2.4], fov: 38 },
   packages: { target: [-4.4, 1.05, 4.35], dir: [0.4, 0.42, -1], fit: [3.3, 1.7], fov: 38 },
-  about: { target: [6.15, 1.75, -5.7], dir: [-0.35, 0.04, 1], fit: [3.2, 2.6], fov: 38 },
-  services: { target: [5.4, 1.3, 4.9], dir: [-0.65, 0.16, -1], fit: [3.6, 2.6], fov: 38 },
+  about: { target: [7.0, 1.6, -4.6], dir: [-0.85, 0.1, 0.55], fit: [3.6, 2.8], fov: 38 },
+  services: { target: [3.8, 1.35, 5.2], dir: [-0.3, 0.16, -1], fit: [3.4, 2.6], fov: 38 },
   contact: { target: [6.25, 1.2, 0.5], dir: [-1, 0.3, -0.2], fit: [2.6, 1.6], fov: 36 },
 };
 
@@ -118,7 +118,9 @@ export function entryFrom(c: CameraState): CameraState {
 export function pathMid(a: Vec3, b: Vec3): Vec3 {
   const centre: Vec3 = [0, 1.75, 1.2];
   const mid: Vec3 = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2, (a[2] + b[2]) / 2];
-  const pull = Math.min(0.55, len([b[0] - a[0], 0, b[2] - a[2]]) / 16);
+  // only long, cross-room moves bend (gently) toward the open floor; short moves stay short and direct
+  const d = len([b[0] - a[0], 0, b[2] - a[2]]);
+  const pull = d < 5 ? 0 : Math.min(0.28, (d - 5) / 25);
   return [mid[0] + (centre[0] - mid[0]) * pull, mid[1] + (centre[1] - mid[1]) * pull + 0.08, mid[2] + (centre[2] - mid[2]) * pull];
 }
 

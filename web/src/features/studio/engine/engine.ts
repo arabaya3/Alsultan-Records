@@ -1,18 +1,25 @@
 import { gsap } from "gsap";
 import * as THREE from "three";
 import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment.js";
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { median, tierAfterProbe, type Tier } from "../capability";
 import { POSES, cameraFor, entryFrom, moveDuration, pathMid, type CameraState, type Vec3 } from "../poses";
 import { SIDE_TEXT, type Station } from "../stations";
-import { buildRoom, type FrameSlot, type Room } from "./room";
+import { buildRoom, PROPS, type FrameSlot, type Room, type SurfaceName, type TextureSet } from "./room";
 
 /**
  * The studio engine: one persistent room, one camera. Everything the visitor sees is driven by `set()`:
- * the station (corner) comes from the URL, the images from the page's real data. The engine never touches
- * history or the DOM outside its canvas; it reports hotspot rectangles so real HTML links sit over the frames.
+ * the corner comes from the URL, the images from the page's real data. The engine never touches history or the DOM
+ * outside its canvas; it reports hotspot rectangles so real HTML links sit over the prints.
  *
- * Rendering is on demand: frames are drawn only while something moves (camera, hover, a texture fading in),
- * then the loop stops. Hidden tab / stage out of view → nothing is drawn at all.
+ * Start-up is staged so the page never freezes: build the room (flat colours) → compile shaders asynchronously
+ * (parallel compile where the GPU supports it) → first frame → surfaces and props stream in afterwards, one per
+ * idle slice. `onReady` fires once the current corner's own images are on screen (or failed), so the canvas only
+ * replaces the static studio when there is something finished to show.
+ *
+ * Rendering is on demand: frames are drawn only while something moves, then the loop stops; nothing is drawn while
+ * the tab is hidden or the stage is out of view.
  */
 export type FrameImage = { key: string; src: string } | null;
 export type AlbumImage = { key: string; cover: string | null; inner: string | null };
@@ -25,7 +32,7 @@ export type SceneInput = {
   /** set when the wall shows another group: +1 next, -1 previous */
   wallDir?: number;
   album?: AlbumImage | null;
-  /** +1 next album, -1 previous album (the book slides out and the neighbour slides in) */
+  /** +1 next album, -1 previous album (the book closes, slides away and the neighbour slides in) */
   albumDir?: number;
   shelf?: FrameImage[];
   screen?: string;
@@ -38,44 +45,64 @@ export type EngineOptions = {
   onRects?: (rects: Record<string, Rect | null>) => void;
   onFail?: (reason: string) => void;
   onTier?: (tier: Tier) => void;
-  onIdle?: () => void;
   onMoving?: (moving: boolean) => void;
+  /** the current corner is fully drawn (its images loaded or failed) */
+  onReady?: () => void;
 };
+
+export type FrameStats = { frames: number; avgMs: number; p95Ms: number; maxMs: number; over50: number };
 
 export type StudioEngine = {
   set: (input: SceneInput, opts?: { instant?: boolean; entry?: boolean }) => void;
   hover: (key: string | null) => void;
   /** dolly toward a hotspot before the route changes (wall:<i> / reception:<i>) */
   preview: (key: string) => void;
+  /** phones: turn toward print `key` while the visitor scrolls through the list (short, interruptible) */
+  focus: (key: string | null) => void;
   resize: (w: number, h: number) => void;
-  /** draw once more (e.g. a hotspot registered and needs its position) */
   refresh: () => void;
   setVisible: (visible: boolean) => void;
-  stats: () => { textures: number; calls: number; triangles: number; tier: Tier; moving: boolean; camera: number[]; target: number[]; station: Station | null };
+  stats: () => {
+    textures: number;
+    geometries: number;
+    calls: number;
+    triangles: number;
+    tier: Tier;
+    moving: boolean;
+    camera: number[];
+    target: number[];
+    station: Station | null;
+    frames: FrameStats;
+  };
+  /** frame-time stats of camera moves since the last call */
+  takeFrameStats: () => FrameStats;
   dispose: () => void;
 };
 
 const v3 = (a: Vec3) => new THREE.Vector3(a[0], a[1], a[2]);
-const TEX_LIMIT = 24;
+const TEX_LIMIT = 28;
+const nextIdle = () =>
+  new Promise<void>((r) => ("requestIdleCallback" in window ? window.requestIdleCallback(() => r(), { timeout: 400 }) : setTimeout(r, 30)));
+const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
 
 export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): StudioEngine {
   let tier: Tier = opts.tier;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: tier === "high", powerPreference: "high-performance", alpha: false, stencil: false });
-  renderer.setClearColor(0x0b0907, 1);
+  renderer.setClearColor(0x14100c, 1);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.35;
+  renderer.toneMappingExposure = 1.15;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = tier === "high";
   renderer.shadowMap.type = THREE.PCFShadowMap;
-  const maxDpr = () => (tier === "high" ? Math.min(window.devicePixelRatio || 1, 1.75) : 1);
+  const maxDpr = () => (tier === "high" ? Math.min(window.devicePixelRatio || 1, 1.75) : Math.min(window.devicePixelRatio || 1, 1.25));
   renderer.setPixelRatio(maxDpr());
 
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(0x0b0907, 11, 26);
+  scene.fog = new THREE.Fog(0x14100c, 14, 30);
   const pmrem = new THREE.PMREMGenerator(renderer);
   const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
   scene.environment = envRT.texture;
-  scene.environmentIntensity = 0.32;
+  scene.environmentIntensity = 0.45;
   pmrem.dispose();
 
   const room: Room = buildRoom(tier);
@@ -90,37 +117,41 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     camera.lookAt(cam.target);
   };
 
-  // ------------------------------------------------------------------ render loop (on demand)
+  // ------------------------------------------------------------------ render loop (on demand) + frame stats
   let width = 1;
   let height = 1;
   let visible = true;
   let disposed = false;
+  let compiled = false;
   let raf = 0;
   let activeUntil = 0;
   let moving = false;
   let last = 0;
   const probe: number[] = [];
   let probing = true;
+  let moveFrames: number[] = [];
 
   const invalidate = (ms = 120) => {
     activeUntil = Math.max(activeUntil, performance.now() + ms);
-    if (!raf && visible && !disposed) raf = requestAnimationFrame(frame);
+    if (!raf && visible && !disposed && compiled) raf = requestAnimationFrame(frame);
   };
   const frame = (now: number) => {
     raf = 0;
     if (disposed || !visible) return;
-    if (probing && last && now - last < 250) {
-      probe.push(now - last);
-      if (probe.length >= 24) finishProbe();
+    if (last && now - last < 250) {
+      const dt = now - last;
+      if (moving) moveFrames.push(dt);
+      if (probing) {
+        probe.push(dt);
+        if (probe.length >= 30) finishProbe();
+      }
     }
     last = now;
+    room.book.sync();
     renderer.render(scene, camera);
     report();
     if (now < activeUntil) raf = requestAnimationFrame(frame);
-    else {
-      last = 0;
-      opts.onIdle?.();
-    }
+    else last = 0;
   };
   const finishProbe = () => {
     probing = false;
@@ -138,12 +169,20 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
       const l = o as THREE.SpotLight;
       if (l.isSpotLight) l.castShadow = false;
       const mesh = o as THREE.Mesh;
-      if (mesh.isMesh) {
-        const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
-        mats.forEach((mt) => (mt.needsUpdate = true));
-      }
+      if (mesh.isMesh) (Array.isArray(mesh.material) ? mesh.material : [mesh.material]).forEach((mt) => (mt.needsUpdate = true));
     });
     opts.onTier?.(tier);
+  };
+  const frameStats = (xs: number[]): FrameStats => {
+    if (!xs.length) return { frames: 0, avgMs: 0, p95Ms: 0, maxMs: 0, over50: 0 };
+    const s = [...xs].sort((a, b) => a - b);
+    return {
+      frames: xs.length,
+      avgMs: +(xs.reduce((a, b) => a + b, 0) / xs.length).toFixed(1),
+      p95Ms: +s[Math.floor(s.length * 0.95)].toFixed(1),
+      maxMs: +s[s.length - 1].toFixed(1),
+      over50: xs.filter((x) => x > 50).length,
+    };
   };
 
   // ------------------------------------------------------------------ hotspot projection
@@ -174,12 +213,14 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     opts.onRects(out);
   };
 
-  // ------------------------------------------------------------------ textures (same-origin, cached, bounded)
+  // ------------------------------------------------------------------ textures (same-origin, cached, bounded, no retry loops)
   const loader = new THREE.TextureLoader();
   const cache = new Map<string, Promise<THREE.Texture | null>>();
   const loaded = new Map<string, THREE.Texture>();
+  const failed = new Set<string>(); // a photo that is gone (unpublished) is not requested again in this visit
   const inUse = new Set<string>();
   const load = (src: string): Promise<THREE.Texture | null> => {
+    if (failed.has(src)) return Promise.resolve(null);
     let p = cache.get(src);
     if (!p) {
       p = new Promise((resolve) => {
@@ -188,14 +229,13 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
           (t) => {
             t.colorSpace = THREE.SRGBColorSpace;
             t.anisotropy = Math.min(4, renderer.capabilities.getMaxAnisotropy());
-            t.generateMipmaps = true;
             loaded.set(src, t);
             evict();
             resolve(t);
           },
           undefined,
           () => {
-            cache.delete(src); // a later visit may retry; this one keeps the plain mat
+            failed.add(src);
             resolve(null);
           },
         );
@@ -214,63 +254,49 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
       cache.delete(src);
     }
   };
-  /** Cover-fit an image into a w×h print (centre crop, never stretched). */
-  const coverFit = (t: THREE.Texture, w: number, h: number) => {
+  const aspectOf = (t: THREE.Texture) => {
     const img = t.image as { width: number; height: number } | undefined;
-    if (!img?.width) return;
-    const ia = img.width / img.height;
-    const fa = w / h;
-    t.wrapS = t.wrapT = THREE.ClampToEdgeWrapping;
-    if (ia > fa) {
-      t.repeat.set(fa / ia, 1);
-      t.offset.set((1 - fa / ia) / 2, 0);
-    } else {
-      t.repeat.set(1, ia / fa);
-      t.offset.set(0, (1 - ia / fa) / 2);
-    }
+    return img?.width ? img.width / img.height : null;
   };
   const shown = new WeakMap<THREE.Material, string | null>();
-  const DARK = new THREE.Color(0x2a2520);
-  /** Put an image on a print / page; fades in when it arrives; null keeps the plain mat. */
-  const setImage = (mat: THREE.MeshStandardMaterial, img: { key: string; src: string } | null, size: [number, number], instant: boolean) => {
+  const PAPER = new THREE.Color(0xe6dccb);
+  type Target = { mat: THREE.MeshStandardMaterial; fit: (aspect: number | null) => void };
+  /** Put a photo on a print (whole photo; the print takes its proportions); null / failed keeps a blank mat. */
+  const setImage = (target: Target, img: { key: string; src: string } | null, instant: boolean): Promise<void> => {
+    const { mat, fit } = target;
     const want = img?.src ?? null;
-    if (shown.get(mat) === want) return;
+    if (shown.get(mat) === want) return Promise.resolve();
     const prev = shown.get(mat);
     if (prev) inUse.delete(prev);
     shown.set(mat, want);
-    if (!want) {
+    const blank = () => {
       mat.map = null;
-      mat.color.copy(DARK);
+      mat.color.copy(PAPER);
       mat.needsUpdate = true;
+      fit(null);
       invalidate();
-      return;
+    };
+    if (!want) {
+      blank();
+      return Promise.resolve();
     }
     inUse.add(want);
-    void load(want).then((t) => {
+    return load(want).then((t) => {
       if (disposed || shown.get(mat) !== want) return;
-      if (!t) {
-        mat.map = null;
-        mat.color.copy(DARK);
-        mat.needsUpdate = true;
-        invalidate();
-        return;
-      }
-      const tex = t.clone(); // per-use UV fit; shares the GPU image
-      tex.needsUpdate = true;
-      coverFit(tex, size[0], size[1]);
-      const old = mat.map;
-      mat.map = tex;
+      if (!t) return blank();
+      fit(aspectOf(t));
+      mat.map = t;
       mat.needsUpdate = true;
-      if (old && old !== tex) old.dispose();
       if (instant || opts.reducedMotion) {
         mat.color.set(0xffffff);
         invalidate();
       } else {
-        mat.color.copy(DARK);
-        gsap.to(mat.color, { r: 1, g: 1, b: 1, duration: 0.55, ease: "power1.out", onUpdate: () => invalidate() });
+        mat.color.copy(PAPER);
+        gsap.to(mat.color, { r: 1, g: 1, b: 1, duration: 0.5, ease: "power1.out", onUpdate: () => invalidate() });
       }
     });
   };
+  const slotTarget = (s: FrameSlot): Target => ({ mat: s.photo.material, fit: s.fit });
 
   // ------------------------------------------------------------------ camera moves
   let camTween: gsap.core.Tween | null = null;
@@ -279,7 +305,7 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     moving = m;
     opts.onMoving?.(m);
   };
-  const goTo = (to: CameraState, duration: number, ease = "power2.inOut", path = true) => {
+  const goTo = (to: CameraState, duration: number, ease = "power2.inOut", curved = true) => {
     camTween?.kill();
     const from = { pos: cam.pos.clone(), target: cam.target.clone(), fov: cam.fov };
     const p1 = v3(to.position);
@@ -293,7 +319,7 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
       invalidate();
       return;
     }
-    const mid = path ? v3(pathMid([from.pos.x, from.pos.y, from.pos.z], to.position)) : from.pos.clone().lerp(p1, 0.5);
+    const mid = curved ? v3(pathMid([from.pos.x, from.pos.y, from.pos.z], to.position)) : from.pos.clone().lerp(p1, 0.5);
     const curve = new THREE.QuadraticBezierCurve3(from.pos, mid, p1);
     const s = { t: 0 };
     setMoving(true);
@@ -303,8 +329,8 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
       ease,
       onUpdate: () => {
         curve.getPoint(s.t, cam.pos);
-        // the aim leads slightly: turning starts before the walk does — reads as a head turn, not a slide
-        const k = Math.min(1, s.t * 1.15);
+        // the aim leads slightly: the head turns before the walk ends
+        const k = Math.min(1, s.t * 1.12);
         cam.target.lerpVectors(from.target, t1, k);
         cam.fov = from.fov + (to.fov - from.fov) * s.t;
         applyCam();
@@ -322,99 +348,118 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
 
   // ------------------------------------------------------------------ lighting per corner
   let lightTween: gsap.core.Tween | null = null;
+  const mood = { k: 1, screen: 0.45 };
+  const applyMood = () => {
+    room.lights.ambient.intensity = (room.lights.base.get(room.lights.ambient) ?? 0) * (0.35 + 0.65 * mood.k);
+    for (const l of room.lights.dimmable) l.intensity = (room.lights.base.get(l) ?? 0) * mood.k;
+    for (const g of room.glows) {
+      const mt = g.material as THREE.MeshBasicMaterial;
+      mt.opacity = (g.userData.base ??= mt.opacity) * (0.45 + 0.55 * mood.k);
+    }
+    room.screen.color.setScalar(mood.screen);
+    for (const l of room.lights.videos) l.intensity = (room.lights.base.get(l) ?? 0) * (0.3 + mood.screen);
+    invalidate();
+  };
   const setMood = (s: Station, instant: boolean) => {
-    const dim = s === "videos";
-    const target = { k: dim ? 0.32 : 1, screen: dim ? 1 : 0.42 };
-    const cur = { k: room.lights.ambient.intensity / (room.lights.base.get(room.lights.ambient) || 1), screen: room.screen.color.r };
+    const target = { k: s === "videos" ? 0.38 : 1, screen: s === "videos" ? 1 : 0.45 };
     lightTween?.kill();
-    const apply = () => {
-      room.lights.ambient.intensity = (room.lights.base.get(room.lights.ambient) ?? 0) * cur.k;
-      for (const l of room.lights.dimmable) l.intensity = (room.lights.base.get(l) ?? 0) * cur.k;
-      for (const g of room.glows) (g.material as THREE.MeshBasicMaterial).opacity = (g.userData.base ??= (g.material as THREE.MeshBasicMaterial).opacity) * (0.4 + 0.6 * cur.k);
-      room.screen.color.setScalar(cur.screen);
-      for (const l of room.lights.videos) l.intensity = (room.lights.base.get(l) ?? 0) * (0.3 + cur.screen);
-      invalidate();
-    };
     if (instant || opts.reducedMotion) {
-      Object.assign(cur, target);
-      apply();
+      Object.assign(mood, target);
+      applyMood();
       return;
     }
-    lightTween = gsap.to(cur, { ...target, duration: 0.9, ease: "power1.inOut", onUpdate: apply });
+    lightTween = gsap.to(mood, { ...target, duration: 0.9, ease: "power1.inOut", onUpdate: applyMood });
   };
 
-  // ------------------------------------------------------------------ book
+  // ------------------------------------------------------------------ the album on the table
   let bookTl: gsap.core.Timeline | null = null;
   let bookKey: string | null = null;
   const book = room.book;
-  const setBookImages = (a: AlbumImage | null, instant: boolean) => {
-    const [bw, bd] = book.size;
-    const page: [number, number] = [bw - 0.08, bd - 0.08];
-    setImage(book.rightPage.material, a?.cover ? { key: `${a.key}:c`, src: a.cover } : null, page, instant);
-    setImage(book.leftPage.material, a?.inner ? { key: `${a.key}:i`, src: a.inner } : a?.cover ? { key: `${a.key}:c`, src: a.cover } : null, page, instant);
+  const pageFit = (mesh: THREE.Mesh) => (aspectRatio: number | null) => {
+    // the photo sits on the page with a paper margin, whole (contain)
+    const [pw, pd] = book.page;
+    let w = pw;
+    let h = pd;
+    if (aspectRatio) {
+      if (aspectRatio > pw / pd) h = pw / aspectRatio;
+      else w = pd * aspectRatio;
+    }
+    mesh.scale.set(w, h, 1);
   };
-  const openBook = (open: boolean, instant: boolean, delay = 0) => {
+  const rightTarget: Target = { mat: book.rightPage.material, fit: pageFit(book.rightPage) };
+  const leftTarget: Target = { mat: book.leftPage.material, fit: pageFit(book.leftPage) };
+  const setBookImages = (a: AlbumImage | null, instant: boolean) =>
+    Promise.all([
+      setImage(rightTarget, a?.cover ? { key: `${a.key}:c`, src: a.cover } : null, instant),
+      setImage(leftTarget, a?.inner ? { key: `${a.key}:i`, src: a.inner } : a?.cover ? { key: `${a.key}:c`, src: a.cover } : null, instant),
+    ]);
+  const OPEN = 0;
+  const CLOSED = -Math.PI;
+  const hingeTo = (angle: number, instant: boolean, delay = 0) => {
     bookTl?.kill();
-    const angle = open ? Math.PI : 0;
     if (instant || opts.reducedMotion) {
-      book.cover.rotation.z = angle;
+      book.hinge.rotation.z = angle;
       book.group.position.copy(book.home);
+      book.sync();
       invalidate();
       return;
     }
     bookTl = gsap.timeline({ delay, onUpdate: () => invalidate() });
-    bookTl.to(book.cover.rotation, { z: angle, duration: open ? 0.75 : 0.4, ease: open ? "power2.inOut" : "power2.in" });
+    bookTl.to(book.hinge.rotation, { z: angle, duration: angle === OPEN ? 0.85 : 0.5, ease: angle === OPEN ? "power2.inOut" : "power2.in" });
   };
-  /** Album → neighbour: close, slide out (RTL: next leaves to the right), swap, slide in from the other side, open. */
+  /** Album → neighbour: close, slide away (RTL: next leaves to the right), swap, slide in from the other side, open. */
   const swapBook = (a: AlbumImage | null, dir: number) => {
     bookTl?.kill();
-    const out = dir > 0 ? 1.5 : -1.5;
-    const shadow = book.group.userData.shadow as THREE.Mesh | undefined;
+    const out = dir > 0 ? 1.2 : -1.2;
+    const shadow = (book.group.userData.shadow as THREE.Mesh | undefined)?.position ?? new THREE.Vector3();
     bookTl = gsap.timeline({ onUpdate: () => invalidate() });
     bookTl
-      .to(book.cover.rotation, { z: 0, duration: 0.32, ease: "power2.in" })
-      .to(book.group.position, { x: book.home.x + out, duration: 0.34, ease: "power2.in" }, ">-0.04")
+      .to(book.hinge.rotation, { z: CLOSED, duration: 0.42, ease: "power2.in" })
+      .to([book.group.position, shadow], { x: book.home.x + out, duration: 0.36, ease: "power2.in" }, ">-0.02")
       .add(() => {
-        setBookImages(a, true);
+        void setBookImages(a, true);
         book.group.position.x = book.home.x - out;
+        shadow.x = book.home.x - out;
       })
-      .to(book.group.position, { x: book.home.x, duration: 0.38, ease: "power2.out" })
-      .to(book.cover.rotation, { z: Math.PI, duration: 0.55, ease: "power2.inOut" }, ">-0.05");
-    if (shadow) shadow.visible = true;
+      .to([book.group.position, shadow], { x: book.home.x, duration: 0.4, ease: "power2.out" })
+      .to(book.hinge.rotation, { z: OPEN, duration: 0.7, ease: "power2.inOut" }, ">-0.04");
   };
 
   // ------------------------------------------------------------------ wall group swap
   let wallKeys: (string | null)[] = [];
   let wallTl: gsap.core.Timeline | null = null;
-  const setWall = (imgs: FrameImage[], dir: number, instant: boolean) => {
+  const setWall = (imgs: FrameImage[], dir: number, instant: boolean): Promise<unknown> => {
     const keys = room.wall.map((_, i) => imgs[i]?.src ?? null);
-    if (keys.join("|") === wallKeys.join("|")) return;
+    if (keys.join("|") === wallKeys.join("|")) return Promise.resolve();
     wallKeys = keys;
     const apply = (inst: boolean) =>
-      room.wall.forEach((slot, i) => {
-        slot.group.visible = Boolean(imgs[i]);
-        setImage(slot.photo.material, imgs[i] ?? null, slot.size, inst);
-      });
+      Promise.all(
+        room.wall.map((slot, i) => {
+          slot.group.visible = Boolean(imgs[i]);
+          return setImage(slotTarget(slot), imgs[i] ?? null, inst);
+        }),
+      );
     wallTl?.kill();
     if (!dir || instant || opts.reducedMotion) {
       room.wall.forEach((s) => {
         s.group.position.copy(s.rest.position);
         s.group.rotation.x = 0;
       });
-      apply(instant);
+      const p = apply(instant);
       invalidate();
-      return;
+      return p;
     }
-    // prints lift off the rope, the next group drops in (direction-aware sideways drift)
+    // prints lift off the rope; the next group drops in (direction-aware)
     wallTl = gsap.timeline({ onUpdate: () => invalidate() });
     const groups = room.wall.map((s) => s.group);
     wallTl
-      .to(groups.map((g) => g.position), { y: `+=0.25`, x: (i) => room.wall[i].rest.position.x + dir * 0.35, duration: 0.28, ease: "power2.in", stagger: 0.03 })
-      .to(groups.map((g) => g.rotation), { x: -0.5, duration: 0.28, ease: "power2.in" }, "<")
-      .add(() => apply(true))
-      .set(groups.map((g) => g.position), { x: (i) => room.wall[i].rest.position.x - dir * 0.35 })
-      .to(groups.map((g) => g.position), { y: (i) => room.wall[i].rest.position.y, x: (i) => room.wall[i].rest.position.x, duration: 0.42, ease: "back.out(1.4)", stagger: 0.04 })
+      .to(groups.map((g) => g.position), { y: "+=0.22", x: (i) => room.wall[i].rest.position.x + dir * 0.3, duration: 0.26, ease: "power2.in", stagger: 0.03 })
+      .to(groups.map((g) => g.rotation), { x: -0.45, duration: 0.26, ease: "power2.in" }, "<")
+      .add(() => void apply(true))
+      .set(groups.map((g) => g.position), { x: (i) => room.wall[i].rest.position.x - dir * 0.3 })
+      .to(groups.map((g) => g.position), { y: (i) => room.wall[i].rest.position.y, x: (i) => room.wall[i].rest.position.x, duration: 0.42, ease: "back.out(1.3)", stagger: 0.04 })
       .to(groups.map((g) => g.rotation), { x: 0, duration: 0.42, ease: "power2.out" }, "<");
+    return Promise.resolve();
   };
 
   // ------------------------------------------------------------------ hover
@@ -429,65 +474,70 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     const prev = hovered ? slotOf(hovered) : null;
     hovered = key;
     const next = key ? slotOf(key) : null;
-    const d = opts.reducedMotion ? 0 : 0.35;
+    const d = opts.reducedMotion ? 0 : 0.3;
     if (prev) gsap.to(prev.group.position, { z: prev.rest.position.z, duration: d, ease: "power2.out", onUpdate: () => invalidate() });
-    if (prev) gsap.to(prev.group.rotation, { z: prev.rest.rotZ, duration: d, onUpdate: () => invalidate() });
-    if (next) gsap.to(next.group.position, { z: next.rest.position.z + 0.06, duration: d, ease: "power2.out", onUpdate: () => invalidate() });
-    if (next) gsap.to(next.group.rotation, { z: 0, duration: d, onUpdate: () => invalidate() });
+    if (next) gsap.to(next.group.position, { z: next.rest.position.z + 0.05, duration: d, ease: "power2.out", onUpdate: () => invalidate() });
     invalidate(d * 1000 + 60);
   };
 
   // ------------------------------------------------------------------ public: set()
   let logoSrc: string | null = null;
   let screenSrc: string | null = null;
+  let readySent = false;
+  let focusKey: string | null = null;
   const set: StudioEngine["set"] = (input, o = {}) => {
     const instant = Boolean(o.instant) || opts.reducedMotion;
     const prevStation = station;
     station = input.station;
+    const pending: Promise<unknown>[] = [];
 
     if (input.logo && input.logo !== logoSrc) {
       logoSrc = input.logo;
-      void load(input.logo).then((t) => {
-        if (!t || disposed) return;
-        room.logo.map = t;
-        room.logo.needsUpdate = true;
-        if (instant) room.logo.opacity = 1;
-        else gsap.to(room.logo, { opacity: 1, duration: 0.6, onUpdate: () => invalidate() });
-        invalidate();
-      });
+      pending.push(
+        load(input.logo).then((t) => {
+          if (!t || disposed) return;
+          room.logo.map = t;
+          room.logo.needsUpdate = true;
+          room.logo.opacity = 1;
+          invalidate();
+        }),
+      );
     }
     if (input.screen && input.screen !== screenSrc) {
       screenSrc = input.screen;
-      void load(input.screen).then((t) => {
-        if (!t || disposed) return;
-        const tex = t.clone();
-        tex.needsUpdate = true;
-        coverFit(tex, 16, 9);
-        room.screen.map = tex;
-        room.screen.needsUpdate = true;
-        invalidate();
-      });
+      pending.push(
+        load(input.screen).then((t) => {
+          if (!t || disposed) return;
+          room.screen.map = t;
+          room.screen.needsUpdate = true;
+          invalidate();
+        }),
+      );
     }
-    input.reception?.forEach((img, i) => room.reception[i] && setImage(room.reception[i].photo.material, img, room.reception[i].size, instant));
-    input.shelf?.forEach((img, i) => room.shelf[i] && setImage(room.shelf[i].photo.material, img, room.shelf[i].size, instant));
-    if (input.wall) setWall(input.wall, input.wallDir ?? 0, instant || prevStation !== "albums");
+    input.reception?.forEach((img, i) => room.reception[i] && pending.push(setImage(slotTarget(room.reception[i]), img, instant)));
+    input.shelf?.forEach((img, i) => room.shelf[i] && pending.push(setImage(slotTarget(room.shelf[i]), img, instant)));
+    if (input.wall) pending.push(setWall(input.wall, input.wallDir ?? 0, instant || prevStation !== "albums"));
 
     // the album on the table
-    const nextKey = input.station === "album" ? (input.album?.key ?? null) : bookKey;
     if (input.station === "album") {
+      const nextKey = input.album?.key ?? null;
       if (prevStation === "album" && bookKey && nextKey !== bookKey && input.albumDir && !instant) swapBook(input.album ?? null, input.albumDir);
       else if (nextKey !== bookKey || prevStation !== "album") {
-        setBookImages(input.album ?? null, true);
-        if (prevStation !== "album") book.cover.rotation.z = 0;
-        openBook(true, instant, prevStation === "album" ? 0 : 0.55);
+        pending.push(setBookImages(input.album ?? null, true));
+        if (prevStation !== "album") {
+          book.hinge.rotation.z = instant ? OPEN : CLOSED;
+          book.sync();
+        }
+        hingeTo(OPEN, instant, prevStation === "album" || instant ? 0 : 0.55);
       }
       bookKey = nextKey;
     } else if (prevStation === "album") {
-      openBook(false, instant);
+      hingeTo(CLOSED, instant);
     }
 
     if (prevStation !== input.station || o.entry) setMood(input.station, instant || prevStation === null);
     const to = cameraForStation(input.station);
+    focusKey = null;
     if (o.entry && !instant) {
       const from = entryFrom(to);
       cam.pos.copy(v3(from.position));
@@ -502,6 +552,16 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
       goTo(to, dur);
     }
     invalidate(300);
+    if (!readySent) {
+      // the first corner is "ready" once its images are in (or failed) — capped so a slow image never holds it
+      void Promise.race([Promise.all(pending), new Promise((r) => setTimeout(r, 2500))]).then(async () => {
+        while (!compiled && !disposed) await nextFrame();
+        if (disposed || readySent) return;
+        readySent = true;
+        invalidate(400);
+        requestAnimationFrame(() => requestAnimationFrame(() => opts.onReady?.()));
+      });
+    }
   };
 
   const preview = (key: string) => {
@@ -510,9 +570,25 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     const c = slot.corners();
     const centre = c[0].clone().add(c[2]).multiplyScalar(0.5);
     const normal = new THREE.Vector3(0, 0, 1).applyQuaternion(slot.photo.getWorldQuaternion(new THREE.Quaternion()));
-    const pos = centre.clone().add(normal.multiplyScalar(2.3));
-    pos.y += 0.1;
-    goTo({ position: [pos.x, pos.y, pos.z], target: [centre.x, centre.y, centre.z], fov: cam.fov }, 0.55, "power2.in", false);
+    const pos = centre.clone().add(normal.multiplyScalar(2.4));
+    pos.y += 0.08;
+    goTo({ position: [pos.x, pos.y, pos.z], target: [centre.x, centre.y, centre.z], fov: cam.fov }, 0.5, "power2.in", false);
+  };
+
+  // phones: the camera turns to the print whose card is in the middle of the screen (no path through the room)
+  const focus = (key: string | null) => {
+    if (key === focusKey || !station) return;
+    focusKey = key;
+    const base = cameraForStation(station);
+    const slot = key ? slotOf(key) : null;
+    if (!slot) return goTo(base, opts.reducedMotion ? 0 : 0.6, "power2.out", false);
+    const c = slot.corners();
+    const centre = c[0].clone().add(c[2]).multiplyScalar(0.5);
+    const t = v3(base.target);
+    const shift = centre.clone().sub(t);
+    // keep the corner's viewpoint, slide along the wall to face the print
+    const p = v3(base.position).add(new THREE.Vector3(shift.x, 0, shift.z));
+    goTo({ position: [p.x, p.y, p.z], target: [centre.x, t.y + (centre.y - t.y) * 0.6, centre.z], fov: base.fov }, opts.reducedMotion ? 0 : 0.55, "power2.out", false);
   };
 
   const resize = (w: number, h: number) => {
@@ -522,9 +598,12 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     camera.aspect = width / height;
     camera.updateProjectionMatrix();
     if (station) {
+      const key = focusKey;
+      focusKey = null;
       const to = cameraForStation(station);
-      if (moving && camTween) goTo(to, Math.max(0.25, (camTween.duration() - camTween.time()) || 0.3));
+      if (moving && camTween) goTo(to, Math.max(0.25, camTween.duration() - camTween.time() || 0.3));
       else goTo(to, 0);
+      if (key) focus(key);
     }
     invalidate();
   };
@@ -535,10 +614,65 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
   };
   canvas.addEventListener("webglcontextlost", onLost);
 
+  // ------------------------------------------------------------------ staged start-up
+  void (async () => {
+    applyCam();
+    // 1) shaders compile without blocking where the GPU supports parallel compile; the first frame waits for it
+    //    (the static studio shows meanwhile)
+    try {
+      await renderer.compileAsync(scene, camera);
+    } catch {
+      /* older drivers: compile happens on first render */
+    }
+    if (disposed) return;
+    compiled = true;
+    invalidate(300);
+    // 2) surfaces, one per idle slice (decode + upload spread out)
+    const tl = new THREE.TextureLoader();
+    const loadTex = (u: string) => new Promise<THREE.Texture | null>((r) => tl.load(u, r, undefined, () => r(null)));
+    const SURF: [SurfaceName, string][] = [
+      ["plaster", "clay_plaster"],
+      ["floor", "herringbone_parquet"],
+      ["walnut", "black_walnut_veneer_01"],
+      ["leather", "brown_leather"],
+    ];
+    for (const [name, file] of SURF) {
+      await nextIdle();
+      if (disposed) return;
+      const [color, normal, rough] = await Promise.all(["color", "normal", "rough"].map((k) => loadTex(`/studio/tex/${file}_${k}.webp`)));
+      if (disposed || !color) continue;
+      const surface: TextureSet = { color, normal: normal ?? undefined, rough: rough ?? undefined };
+      room.applySurface(name, surface);
+      await nextFrame();
+      invalidate();
+    }
+    // 3) props (CC0 glTF, meshopt-compressed), one per idle slice; their materials compile before they are shown
+    const gl = new GLTFLoader();
+    gl.setMeshoptDecoder(MeshoptDecoder);
+    for (const name of PROPS) {
+      await nextIdle();
+      if (disposed) return;
+      try {
+        const g = await gl.loadAsync(`/studio/models/${name}.glb`);
+        if (disposed) return;
+        try {
+          await renderer.compileAsync(g.scene, camera, scene);
+        } catch {
+          /* compile on first render */
+        }
+        room.placeProp(name, g);
+        invalidate();
+      } catch {
+        /* a missing prop just leaves its spot empty */
+      }
+    }
+  })();
+
   return {
     set,
     hover,
     preview,
+    focus,
     resize,
     refresh: () => invalidate(),
     setVisible: (v) => {
@@ -551,6 +685,7 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     },
     stats: () => ({
       textures: renderer.info.memory.textures,
+      geometries: renderer.info.memory.geometries,
       calls: renderer.info.render.calls,
       triangles: renderer.info.render.triangles,
       tier,
@@ -558,7 +693,13 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
       camera: cam.pos.toArray().map((n) => +n.toFixed(2)),
       target: cam.target.toArray().map((n) => +n.toFixed(2)),
       station,
+      frames: frameStats(moveFrames),
     }),
+    takeFrameStats: () => {
+      const s = frameStats(moveFrames);
+      moveFrames = [];
+      return s;
+    },
     dispose: () => {
       disposed = true;
       if (raf) cancelAnimationFrame(raf);
@@ -566,7 +707,6 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
       lightTween?.kill();
       bookTl?.kill();
       wallTl?.kill();
-      gsap.killTweensOf([room.logo, ...room.wall.map((s) => s.group.position)]);
       canvas.removeEventListener("webglcontextlost", onLost);
       for (const t of loaded.values()) t.dispose();
       loaded.clear();

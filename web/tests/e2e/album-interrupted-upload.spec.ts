@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { expect, test } from "@playwright/test";
-import { db, newLoggedIn } from "./qa-helpers";
+import { db, newLoggedIn, revalidatePublic } from "./qa-helpers";
 
 /**
  * Interrupted album upload (production incident 2026-10-20: 67 of 95 photos never reached storage after the upload
@@ -64,3 +64,8 @@ test("IU1: a dead (never-uploaded) photo is replaced when the same file is chose
   expect((await db.from("album_photos").select("id").eq("album_id", ALBUM.id).eq("sha256", sha(lost))).data).toHaveLength(1);
   await page.context().close();
 });
+
+// this suite seeds/removes albums directly in the DB: expire the public album cache through the app afterwards, so
+// no later page shows an album that no longer exists (what the admin actions do with updateTag)
+test.beforeAll(() => revalidatePublic(["photo-albums"]));
+test.afterAll(() => revalidatePublic(["photo-albums"]));

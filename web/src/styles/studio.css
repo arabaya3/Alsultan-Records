@@ -13,8 +13,10 @@
   --studio-h: max(560px, 100svh);
 }
 /* phones, tablets in portrait, short windows: the room is a band at the top; the content follows below it */
+/* phones, tablets in portrait: the room stays fixed behind the page (a vertical walk through the studio); the
+   first screen shows the corner, then text and cards scroll over it on a dark gradient */
 @media (max-width: 1023.98px), (max-aspect-ratio: 1/1) {
-  :root { --studio-h: max(300px, 52svh); }
+  :root { --studio-h: 100lvh; --studio-band: 56svh; }
 }
 
 .studio-backdrop { display: none; }
@@ -90,11 +92,29 @@ html[data-studio-station] .hero-flow::after { display: none; }
 
 /* phones / tall: the room band is above the text */
 @media (max-width: 1023.98px), (max-aspect-ratio: 1/1) {
-  html[data-studio-station] .hero-flow { padding-top: calc(var(--studio-h) - var(--header-h) - 5.5rem); }
-  html[data-studio-station] .hero-flow > div:last-child,
-  html[data-studio-station] .studio-stage__inner { padding-top: 1rem; }
-  html[data-studio-station] .studio-shade { background: linear-gradient(to bottom, rgb(7 7 6 / 0.55) 0, rgb(7 7 6 / 0) 22%, rgb(13 12 11 / 0) 52%, rgb(13 12 11) 100%); }
+  html[data-studio-station] .studio-backdrop { position: fixed; height: 100lvh; }
+  html[data-studio-station] .hero-flow { padding-top: calc(var(--studio-band) - var(--header-h)); }
+  html[data-studio-station] .hero-flow:not([data-studio-stage]) > div:last-child,
+  html[data-studio-station] .studio-stage__inner { padding-top: 0.5rem; }
+  /* the text reads over the lower room on a full-width soft dark gradient; the room above stays clear */
+  html[data-studio-station] .hero-flow {
+    background: linear-gradient(to bottom, rgb(13 12 11 / 0) calc(var(--studio-band) - var(--header-h) - 5rem), rgb(13 12 11 / 0.86) calc(var(--studio-band) - var(--header-h) + 1.5rem), rgb(13 12 11 / 0.92)) !important;
+  }
+  html[data-studio-station] .studio-shade { background: linear-gradient(to bottom, rgb(7 7 6 / 0.55) 0, rgb(7 7 6 / 0) 18%, rgb(13 12 11 / 0) 44%, rgb(13 12 11 / 0.5) 70%, rgb(13 12 11 / 0.72) 100%); }
+  /* the albums list and the reception prints walk over the room: cards carry their own dark ground */
+  html[data-studio="scene"][data-studio-station="albums"] main > section:first-of-type { background: transparent; }
+  html[data-studio="scene"] .studio-wall__item > a,
+  html[data-studio="scene"] .studio-hotspot__link { background: rgb(13 12 11 / 0.84); border-radius: var(--radius-lg); padding: 0.5rem; }
+  html[data-studio="scene"] [data-studio-wall] > li[data-focus] > a,
+  html[data-studio="scene"] .studio-hotspot[data-focus] .studio-hotspot__link { outline: 1px solid var(--color-hairline-gold); }
 }
+
+/* arriving at another corner (client navigation only): the new hero fades in as the camera arrives — content stays
+   in the page and usable, the fade never outlasts the move */
+html[data-studio-station] .hero-flow:not([data-studio-stage]) > div:last-child,
+html[data-studio-station] .studio-stage__copy { transition: opacity 0.45s ease, translate 0.45s ease; }
+html[data-studio="scene"][data-studio-arriving] .hero-flow:not([data-studio-stage]) > div:last-child,
+html[data-studio="scene"][data-studio-arriving] .studio-stage__copy { opacity: 0; translate: 0 8px; transition: none; }
 
 /* wide + scene: the hero fills the room's first screen; text sits on the start (right) side, the room on the left */
 @media (min-width: 1024px) and (min-aspect-ratio: 1/1) {
@@ -185,11 +205,12 @@ html[data-studio="scene"] [data-projected="1"] { will-change: transform; }
   html[data-studio="scene"] .studio-hotspot[data-projected="1"] .studio-hotspot__img,
   html[data-studio="scene"] [data-studio-wall] > li[data-projected="1"] img { opacity: 0; }
   html[data-studio="scene"] .studio-hotspot[data-projected="1"] .studio-hotspot__label {
-    justify-content: center; text-align: center; padding-top: 1.1rem; flex-wrap: wrap; width: max-content; min-width: 100%; margin-inline: auto;
+    justify-content: center; text-align: center; margin-top: 0.8rem; flex-wrap: wrap; width: max-content; max-width: 16rem;
     position: relative; inset-inline-start: 50%; translate: 50% 0;
+    padding: 0.4rem 0.85rem 0.5rem; border-radius: 999px; background: rgb(13 12 11 / 0.72); border: 1px solid rgb(233 185 73 / 0.25);
     text-shadow: 0 1px 12px rgb(0 0 0 / 0.95), 0 0 2px rgb(0 0 0 / 0.9);
   }
-  html[data-studio="scene"] .studio-hotspot[data-projected="1"] .studio-hotspot__caption { flex-basis: 100%; order: 3; }
+  html[data-studio="scene"] .studio-hotspot[data-projected="1"] .studio-hotspot__caption { display: none; }
   html[data-studio="scene"] .studio-hotspot[data-projected="1"] .studio-hotspot__arrow { margin-inline: 0; background: rgb(7 7 6 / 0.55); }
   html[data-studio="scene"] .studio-hotspot[data-projected="1"] .studio-hotspot__link:focus-visible,
   html[data-studio="scene"] [data-studio-wall] > li[data-projected="1"] a:focus-visible { outline: 2px solid var(--color-gold); outline-offset: 6px; }

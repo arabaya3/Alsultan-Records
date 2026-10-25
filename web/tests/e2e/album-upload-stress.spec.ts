@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import { expect, test } from "@playwright/test";
-import { db, newLoggedIn } from "./qa-helpers";
+import { db, newLoggedIn, revalidatePublic } from "./qa-helpers";
 
 /**
  * Representative studio batch (review item 4) — OPT-IN, LOCAL STACK ONLY, never against production:
@@ -174,3 +174,8 @@ test("S1: 100 representative camera files (60 large JPEG + 40 RAW) through the a
   expect(failed).toEqual([]);
   expect(db_.filter((r) => r.upload_status === "uploading")).toHaveLength(0);
 });
+
+// this suite seeds/removes albums directly in the DB: expire the public album cache through the app afterwards, so
+// no later page shows an album that no longer exists (what the admin actions do with updateTag)
+test.beforeAll(() => revalidatePublic(["photo-albums"]));
+test.afterAll(() => revalidatePublic(["photo-albums"]));

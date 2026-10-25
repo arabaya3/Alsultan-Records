@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import sharp from "sharp";
-import { db } from "./qa-helpers";
+import { db, revalidatePublic } from "./qa-helpers";
 
 /**
  * Photos tab, album page, lightbox and the gated /p route. LOCAL STACK ONLY.
@@ -232,3 +232,8 @@ test.describe("with a temporary published album", () => {
     }
   });
 });
+
+// this suite seeds/removes albums directly in the DB: expire the public album cache through the app afterwards, so
+// no later page shows an album that no longer exists (what the admin actions do with updateTag)
+test.beforeAll(() => revalidatePublic(["photo-albums"]));
+test.afterAll(() => revalidatePublic(["photo-albums"]));

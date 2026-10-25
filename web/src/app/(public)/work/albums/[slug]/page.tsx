@@ -14,6 +14,7 @@ import { getAlbumBySlug, getPublishedAlbums } from "@/features/public-content/ga
 import Link from "next/link";
 import { STUDIO_ENABLED } from "@/features/studio/config";
 import { StudioPage } from "@/features/studio/StudioProvider";
+import { AlbumSwipe } from "@/features/studio/AlbumSwipe";
 import { formatDateAr } from "@/features/public-content/labels";
 import { getBusinessSettings } from "@/features/public-content/queries";
 import { JsonLd } from "@/components/ui/JsonLd";
@@ -79,30 +80,33 @@ async function AlbumNeighbors({ slug, cover, inner }: { slug: string; cover: str
   if (i < 0) return null;
   const prev = list[i - 1];
   const next = list[i + 1];
-  const scene = STUDIO_ENABLED ? <StudioPage station="album" album={{ image: { key: slug, cover: cover ? photoUrl(cover, "thumb") : null, inner: inner ? photoUrl(inner, "thumb") : null }, index: i }} /> : null;
+  const scene = STUDIO_ENABLED ? <StudioPage station="album" album={{ image: { key: slug, cover: cover ? photoUrl(cover, "display") : null, inner: inner ? photoUrl(inner, "display") : null }, index: i }} /> : null;
   if (!prev && !next) return scene;
-  const cls = "inline-flex min-h-11 max-w-full items-center gap-2 rounded-sm border border-hairline-gold bg-night/70 px-4 py-2 text-start text-sm transition-colors hover:border-gold hover:text-gold";
+  // compact: the action is the label, the destination's name a quiet second line (never dominating the scene)
+  const cls = "group inline-flex min-h-11 max-w-[15rem] items-center gap-2.5 rounded-sm px-1 py-1 text-start transition-colors hover:text-gold";
+  const arrow = "grid size-9 shrink-0 place-items-center rounded-full border border-hairline-gold text-gold transition-colors group-hover:border-gold group-hover:bg-gold group-hover:text-ink";
   return (
-    <nav aria-label="التنقل بين الألبومات" data-album-nav="" className="flex w-full flex-wrap items-center justify-center gap-3">
+    <nav aria-label="التنقل بين الألبومات" data-album-nav="" className="flex w-full flex-wrap items-center justify-center gap-x-6 gap-y-2">
       {prev ? (
         <Link href={`/work/albums/${prev.slug}`} data-album-prev={prev.slug} className={cls}>
-          <span aria-hidden="true">→</span>
+          <span aria-hidden="true" className={arrow}>→</span>
           <span className="min-w-0">
-            <span className="block text-ivory-muted">الألبوم السابق</span>
-            <bdi dir={bidiDir(prev.title)} className="line-clamp-1 font-semibold">{prev.title}</bdi>
+            <span className="block text-sm font-semibold">الألبوم السابق</span>
+            <bdi dir={bidiDir(prev.title)} className="block truncate text-xs text-ivory-muted">{prev.title}</bdi>
           </span>
         </Link>
       ) : null}
       {next ? (
         <Link href={`/work/albums/${next.slug}`} data-album-next={next.slug} className={cls}>
           <span className="min-w-0">
-            <span className="block text-ivory-muted">الألبوم التالي</span>
-            <bdi dir={bidiDir(next.title)} className="line-clamp-1 font-semibold">{next.title}</bdi>
+            <span className="block text-sm font-semibold">الألبوم التالي</span>
+            <bdi dir={bidiDir(next.title)} className="block truncate text-xs text-ivory-muted">{next.title}</bdi>
           </span>
-          <span aria-hidden="true">←</span>
+          <span aria-hidden="true" className={arrow}>←</span>
         </Link>
       ) : null}
       {scene}
+      {STUDIO_ENABLED ? <AlbumSwipe /> : null}
     </nav>
   );
 }

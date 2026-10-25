@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import sharp from "sharp";
 import { expect, test } from "@playwright/test";
-import { BASE, db, E } from "./qa-helpers";
+import { BASE, db, E, revalidatePublic } from "./qa-helpers";
 
 /**
  * Server-side photo processing queue (no browser involved). Local stack + a server started with JOBS_SECRET:
@@ -79,3 +79,8 @@ test("P3: checksum mismatch fails; stale processing is reclaimed; attempts ≥ 5
   expect((await row(stale)).upload_status).toBe("ready");
   expect(await row(spent)).toMatchObject({ upload_status: "failed", attempts: 5 });
 });
+
+// this suite seeds/removes albums directly in the DB: expire the public album cache through the app afterwards, so
+// no later page shows an album that no longer exists (what the admin actions do with updateTag)
+test.beforeAll(() => revalidatePublic(["photo-albums"]));
+test.afterAll(() => revalidatePublic(["photo-albums"]));
