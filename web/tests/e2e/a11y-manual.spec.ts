@@ -368,7 +368,7 @@ test("reduced motion: no transform animations or transitions run", async ({ brow
           return { transform: kf.some((k) => "transform" in k || "translate" in k || "scale" in k || "rotate" in k), dur: Number(timing?.duration ?? 0) };
         })
         .filter((a) => a.transform && a.dur > 1);
-      const moved = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal], main h1, main [style*=transform]"))
+      const moved = Array.from(document.querySelectorAll<HTMLElement>("[data-reveal], main h1, main [style*=transform]:not([data-projected])") /* studio hotspots are placed (not animated) by a transform */)
         .filter((e) => {
           const t = getComputedStyle(e).transform;
           return t !== "none" && t !== "matrix(1, 0, 0, 1, 0, 0)";

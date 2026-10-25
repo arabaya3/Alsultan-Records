@@ -24,12 +24,13 @@ export type CapabilityInput = {
 };
 
 export function decideTier(c: CapabilityInput): Tier {
-  if (!c.webgl || c.optedOut || c.saveData) return "static";
+  // software rasterizers (SwiftShader, llvmpipe: VMs, blocked GPUs) compile and draw on the CPU and would block
+  // the page's main thread: they get the static studio
+  if (!c.webgl || c.optedOut || c.saveData || c.softwareRenderer) return "static";
   if (c.memoryGb !== undefined && c.memoryGb < 2) return "static";
   const weakCpu = c.cores !== undefined && c.cores <= 4;
   const weakMem = c.memoryGb !== undefined && c.memoryGb <= 4;
-  // A software rasterizer starts low; the frame-time probe then keeps it or moves to the static version.
-  if (weakCpu || weakMem || c.coarse || c.softwareRenderer) return "low";
+  if (weakCpu || weakMem || c.coarse) return "low";
   return "high";
 }
 

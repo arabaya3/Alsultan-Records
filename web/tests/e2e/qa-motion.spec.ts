@@ -23,7 +23,8 @@ async function scrollPage(page: Page) {
 
 const gsapStyles = (page: Page) =>
   page.evaluate(() =>
-    [...document.querySelectorAll<HTMLElement>("main [style]")]
+    // studio hotspots ([data-projected]) are placed over their 3D prints by a transform: placement, not motion
+    [...document.querySelectorAll<HTMLElement>("main [style]:not([data-projected])")]
       .filter((e) => /transform|translate|opacity|visibility|clip-path/.test(e.getAttribute("style") ?? ""))
       .map((e) => `${e.tagName}.${(e.className || "").toString().slice(0, 40)} :: ${e.getAttribute("style")}`),
   );

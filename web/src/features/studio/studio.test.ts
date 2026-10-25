@@ -39,7 +39,7 @@ describe("decideTier", () => {
     expect(decideTier({ webgl: true, cores: 4 })).toBe("low");
     expect(decideTier({ webgl: true, cores: 8, memoryGb: 4 })).toBe("low");
     expect(decideTier({ webgl: true, cores: 8, coarse: true })).toBe("low");
-    expect(decideTier({ webgl: true, cores: 8, softwareRenderer: true })).toBe("low");
+    expect(decideTier({ webgl: true, cores: 8, softwareRenderer: true })).toBe("static");
     expect(decideTier({ webgl: true, cores: 8, memoryGb: 8 })).toBe("high");
     expect(decideTier({ webgl: true })).toBe("high");
   });

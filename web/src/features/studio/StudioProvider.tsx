@@ -2,7 +2,7 @@
 
 import { usePathname, useSearchParams } from "next/navigation";
 import { createContext, Suspense, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { decideTier, type Tier } from "./capability";
+import { decideTier, SOFTWARE_RENDERER, type Tier } from "./capability";
 import { STUDIO_ENTRY_KEY, STUDIO_PREF_KEY } from "./config";
 import type { AlbumImage, FrameImage, Rect, SceneInput, StudioEngine } from "./engine/engine";
 import { stationFor, type Station } from "./stations";
@@ -163,8 +163,24 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
     let inView = true;
     const start = async () => {
       const n = navigator as Navigator & { deviceMemory?: number; connection?: { saveData?: boolean } };
+      // which GPU? a throw-away context (no three.js yet) tells hardware from a software rasterizer
+      let webgl = false;
+      let softwareRenderer = false;
+      try {
+        const gl = document.createElement("canvas").getContext("webgl2") ?? document.createElement("canvas").getContext("webgl");
+        if (gl) {
+          webgl = true;
+          const info = gl.getExtension("WEBGL_debug_renderer_info");
+          const name = String(info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : gl.getParameter(gl.RENDERER));
+          softwareRenderer = SOFTWARE_RENDERER.test(name);
+          gl.getExtension("WEBGL_lose_context")?.loseContext();
+        }
+      } catch {
+        webgl = false;
+      }
       const tier: Tier = decideTier({
-        webgl: true,
+        webgl,
+        softwareRenderer,
         cores: n.hardwareConcurrency,
         memoryGb: n.deviceMemory,
         saveData: n.connection?.saveData,

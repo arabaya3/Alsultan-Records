@@ -151,7 +151,7 @@ test("ST5 without WebGL the static studio is complete: same links, visible cover
   await expect(page.locator("[data-reception-frame] img").first()).toBeVisible();
   await page.goto("/work?tab=photos");
   await expect(page.locator("[data-studio-wall] > li[hidden]")).toHaveCount(0);
-  await expect(page.locator("[data-wall-pager]")).toBeHidden();
+  await expect(page.locator("[data-wall-pager]:visible")).toHaveCount(0);
   await expect(page.locator("[data-studio-wall] img").first()).toBeVisible();
   await page.locator("a[data-album-card]").first().click();
   await expect(page).toHaveURL(/\/work\/albums\//);

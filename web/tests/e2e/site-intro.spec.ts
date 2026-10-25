@@ -7,6 +7,13 @@ import { BASE } from "./qa-helpers";
  *   BASE_URL=http://localhost:3600 npx playwright test site-intro
  */
 const overlay = (page: Page) => page.locator(".site-intro");
+
+// With the immersive studio on (features/studio/config.ts) the opening is the camera's short approach to the
+// reception instead (studio.spec.ts ST2/ST7); this overlay only exists when the studio is switched off.
+test.beforeEach(async ({ request }) => {
+  const html = await (await request.get("/")).text();
+  test.skip(html.includes("data-studio-backdrop"), "studio on: the site opening is the reception approach");
+});
 const on = (page: Page) => page.evaluate(() => document.documentElement.getAttribute("data-site-intro"));
 
 for (const [label, viewport] of [["desktop", { width: 1440, height: 900 }], ["mobile", { width: 390, height: 844 }]] as const) {
