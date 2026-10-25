@@ -42,7 +42,7 @@ export const POSES: Record<Station, Pose> = {
   album: { target: [TABLE.x, TABLE.y + 0.04, TABLE.z], dir: [0.12, 0.7, 1], fit: [2.3, 1.45], fov: 34, fitTall: [1.25, 1.0] },
   videos: { target: [-7.9, 1.95, -0.6], dir: [1, 0.04, 0.12], fit: [3.8, 2.4], fov: 38 },
   packages: { target: [-4.4, 1.05, 4.35], dir: [0.4, 0.42, -1], fit: [3.3, 1.7], fov: 38 },
-  about: { target: [5.4, 1.75, -5.7], dir: [-0.35, 0.04, 1], fit: [3.2, 2.6], fov: 38 },
+  about: { target: [6.15, 1.75, -5.7], dir: [-0.35, 0.04, 1], fit: [3.2, 2.6], fov: 38 },
   services: { target: [5.4, 1.3, 4.9], dir: [-0.65, 0.16, -1], fit: [3.6, 2.6], fov: 38 },
   contact: { target: [6.25, 1.2, 0.5], dir: [-1, 0.3, -0.2], fit: [2.6, 1.6], fov: 36 },
 };

@@ -621,8 +621,8 @@ export function buildRoom(tier: Tier): Room {
   shelfCam.position.set(0.7, rowY[1] + 0.1, 0.05);
   shelfCam.rotation.y = -0.5;
   shelf.add(shelfCam);
-  at(shadowCast(shelf), 5.6, 0, -ROOM.d / 2 + 0.24);
-  glow(3.8, 3.4, 5.6, 1.6, -ROOM.d / 2 + 0.02, 0, 0.32);
+  at(shadowCast(shelf), 6.35, 0, -ROOM.d / 2 + 0.24); // clear of the album wall's right-most print
+  glow(3.8, 3.4, 6.35, 1.6, -ROOM.d / 2 + 0.02, 0, 0.32);
 
   // ---------------------------------------------------------------- services corner (front-east): camera rig + softbox
   const rig = new THREE.Group();
@@ -732,7 +732,7 @@ export function buildRoom(tier: Tier): Room {
   can(4.8, 0, new THREE.Vector3(7.9, 2, 0));
   can(-5.4, -0.6, new THREE.Vector3(-7.9, 2, -0.6));
   can(-4.4, 3.4, new THREE.Vector3(-4.4, 0.8, 4.4));
-  can(5.0, -3.8, new THREE.Vector3(5.6, 1.6, -5.8));
+  can(5.7, -3.8, new THREE.Vector3(6.35, 1.6, -5.8));
 
   // ---------------------------------------------------------------- lights
   const base = new Map<THREE.Light, number>();
@@ -766,7 +766,7 @@ export function buildRoom(tier: Tier): Room {
   const recSpot = spot(new THREE.Vector3(4.2, 4.25, 0.4), new THREE.Vector3(7.6, 1.6, 0), 90, 0.72, true);
   const tableSpot = spot(new THREE.Vector3(TABLE.x + 0.4, 4.25, TABLE.z + 1.2), new THREE.Vector3(TABLE.x, TABLE.y, TABLE.z), 55, 0.42, true);
   const pkgSpot = spot(new THREE.Vector3(-4.4, 4.25, 2.6), new THREE.Vector3(-4.4, 0.8, 4.45), 34, 0.6);
-  const aboutLight = point(new THREE.Vector3(5.6, 2.5, -4.6), 9, 5);
+  const aboutLight = point(new THREE.Vector3(6.35, 2.5, -4.6), 9, 5);
   const lampLight = point(new THREE.Vector3(6.2, 1.45, 1.35), 2.2, 3.2);
   const screenLight = point(new THREE.Vector3(-6.6, 1.9, -0.6), 4, 7, 0xbfd2ff);
   const svcLight = point(new THREE.Vector3(6.3, 1.95, 4.9), tier === "high" ? 5 : 0, 4, 0xfff3e2);
