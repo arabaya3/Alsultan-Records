@@ -42,8 +42,8 @@ export const POSES: Record<Station, Pose> = {
   album: { target: [TABLE.x, TABLE.y + 0.03, TABLE.z + 0.05], dir: [0.1, 0.95, 0.85], fit: [1.3, 0.9], fov: 34, fitTall: [1.05, 0.95] },
   videos: { target: [-7.9, 1.95, -0.6], dir: [1, 0.04, 0.12], fit: [3.8, 2.4], fov: 38 },
   packages: { target: [-4.4, 1.05, 4.35], dir: [0.4, 0.42, -1], fit: [3.3, 1.7], fov: 38 },
-  about: { target: [7.0, 1.6, -4.6], dir: [-0.85, 0.1, 0.55], fit: [3.6, 2.8], fov: 38 },
-  services: { target: [3.8, 1.35, 5.2], dir: [-0.3, 0.16, -1], fit: [3.4, 2.6], fov: 38 },
+  about: { target: [6.8, 1.5, -4.7], dir: [-0.75, 0.1, 0.65], fit: [3.4, 2.7], fov: 38 },
+  services: { target: [4.2, 1.05, 5.15], dir: [-0.45, 0.22, -1], fit: [3.0, 2.0], fov: 38 },
   contact: { target: [6.25, 1.2, 0.5], dir: [-1, 0.3, -0.2], fit: [2.6, 1.6], fov: 36 },
 };
 

@@ -82,8 +82,8 @@ export function buildRoom(tier: Tier): Room {
     wall: std({ color: 0x8c7867, roughness: 0.95 }),
     ceiling: std({ color: 0x1a1612, roughness: 1 }),
     floor: std({ color: 0x7a5236, roughness: 0.5, envMapIntensity: 0.7 }),
-    walnut: std({ color: 0x6a4630, roughness: 0.42, envMapIntensity: 0.6 }),
-    walnutDark: std({ color: 0x3e2a1d, roughness: 0.5, envMapIntensity: 0.5 }),
+    walnut: std({ color: 0x6a4630, roughness: 0.58, envMapIntensity: 0.28 }),
+    walnutDark: std({ color: 0x3e2a1d, roughness: 0.6, envMapIntensity: 0.3 }),
     leather: std({ color: 0x5a3220, roughness: 0.55, envMapIntensity: 0.5 }),
     brass: std({ color: 0xc9a062, roughness: 0.28, metalness: 1, envMapIntensity: 1.2 }),
     brassDull: std({ color: 0x9a7a4c, roughness: 0.45, metalness: 1 }),
@@ -713,6 +713,30 @@ export function buildRoom(tier: Tier): Room {
   at(cast(stand), 3.2, 0, 5.4).rotation.y = -2.9;
   contact(0.9, 0.9, 3.2, 0, 5.4);
 
+  const kase = (w: number, h: number, d: number) => {
+    const g = new THREE.Group();
+    const body = box(w, h, d, m.blackMatte, 0.015);
+    body.position.y = h / 2;
+    g.add(body);
+    const lid = box(w + 0.01, 0.03, d + 0.01, m.black, 0.01);
+    lid.position.y = h * 0.72;
+    g.add(lid);
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) for (const sy of [0, 1]) {
+      const c = box(0.045, 0.045, 0.045, m.brass, 0.008);
+      c.position.set((sx * w) / 2, sy * h, (sz * d) / 2);
+      g.add(c);
+    }
+    const grip = box(0.16, 0.025, 0.03, m.brassDull, 0.01);
+    grip.position.y = h + 0.02;
+    g.add(grip);
+    return cast(g);
+  };
+  at(kase(0.62, 0.36, 0.42), 5.2, 0, 5.45).rotation.y = 0.2;
+  at(kase(0.5, 0.28, 0.34), 5.25, 0.36, 5.45).rotation.y = -0.1;
+  at(kase(0.9, 0.22, 0.32), 3.0, 0, 4.95).rotation.y = -0.4;
+  contact(1.2, 0.9, 5.2, 0, 5.45);
+  contact(1.2, 0.7, 3.0, 0, 4.95);
+
   can(0, -3.6, new THREE.Vector3(0, 1.8, WALL.z));
   can(4.6, 0, new THREE.Vector3(7.9, 2, 0));
   can(-5.4, -0.6, new THREE.Vector3(-7.9, 2, -0.6));
@@ -750,7 +774,7 @@ export function buildRoom(tier: Tier): Room {
   const wallSpot = spot(new THREE.Vector3(0, 4.2, -2.4), new THREE.Vector3(0, 1.8, WALL.z), 140, 0.85);
   const recSpot = spot(new THREE.Vector3(3.9, 4.2, 0.6), new THREE.Vector3(7.6, 1.5, 0), 150, 0.8, true);
   const tableSpot = spot(new THREE.Vector3(TABLE.x + 0.5, 4.2, TABLE.z + 1.0), new THREE.Vector3(TABLE.x, TABLE.y, TABLE.z), 90, 0.42, true, 0.6);
-  const pkgSpot = spot(new THREE.Vector3(-4.4, 4.2, 2.6), new THREE.Vector3(-4.4, 0.8, 4.45), 80, 0.62);
+  const pkgSpot = spot(new THREE.Vector3(-4.4, 4.2, 2.4), new THREE.Vector3(-4.4, 0.8, 4.45), 40, 0.7);
   const aboutSpot = spot(new THREE.Vector3(5.6, 4.2, -2.6), new THREE.Vector3(7.2, 1.6, -4.8), 90, 0.75);
   const fill = point(new THREE.Vector3(0, 3.4, 1.5), 18, 14, 0xffe0c0);
   const lampLight = point(new THREE.Vector3(7.0, 1.55, -1.25), 3.5, 3.5);
@@ -794,7 +818,9 @@ export function buildRoom(tier: Tier): Room {
       };
       mat.map = prep(set.color, true);
       mat.normalMap = prep(set.normal, false);
-      mat.roughnessMap = prep(set.rough, false);
+      // roughness stays a calibrated constant: the CC0 roughness maps are authored for other lighting and made the
+      // varnished surfaces mirror-like under this room's environment light (white sheen on tables and floor)
+      if (name === "plaster") mat.roughnessMap = prep(set.rough, false);
       if (name === "floor") mat.normalScale.set(0.6, 0.6);
       mat.color.set(tint[name][i] ?? tint[name][0]);
       mat.needsUpdate = true;
@@ -861,13 +887,38 @@ export function buildRoom(tier: Tier): Room {
       at(cast(a), -4.75, 0, -0.55);
       contact(1.5, 1.5, -4.75, 0, -0.55);
       const b = s.clone();
-      b.rotation.y = -0.9;
-      at(cast(b), 6.3, 0, -3.7);
-      contact(1.4, 1.4, 6.3, 0, -3.7);
+      b.rotation.y = -2.3; // beside the shelf, facing into the room
+      at(cast(b), 5.0, 0, -4.7);
+      contact(1.4, 1.4, 5.0, 0, -4.7);
     },
     wooden_bookshelf_worn: (s) => {
       const a = s.clone();
+      a.traverse((o) => {
+        const mesh = o as THREE.Mesh;
+        if (!mesh.isMesh) return;
+        const mt = (mesh.material as THREE.MeshStandardMaterial).clone();
+        mt.color.multiplyScalar(0.55); // stained walnut-dark, like the rest of the furniture
+        mesh.material = keep(mt);
+      });
       a.scale.setScalar(1.1);
+      // rows of books on four shelves (muted cloth colours, gold-tooled spines)
+      const palette = [0x3b2a1f, 0x22303a, 0x4a1f1c, 0x2f3326, 0x5a4630, 0x1d1b19, 0x6b5236];
+      const bookMats = palette.map((c) => std({ color: c, roughness: 0.75 }));
+      let seed = 7;
+      const rnd = () => ((seed = (seed * 16807) % 2147483647) / 2147483647);
+      for (const y of [0.5, 0.98, 1.46, 1.94]) {
+        let x = -0.68;
+        while (x < 0.62) {
+          const w = 0.03 + rnd() * 0.035;
+          const h = 0.26 + rnd() * 0.12;
+          const bk = box(w, h, 0.2 + rnd() * 0.05, bookMats[Math.floor(rnd() * bookMats.length)], 0.004);
+          bk.position.set(x + w / 2, y + h / 2, 0);
+          if (rnd() < 0.08) bk.rotation.z = 0.12;
+          a.add(bk);
+          x += w + 0.004;
+          if (rnd() < 0.06) x += 0.12;
+        }
+      }
       at(cast(a), 6.55, 0, -D / 2 + 0.36);
       contact(1.8, 0.8, 6.55, 0, -D / 2 + 0.42);
     },

@@ -639,7 +639,7 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     for (const [name, file] of SURF) {
       await nextIdle();
       if (disposed) return;
-      const [color, normal, rough] = await Promise.all(["color", "normal", "rough"].map((k) => loadTex(`/studio/tex/${file}_${k}.webp`)));
+      const [color, normal, rough] = await Promise.all((name === "plaster" ? ["color", "normal", "rough"] : ["color", "normal"]).map((k) => loadTex(`/studio/tex/${file}_${k}.webp`)));
       if (disposed || !color) continue;
       const surface: TextureSet = { color, normal: normal ?? undefined, rough: rough ?? undefined };
       room.applySurface(name, surface);
