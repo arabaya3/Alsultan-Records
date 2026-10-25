@@ -11,7 +11,9 @@ import { db, newLoggedIn, revalidatePublic } from "./qa-helpers";
  *   BASE_URL=http://localhost:3700 npx playwright test studio-unpublish --project=chromium
  */
 test.describe.configure({ mode: "serial" });
-test.use({ launchOptions: { args: ["--use-angle=d3d11", "--enable-gpu", "--ignore-gpu-blocklist"] } });
+const GPU = ["--use-angle=d3d11", "--enable-gpu", "--ignore-gpu-blocklist"];
+// GPU flags are Chromium switches (WebKit uses its own GPU path)
+test.use({ launchOptions: async ({ browserName }, provide) => provide(browserName === "chromium" ? { args: GPU } : {}) });
 
 const STAMP = Date.now().toString(36);
 const ALBUM = { id: randomUUID(), slug: `qa-hide-${STAMP}`, title: "ألبوم اختبار الإخفاء" };

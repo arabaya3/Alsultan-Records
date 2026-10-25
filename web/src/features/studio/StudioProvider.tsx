@@ -225,9 +225,12 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
       });
       if (tier === "static") return fail();
       try {
+        performance.mark("studio:import-start");
         const { createStudio } = await import("./engine/engine");
+        performance.mark("studio:imported");
+        await new Promise((r) => setTimeout(r, 0)); // evaluating three.js and creating the renderer: separate tasks
         if (cancelled || !canvasRef.current) return;
-        const e = createStudio(canvasRef.current, {
+        const e = await createStudio(canvasRef.current, {
           tier,
           reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches,
           onRects,
@@ -240,6 +243,10 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
           // the canvas replaces the static studio only once the corner's own images are drawn (no empty frames)
           onReady: () => stageRef.current?.setAttribute("data-ready", "1"),
         });
+        if (cancelled) {
+          e.dispose();
+          return;
+        }
         engine.current = e;
         // read-only stats for tests and the perf script (no control surface)
         const w = window as Window & { __studioStats?: () => unknown; __studioFrames?: () => unknown };

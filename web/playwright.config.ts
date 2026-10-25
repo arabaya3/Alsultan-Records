@@ -23,6 +23,8 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 1000 } }, grepInvert: /@mobile/ },
     // Mobile project only runs specs tagged @mobile.
     { name: "mobile", use: { ...devices["Pixel 7"] }, grep: /@mobile/ },
+    // WebKit (Safari engine) for the studio suites only: scene, static studio, keyboard, history
+    { name: "webkit", use: { ...devices["Desktop Safari"], viewport: { width: 1440, height: 1000 } }, testMatch: /studio[^/]*.spec.ts$/, grepInvert: /@mobile/ },
   ],
   webServer: process.env.PW_WEBSERVER
     ? { command: "npx next start -p 3400", url: BASE_URL, reuseExistingServer: true, timeout: 120_000 }

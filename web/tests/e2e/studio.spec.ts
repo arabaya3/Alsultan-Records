@@ -7,7 +7,8 @@ import { expect, test, type Page } from "@playwright/test";
  * fall back to the static studio by design — those tests then assert the fallback instead of skipping silently.
  */
 const GPU = ["--use-angle=d3d11", "--enable-gpu", "--ignore-gpu-blocklist"];
-test.use({ launchOptions: { args: GPU } });
+// GPU flags are Chromium switches (WebKit uses its own GPU path)
+test.use({ launchOptions: async ({ browserName }, provide) => provide(browserName === "chromium" ? { args: GPU } : {}) });
 
 const html = (page: Page, attr: string) => page.evaluate((a) => document.documentElement.getAttribute(a), attr);
 const stats = (page: Page) => page.evaluate(() => (window as Window & { __studioStats?: () => { station: string | null; moving: boolean; tier: string } }).__studioStats?.() ?? null);

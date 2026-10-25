@@ -84,8 +84,14 @@ const TEX_LIMIT = 28;
 const nextIdle = () =>
   new Promise<void>((r) => ("requestIdleCallback" in window ? window.requestIdleCallback(() => r(), { timeout: 400 }) : setTimeout(r, 30)));
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
+/** yield to the browser (input, rendering) before the next piece of start-up work */
+const yieldTask = () => new Promise<void>((r) => setTimeout(r, 0));
 
-export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): StudioEngine {
+/** Async on purpose: each start-up phase is its own task (yield in between), so no single long freeze. */
+export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): Promise<StudioEngine> {
+  // start-up phases as User Timing marks (studio:*) — visible in DevTools and read by the perf script
+  const mark = (n: string) => performance.mark(`studio:${n}`);
+  mark("create");
   let tier: Tier = opts.tier;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: tier === "high", powerPreference: "high-performance", alpha: false, stencil: false });
   renderer.setClearColor(0x14100c, 1);
@@ -99,14 +105,24 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
 
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(0x14100c, 14, 30);
-  const pmrem = new THREE.PMREMGenerator(renderer);
-  const envRT = pmrem.fromScene(new RoomEnvironment(), 0.04);
-  scene.environment = envRT.texture;
-  scene.environmentIntensity = 0.45;
-  pmrem.dispose();
-
-  const room: Room = buildRoom(tier);
+  await yieldTask();
+  // the room, zone by zone (a yield between zones)
+  const room: Room = await buildRoom(tier, yieldTask);
   scene.add(room.root);
+  mark("room");
+  await yieldTask();
+  // soft reflections for brass and varnish (high tier): a small prefiltered environment. On the lighter tier it is
+  // skipped — generating it costs ~0.6 s of main thread on a mid phone; metals there rely on the room lights
+  let envRT: THREE.WebGLRenderTarget | null = null;
+  if (tier === "high") {
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    envRT = pmrem.fromScene(new RoomEnvironment(), 0.04, 0.1, 100, { size: 64 });
+    scene.environment = envRT.texture;
+    scene.environmentIntensity = 0.45;
+    pmrem.dispose();
+  }
+  mark("env");
+  await yieldTask();
 
   const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 40);
   const cam = { pos: new THREE.Vector3(2, 1.7, 0), target: new THREE.Vector3(7.9, 2, 0), fov: 40 };
@@ -130,6 +146,7 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
   const probe: number[] = [];
   let probing = true;
   let moveFrames: number[] = [];
+  let firstFrame = false;
 
   const invalidate = (ms = 120) => {
     activeUntil = Math.max(activeUntil, performance.now() + ms);
@@ -149,6 +166,10 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     last = now;
     room.book.sync();
     renderer.render(scene, camera);
+    if (!firstFrame) {
+      firstFrame = true;
+      mark("first-frame");
+    }
     report();
     if (now < activeUntil) raf = requestAnimationFrame(frame);
     else last = 0;
@@ -270,7 +291,7 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     if (prev) inUse.delete(prev);
     shown.set(mat, want);
     const blank = () => {
-      mat.map = null;
+      mat.map = room.blank;
       mat.color.copy(PAPER);
       mat.needsUpdate = true;
       fit(null);
@@ -625,6 +646,7 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
       /* older drivers: compile happens on first render */
     }
     if (disposed) return;
+    mark("compiled");
     compiled = true;
     invalidate(300);
     // 2) surfaces, one per idle slice (decode + upload spread out)
@@ -649,7 +671,8 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
     // 3) props (CC0 glTF, meshopt-compressed), one per idle slice; their materials compile before they are shown
     const gl = new GLTFLoader();
     gl.setMeshoptDecoder(MeshoptDecoder);
-    for (const name of PROPS) {
+    // the lighter tier skips the heaviest prop (the plant: dense geometry, long decode)
+    for (const name of PROPS.filter((n) => tier === "high" || n !== "potted_plant_02")) {
       await nextIdle();
       if (disposed) return;
       try {
@@ -712,7 +735,7 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
       loaded.clear();
       cache.clear();
       room.dispose();
-      envRT.dispose();
+      envRT?.dispose();
       renderer.dispose();
     },
   };
