@@ -9,7 +9,7 @@
  *   - tbtMs           : Σ(task − 50 ms) — main-thread time blocking input
  *   - inputDelayMaxMs : worst delay before a click is handled while the scene starts (synthetic clicks every 120 ms
  *                       for 6 s, Event Timing processingStart − startTime) — how long the page felt frozen
- *   - lcpMs, cls, jsKb
+ *   - cls, jsKb   (LCP is taken from studio-perf.mjs: the synthetic clicks here end LCP recording)
  * Moves (desktop): frame times during camera moves (reception → wall → album → next album → wall), from the engine's
  *   own frame log: frames, avg, p95, max, frames over 50 ms.
  * Memory (desktop): JS heap + GPU textures/geometries after 1 and after 5 tours.
@@ -97,12 +97,12 @@ for (const d of DEVICES) {
 for (let r = 0; r < RUNS; r++) {
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, locale: "ar" });
   await ctx.addInitScript(() => { try { sessionStorage.setItem("sultan-studio-entry", "1"); } catch {} });
-  // build-independent frame log: rAF deltas while the camera is moving (html[data-studio-moving])
+  // build-independent frame log: rAF deltas over each measured step window
   await ctx.addInitScript(() => {
     let last = 0;
     let xs = [];
     const tick = (t) => {
-      if (document.documentElement.hasAttribute("data-studio-moving") && last) xs.push(t - last);
+      if (last) xs.push(t - last); // every frame inside the measured step (moves, book swap, page swap)
       last = t;
       requestAnimationFrame(tick);
     };
