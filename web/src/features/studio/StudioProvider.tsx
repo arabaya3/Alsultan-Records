@@ -240,10 +240,15 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
       }
     };
     // after first paint and idle time: the page's content and LCP never wait for three.js
+    // never stay "pending": if the scene is not up within 8 s (chunk stalled, GPU busy …) the static studio takes over
+    const watchdog = window.setTimeout(() => {
+      if (!engine.current && !cancelled) fail();
+    }, 8000);
     const idle = "requestIdleCallback" in window;
     const handle = idle ? window.requestIdleCallback(() => void start(), { timeout: 900 }) : window.setTimeout(() => void start(), 200);
     return () => {
       cancelled = true;
+      clearTimeout(watchdog);
       if (idle) window.cancelIdleCallback(handle);
       else clearTimeout(handle);
       ro?.disconnect();
