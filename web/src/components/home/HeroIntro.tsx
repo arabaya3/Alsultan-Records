@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { SitePromoPlayer } from "@/components/media/promo/SitePromoPlayer";
 import { PromoPlayer } from "@/components/media/youtube/PromoPlayer";
 import { ActiveLogoImg } from "@/components/brand/ActiveLogoImg";
@@ -27,6 +27,11 @@ export type HeroIntroProps = {
   secondaryLabel?: string;
   /** The studio's own published YouTube works (i.ytimg thumbnails only). */
   strip: { youtubeId: string; title: string }[];
+  /**
+   * Immersive studio: the reception's hanging frames (real links). The hero becomes the reception corner — text on
+   * the start side over the room, the frames over their 3D prints — and the film moves to the row below it.
+   */
+  studio?: ReactNode;
 };
 
 /**
@@ -120,7 +125,8 @@ export function HeroIntro(p: HeroIntroProps) {
       aria-labelledby="hero-title"
       data-hero-intro
       data-intro-state="idle"
-      className="ink-texture relative isolate overflow-hidden hero-flow text-ivory"
+      data-studio-stage={p.studio ? "reception" : undefined}
+      className={`relative isolate overflow-hidden hero-flow text-ivory ${p.studio ? "studio-stage" : "ink-texture"}`}
     >
       {p.promo?.coverSrc ? (
         // Full-bleed cinematic backdrop: the owner's CMS cover photo, heavily dimmed (decorative, object-cover allowed
@@ -131,8 +137,14 @@ export function HeroIntro(p: HeroIntroProps) {
           <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(to_left,rgb(13_12_11/0.92)_0%,rgb(13_12_11/0.78)_45%,rgb(13_12_11/0.6)_100%)]" />
         </>
       ) : null}
-      <div className="mx-auto grid w-full max-w-[var(--content-max)] items-center gap-8 px-[var(--gutter)] py-10 md:py-12 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:py-14">
-        <div className="min-w-0">
+      <div
+        className={
+          p.studio
+            ? "studio-stage__inner mx-auto grid w-full max-w-[var(--content-max)] px-[var(--gutter)]"
+            : "mx-auto grid w-full max-w-[var(--content-max)] items-center gap-8 px-[var(--gutter)] py-10 md:py-12 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:py-14"
+        }
+      >
+        <div className={p.studio ? "studio-stage__copy min-w-0" : "min-w-0"}>
           {/* Phones: the header already shows the logo, so only the gold name stays here (design audit #4). */}
           <div data-hero-mark className="flex items-center gap-4">
             {p.logoSrc ? (
@@ -265,6 +277,26 @@ export function HeroIntro(p: HeroIntroProps) {
           ) : null}
         </div>
 
+        {p.studio ? p.studio : null}
+        {p.studio ? null : media()}
+      </div>
+      {p.studio && (p.promo || p.strip.length >= 3) ? (
+        <div data-home-promo="" className="studio-promo-row relative bg-night">
+          <div className="mx-auto grid w-full max-w-[var(--content-max)] items-center gap-8 px-[var(--gutter)] py-10 md:py-14 lg:grid-cols-[1fr_1.4fr] lg:gap-14">
+            <div>
+              <h2 className="text-h2 font-bold tracking-tight">فيلم الاستوديو</h2>
+              <span aria-hidden="true" className="gold-rule mt-4" />
+              <p className="mt-4 text-lg text-ivory-muted">لمحة قصيرة من أعمالنا بالصوت والصورة.</p>
+            </div>
+            {media()}
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+
+  function media() {
+    return (
         <div className="min-w-0">
           {p.promo ? (
             <div data-intro="media">
@@ -302,7 +334,6 @@ export function HeroIntro(p: HeroIntroProps) {
             </ul>
           ) : null}
         </div>
-      </div>
-    </section>
-  );
+    );
+  }
 }

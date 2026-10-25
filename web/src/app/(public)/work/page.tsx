@@ -20,6 +20,8 @@ import { getBusinessSettings, getPublishedProjects } from "@/features/public-con
 import { IconLink } from "@/components/ui/IconLink";
 import { ChipScroller } from "@/components/ui/ChipScroller";
 import { pageMetadata, safeHttp } from "@/features/public-content/seo";
+import { STUDIO_ENABLED } from "@/features/studio/config";
+import { StudioWall } from "@/features/studio/StudioWall";
 
 export const metadata = pageMetadata({
   title: "أعمالنا",
@@ -270,13 +272,24 @@ async function Albums({ cat }: { cat: string | null }) {
             action={<Link href={workHref({ tab: "photos" })} className={linkCls}>عرض الكل</Link>}
           />
         ) : null}
-        <ul data-album-grid className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">
-          {albums.map((a, i) => (
-            <li key={a.id} className="h-full">
-              <AlbumCard album={a} priority={i < 4} />
-            </li>
-          ))}
-        </ul>
+        {STUDIO_ENABLED ? (
+          // the studio's photo wall: same cards, in list order, hung in groups on wide screens with the scene
+          <StudioWall albums={albums.map((a) => ({ slug: a.slug, coverId: a.coverId, title: a.title }))} className="studio-wall__grid grid grid-cols-1 gap-x-4 gap-y-10 min-[420px]:grid-cols-2 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">
+            {albums.map((a, i) => (
+              <li key={a.id} className="studio-wall__item h-full">
+                <AlbumCard album={a} priority={i < 4} />
+              </li>
+            ))}
+          </StudioWall>
+        ) : (
+          <ul data-album-grid className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">
+            {albums.map((a, i) => (
+              <li key={a.id} className="h-full">
+                <AlbumCard album={a} priority={i < 4} />
+              </li>
+            ))}
+          </ul>
+        )}
       </div>
     </>
   );

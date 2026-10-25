@@ -10,7 +10,10 @@ import { EmptyState, ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { telHref } from "@/features/public-content/contact";
 import { photoUrl, workHref } from "@/features/public-content/gallery-model";
-import { getAlbumBySlug } from "@/features/public-content/gallery-queries";
+import { getAlbumBySlug, getPublishedAlbums } from "@/features/public-content/gallery-queries";
+import Link from "next/link";
+import { STUDIO_ENABLED } from "@/features/studio/config";
+import { StudioPage } from "@/features/studio/StudioProvider";
 import { formatDateAr } from "@/features/public-content/labels";
 import { getBusinessSettings } from "@/features/public-content/queries";
 import { JsonLd } from "@/components/ui/JsonLd";
@@ -64,6 +67,46 @@ async function ContactBand({ title }: { title: string }) {
   );
 }
 
+/**
+ * «الألبوم السابق / التالي» with the destination's name, in the public list order (same as the albums page),
+ * bounded (no wrap-around). In the studio the book on the table closes, slides away and the neighbour opens.
+ */
+async function AlbumNeighbors({ slug, cover, inner }: { slug: string; cover: string | null; inner: string | null }) {
+  const res = await getPublishedAlbums();
+  if (res.status !== "ok") return null;
+  const list = res.data.filter((a) => a.photoCount > 0);
+  const i = list.findIndex((a) => a.slug === slug);
+  if (i < 0) return null;
+  const prev = list[i - 1];
+  const next = list[i + 1];
+  const scene = STUDIO_ENABLED ? <StudioPage station="album" album={{ image: { key: slug, cover: cover ? photoUrl(cover, "thumb") : null, inner: inner ? photoUrl(inner, "thumb") : null }, index: i }} /> : null;
+  if (!prev && !next) return scene;
+  const cls = "inline-flex min-h-11 max-w-full items-center gap-2 rounded-sm border border-hairline-gold bg-night/70 px-4 py-2 text-start text-sm transition-colors hover:border-gold hover:text-gold";
+  return (
+    <nav aria-label="التنقل بين الألبومات" data-album-nav="" className="flex w-full flex-wrap items-center justify-center gap-3">
+      {prev ? (
+        <Link href={`/work/albums/${prev.slug}`} data-album-prev={prev.slug} className={cls}>
+          <span aria-hidden="true">→</span>
+          <span className="min-w-0">
+            <span className="block text-ivory-muted">الألبوم السابق</span>
+            <bdi dir={bidiDir(prev.title)} className="line-clamp-1 font-semibold">{prev.title}</bdi>
+          </span>
+        </Link>
+      ) : null}
+      {next ? (
+        <Link href={`/work/albums/${next.slug}`} data-album-next={next.slug} className={cls}>
+          <span className="min-w-0">
+            <span className="block text-ivory-muted">الألبوم التالي</span>
+            <bdi dir={bidiDir(next.title)} className="line-clamp-1 font-semibold">{next.title}</bdi>
+          </span>
+          <span aria-hidden="true">←</span>
+        </Link>
+      ) : null}
+      {scene}
+    </nav>
+  );
+}
+
 async function AlbumView({ params }: { params: PageProps<"/work/albums/[slug]">["params"] }) {
   const { slug } = await params;
   if (!SLUG.test(slug) || slug.length > 120) notFound();
@@ -108,6 +151,8 @@ async function AlbumView({ params }: { params: PageProps<"/work/albums/[slug]">[
       >
         {/* Actions live in the hero so the photos start right after it. */}
         <AlbumActions backHref={ALBUMS} title={album.title} canSlideshow={photos.length > 1} />
+        {/* the open album on the studio table shows its cover and the next photo of the album */}
+        <AlbumNeighbors slug={album.slug} cover={album.coverId} inner={photos.find((p) => p.id !== album.coverId)?.id ?? null} />
       </PageHero>
       <Section>
         <h2 className="sr-only">صور الألبوم</h2>

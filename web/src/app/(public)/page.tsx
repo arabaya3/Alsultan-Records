@@ -24,6 +24,9 @@ import { ArrowStartIcon, GridIcon, IconLink } from "@/components/ui/IconLink";
 import { YouTubeIcon } from "@/components/ui/SocialIcons";
 import { SITE_TARGETS } from "@/lib/site-targets";
 import { bidiDir } from "@/lib/bidi";
+import { STUDIO_ENABLED } from "@/features/studio/config";
+import { getStudioScene } from "@/features/studio/data";
+import { ReceptionFrames } from "@/features/studio/ReceptionFrames";
 
 export const metadata = pageMetadata({
   description: "ستوديو وتسجيلات السلطان في ميثلون – جنين. نوثّق أعراسكم ومناسباتكم بالصوت والصورة: تصوير فوتوغرافي، أفلام أعراس وDJ.",
@@ -66,7 +69,7 @@ const HEADING_ID: Record<SectionConfig["key"], string> = {
 };
 
 export default async function HomePage() {
-  const [settings, gallery, services, sections, offers, steps, albums, packages] = await Promise.all([
+  const [settings, gallery, services, sections, offers, steps, albums, packages, studio] = await Promise.all([
     getBusinessSettings(),
     getVideoGallery(),
     getPublishedServices(),
@@ -75,6 +78,7 @@ export default async function HomePage() {
     getProcessSteps(),
     getPublishedAlbums(),
     getPublishedPackages(),
+    STUDIO_ENABLED ? getStudioScene() : null,
   ]);
 
   const s = settings.status === "ok" ? settings.data : null;
@@ -379,13 +383,15 @@ export default async function HomePage() {
         phone={s?.phone ? { label: s.phone, href: telHref(s.phone) } : null}
         promo={{
           caption: PROMO_CAPTION,
-          coverSrc: s?.hero_cover_photo_id ? photoUrl(s.hero_cover_photo_id, "display") : null,
+          // the studio room replaces the photo backdrop (the same cover hangs at the reception instead)
+          coverSrc: !studio && s?.hero_cover_photo_id ? photoUrl(s.hero_cover_photo_id, "display") : null,
           youtube: ytPromo ? { youtubeId: ytPromo.youtube_id, title: ytPromo.title } : null,
         }}
         strip={works.slice(0, 4).map((v) => ({ youtubeId: v.youtube_id, title: v.title }))}
         logoSrc={activeLogoSrc(s?.active_logo_id)}
         primaryLabel={s?.hero_primary_label ?? undefined}
         secondaryLabel={s?.hero_secondary_label ?? undefined}
+        studio={studio ? <ReceptionFrames items={studio.reception} /> : undefined}
       />
 
       {rendered}
