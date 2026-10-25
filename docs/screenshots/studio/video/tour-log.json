@@ -5,192 +5,84 @@
       "url": "/",
       "station": "reception",
       "mode": "scene",
-      "stats": {
-        "textures": 19,
-        "calls": 141,
-        "triangles": 21096,
-        "tier": "high",
-        "moving": true,
-        "camera": [
-          -2,
-          2.35,
-          2.42
-        ],
-        "target": [
-          7.9,
-          2.05,
-          2.41
-        ],
-        "station": "reception"
-      }
+      "camera": [
+        -3.35,
+        2.82,
+        2.12
+      ],
+      "moving": false
     },
     {
       "step": "album wall",
       "url": "/work?tab=photos",
       "station": "albums",
       "mode": "scene",
-      "stats": {
-        "textures": 24,
-        "calls": 153,
-        "triangles": 13776,
-        "tier": "high",
-        "moving": false,
-        "camera": [
-          0,
-          3.55,
-          4.13
-        ],
-        "target": [
-          0,
-          3.05,
-          -5.86
-        ],
-        "station": "albums"
-      }
+      "camera": [
+        0,
+        3.55,
+        4.13
+      ],
+      "moving": false
     },
     {
-      "step": "wall: next group",
-      "url": "/work?tab=photos",
-      "station": "albums",
-      "mode": "scene",
-      "stats": {
-        "textures": 26,
-        "calls": 138,
-        "triangles": 13656,
-        "tier": "high",
-        "moving": false,
-        "camera": [
-          0,
-          3.55,
-          4.13
-        ],
-        "target": [
-          0,
-          3.05,
-          -5.86
-        ],
-        "station": "albums"
-      }
-    },
-    {
-      "step": "album open",
+      "step": "album 1",
       "url": "/work/albums/wedding-dawood-nairat-2026",
       "station": "album",
       "mode": "scene",
-      "stats": {
-        "textures": 25,
-        "calls": 117,
-        "triangles": 15076,
-        "tier": "high",
-        "moving": false,
-        "camera": [
-          1.27,
-          3.25,
-          0.78
-        ],
-        "target": [
-          0.86,
-          0.84,
-          -2.65
-        ],
-        "station": "album"
-      }
+      "camera": [
+        0.67,
+        2.6,
+        -0.97
+      ],
+      "moving": false
     },
     {
-      "step": "next album",
+      "step": "album 2",
       "url": "/work/albums/wedding-laith-jarrar-2026",
       "station": "album",
       "mode": "scene",
-      "stats": {
-        "textures": 25,
-        "calls": 117,
-        "triangles": 15076,
-        "tier": "high",
-        "moving": false,
-        "camera": [
-          1.27,
-          3.25,
-          0.78
-        ],
-        "target": [
-          0.86,
-          0.84,
-          -2.65
-        ],
-        "station": "album"
-      }
+      "camera": [
+        0.67,
+        2.6,
+        -0.97
+      ],
+      "moving": false
     },
     {
       "step": "viewer",
       "url": "/work/albums/wedding-laith-jarrar-2026",
       "station": "album",
       "mode": "scene",
-      "stats": {
-        "textures": 25,
-        "calls": 117,
-        "triangles": 15076,
-        "tier": "high",
-        "moving": false,
-        "camera": [
-          1.27,
-          3.25,
-          0.78
-        ],
-        "target": [
-          0.86,
-          0.84,
-          -2.65
-        ],
-        "station": "album"
-      }
+      "camera": [
+        0.67,
+        2.6,
+        -0.97
+      ],
+      "moving": false
     },
     {
       "step": "back",
       "url": "/work/albums/wedding-dawood-nairat-2026",
       "station": "album",
       "mode": "scene",
-      "stats": {
-        "textures": 25,
-        "calls": 117,
-        "triangles": 15076,
-        "tier": "high",
-        "moving": false,
-        "camera": [
-          1.27,
-          3.25,
-          0.78
-        ],
-        "target": [
-          0.86,
-          0.84,
-          -2.65
-        ],
-        "station": "album"
-      }
+      "camera": [
+        0.67,
+        2.6,
+        -0.97
+      ],
+      "moving": false
     },
     {
       "step": "back again",
       "url": "/work?tab=photos",
       "station": "albums",
       "mode": "scene",
-      "stats": {
-        "textures": 25,
-        "calls": 153,
-        "triangles": 13776,
-        "tier": "high",
-        "moving": false,
-        "camera": [
-          0,
-          3.55,
-          4.13
-        ],
-        "target": [
-          0,
-          3.05,
-          -5.86
-        ],
-        "station": "albums"
-      }
+      "camera": [
+        0,
+        3.55,
+        4.13
+      ],
+      "moving": false
     }
   ],
   "mobile": [
@@ -199,168 +91,158 @@
       "url": "/",
       "station": "reception",
       "mode": "scene",
-      "stats": {
-        "textures": 14,
-        "calls": 48,
-        "triangles": 3264,
-        "tier": "low",
-        "moving": false,
-        "camera": [
-          3.82,
-          2.17,
-          0
-        ],
-        "target": [
-          7.9,
-          2.05,
-          0
-        ],
-        "station": "reception"
-      }
+      "camera": [
+        1.64,
+        2.39,
+        -0.28
+      ],
+      "moving": false
     },
     {
       "step": "album wall",
       "url": "/work?tab=photos",
       "station": "albums",
       "mode": "scene",
-      "stats": {
-        "textures": 19,
-        "calls": 44,
-        "triangles": 2110,
-        "tier": "low",
-        "moving": false,
-        "camera": [
-          0,
-          2.17,
-          -1.54
-        ],
-        "target": [
-          0,
-          1.95,
-          -5.86
-        ],
-        "station": "albums"
-      }
+      "camera": [
+        0,
+        2.36,
+        2.44
+      ],
+      "moving": false
     },
     {
-      "step": "album open",
+      "step": "album 1",
       "url": "/work/albums/wedding-dawood-nairat-2026",
       "station": "album",
       "mode": "scene",
-      "stats": {
-        "textures": 20,
-        "calls": 50,
-        "triangles": 4028,
-        "tier": "low",
-        "moving": false,
-        "camera": [
-          0.15,
-          1.7,
-          -1.33
-        ],
-        "target": [
-          0,
-          0.84,
-          -2.55
-        ],
-        "station": "album"
-      }
+      "camera": [
+        0.19,
+        2.63,
+        -0.89
+      ],
+      "moving": false
     },
     {
-      "step": "next album",
+      "step": "album 2",
       "url": "/work/albums/wedding-laith-jarrar-2026",
       "station": "album",
       "mode": "scene",
-      "stats": {
-        "textures": 20,
-        "calls": 50,
-        "triangles": 4028,
-        "tier": "low",
-        "moving": false,
-        "camera": [
-          0.15,
-          1.7,
-          -1.33
-        ],
-        "target": [
-          0,
-          0.84,
-          -2.55
-        ],
-        "station": "album"
-      }
+      "camera": [
+        0.19,
+        2.63,
+        -0.89
+      ],
+      "moving": false
     },
     {
       "step": "viewer",
       "url": "/work/albums/wedding-laith-jarrar-2026",
       "station": "album",
       "mode": "scene",
-      "stats": {
-        "textures": 20,
-        "calls": 50,
-        "triangles": 4028,
-        "tier": "low",
-        "moving": false,
-        "camera": [
-          0.15,
-          1.7,
-          -1.33
-        ],
-        "target": [
-          0,
-          0.84,
-          -2.55
-        ],
-        "station": "album"
-      }
+      "camera": [
+        0.19,
+        2.63,
+        -0.89
+      ],
+      "moving": false
     },
     {
       "step": "back",
       "url": "/work/albums/wedding-dawood-nairat-2026",
       "station": "album",
       "mode": "scene",
-      "stats": {
-        "textures": 20,
-        "calls": 50,
-        "triangles": 4028,
-        "tier": "low",
-        "moving": false,
-        "camera": [
-          0.15,
-          1.7,
-          -1.33
-        ],
-        "target": [
-          0,
-          0.84,
-          -2.55
-        ],
-        "station": "album"
-      }
+      "camera": [
+        0.19,
+        2.63,
+        -0.89
+      ],
+      "moving": false
     },
     {
       "step": "back again",
       "url": "/work?tab=photos",
       "station": "albums",
       "mode": "scene",
-      "stats": {
-        "textures": 20,
-        "calls": 50,
-        "triangles": 4028,
-        "tier": "low",
-        "moving": false,
-        "camera": [
-          0,
-          2.17,
-          -1.54
-        ],
-        "target": [
-          0,
-          1.95,
-          -5.86
-        ],
-        "station": "albums"
-      }
+      "camera": [
+        4.1,
+        2.36,
+        2.52
+      ],
+      "moving": false
+    }
+  ],
+  "corners": [
+    {
+      "step": "/work",
+      "url": "/work",
+      "station": "videos",
+      "mode": "scene",
+      "camera": [
+        -1.59,
+        2.2,
+        -1.28
+      ],
+      "moving": false
+    },
+    {
+      "step": "/packages",
+      "url": "/packages",
+      "station": "packages",
+      "mode": "scene",
+      "camera": [
+        -3.7,
+        3,
+        -0.76
+      ],
+      "moving": false
+    },
+    {
+      "step": "/services",
+      "url": "/services",
+      "station": "services",
+      "mode": "scene",
+      "camera": [
+        1.21,
+        2.01,
+        1.25
+      ],
+      "moving": false
+    },
+    {
+      "step": "/about",
+      "url": "/about",
+      "station": "about",
+      "mode": "scene",
+      "camera": [
+        3.48,
+        2.05,
+        -0.13
+      ],
+      "moving": false
+    },
+    {
+      "step": "/contact",
+      "url": "/contact",
+      "station": "contact",
+      "mode": "scene",
+      "camera": [
+        1.84,
+        2.47,
+        0.62
+      ],
+      "moving": false
+    },
+    {
+      "step": "/",
+      "url": "/",
+      "station": "reception",
+      "mode": "scene",
+      "camera": [
+        -3.35,
+        2.82,
+        2.12
+      ],
+      "moving": false
     }
   ]
 }
