@@ -39,11 +39,11 @@ export const TABLE = { x: 0, y: 0.8, z: -2.55 } as const;
 export const POSES: Record<Station, Pose> = {
   reception: { target: [7.9, 2.05, 0], dir: [-1, 0.03, 0], fit: [6.4, 3.2], fov: 40, fitTall: [3.4, 3.4] },
   albums: { target: [0, 1.95, WALL.z], dir: [0, 0.05, 1], fit: [10.6, 3.4], fov: 38, fitTall: [3.6, 3.2], screenY: 0.66 },
-  album: { target: [TABLE.x, TABLE.y + 0.04, TABLE.z], dir: [0, 1.05, 0.95], fit: [1.6, 1.0], fov: 34 },
+  album: { target: [TABLE.x, TABLE.y + 0.04, TABLE.z], dir: [0.12, 0.7, 1], fit: [2.3, 1.45], fov: 34, fitTall: [1.25, 1.0] },
   videos: { target: [-7.9, 1.95, -0.6], dir: [1, 0.04, 0.12], fit: [3.8, 2.4], fov: 38 },
-  packages: { target: [-4.4, 1.12, 4.25], dir: [0, 0.42, -1], fit: [3.2, 1.6], fov: 38 },
+  packages: { target: [-4.4, 1.05, 4.35], dir: [0.4, 0.42, -1], fit: [3.3, 1.7], fov: 38 },
   about: { target: [5.4, 1.75, -5.7], dir: [-0.35, 0.04, 1], fit: [3.2, 2.6], fov: 38 },
-  services: { target: [5.2, 1.35, 4.5], dir: [-0.55, 0.12, -1], fit: [3.0, 2.3], fov: 38 },
+  services: { target: [5.4, 1.3, 4.9], dir: [-0.65, 0.16, -1], fit: [3.6, 2.6], fov: 38 },
   contact: { target: [6.25, 1.2, 0.5], dir: [-1, 0.3, -0.2], fit: [2.6, 1.6], fov: 36 },
 };
 

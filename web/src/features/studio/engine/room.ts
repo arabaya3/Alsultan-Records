@@ -55,6 +55,7 @@ export function buildRoom(tier: Tier): Room {
   // ---------------------------------------------------------------- materials
   const tPlaster = keep(plaster());
   const tFloor = keep(walnut(true));
+  tFloor.repeat.set(7, 5);
   const tBoard = keep(walnut(false));
   const tLeather = keep(leather());
   const tPaper = keep(paper());
@@ -78,7 +79,7 @@ export function buildRoom(tier: Tier): Room {
     glass: keep(new THREE.MeshStandardMaterial({ color: 0x0a0b0d, roughness: 0.08, metalness: 0.4 })),
     lampShade: keep(new THREE.MeshStandardMaterial({ color: 0x2a2018, roughness: 0.6, metalness: 0.3, side: THREE.DoubleSide })),
     lampGlow: keep(new THREE.MeshBasicMaterial({ color: 0xffd9a8 })),
-    leaf: keep(new THREE.MeshStandardMaterial({ color: 0x46522f, roughness: 0.8, side: THREE.DoubleSide })),
+    leaf: keep(new THREE.MeshStandardMaterial({ color: 0x5d6b3c, roughness: 0.75, side: THREE.DoubleSide, alphaTest: 0.5 })),
     pot: keep(new THREE.MeshStandardMaterial({ color: 0x2b2622, roughness: 0.75 })),
     softbox: keep(new THREE.MeshBasicMaterial({ color: 0xf6efe2 })),
   };
@@ -166,8 +167,8 @@ export function buildRoom(tier: Tier): Room {
   // ceiling beams + a brass track with spot cans over each corner
   for (let z = -D / 2 + 1.5; z < D / 2; z += 3) at(box(W, 0.22, 0.24, m.walnutDark), 0, H - 0.11, z);
   const can = (x: number, z: number, aim: THREE.Vector3) => {
-    const c = cyl(0.07, 0.09, 0.2, m.black, 16);
-    at(c, x, H - 0.35, z);
+    const c = cyl(0.05, 0.065, 0.14, m.black, 16);
+    at(c, x, H - 0.12, z);
     c.lookAt(aim);
     c.rotateX(Math.PI / 2);
     const ring = cyl(0.092, 0.092, 0.02, m.brass, 16);
@@ -329,8 +330,8 @@ export function buildRoom(tier: Tier): Room {
   const recRope = rope(new THREE.Vector3(-recSpan / 2, RECEPTION.frameY + 0.95, 0.05), new THREE.Vector3(recSpan / 2, RECEPTION.frameY + 0.95, 0.05), 0.08, recGroup);
   const reception: FrameSlot[] = [];
   RECEPTION.z.forEach((z, i) => {
-    // recGroup local x runs along world -z (rotated -90°): local x = -world z
-    const lx = -z;
+    // recGroup is rotated -90° about y: its local +x runs along world +z
+    const lx = z;
     const p = recRope.getPoint((lx + recSpan / 2) / recSpan);
     const f = makeFrame(RECEPTION.frameW, RECEPTION.frameH, recGroup);
     f.group.position.set(lx, p.y, 0.08);
@@ -427,12 +428,12 @@ export function buildRoom(tier: Tier): Room {
   at(shadowCast(table), TABLE.x, 0, TABLE.z);
   table.traverse((c) => ((c as THREE.Mesh).receiveShadow = tier === "high"));
   contact(3.2, 2.1, TABLE.x, 0, TABLE.z);
-  lamp(TABLE.x + 1.0, TABLE.y, TABLE.z - 0.45, 0.42);
-  const tableCam = at(camera(1.2), TABLE.x - 0.95, TABLE.y + 0.06, TABLE.z + 0.3);
-  tableCam.rotation.y = 0.7;
+  lamp(TABLE.x - 1.05, TABLE.y, TABLE.z - 0.5, 0.42);
+  const tableCam = at(camera(1.2), TABLE.x - 0.8, TABLE.y + 0.06, TABLE.z + 0.4);
+  tableCam.rotation.y = -0.6;
 
-  const BW = 0.62;
-  const BD = 0.44;
+  const BW = 0.42;
+  const BD = 0.56;
   const book = new THREE.Group();
   const backCover = box(BW, 0.014, BD, m.leather, 0.004);
   backCover.position.set(BW / 2, 0.007, 0);
@@ -459,7 +460,7 @@ export function buildRoom(tier: Tier): Room {
   const coverBoard = box(BW, 0.014, BD, m.leather, 0.004);
   coverBoard.position.set(BW / 2, 0, 0);
   cover.add(coverBoard);
-  const emblem = new THREE.Mesh(keep(new THREE.PlaneGeometry(0.2, 0.166)), logoMat);
+  const emblem = new THREE.Mesh(keep(new THREE.PlaneGeometry(0.18, 0.15)), logoMat);
   emblem.rotation.x = -Math.PI / 2;
   emblem.position.set(BW / 2, 0.0075, 0);
   cover.add(emblem);
@@ -627,7 +628,7 @@ export function buildRoom(tier: Tier): Room {
   const rig = new THREE.Group();
   for (let i = 0; i < 3; i++) {
     const a = (i / 3) * Math.PI * 2 + 0.4;
-    const leg = cyl(0.014, 0.01, 1.35, m.black, 8);
+    const leg = cyl(0.022, 0.016, 1.38, m.black, 8);
     leg.position.set(Math.cos(a) * 0.22, 0.65, Math.sin(a) * 0.22);
     leg.rotation.set(Math.sin(a) * 0.2, 0, -Math.cos(a) * 0.2);
     rig.add(leg);
@@ -638,9 +639,9 @@ export function buildRoom(tier: Tier): Room {
   const cine = camera(2.2);
   cine.position.y = 1.5;
   rig.add(cine);
-  const rigObj = at(shadowCast(rig), 5.0, 0, 4.3);
+  const rigObj = at(shadowCast(rig), 4.6, 0, 4.7);
   rigObj.rotation.y = Math.PI + 0.6;
-  contact(1.2, 1.2, 5.0, 0, 4.3);
+  contact(1.2, 1.2, 4.6, 0, 4.7);
   const stand = new THREE.Group();
   const pole = cyl(0.015, 0.015, 1.9, m.black, 8);
   pole.position.y = 0.95;
@@ -651,13 +652,34 @@ export function buildRoom(tier: Tier): Room {
   const sbFace = new THREE.Mesh(keep(new THREE.PlaneGeometry(0.66, 0.66)), m.softbox);
   sbFace.position.set(0, 1.95, 0.165);
   stand.add(sbFace);
-  const st = at(shadowCast(stand), 6.4, 0, 3.6);
-  st.rotation.y = -2.4;
-  contact(0.9, 0.9, 6.4, 0, 3.6);
+  const st = at(shadowCast(stand), 6.6, 0, 5.2);
+  st.rotation.y = -2.6;
+  contact(0.9, 0.9, 6.6, 0, 5.2);
 
   // ---------------------------------------------------------------- plants (olive in a stone pot), instanced leaves
-  const leafGeo = keep(new THREE.PlaneGeometry(0.035, 0.11));
-  leafGeo.translate(0, 0.055, 0);
+  // olive leaf: a narrow lanceolate cut-out (alpha) on a small canvas
+  const leafTex = (() => {
+    const c = document.createElement("canvas");
+    c.width = 32;
+    c.height = 96;
+    const x = c.getContext("2d")!;
+    const g = x.createLinearGradient(0, 0, 32, 0);
+    g.addColorStop(0, "#4d5a30");
+    g.addColorStop(0.5, "#7d8a58");
+    g.addColorStop(1, "#3f4a27");
+    x.fillStyle = g;
+    x.beginPath();
+    x.moveTo(16, 2);
+    x.quadraticCurveTo(31, 48, 16, 94);
+    x.quadraticCurveTo(1, 48, 16, 2);
+    x.fill();
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    return keep(t);
+  })();
+  m.leaf.map = leafTex;
+  const leafGeo = keep(new THREE.PlaneGeometry(0.03, 0.09));
+  leafGeo.translate(0, 0.045, 0);
   const plant = (x: number, z: number, h: number, seed: number) => {
     const g = new THREE.Group();
     const pot = cyl(0.3, 0.24, 0.5, m.pot, 24);
@@ -667,20 +689,30 @@ export function buildRoom(tier: Tier): Room {
     trunk.position.y = 0.5 + h / 2;
     trunk.rotation.z = 0.06;
     g.add(trunk);
-    const n = tier === "high" ? 520 : 260;
+    const n = tier === "high" ? 1400 : 700;
     const leaves = new THREE.InstancedMesh(leafGeo, m.leaf, n);
     const r = (() => {
       let s = seed;
       return () => ((s = (s * 16807) % 2147483647) / 2147483647);
     })();
     const o = new THREE.Object3D();
+    // a few rounded foliage clusters around the top of the trunk (points inside ellipsoids, biased to the surface)
+    const clusters = [
+      [0, 0.5 + h * 0.95, 0, 0.42],
+      [0.22, 0.5 + h * 0.78, 0.1, 0.3],
+      [-0.2, 0.5 + h * 0.82, -0.12, 0.32],
+      [0.05, 0.5 + h * 1.12, 0.08, 0.3],
+    ];
     for (let i = 0; i < n; i++) {
-      const cluster = Math.floor(r() * 4);
-      const cy = 0.5 + h * (0.7 + cluster * 0.1);
+      const [cx, cy, cz, cr] = clusters[Math.floor(r() * clusters.length)];
+      const u = r() * 2 - 1;
       const ang = r() * Math.PI * 2;
-      const rad = 0.12 + r() * 0.42;
-      o.position.set(Math.cos(ang) * rad, cy + (r() - 0.5) * 0.45, Math.sin(ang) * rad);
-      o.rotation.set((r() - 0.5) * 2.4, r() * Math.PI * 2, (r() - 0.5) * 2.4);
+      const rad = cr * (0.55 + 0.45 * Math.cbrt(r()));
+      const q = Math.sqrt(1 - u * u);
+      o.position.set(cx + Math.cos(ang) * q * rad, cy + u * rad * 0.75, cz + Math.sin(ang) * q * rad);
+      o.lookAt(cx * 2, cy + 0.2, cz * 2);
+      o.rotateX(-1.2 + r() * 0.8);
+      o.rotateZ((r() - 0.5) * 1.6);
       const s = 0.8 + r() * 0.5;
       o.scale.set(s, s, s);
       o.updateMatrix();
@@ -704,7 +736,7 @@ export function buildRoom(tier: Tier): Room {
 
   // ---------------------------------------------------------------- lights
   const base = new Map<THREE.Light, number>();
-  const ambient = new THREE.HemisphereLight(0xffe0bd, 0x1a110a, 0.55);
+  const ambient = new THREE.HemisphereLight(0xffe0bd, 0x2a1a10, 1.1);
   root.add(ambient);
   base.set(ambient, ambient.intensity);
   const spot = (pos: THREE.Vector3, aim: THREE.Vector3, intensity: number, angle: number, shadow = false) => {
@@ -733,11 +765,11 @@ export function buildRoom(tier: Tier): Room {
   const wallSpot = spot(new THREE.Vector3(0, 4.25, -2.2), new THREE.Vector3(0, 1.7, WALL.z), 95, 0.82);
   const recSpot = spot(new THREE.Vector3(4.2, 4.25, 0.4), new THREE.Vector3(7.6, 1.6, 0), 90, 0.72, true);
   const tableSpot = spot(new THREE.Vector3(TABLE.x + 0.4, 4.25, TABLE.z + 1.2), new THREE.Vector3(TABLE.x, TABLE.y, TABLE.z), 55, 0.42, true);
-  const pkgSpot = spot(new THREE.Vector3(-4.4, 4.25, 2.6), new THREE.Vector3(-4.4, 0.8, 4.45), 70, 0.6);
+  const pkgSpot = spot(new THREE.Vector3(-4.4, 4.25, 2.6), new THREE.Vector3(-4.4, 0.8, 4.45), 34, 0.6);
   const aboutLight = point(new THREE.Vector3(5.6, 2.5, -4.6), 9, 5);
   const lampLight = point(new THREE.Vector3(6.2, 1.45, 1.35), 2.2, 3.2);
   const screenLight = point(new THREE.Vector3(-6.6, 1.9, -0.6), 4, 7, 0xbfd2ff);
-  const svcLight = point(new THREE.Vector3(6.1, 1.95, 3.85), tier === "high" ? 5 : 0, 4, 0xfff3e2);
+  const svcLight = point(new THREE.Vector3(6.3, 1.95, 4.9), tier === "high" ? 5 : 0, 4, 0xfff3e2);
   const lights = [wallSpot, recSpot, tableSpot, pkgSpot, aboutLight, lampLight, screenLight, svcLight];
   if (tier === "low") {
     // fewer real lights on weaker devices: the decor lamps keep their glow, the room keeps its key lights

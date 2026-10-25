@@ -11,7 +11,6 @@
 
 :root {
   --studio-h: max(560px, 100svh);
-  --studio-shade-side: transparent;
 }
 /* phones, tablets in portrait, short windows: the room is a band at the top; the content follows below it */
 @media (max-width: 1023.98px), (max-aspect-ratio: 1/1) {
@@ -72,10 +71,11 @@ html[data-studio="static"] .studio-canvas { display: none; }
 .studio-shade {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(to bottom, rgb(7 7 6 / 0.6) 0, transparent 16%, transparent 58%, var(--color-night) 100%),
-    linear-gradient(to left, var(--studio-shade-side) 0%, transparent 52%);
+  background: linear-gradient(to bottom, rgb(7 7 6 / 0.6) 0, rgb(7 7 6 / 0) 16%, rgb(13 12 11 / 0) 58%, rgb(13 12 11) 100%);
 }
+/* the text side (RTL start = right) is darkened only where a corner puts its text there */
+.studio-shade::before { content: ""; position: absolute; inset: 0; opacity: 0; transition: opacity 0.6s ease;
+  background: linear-gradient(to left, rgb(7 7 6 / 0.85) 0%, rgb(7 7 6 / 0.5) 30%, rgb(7 7 6 / 0) 55%); }
 
 /* header over the room: translucent instead of a solid bar */
 html[data-studio-station] .site-header-flow { background: linear-gradient(to bottom, rgb(7 7 6 / 0.9), rgb(7 7 6 / 0.55)); }
@@ -93,26 +93,25 @@ html[data-studio-station] .hero-flow::after { display: none; }
   html[data-studio-station] .hero-flow { padding-top: calc(var(--studio-h) - var(--header-h) - 5.5rem); }
   html[data-studio-station] .hero-flow > div:last-child,
   html[data-studio-station] .studio-stage__inner { padding-top: 1rem; }
-  html[data-studio-station] .studio-shade { background: linear-gradient(to bottom, rgb(7 7 6 / 0.55) 0, transparent 22%, transparent 52%, var(--color-night) 100%); }
+  html[data-studio-station] .studio-shade { background: linear-gradient(to bottom, rgb(7 7 6 / 0.55) 0, rgb(7 7 6 / 0) 22%, rgb(13 12 11 / 0) 52%, rgb(13 12 11) 100%); }
 }
 
 /* wide + scene: the hero fills the room's first screen; text sits on the start (right) side, the room on the left */
 @media (min-width: 1024px) and (min-aspect-ratio: 1/1) {
-  html[data-studio="scene"][data-studio-station] { --studio-shade-side: rgb(7 7 6 / 0.82); }
-  html[data-studio="scene"][data-studio-station="albums"] { --studio-shade-side: transparent; }
-  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow {
+  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .studio-shade::before { opacity: 1; }
+  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow:not([data-studio-stage]) {
     min-height: calc(var(--studio-h) - var(--header-h));
     display: flex;
     align-items: center;
   }
-  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow > div:last-child {
+  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow:not([data-studio-stage]) > div:last-child {
     align-items: flex-start;
     text-align: start;
   }
-  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow > div:last-child > * { max-width: min(36rem, 42vw); }
-  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow > div:last-child nav ol { justify-content: flex-start; }
-  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow .gold-rule { margin-inline: 0; }
-  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow > div:last-child > div:last-child { justify-content: flex-start; }
+  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow:not([data-studio-stage]) > div:last-child > * { max-width: min(36rem, 42vw); }
+  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow:not([data-studio-stage]) > div:last-child nav ol { justify-content: flex-start; }
+  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow:not([data-studio-stage]) .gold-rule { margin-inline: 0; }
+  html[data-studio="scene"][data-studio-station]:not([data-studio-station="albums"]) .hero-flow:not([data-studio-stage]) > div:last-child > div:last-child { justify-content: flex-start; }
 }
 
 /* ---------------------------------------------------------------- reception (home hero)
@@ -186,7 +185,8 @@ html[data-studio="scene"] [data-projected="1"] { will-change: transform; }
   html[data-studio="scene"] .studio-hotspot[data-projected="1"] .studio-hotspot__img,
   html[data-studio="scene"] [data-studio-wall] > li[data-projected="1"] img { opacity: 0; }
   html[data-studio="scene"] .studio-hotspot[data-projected="1"] .studio-hotspot__label {
-    justify-content: center; text-align: center; padding-top: 1.1rem;
+    justify-content: center; text-align: center; padding-top: 1.1rem; flex-wrap: wrap; width: max-content; min-width: 100%; margin-inline: auto;
+    position: relative; inset-inline-start: 50%; translate: 50% 0;
     text-shadow: 0 1px 12px rgb(0 0 0 / 0.95), 0 0 2px rgb(0 0 0 / 0.9);
   }
   html[data-studio="scene"] .studio-hotspot[data-projected="1"] .studio-hotspot__caption { flex-basis: 100%; order: 3; }
@@ -210,6 +210,8 @@ html[data-studio="scene"] [data-projected="1"] { will-change: transform; }
   html[data-studio="scene"][data-studio-station="albums"] nav[aria-label="نوع الأعمال"] { margin-bottom: 0.75rem; }
   html[data-studio="scene"][data-studio-station="albums"] nav[aria-label="تصنيفات الألبومات"] { margin-bottom: 0.5rem; }
 
+  /* the section holding the tabs and the wall is see-through over the room */
+  html[data-studio="scene"][data-studio-station="albums"] main > section:first-of-type { background: transparent; }
   html[data-studio="scene"] .studio-wall__pager {
     display: flex; align-items: center; justify-content: center; gap: 1rem; margin-bottom: 0.5rem;
   }

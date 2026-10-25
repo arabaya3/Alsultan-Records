@@ -71,10 +71,13 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
     const canvas = canvasRef.current;
     if (!canvas) return;
     const cr = canvas.getBoundingClientRect();
+    // links sit over their prints only on wide screens; phones and tablets keep them as tiles in the flow
+    const wideNow = matchMedia(WIDE).matches;
     for (const [key, el] of hotspots.current) {
-      const r = rects[key];
+      const r = wideNow ? rects[key] : null;
       if (!r || !el.isConnected) {
         el.dataset.projected = "0";
+        el.style.transform = "";
         continue;
       }
       const layer = (el.offsetParent as HTMLElement | null)?.getBoundingClientRect();
@@ -150,8 +153,8 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
 
   useEffect(() => {
     if (document.documentElement.getAttribute("data-studio") !== "scene") {
-      setMode("static");
-      return;
+      const t = window.setTimeout(() => setMode("static"));
+      return () => clearTimeout(t);
     }
     let cancelled = false;
     let ro: ResizeObserver | null = null;
@@ -180,6 +183,8 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
           onMoving: (m) => document.documentElement.toggleAttribute("data-studio-moving", m),
         });
         engine.current = e;
+        // read-only stats for tests and the perf script (no control surface)
+        (window as Window & { __studioStats?: () => unknown }).__studioStats = () => e.stats();
         document.documentElement.setAttribute("data-studio-tier", tier);
         const stage = stageRef.current!;
         const size = () => e.resize(stage.clientWidth, stage.clientHeight);
@@ -263,9 +268,9 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
 /** A real link that also drives its 3D frame: hover/focus lift the print, a plain click starts the camera toward it. */
 export function useHotspot(key: string) {
   const ctx = useStudio();
-  const ref = useCallback((el: HTMLElement | null) => ctx?.register(key, el), [ctx, key]);
+  const attach = useCallback((el: HTMLElement | null) => ctx?.register(key, el), [ctx, key]);
   return {
-    ref,
+    attach,
     "data-hotspot": key,
     onPointerEnter: () => ctx?.hover(key),
     onPointerLeave: () => ctx?.hover(null),

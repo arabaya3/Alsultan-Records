@@ -11,17 +11,17 @@ export type ReceptionItem = { href: string; label: string; caption: string; imag
  * same-origin thumbnail the print uses (one download, shared by the texture and the tile).
  */
 function Frame({ item, index }: { item: ReceptionItem; index: number }) {
-  const hs = useHotspot(`reception:${index}`);
+  const { attach, onPointerEnter, onPointerLeave, onFocus, onBlur, onClickCapture } = useHotspot(`reception:${index}`);
   return (
-    <li ref={hs.ref} data-hotspot={hs["data-hotspot"]} className="studio-hotspot">
+    <li ref={attach} data-hotspot={`reception:${index}`} className="studio-hotspot">
       <Link
         href={item.href}
         data-reception-frame={index}
-        onPointerEnter={hs.onPointerEnter}
-        onPointerLeave={hs.onPointerLeave}
-        onFocus={hs.onFocus}
-        onBlur={hs.onBlur}
-        onClickCapture={hs.onClickCapture}
+        onPointerEnter={onPointerEnter}
+        onPointerLeave={onPointerLeave}
+        onFocus={onFocus}
+        onBlur={onBlur}
+        onClickCapture={onClickCapture}
         className="studio-hotspot__link group"
       >
         <span className="studio-hotspot__print">

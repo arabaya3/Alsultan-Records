@@ -51,7 +51,7 @@ export type StudioEngine = {
   /** draw once more (e.g. a hotspot registered and needs its position) */
   refresh: () => void;
   setVisible: (visible: boolean) => void;
-  stats: () => { textures: number; calls: number; triangles: number; tier: Tier; moving: boolean };
+  stats: () => { textures: number; calls: number; triangles: number; tier: Tier; moving: boolean; camera: number[]; target: number[]; station: Station | null };
   dispose: () => void;
 };
 
@@ -63,10 +63,10 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: tier === "high", powerPreference: "high-performance", alpha: false, stencil: false });
   renderer.setClearColor(0x0b0907, 1);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.08;
+  renderer.toneMappingExposure = 1.35;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = tier === "high";
-  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.shadowMap.type = THREE.PCFShadowMap;
   const maxDpr = () => (tier === "high" ? Math.min(window.devicePixelRatio || 1, 1.75) : 1);
   renderer.setPixelRatio(maxDpr());
 
@@ -549,7 +549,16 @@ export function createStudio(canvas: HTMLCanvasElement, opts: EngineOptions): St
         raf = 0;
       }
     },
-    stats: () => ({ textures: renderer.info.memory.textures, calls: renderer.info.render.calls, triangles: renderer.info.render.triangles, tier, moving }),
+    stats: () => ({
+      textures: renderer.info.memory.textures,
+      calls: renderer.info.render.calls,
+      triangles: renderer.info.render.triangles,
+      tier,
+      moving,
+      camera: cam.pos.toArray().map((n) => +n.toFixed(2)),
+      target: cam.target.toArray().map((n) => +n.toFixed(2)),
+      station,
+    }),
     dispose: () => {
       disposed = true;
       if (raf) cancelAnimationFrame(raf);
