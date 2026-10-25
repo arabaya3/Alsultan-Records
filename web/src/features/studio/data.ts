@@ -25,8 +25,8 @@ export async function getStudioScene(): Promise<{ shared: SharedScene; reception
     { href: workHref({ tab: "photos" }), label: "الألبومات", caption: "صور من مناسباتنا", image: cover(0) },
     { href: workHref({ tab: "videos" }), label: "الفيديوهات", caption: "أفلام الأعراس والسهرات", image: PROMO_ASSETS.portrait.coverWebp },
     hasOffers
-      ? { href: "/offers", label: "العروض", caption: "عروض الموسم الحالية", image: thumb(s?.hero_cover_photo_id) ?? cover(1) }
-      : { href: "/packages", label: "البكجات", caption: "باقات التصوير والتوثيق", image: thumb(s?.hero_cover_photo_id) ?? cover(1) },
+      ? { href: "/offers", label: "العروض", caption: "عروض الموسم الحالية", image: cover(1) }
+      : { href: "/packages", label: "البكجات", caption: "باقات التصوير والتوثيق", image: cover(1) },
   ];
   const frame = (src: string | null, key: string) => (src ? { key, src } : null);
   return {

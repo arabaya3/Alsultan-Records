@@ -14,7 +14,9 @@ const OUT = "../docs/screenshots/studio/perf";
 fs.mkdirSync(OUT, { recursive: true });
 fs.mkdirSync(".cache", { recursive: true });
 
-const browser = await chromium.launch();
+// [label] ending in "-gpu" launches with the GPU (ANGLE) so the scene itself is measured; otherwise Chromium's
+// software rasterizer is used and the page serves the static studio (both are worth measuring).
+const browser = await chromium.launch(label.endsWith("-gpu") ? { args: ["--use-angle=d3d11", "--enable-gpu", "--ignore-gpu-blocklist"] } : {});
 const probe = await (await browser.newContext()).newPage();
 await probe.goto(`${BASE}/work?tab=photos`, { waitUntil: "domcontentloaded" });
 const albumHref = await probe.locator("a[href^='/work/albums/']").first().getAttribute("href");
