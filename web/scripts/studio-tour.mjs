@@ -114,7 +114,8 @@ const cornersTour = async (page, state) => {
   await page.goto(BASE + "/", { waitUntil: "load" });
   await page.waitForTimeout(3000);
   for (const href of ["/work", "/packages", "/services", "/about", "/contact", "/"]) {
-    await page.locator(`header nav a[href='${href}']`).first().click().catch(() => page.goto(BASE + href));
+    const link = href === "/" ? page.locator("header a[href='/']").first() : page.locator(`header nav a[href='${href}']`).first();
+    await link.click({ timeout: 5000 }).catch(() => page.goto(BASE + href));
     await page.waitForTimeout(3000);
     await state(href);
   }

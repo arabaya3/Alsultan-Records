@@ -30,7 +30,7 @@ function Frame({ item, index }: { item: ReceptionItem; index: number }) {
           {item.image ? (
             // same-origin gated thumbnail (never an original); decorative — the link's name is the label below
             // eslint-disable-next-line @next/next/no-img-element
-            <img src={item.image} alt="" decoding="async" loading="lazy" className="studio-hotspot__img" />
+            <img src={item.image} alt="" decoding="async" loading="eager" className="studio-hotspot__img" />
           ) : null}
         </span>
         <span className="studio-hotspot__label">

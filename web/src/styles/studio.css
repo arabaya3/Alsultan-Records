@@ -153,7 +153,8 @@ html[data-studio="scene"][data-studio-arriving] .studio-stage__copy { opacity: 0
   overflow: hidden;
   border-radius: var(--radius-lg);
   border: 1px solid var(--color-hairline-gold);
-  background: var(--color-night-deep);
+  /* a warm paper mat while the photo arrives — never an empty black square */
+  background: radial-gradient(circle at 50% 45%, #efe5d2, #d9cbb2);
   box-shadow: 0 18px 40px -22px rgb(0 0 0 / 0.9);
   transition: border-color 0.3s, transform 0.3s;
 }
