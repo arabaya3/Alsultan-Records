@@ -4,7 +4,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNo
 import { arNum } from "@/features/public-content/labels";
 import { photoUrl } from "@/features/public-content/gallery-model";
 import { wallGroup } from "./poses";
-import { StudioPage, useStudio } from "./StudioProvider";
+import { getStudioState, StudioPage, useStudio, useStudioState } from "./StudioProvider";
 
 /**
  * The album list as the studio's photo wall.
@@ -21,7 +21,8 @@ export function StudioWall({ albums, children, className = "" }: { albums: WallA
   const ul = useRef<HTMLUListElement>(null);
   const [group, setGroup] = useState(0);
   const [dir, setDir] = useState(0);
-  const active = Boolean(ctx && ctx.mode !== "static" && ctx.wide);
+  const st = useStudioState();
+  const active = Boolean(ctx && st.mode !== "static" && st.wide);
   const { start, end, groups } = wallGroup(albums.length, group);
   const storeKey = useRef("");
 
@@ -70,7 +71,7 @@ export function StudioWall({ albums, children, className = "" }: { albums: WallA
       const enter = () => ctx.hover(key);
       const leave = () => ctx.hover(null);
       const click = (e: MouseEvent) => {
-        if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && ctx.mode === "scene") ctx.preview(key);
+        if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && getStudioState().mode === "scene") ctx.preview(key);
       };
       li.addEventListener("pointerenter", enter);
       li.addEventListener("pointerleave", leave);

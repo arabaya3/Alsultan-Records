@@ -1,6 +1,6 @@
 "use client";
 
-import { useStudio } from "./StudioProvider";
+import { useStudio, useStudioState } from "./StudioProvider";
 
 /**
  * «عرض مبسّط» / «تجربة الاستوديو»: the visitor can turn the 3D room off (remembered in this browser) or back on.
@@ -8,8 +8,9 @@ import { useStudio } from "./StudioProvider";
  */
 export function StudioToggle() {
   const ctx = useStudio();
-  if (!ctx?.station || ctx.mode === "pending") return null;
-  const on = ctx.mode === "scene";
+  const st = useStudioState();
+  if (!ctx || !st.station || st.mode === "pending") return null;
+  const on = st.mode === "scene";
   let canScene = true;
   if (!on && typeof window !== "undefined") canScene = Boolean(window.WebGLRenderingContext);
   if (!on && !canScene) return null;

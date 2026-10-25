@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useSearchParams } from "next/navigation";
-import { createContext, Suspense, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { createContext, Suspense, useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useSyncExternalStore, type ReactNode } from "react";
 import { decideTier, SOFTWARE_RENDERER, type Tier } from "./capability";
 import { STUDIO_ENTRY_KEY, STUDIO_PREF_KEY } from "./config";
 import type { AlbumImage, FrameImage, Rect, SceneInput, StudioEngine } from "./engine/engine";
@@ -19,10 +19,31 @@ export type SharedScene = { logo: string; screen: string; reception: FrameImage[
 type PageData = { wall?: { images: FrameImage[]; dir: number }; album?: { image: AlbumImage; index: number } };
 export type StudioMode = "pending" | "scene" | "static";
 
+/**
+ * Reactive studio state lives OUTSIDE React context on purpose: a context change re-renders consumers inside
+ * Suspense boundaries that are still streaming in, which forces React to drop the server HTML of those
+ * boundaries. An external store read with useSyncExternalStore hydrates from the server snapshot instead.
+ */
+export type StudioState = { mode: StudioMode; wide: boolean; station: Station | null };
+const SERVER_STATE: StudioState = { mode: "pending", wide: false, station: null };
+let studioState = SERVER_STATE;
+const listeners = new Set<() => void>();
+function patchState(p: Partial<StudioState>) {
+  const next = { ...studioState, ...p };
+  if (next.mode === studioState.mode && next.wide === studioState.wide && next.station === studioState.station) return;
+  studioState = next;
+  listeners.forEach((l) => l());
+}
+const subscribe = (l: () => void) => {
+  listeners.add(l);
+  return () => listeners.delete(l);
+};
+export const getStudioState = () => studioState;
+export function useStudioState(): StudioState {
+  return useSyncExternalStore(subscribe, getStudioState, () => SERVER_STATE);
+}
+
 type Ctx = {
-  mode: StudioMode;
-  wide: boolean;
-  station: Station | null;
   register: (key: string, el: HTMLElement | null) => void;
   hover: (key: string | null) => void;
   preview: (key: string) => void;
@@ -53,9 +74,6 @@ function setHtmlMode(m: "scene" | "static") {
 }
 
 export function StudioProvider({ shared, children }: { shared: SharedScene; children: ReactNode }) {
-  const [mode, setMode] = useState<StudioMode>("pending");
-  const [wide, setWide] = useState(false);
-  const [station, setStation] = useState<Station | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
   const engine = useRef<StudioEngine | null>(null);
@@ -129,7 +147,7 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
   const onStation = useCallback(
     (s: Station | null) => {
       stationRef.current = s;
-      setStation(s);
+      patchState({ station: s });
       schedule();
     },
     [schedule],
@@ -140,12 +158,12 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
     engine.current?.dispose();
     engine.current = null;
     setHtmlMode("static");
-    setMode("static");
+    patchState({ mode: "static" });
   }, []);
 
   useEffect(() => {
     const mq = matchMedia(WIDE);
-    const sync = () => setWide(mq.matches);
+    const sync = () => patchState({ wide: mq.matches });
     sync();
     mq.addEventListener("change", sync);
     return () => mq.removeEventListener("change", sync);
@@ -153,8 +171,8 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
 
   useEffect(() => {
     if (document.documentElement.getAttribute("data-studio") !== "scene") {
-      const t = window.setTimeout(() => setMode("static"));
-      return () => clearTimeout(t);
+      patchState({ mode: "static" });
+      return;
     }
     let cancelled = false;
     let ro: ResizeObserver | null = null;
@@ -213,7 +231,7 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
         });
         io.observe(stage);
         document.addEventListener("visibilitychange", onVis);
-        setMode("scene");
+        patchState({ mode: "scene" });
         apply();
         // the canvas fades in over the static studio once its first frame is drawn
         requestAnimationFrame(() => requestAnimationFrame(() => stage.setAttribute("data-ready", "1")));
@@ -263,7 +281,8 @@ export function StudioProvider({ shared, children }: { shared: SharedScene; chil
     else window.location.reload();
   }, [fail]);
 
-  const value = useMemo<Ctx>(() => ({ mode, wide, station, register, hover, preview, setPage, setPreference }), [mode, wide, station, register, hover, preview, setPage, setPreference]);
+  // stable: only functions (see the note on StudioState)
+  const value = useMemo<Ctx>(() => ({ register, hover, preview, setPage, setPreference }), [register, hover, preview, setPage, setPreference]);
 
   return (
     <StudioContext.Provider value={value}>
@@ -293,7 +312,8 @@ export function useHotspot(key: string) {
     onFocus: () => ctx?.hover(key),
     onBlur: () => ctx?.hover(null),
     onClickCapture: (e: React.MouseEvent) => {
-      if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && ctx?.mode === "scene" && ctx.wide) ctx.preview(key);
+      const st = getStudioState();
+      if (e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey && st.mode === "scene" && st.wide) ctx?.preview(key);
     },
   };
 }
