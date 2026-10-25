@@ -13,7 +13,9 @@ const storageDirect = /^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(supabaseOrig
 // dropping 'unsafe-inline' at the cost of disabling static rendering. Tracked in docs/security-model.md.
 const csp = [
   "default-src 'self'",
-  `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com${isDev ? " 'unsafe-eval'" : ""}`,
+  // 'wasm-unsafe-eval' allows compiling WebAssembly only (not JS eval): the studio's compressed models are decoded
+  // by a small WASM module, which Safari/WebKit otherwise refuses
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval' https://challenges.cloudflare.com${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://i.ytimg.com ${supabaseOrigin}`,
   `media-src 'self' blob: ${supabaseOrigin}`,

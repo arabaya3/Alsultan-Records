@@ -8,10 +8,15 @@
  * callbacks, API routes and server-action POSTs answer 404 — nothing but reading public pages passes. It never
  * forwards to the database: the app talks to its local database itself.
  * NOTE: this does not change what Docker exposes. Stop it (Ctrl+C) and the local stack when you are done.
+ *
+ * --local-all : testing aid — listens on 127.0.0.1 only and passes every route, only stripping the https-only
+ *   headers (WebKit applies upgrade-insecure-requests even to localhost, so a production build served over plain
+ *   http cannot load its scripts there). Never reachable from the network.
  */
 import http from "node:http";
 
-const [portArg = "8370", target = "http://127.0.0.1:3700"] = process.argv.slice(2);
+const LOCAL_ALL = process.argv.includes("--local-all");
+const [portArg = "8370", target = "http://127.0.0.1:3700"] = process.argv.slice(2).filter((a) => !a.startsWith("--"));
 const T = new URL(target);
 // private areas and anything that writes (booking / tracking forms are also left out of the preview)
 const BLOCK = /^\/(admin|portal|login|logout|auth|account|api|book|track)(\/|$|\?)/i;
@@ -20,12 +25,12 @@ const PUBLIC_POST_OK = false; // public forms (booking, consent) are not needed 
 const server = http.createServer((req, res) => {
   const url = req.url ?? "/";
   const method = req.method ?? "GET";
-  if (BLOCK.test(url) || (method !== "GET" && method !== "HEAD" && !PUBLIC_POST_OK) || req.headers["next-action"]) {
+  if (!LOCAL_ALL && (BLOCK.test(url) || (method !== "GET" && method !== "HEAD" && !PUBLIC_POST_OK) || req.headers["next-action"])) {
     res.writeHead(404, { "content-type": "text/plain; charset=utf-8", "cache-control": "no-store" });
     return res.end("Not available on the preview link.");
   }
   const headers = { ...req.headers, host: T.host };
-  delete headers["next-action"];
+  if (!LOCAL_ALL) delete headers["next-action"];
   const up = http.request({ hostname: T.hostname, port: T.port, path: url, method, headers }, (r) => {
     const h = { ...r.headers };
     // the preview is plain http on the LAN: drop the https-only header so the phone does not try https
@@ -40,4 +45,5 @@ const server = http.createServer((req, res) => {
   });
   req.pipe(up);
 });
-server.listen(Number(portArg), "0.0.0.0", () => console.log(`public-only preview on http://0.0.0.0:${portArg} → ${target}`));
+const host = LOCAL_ALL ? "127.0.0.1" : "0.0.0.0";
+server.listen(Number(portArg), host, () => console.log(`${LOCAL_ALL ? "local test gate" : "public-only preview"} on http://${host}:${portArg} → ${target}`));
