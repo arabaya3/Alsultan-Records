@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import sharp from "sharp";
-import { db } from "./qa-helpers";
+import { db, hideAlbumViaAdmin } from "./qa-helpers";
 
 /**
  * Photos tab, album page, lightbox and the gated /p route. LOCAL STACK ONLY.
@@ -90,7 +90,10 @@ test.describe("with a temporary published album", () => {
     }
     await db.from("photo_albums").update({ cover_photo_id: PHOTOS[1].id }).eq("id", ALBUM.id);
   });
-  test.afterAll(cleanup);
+  test.afterAll(async ({ browser }) => {
+    await hideAlbumViaAdmin(browser, ALBUM.id);
+    await cleanup();
+  });
 
   // Public pages are cached ("use cache", minutes). A fresh server or the tag TTL makes the album visible;
   // wait for it rather than assuming instant invalidation.

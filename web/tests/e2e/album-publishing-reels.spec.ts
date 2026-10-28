@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
-import { BASE, db, newLoggedIn, skipSiteIntro } from "./qa-helpers";
+import { BASE, db, hideAlbumViaAdmin, newLoggedIn, skipSiteIntro } from "./qa-helpers";
 
 /**
  * Owner request 2026-10-28 (feature/album-publishing-reels, migrations 0026–0027):
@@ -17,6 +17,7 @@ test.describe.configure({ mode: "serial" });
 const SLUG = `e2e-pub-${Date.now().toString(36)}`;
 let albumId = "";
 let photoId = "";
+const copied: string[] = [];
 let featuredBefore: string[] | null = null;
 let heroBefore: {
   hero_cover_source: string;
@@ -32,15 +33,10 @@ const blockYouTube = (page: Page) =>
   page.route(/youtube(-nocookie)?\.com|ytimg\.com/, (r) => r.abort());
 
 test.beforeAll(async () => {
-  // A real, processed photo to reuse (same stored variants), so the album renders like any other.
-  const src = (
-    await db
-      .from("album_photos")
-      .select("variants, width, height, mime, bytes")
-      .eq("upload_status", "ready")
-      .not("variants", "is", null)
-      .limit(1)
-      .single()
+  // A real, processed photo whose variant FILES are copied to this photo's own paths (two rows never share an
+  // object, as in real use), so the album renders like any other.
+  const candidates = (
+    await db.from("album_photos").select("variants, width, height, mime, bytes").eq("upload_status", "ready").not("variants", "is", null).limit(30)
   ).data!;
   const a = await db
     .from("photo_albums")
@@ -54,6 +50,25 @@ test.beforeAll(async () => {
     .single();
   albumId = a.data!.id;
   photoId = randomUUID();
+  // Use the first candidate whose stored files all exist (a local stack can hold rows whose files were removed).
+  let src: (typeof candidates)[number] | null = null;
+  const variants: Record<string, string> = {};
+  for (const cand of candidates) {
+    const done: string[] = [];
+    for (const from of Object.values(cand.variants as Record<string, string>)) {
+      const to = `albums/${albumId}/${photoId}/${from.split("/").pop()}`;
+      if ((await db.storage.from("album-media").copy(from, to)).error) break;
+      done.push(to);
+    }
+    if (done.length === Object.keys(cand.variants as object).length) {
+      src = cand;
+      Object.keys(cand.variants as object).forEach((k, i) => (variants[k] = done[i]!));
+      copied.push(...done);
+      break;
+    }
+    if (done.length) await db.storage.from("album-media").remove(done);
+  }
+  if (!src) throw new Error("no processed photo with its files in this stack");
   const p = await db
     .from("album_photos")
     .insert({
@@ -64,7 +79,7 @@ test.beforeAll(async () => {
       bytes: src.bytes,
       width: src.width,
       height: src.height,
-      variants: src.variants,
+      variants,
       upload_status: "ready",
       is_published: true,
       sort_order: 10,
@@ -96,18 +111,7 @@ test.beforeAll(async () => {
 });
 
 test.afterAll(async ({ browser }) => {
-  // Hide the test album through the admin first: that action expires the public albums cache, so no later page
-  // (or later spec) is served a cached card pointing at the rows deleted below.
-  if (albumId) {
-    const st = (await db.from("photo_albums").select("is_published").eq("id", albumId).maybeSingle()).data;
-    if (st?.is_published) {
-      const admin = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
-      await admin.getByTestId("album-unpublish").getByRole("button", { name: "إخفاء الألبوم" }).click();
-      await admin.locator("dialog[open] [data-testid=confirm-yes]").click();
-      await expect(admin.getByTestId("album-publish")).toBeVisible();
-      await admin.close();
-    }
-  }
+  if (albumId) await hideAlbumViaAdmin(browser, albumId); // expires the public albums cache before the rows go
   if (featuredBefore?.length)
     await db
       .from("site_sections")
@@ -123,6 +127,7 @@ test.afterAll(async ({ browser }) => {
     await db.from("album_photos").delete().eq("album_id", albumId);
     await db.from("photo_albums").delete().eq("id", albumId);
   }
+  if (copied.length) await db.storage.from("album-media").remove(copied);
 });
 
 async function firstAlbumOnPhotos(page: Page) {

@@ -136,3 +136,22 @@ export function resetSeedSelections(eventIds: string[]) {
 export async function skipSiteIntro(target: Page | import("@playwright/test").BrowserContext) {
   await target.addInitScript(() => { try { sessionStorage.setItem("sultan-intro-v1", "1"); } catch {} });
 }
+
+/**
+ * Before a test deletes a published album straight from the database: hide it through the admin first. That action
+ * expires the public albums cache, so later pages (and later specs) are never served a cached card or hero that
+ * points at deleted rows. Albums are listed newest-published first (migration 0026), so a test album is always on
+ * the home page while it is published.
+ */
+export async function hideAlbumViaAdmin(browser: Browser, albumId: string) {
+  const st = (await db.from("photo_albums").select("is_published").eq("id", albumId).maybeSingle()).data;
+  if (!st?.is_published) return;
+  const admin = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
+  try {
+    await admin.getByTestId("album-unpublish").getByRole("button", { name: "إخفاء الألبوم" }).click();
+    await admin.locator("dialog[open] [data-testid=confirm-yes]").click();
+    await admin.getByTestId("album-publish").waitFor();
+  } finally {
+    await admin.close();
+  }
+}
