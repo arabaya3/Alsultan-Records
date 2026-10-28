@@ -323,6 +323,7 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
 
   // ------------------------------------------------------------------ camera moves
   let camTween: gsap.core.Tween | null = null;
+  let camGuard: ReturnType<typeof setTimeout> | undefined;
   const setMoving = (m: boolean) => {
     if (moving === m) return;
     moving = m;
@@ -330,6 +331,7 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
   };
   const goTo = (to: CameraState, duration: number, ease = "power2.inOut", curved = true) => {
     camTween?.kill();
+    clearTimeout(camGuard);
     const from = { pos: cam.pos.clone(), target: cam.target.clone(), fov: cam.fov };
     const p1 = v3(to.position);
     const t1 = v3(to.target);
@@ -360,11 +362,19 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
         invalidate();
       },
       onComplete: () => {
+        clearTimeout(camGuard);
         camTween = null;
         setMoving(false);
         invalidate();
       },
     });
+    // GSAP ticks on requestAnimationFrame, which a browser may throttle or stall (background tab, WebKit under
+    // load): the move still ends on time, so the corner is never left "moving"
+    const tween = camTween;
+    clearTimeout(camGuard);
+    camGuard = setTimeout(() => {
+      if (camTween === tween && !disposed) tween.progress(1);
+    }, duration * 1000 + 600);
   };
   const aspect = () => width / Math.max(1, height);
   // the album wall frames as many prints as hang (1–5): a short group is seen closer, not lost on a wide wall
@@ -743,6 +753,7 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
       disposed = true;
       if (raf) cancelAnimationFrame(raf);
       camTween?.kill();
+      clearTimeout(camGuard);
       lightTween?.kill();
       bookTl?.kill();
       wallTl?.kill();
