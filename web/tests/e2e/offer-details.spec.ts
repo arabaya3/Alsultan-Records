@@ -7,8 +7,10 @@ import { db, overflowPx, skipSiteIntro } from "./qa-helpers";
  *   BASE_URL=http://localhost:3600 npx playwright test offer-details --project=chromium
  * Guards the defects fixed here: no line of the owner's description is lost or reordered by the section layout, the
  * deliveries/gifts section is set apart only when the owner wrote it, no empty image column, hidden prices stay hidden.
+ * The offer page reads the cached active-offers list (cacheLife minutes; admin saves expire it, direct DB inserts do
+ * not), so a fixture inserted here 404s until that entry revalidates: beforeAll polls the page HTML, like offers.spec.
  */
-test.describe.configure({ mode: "serial" });
+test.describe.configure({ mode: "serial", timeout: 300_000 });
 
 const STAMP = Date.now().toString(36);
 // Same shape as the live «الباقة الفضية» (wording made up): numbered coverage with details, then deliveries/gifts.
@@ -32,6 +34,17 @@ test.beforeAll(async () => {
     if (error) throw new Error(error.message);
   }
 });
+test.beforeAll(async ({ request }) => {
+  await until(request, SILVER.slug);
+  await until(request, LONG.slug);
+});
+/** Polls until the cached offers list includes the fixture (stale-while-revalidate brings it in). */
+async function until(request: import("@playwright/test").APIRequestContext, slug: string) {
+  await expect
+    .poll(async () => (await (await request.get(`/offers/${slug}`)).text()).includes("data-offer-description"), { timeout: 240_000, intervals: [3_000, 5_000, 10_000] })
+    .toBe(true);
+}
+
 test.afterAll(async () => {
   await db.from("offers").delete().in("id", [SILVER.id, LONG.id]);
 });
