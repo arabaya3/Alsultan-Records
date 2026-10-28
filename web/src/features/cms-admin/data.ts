@@ -5,7 +5,7 @@ import type { PickPhoto } from "./fields";
 /** Published, ready photos of published albums (picker source). Admin RLS sees all; we filter to public ones. */
 export async function pickPhotos(sb: SupabaseClient): Promise<PickPhoto[]> {
   const [albums, photos] = await Promise.all([
-    sb.from("photo_albums").select("id, title, sort_order").eq("is_published", true).order("sort_order"),
+    sb.from("photo_albums").select("id, title").eq("is_published", true).order("listed_at", { ascending: false }).order("id", { ascending: false }),
     sb.from("album_photos").select("id, album_id, sort_order").eq("is_published", true).eq("upload_status", "ready").order("sort_order").limit(1500),
   ]);
   const title = new Map(((albums.data ?? []) as { id: string; title: string }[]).map((a) => [a.id, a.title]));
@@ -21,7 +21,7 @@ export async function pickVideos(sb: SupabaseClient): Promise<Opt[]> {
   return ((data ?? []) as { id: string; title: string; is_published: boolean }[]).map((v) => ({ id: v.id, title: v.title, hidden: !v.is_published }));
 }
 export async function pickAlbums(sb: SupabaseClient): Promise<Opt[]> {
-  const { data } = await sb.from("photo_albums").select("id, title, is_published").order("sort_order");
+  const { data } = await sb.from("photo_albums").select("id, title, is_published").order("listed_at", { ascending: false }).order("id", { ascending: false });
   return ((data ?? []) as { id: string; title: string; is_published: boolean }[]).map((v) => ({ id: v.id, title: v.title, hidden: !v.is_published }));
 }
 export async function pickServices(sb: SupabaseClient): Promise<Opt[]> {

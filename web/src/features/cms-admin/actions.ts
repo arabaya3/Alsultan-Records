@@ -151,7 +151,7 @@ export async function saveIdentity(_p: ActionResult, fd: FormData): Promise<Acti
 
 export async function saveHome(_p: ActionResult, fd: FormData): Promise<ActionResult> {
   if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
-  const keys = ["hero_title", "hero_subtitle", "hero_primary_label", "hero_secondary_label", "booking_message", "hero_cover_photo_id", "hero_promo_source", "hero_promo_video_id"] as const;
+  const keys = ["hero_title", "hero_subtitle", "hero_primary_label", "hero_secondary_label", "booking_message", "hero_cover_photo_id", "hero_cover_source", "hero_promo_source", "hero_promo_video_id"] as const;
   const parsed = homeSchema.safeParse(Object.fromEntries(keys.map((k) => [k, str(fd, k)])));
   if (!parsed.success) return fail(firstIssue(parsed.error));
   const sb = await cms();

@@ -15,7 +15,7 @@ import { getActiveOffers, getProcessSteps, getPublishedPackages, getSiteSections
 import { bookingHref, telHref } from "@/features/public-content/contact";
 import { FALLBACK_SERVICES, HERO } from "@/features/public-content/home-content";
 import { homeSelection, photoUrl, promoVideos, toCardVideo } from "@/features/public-content/gallery-model";
-import { getPublishedAlbums, getVideoGallery } from "@/features/public-content/gallery-queries";
+import { getPublishedAlbums, getSiteHeroPhotoId, getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedServices } from "@/features/public-content/queries";
 import { CORE_SERVICES, SITE_NAME_AR } from "@/features/public-content/site";
@@ -66,7 +66,7 @@ const HEADING_ID: Record<SectionConfig["key"], string> = {
 };
 
 export default async function HomePage() {
-  const [settings, gallery, services, sections, offers, steps, albums, packages] = await Promise.all([
+  const [settings, gallery, services, sections, offers, steps, albums, packages, heroPhoto] = await Promise.all([
     getBusinessSettings(),
     getVideoGallery(),
     getPublishedServices(),
@@ -75,6 +75,7 @@ export default async function HomePage() {
     getProcessSteps(),
     getPublishedAlbums(),
     getPublishedPackages(),
+    getSiteHeroPhotoId(),
   ]);
 
   const s = settings.status === "ok" ? settings.data : null;
@@ -89,12 +90,9 @@ export default async function HomePage() {
       : FALLBACK_SERVICES.map((x) => ({ key: x.title, title: x.title, summary: x.summary, href: "/services" }));
   const offerList = offers.status === "ok" ? pick(offers.data, cfg("offers")) : [];
   const promoList = g ? pick(promoVideos(g), cfg("promos")) : [];
-  // Home shows the NEWEST albums unless the owner picked specific ones: the event date when the owner set one,
-  // otherwise when the album was added (imported albums have no event date).
-  const newest = (a: { event_date: string | null; created_at?: string | null }) => a.event_date ?? a.created_at?.slice(0, 10) ?? "";
-  const newestFirst = <T extends { event_date: string | null; created_at?: string | null }>(xs: T[]) =>
-    [...xs].sort((a, b) => newest(b).localeCompare(newest(a)) || (b.created_at ?? "").localeCompare(a.created_at ?? ""));
-  const albumList = albums.status === "ok" ? pick(newestFirst(albums.data.filter((a) => a.photoCount > 0)), cfg("albums")) : [];
+  // Home shows the newest PUBLISHED albums (getPublishedAlbums order: publish time, never the event date) unless the
+  // owner picked specific albums for this section in «ترتيب الرئيسية» — the admin says so next to that choice.
+  const albumList = albums.status === "ok" ? pick(albums.data.filter((a) => a.photoCount > 0), cfg("albums")) : [];
 
   // Hero promo: the self-hosted studio promo by default; the owner may switch to a published YouTube promo.
   const ytPromo =
@@ -379,7 +377,7 @@ export default async function HomePage() {
         phone={s?.phone ? { label: s.phone, href: telHref(s.phone) } : null}
         promo={{
           caption: PROMO_CAPTION,
-          coverSrc: s?.hero_cover_photo_id ? photoUrl(s.hero_cover_photo_id, "display") : null,
+          coverSrc: heroPhoto ? photoUrl(heroPhoto, "display") : null,
           youtube: ytPromo ? { youtubeId: ytPromo.youtube_id, title: ytPromo.title } : null,
         }}
         strip={works.slice(0, 4).map((v) => ({ youtubeId: v.youtube_id, title: v.title }))}

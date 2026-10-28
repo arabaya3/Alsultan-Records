@@ -3,7 +3,9 @@ import { z } from "zod";
 const HTTPS = /^https:\/\/[^\s<>"']+$/;
 const opt = (max: number, msg: string) => z.string().trim().max(max, msg).nullable();
 
-/** Album form: same limits as the photo_albums CHECK constraints (migration 0015). */
+/** Album form: same limits as the photo_albums CHECK constraints (migration 0015).
+ *  No order field: the public order is the publish time (migration 0026); event_date is the optional occasion date
+ *  (any past or future day). published_at is set by the database only. */
 export const albumFormSchema = z.object({
   title: z.string().trim().min(2, "العنوان قصير جداً").max(160, "العنوان أطول من 160 حرفاً"),
   slug: z
@@ -18,7 +20,6 @@ export const albumFormSchema = z.object({
   source_label: opt(120, "اسم المصدر أطول من 120 حرفاً"),
   source_url: z.string().trim().max(500, "الرابط طويل جداً").regex(HTTPS, "رابط المصدر يجب أن يبدأ بـ https://").nullable(),
   rights_note: opt(2000, "ملاحظة الحقوق أطول من 2000 حرف"),
-  sort_order: z.coerce.number({ message: "الترتيب يجب أن يكون رقماً" }).int("الترتيب رقم صحيح").min(-1000).max(100000),
   category_id: z.string().uuid("تصنيف غير صالح").nullable(),
 });
 export type AlbumForm = z.infer<typeof albumFormSchema>;
@@ -36,7 +37,6 @@ export function readAlbumForm(fd: FormData) {
     source_label: s("source_label") || null,
     source_url: s("source_url") || null,
     rights_note: s("rights_note") || null,
-    sort_order: s("sort_order") || "100",
     category_id: s("category_id") || null,
   });
 }
