@@ -18,6 +18,9 @@ export function AlbumCard({ album, priority = false }: { album: PhotoAlbum; prio
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={photoUrl(album.coverId, "display")}
+            // phones (2 columns) take the 480px thumb; wider screens keep the 1600px display — both gated variants
+            srcSet={`${photoUrl(album.coverId, "thumb")} 480w, ${photoUrl(album.coverId, "display")} 1600w`}
+            sizes="(max-width: 767px) 50vw, 1600px"
             alt=""
             loading={priority ? "eager" : "lazy"}
             decoding="async"
