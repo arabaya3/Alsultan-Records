@@ -95,7 +95,19 @@ test.beforeAll(async () => {
   ).data!;
 });
 
-test.afterAll(async () => {
+test.afterAll(async ({ browser }) => {
+  // Hide the test album through the admin first: that action expires the public albums cache, so no later page
+  // (or later spec) is served a cached card pointing at the rows deleted below.
+  if (albumId) {
+    const st = (await db.from("photo_albums").select("is_published").eq("id", albumId).maybeSingle()).data;
+    if (st?.is_published) {
+      const admin = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
+      await admin.getByTestId("album-unpublish").getByRole("button", { name: "إخفاء الألبوم" }).click();
+      await admin.locator("dialog[open] [data-testid=confirm-yes]").click();
+      await expect(admin.getByTestId("album-publish")).toBeVisible();
+      await admin.close();
+    }
+  }
   if (featuredBefore?.length)
     await db
       .from("site_sections")
