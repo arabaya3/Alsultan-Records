@@ -1,0 +1,167 @@
+{
+  "label": "r3c-static",
+  "base": "http://127.0.0.1:3700",
+  "at": "2026-10-28T15:14:29.173Z",
+  "pages": {
+    "home@390": {
+      "url": "/",
+      "lcpMs": 688,
+      "cls": 0,
+      "longTaskMs": 518,
+      "maxEventMs": 64,
+      "loadMs": 3729,
+      "kb": {
+        "js": 276,
+        "three": 0,
+        "img": 216,
+        "other": 306
+      },
+      "studio": "static",
+      "canvases": 1
+    },
+    "albums@390": {
+      "url": "/work?tab=photos",
+      "lcpMs": 452,
+      "cls": 0,
+      "longTaskMs": 297,
+      "maxEventMs": 56,
+      "loadMs": 4426,
+      "kb": {
+        "js": 276,
+        "three": 0,
+        "img": 139,
+        "other": 315
+      },
+      "studio": "static",
+      "canvases": 1
+    },
+    "album@390": {
+      "url": "/work/albums/wedding-dawood-nairat-2026",
+      "lcpMs": 2100,
+      "cls": 0,
+      "longTaskMs": 154,
+      "maxEventMs": 56,
+      "loadMs": 3700,
+      "kb": {
+        "js": 282,
+        "three": 0,
+        "img": 399,
+        "other": 319
+      },
+      "studio": "static",
+      "canvases": 1
+    },
+    "videos@390": {
+      "url": "/work?tab=videos",
+      "lcpMs": 544,
+      "cls": 0.0118,
+      "longTaskMs": 460,
+      "maxEventMs": 56,
+      "loadMs": 4433,
+      "kb": {
+        "js": 276,
+        "three": 0,
+        "img": 219,
+        "other": 315
+      },
+      "studio": "static",
+      "canvases": 1
+    },
+    "packages@390": {
+      "url": "/packages",
+      "lcpMs": 540,
+      "cls": 0,
+      "longTaskMs": 144,
+      "maxEventMs": 72,
+      "loadMs": 3431,
+      "kb": {
+        "js": 276,
+        "three": 0,
+        "img": 18,
+        "other": 301
+      },
+      "studio": "static",
+      "canvases": 1
+    },
+    "home@1440": {
+      "url": "/",
+      "lcpMs": 324,
+      "cls": 0,
+      "longTaskMs": 38,
+      "maxEventMs": 16,
+      "loadMs": 3535,
+      "kb": {
+        "js": 276,
+        "three": 0,
+        "img": 686,
+        "other": 294
+      },
+      "studio": "static",
+      "canvases": 1
+    },
+    "albums@1440": {
+      "url": "/work?tab=photos",
+      "lcpMs": 724,
+      "cls": 0.0014,
+      "longTaskMs": 0,
+      "maxEventMs": 0,
+      "loadMs": 3439,
+      "kb": {
+        "js": 276,
+        "three": 0,
+        "img": 886,
+        "other": 308
+      },
+      "studio": "static",
+      "canvases": 1
+    },
+    "album@1440": {
+      "url": "/work/albums/wedding-dawood-nairat-2026",
+      "lcpMs": 188,
+      "cls": 0.0037,
+      "longTaskMs": 11,
+      "maxEventMs": 16,
+      "loadMs": 3429,
+      "kb": {
+        "js": 282,
+        "three": 0,
+        "img": 387,
+        "other": 311
+      },
+      "studio": "static",
+      "canvases": 1
+    },
+    "videos@1440": {
+      "url": "/work?tab=videos",
+      "lcpMs": 300,
+      "cls": 0.0032,
+      "longTaskMs": 134,
+      "maxEventMs": 0,
+      "loadMs": 3531,
+      "kb": {
+        "js": 276,
+        "three": 0,
+        "img": 252,
+        "other": 301
+      },
+      "studio": "static",
+      "canvases": 1
+    },
+    "packages@1440": {
+      "url": "/packages",
+      "lcpMs": 188,
+      "cls": 0,
+      "longTaskMs": 0,
+      "maxEventMs": 0,
+      "loadMs": 3273,
+      "kb": {
+        "js": 276,
+        "three": 0,
+        "img": 6,
+        "other": 289
+      },
+      "studio": "static",
+      "canvases": 1
+    }
+  }
+}

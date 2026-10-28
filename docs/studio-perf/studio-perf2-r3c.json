@@ -1,0 +1,441 @@
+{
+  "label": "r3c",
+  "base": "http://127.0.0.1:3700",
+  "at": "2026-10-28T15:00:40.570Z",
+  "runs": 3,
+  "load": {
+    "home@1440": {
+      "url": "/",
+      "median": {
+        "longTaskTotalMs": 217,
+        "longTaskMaxMs": 100,
+        "tbtMs": 67,
+        "inputDelayMaxMs": 43,
+        "lcpMs": 0,
+        "cls": 0,
+        "jsKb": 456
+      },
+      "samples": [
+        {
+          "longTaskTotalMs": 1326,
+          "longTaskMaxMs": 578,
+          "tbtMs": 1026,
+          "inputDelayMaxMs": 525,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 456,
+          "studio": "scene",
+          "tier": "high"
+        },
+        {
+          "longTaskTotalMs": 137,
+          "longTaskMaxMs": 77,
+          "tbtMs": 37,
+          "inputDelayMaxMs": 24,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 456,
+          "studio": "scene",
+          "tier": "high"
+        },
+        {
+          "longTaskTotalMs": 217,
+          "longTaskMaxMs": 100,
+          "tbtMs": 67,
+          "inputDelayMaxMs": 43,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 456,
+          "studio": "scene",
+          "tier": "high"
+        }
+      ]
+    },
+    "albums@1440": {
+      "url": "/work?tab=photos",
+      "median": {
+        "longTaskTotalMs": 82,
+        "longTaskMaxMs": 82,
+        "tbtMs": 32,
+        "inputDelayMaxMs": 18,
+        "lcpMs": 0,
+        "cls": 0,
+        "jsKb": 456
+      },
+      "samples": [
+        {
+          "longTaskTotalMs": 71,
+          "longTaskMaxMs": 71,
+          "tbtMs": 21,
+          "inputDelayMaxMs": 30,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 456,
+          "studio": "scene",
+          "tier": "high"
+        },
+        {
+          "longTaskTotalMs": 82,
+          "longTaskMaxMs": 82,
+          "tbtMs": 32,
+          "inputDelayMaxMs": 15,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 456,
+          "studio": "scene",
+          "tier": "high"
+        },
+        {
+          "longTaskTotalMs": 93,
+          "longTaskMaxMs": 93,
+          "tbtMs": 43,
+          "inputDelayMaxMs": 18,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 456,
+          "studio": "scene",
+          "tier": "high"
+        }
+      ]
+    },
+    "album@1440": {
+      "url": "/work/albums/wedding-dawood-nairat-2026",
+      "median": {
+        "longTaskTotalMs": 189,
+        "longTaskMaxMs": 72,
+        "tbtMs": 45,
+        "inputDelayMaxMs": 35,
+        "lcpMs": 0,
+        "cls": 0,
+        "jsKb": 462
+      },
+      "samples": [
+        {
+          "longTaskTotalMs": 189,
+          "longTaskMaxMs": 71,
+          "tbtMs": 39,
+          "inputDelayMaxMs": 21,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 462,
+          "studio": "scene",
+          "tier": "high"
+        },
+        {
+          "longTaskTotalMs": 252,
+          "longTaskMaxMs": 72,
+          "tbtMs": 52,
+          "inputDelayMaxMs": 35,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 462,
+          "studio": "scene",
+          "tier": "high"
+        },
+        {
+          "longTaskTotalMs": 145,
+          "longTaskMaxMs": 73,
+          "tbtMs": 45,
+          "inputDelayMaxMs": 53,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 462,
+          "studio": "scene",
+          "tier": "high"
+        }
+      ]
+    },
+    "home@390": {
+      "url": "/",
+      "median": {
+        "longTaskTotalMs": 1924,
+        "longTaskMaxMs": 282,
+        "tbtMs": 1190,
+        "inputDelayMaxMs": 247,
+        "lcpMs": 0,
+        "cls": 0,
+        "jsKb": 448
+      },
+      "samples": [
+        {
+          "longTaskTotalMs": 2231,
+          "longTaskMaxMs": 365,
+          "tbtMs": 1481,
+          "inputDelayMaxMs": 251,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 448,
+          "studio": "scene",
+          "tier": "low"
+        },
+        {
+          "longTaskTotalMs": 1924,
+          "longTaskMaxMs": 282,
+          "tbtMs": 1174,
+          "inputDelayMaxMs": 247,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 448,
+          "studio": "scene",
+          "tier": "low"
+        },
+        {
+          "longTaskTotalMs": 1890,
+          "longTaskMaxMs": 230,
+          "tbtMs": 1190,
+          "inputDelayMaxMs": 149,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 448,
+          "studio": "scene",
+          "tier": "low"
+        }
+      ]
+    },
+    "albums@390": {
+      "url": "/work?tab=photos",
+      "median": {
+        "longTaskTotalMs": 2119,
+        "longTaskMaxMs": 336,
+        "tbtMs": 1419,
+        "inputDelayMaxMs": 233,
+        "lcpMs": 0,
+        "cls": 0,
+        "jsKb": 448
+      },
+      "samples": [
+        {
+          "longTaskTotalMs": 1700,
+          "longTaskMaxMs": 223,
+          "tbtMs": 1000,
+          "inputDelayMaxMs": 210,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 448,
+          "studio": "scene",
+          "tier": "low"
+        },
+        {
+          "longTaskTotalMs": 2823,
+          "longTaskMaxMs": 482,
+          "tbtMs": 2073,
+          "inputDelayMaxMs": 238,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 448,
+          "studio": "scene",
+          "tier": "low"
+        },
+        {
+          "longTaskTotalMs": 2119,
+          "longTaskMaxMs": 336,
+          "tbtMs": 1419,
+          "inputDelayMaxMs": 233,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 448,
+          "studio": "scene",
+          "tier": "low"
+        }
+      ]
+    },
+    "album@390": {
+      "url": "/work/albums/wedding-dawood-nairat-2026",
+      "median": {
+        "longTaskTotalMs": 2094,
+        "longTaskMaxMs": 303,
+        "tbtMs": 1394,
+        "inputDelayMaxMs": 247,
+        "lcpMs": 0,
+        "cls": 0,
+        "jsKb": 454
+      },
+      "samples": [
+        {
+          "longTaskTotalMs": 2094,
+          "longTaskMaxMs": 299,
+          "tbtMs": 1394,
+          "inputDelayMaxMs": 206,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 454,
+          "studio": "scene",
+          "tier": "low"
+        },
+        {
+          "longTaskTotalMs": 2016,
+          "longTaskMaxMs": 328,
+          "tbtMs": 1166,
+          "inputDelayMaxMs": 247,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 454,
+          "studio": "scene",
+          "tier": "low"
+        },
+        {
+          "longTaskTotalMs": 2526,
+          "longTaskMaxMs": 303,
+          "tbtMs": 1676,
+          "inputDelayMaxMs": 260,
+          "lcpMs": 0,
+          "cls": 0,
+          "jsKb": 454,
+          "studio": "scene",
+          "tier": "low"
+        }
+      ]
+    }
+  },
+  "moves": [
+    {
+      "toWall": {
+        "frames": 160,
+        "avgMs": 16.8,
+        "p95Ms": 16.8,
+        "maxMs": 33.3,
+        "over50": 0
+      },
+      "toAlbum": {
+        "frames": 194,
+        "avgMs": 16.7,
+        "p95Ms": 16.8,
+        "maxMs": 16.8,
+        "over50": 0
+      },
+      "nextAlbum": {
+        "frames": 193,
+        "avgMs": 16.9,
+        "p95Ms": 16.8,
+        "maxMs": 33.4,
+        "over50": 0
+      },
+      "back": {
+        "frames": 158,
+        "avgMs": 16.7,
+        "p95Ms": 16.8,
+        "maxMs": 16.8,
+        "over50": 0
+      },
+      "home": {
+        "frames": 142,
+        "avgMs": 18.5,
+        "p95Ms": 16.8,
+        "maxMs": 133.3,
+        "over50": 2
+      }
+    },
+    {
+      "toWall": {
+        "frames": 156,
+        "avgMs": 17.3,
+        "p95Ms": 16.8,
+        "maxMs": 50,
+        "over50": 0
+      },
+      "toAlbum": {
+        "frames": 193,
+        "avgMs": 16.8,
+        "p95Ms": 16.8,
+        "maxMs": 33.4,
+        "over50": 0
+      },
+      "nextAlbum": {
+        "frames": 196,
+        "avgMs": 16.7,
+        "p95Ms": 16.7,
+        "maxMs": 16.8,
+        "over50": 0
+      },
+      "back": {
+        "frames": 156,
+        "avgMs": 16.7,
+        "p95Ms": 16.8,
+        "maxMs": 16.8,
+        "over50": 0
+      },
+      "home": {
+        "frames": 143,
+        "avgMs": 18.5,
+        "p95Ms": 33.3,
+        "maxMs": 83.3,
+        "over50": 2
+      }
+    },
+    {
+      "toWall": {
+        "frames": 160,
+        "avgMs": 16.9,
+        "p95Ms": 16.8,
+        "maxMs": 33.4,
+        "over50": 0
+      },
+      "toAlbum": {
+        "frames": 193,
+        "avgMs": 16.8,
+        "p95Ms": 16.7,
+        "maxMs": 33.4,
+        "over50": 0
+      },
+      "nextAlbum": {
+        "frames": 203,
+        "avgMs": 16.7,
+        "p95Ms": 16.7,
+        "maxMs": 16.8,
+        "over50": 0
+      },
+      "back": {
+        "frames": 157,
+        "avgMs": 16.7,
+        "p95Ms": 16.7,
+        "maxMs": 16.8,
+        "over50": 0
+      },
+      "home": {
+        "frames": 146,
+        "avgMs": 18.4,
+        "p95Ms": 16.8,
+        "maxMs": 150,
+        "over50": 1
+      }
+    }
+  ],
+  "memory": [
+    {
+      "after1": {
+        "heapMb": 53,
+        "textures": 41,
+        "geometries": 146
+      },
+      "after5": {
+        "heapMb": 54,
+        "textures": 41,
+        "geometries": 146
+      }
+    },
+    {
+      "after1": {
+        "heapMb": 57,
+        "textures": 41,
+        "geometries": 146
+      },
+      "after5": {
+        "heapMb": 54,
+        "textures": 41,
+        "geometries": 146
+      }
+    },
+    {
+      "after1": {
+        "heapMb": 53,
+        "textures": 41,
+        "geometries": 146
+      },
+      "after5": {
+        "heapMb": 54,
+        "textures": 41,
+        "geometries": 146
+      }
+    }
+  ]
+}
