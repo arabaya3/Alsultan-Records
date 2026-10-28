@@ -1,11 +1,14 @@
 import "server-only";
 import { activeLogoSrc, DEFAULT_LOGO } from "@/components/brand/Logo";
-import { PROMO_ASSETS } from "@/components/media/promo/promo-assets";
 import { getActiveOffers } from "@/features/public-content/cms-queries";
 import { photoUrl, workHref } from "@/features/public-content/gallery-model";
 import { getPublishedAlbums } from "@/features/public-content/gallery-queries";
 import { getBusinessSettings } from "@/features/public-content/queries";
 import type { ReceptionItem } from "./ReceptionFrames";
+
+/** A frame of the studio's own promo film (three grooms), without the film's title text or logo: the room shows the
+ *  logo once, on the reception plaque, instead of on every print and screen. */
+const STUDIO_STILL = "/studio/promo-still.webp";
 import type { SharedScene } from "./StudioProvider";
 
 /**
@@ -23,7 +26,7 @@ export async function getStudioScene(): Promise<{ shared: SharedScene; reception
 
   const reception: ReceptionItem[] = [
     { href: workHref({ tab: "photos" }), label: "الألبومات", caption: "صور من مناسباتنا", image: cover(0) },
-    { href: workHref({ tab: "videos" }), label: "الفيديوهات", caption: "أفلام الأعراس والسهرات", image: PROMO_ASSETS.portrait.coverWebp },
+    { href: workHref({ tab: "videos" }), label: "الفيديوهات", caption: "أفلام الأعراس والسهرات", image: STUDIO_STILL },
     hasOffers
       ? { href: "/offers", label: "العروض", caption: "عروض الموسم الحالية", image: cover(1) }
       : { href: "/packages", label: "البكجات", caption: "باقات التصوير والتوثيق", image: cover(1) },
@@ -33,7 +36,7 @@ export async function getStudioScene(): Promise<{ shared: SharedScene; reception
     reception,
     shared: {
       logo: activeLogoSrc(s?.active_logo_id) ?? DEFAULT_LOGO,
-      screen: PROMO_ASSETS.landscape.coverWebp,
+      screen: STUDIO_STILL,
       reception: reception.map((r, i) => frame(r.image, `reception-${i}`)),
       shelf: [frame(cover(2), "shelf-0"), frame(cover(3), "shelf-1")],
     },

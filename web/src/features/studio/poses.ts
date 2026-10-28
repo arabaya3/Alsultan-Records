@@ -26,6 +26,8 @@ export type Pose = {
   fitTall?: [number, number];
   /** where the focal point sits on screen, 0 = top … 1 = bottom (default 0.5); lower leaves room for text above */
   screenY?: number;
+  /** same on tall screens (phones): the room is a band at the TOP, so focal points sit high (default 0.3) */
+  screenYTall?: number;
 };
 
 export const ROOM = { w: 16, d: 12, h: 4.4 } as const;
@@ -37,7 +39,7 @@ export const RECEPTION = { x: 7.86, frameY: 2.2, frameW: 1.12, frameH: 1.4, z: [
 export const TABLE = { x: 0, y: 0.8, z: -2.55 } as const;
 
 export const POSES: Record<Station, Pose> = {
-  reception: { target: [7.6, 1.85, 0.2], dir: [-1, 0.09, -0.08], fit: [7.4, 3.9], fov: 42, fitTall: [2.6, 3.6] },
+  reception: { target: [7.6, 2.05, 0.1], dir: [-1, 0.07, -0.06], fit: [5.9, 3.05], fov: 40, fitTall: [1.9, 2.2], screenYTall: 0.27 },
   albums: { target: [0, 1.95, WALL.z], dir: [0, 0.05, 1], fit: [10.6, 3.4], fov: 38, fitTall: [3.6, 3.2], screenY: 0.66 },
   album: { target: [TABLE.x, TABLE.y + 0.03, TABLE.z + 0.05], dir: [0.1, 0.95, 0.85], fit: [1.3, 0.9], fov: 34, fitTall: [1.05, 0.95] },
   videos: { target: [-7.9, 1.95, -0.6], dir: [1, 0.04, 0.12], fit: [3.8, 2.4], fov: 38 },
@@ -87,9 +89,10 @@ export function cameraFor(pose: Pose, aspect: number, sideText = false): CameraS
   const d = Math.min(Math.max(fh / 2 / Math.tan(v / 2), fw / 2 / Math.tan(h / 2)) * 1.04, maxDistance(pose.target, dir));
   let target = pose.target;
   let position = add(target, dir, d);
-  if (pose.screenY !== undefined && !tall) {
-    // aim higher (camera and aim move together): the focal point lands lower on screen
-    const lift = (pose.screenY - 0.5) * 2 * d * Math.tan(v / 2);
+  const sy = tall ? (pose.screenYTall ?? 0.3) : pose.screenY;
+  if (sy !== undefined) {
+    // aim higher/lower (camera and aim move together): the focal point lands at sy of the screen height
+    const lift = (sy - 0.5) * 2 * d * Math.tan(v / 2);
     target = add(target, [0, lift, 0]);
     position = add(position, [0, lift, 0]);
   }

@@ -9,7 +9,7 @@ import fs from "node:fs";
 
 const [BASE = "http://localhost:3700"] = process.argv.slice(2);
 const OUT = "../docs/screenshots/studio";
-const WIDTHS = [320, 390, 768, 1024, 1440, 1920];
+const WIDTHS = [320, 390, 430, 768, 1024, 1440, 1920];
 const GPU = ["--use-angle=d3d11", "--enable-gpu", "--ignore-gpu-blocklist"];
 
 const browser = await chromium.launch({ args: GPU });

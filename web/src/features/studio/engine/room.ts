@@ -16,7 +16,7 @@ export type Tier = "high" | "low";
 /** A print hanging on a rope / on the wall. Its size follows the photo's own proportions (never cropped). */
 export type FrameSlot = {
   group: THREE.Group;
-  photo: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>;
+  photo: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
   /** the largest photo area (w × h, metres) — the photo is fitted INSIDE it */
   box: [number, number];
   /** current photo size */
@@ -31,8 +31,8 @@ export type Book = {
   group: THREE.Group;
   /** hinge: rotation.z 0 = open, -π = closed */
   hinge: THREE.Group;
-  rightPage: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>;
-  leftPage: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshStandardMaterial>;
+  rightPage: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
+  leftPage: THREE.Mesh<THREE.PlaneGeometry, THREE.MeshBasicMaterial>;
   /** page area (w × d) */
   page: [number, number];
   home: THREE.Vector3;
@@ -57,6 +57,8 @@ export type Room = {
   applySurface: (name: SurfaceName, set: TextureSet) => void;
   /** props from glTF, placed where they belong */
   placeProp: (name: PropName, gltf: GLTF) => void;
+  /** positions of the wall prints for a group of n (centred) */
+  wallLayout: (n: number) => THREE.Vector3[];
   /** 1×1 placeholder bound from the start, so swapping in the real image never recompiles a shader */
   blank: THREE.Texture;
   dispose: () => void;
@@ -65,8 +67,9 @@ export type Room = {
 export type PropName = "desk_lamp_arm_01" | "vintage_video_camera" | "mid_century_lounge_chair" | "potted_plant_02" | "wooden_bookshelf_worn" | "side_table_01" | "brass_vase_01";
 export const PROPS: PropName[] = ["desk_lamp_arm_01", "vintage_video_camera", "potted_plant_02", "brass_vase_01", "side_table_01", "mid_century_lounge_chair", "wooden_bookshelf_worn"];
 
-const WARM = 0xffb877;
-const WARM_SOFT = 0xffd2a3;
+// warm but not orange (~3200 K): wood and plaster keep their own colour, faces and white fabric stay natural
+const WARM = 0xffdcb4;
+const WARM_SOFT = 0xffe6cc;
 
 /**
  * Built in slices: `pause` yields to the browser between zones, so building the room never becomes one long
@@ -78,7 +81,7 @@ export async function buildRoom(tier: Tier, pause: () => Promise<void> = async (
   const keep = <T extends { dispose: () => void }>(x: T) => (disposables.push(x), x);
   const shadows = tier === "high";
 
-  const tGlow = keep(radial("rgba(255,196,128,0.6)", "rgba(255,196,128,0)"));
+  const tGlow = keep(radial("rgba(255,228,200,0.5)", "rgba(255,228,200,0)"));
   const tShadow = keep(radial("rgba(0,0,0,0.62)", "rgba(0,0,0,0)"));
   const tNight = keep(night());
 
@@ -111,7 +114,8 @@ export async function buildRoom(tier: Tier, pause: () => Promise<void> = async (
     glass: std({ color: 0x0a0b0d, roughness: 0.06, metalness: 0.5 }),
     clip: std({ color: 0x2b2a28, roughness: 0.35, metalness: 0.8 }),
     lampGlow: keep(new THREE.MeshBasicMaterial({ color: 0xffe2b8 })),
-    softbox: keep(new THREE.MeshBasicMaterial({ color: 0xf8f1e4 })),
+    // diffuser fabric, lit from inside: bright but not clipped white
+    softbox: keep(new THREE.MeshBasicMaterial({ color: 0xc9c2b6 })),
     frame: surf({ color: 0x24170f, roughness: 0.38, envMapIntensity: 0.7 }),
   };
 
@@ -284,7 +288,8 @@ export async function buildRoom(tier: Tier, pause: () => Promise<void> = async (
     });
     const back = new THREE.Mesh(unitPlane, m.paper);
     g.add(back);
-    const photo = new THREE.Mesh(unitPlane, std({ color: 0xe6dccb, roughness: 0.55, envMapIntensity: 0.3, map: blank }));
+    // photos are shown UNLIT and un-tone-mapped: the room's warm light must never tint a client's skin or white dress
+    const photo = new THREE.Mesh(unitPlane, keep(new THREE.MeshBasicMaterial({ color: 0xe6dccb, map: blank, toneMapped: false })));
     g.add(photo);
     const clips: THREE.Mesh[] = [];
     if (opts.clips !== false) {
@@ -397,14 +402,23 @@ export async function buildRoom(tier: Tier, pause: () => Promise<void> = async (
     f.group.position.set(x, p.y - 0.01, 0.075);
     f.rest = { position: f.group.position.clone(), rotZ: 0 };
     wall.push(f);
-    // picture light: brass bar on an arm + its pool of light on the plaster
+    // picture light (brass bar on an arm) and its pool of light travel WITH the print when a group re-centres
+    const y0 = p.y - 0.01;
     const bar = cyl(0.022, 0.022, 0.5, m.brass, 14);
     bar.rotation.z = Math.PI / 2;
-    at(bar, x, WALL.ropeY + 0.36, 0.2, wallGroup);
-    at(box(0.015, 0.015, 0.2, m.brass), x, WALL.ropeY + 0.36, 0.1, wallGroup);
-    at(box(0.42, 0.006, 0.02, m.lampGlow), x, WALL.ropeY + 0.34, 0.205, wallGroup);
-    glow(2.2, 2.7, x, WALL.frameY + 0.05, WALL.z + 0.02, 0, 0.5);
+    at(bar, 0, WALL.ropeY + 0.36 - y0, 0.125, f.group);
+    at(box(0.015, 0.015, 0.2, m.brass), 0, WALL.ropeY + 0.36 - y0, 0.025, f.group);
+    at(box(0.42, 0.006, 0.02, m.lampGlow), 0, WALL.ropeY + 0.34 - y0, 0.13, f.group);
+    const pool = glow(2.2, 2.7, 0, 0, 0, 0, 0.5);
+    f.group.add(pool);
+    pool.position.set(0, WALL.frameY + 0.05 - y0, -0.055);
   }
+  /** where n prints hang: centred on the wall, on the rope (balanced for 1–5 prints) */
+  const wallLayout = (n: number) =>
+    Array.from({ length: WALL.perGroup }, (_, i) => {
+      const x = wallSlotX(Math.min(i, Math.max(1, n) - 1), Math.max(1, n));
+      return new THREE.Vector3(x, wallRope.getPoint((x + span / 2) / span).y - 0.01, 0.075);
+    });
   const bench = new THREE.Group();
   const seat = box(5.6, 0.07, 0.48, m.walnut, 0.02);
   seat.position.y = 0.46;
@@ -552,7 +566,7 @@ export async function buildRoom(tier: Tier, pause: () => Promise<void> = async (
     g.computeVertexNormals();
     return g;
   };
-  const photoMat = () => std({ color: 0xe6dccb, roughness: 0.6, envMapIntensity: 0.25, map: blank });
+  const photoMat = () => keep(new THREE.MeshBasicMaterial({ color: 0xe6dccb, map: blank, toneMapped: false }));
   const rightPage = new THREE.Mesh(pageGeo(), photoMat());
   rightPage.rotation.x = -Math.PI / 2;
   rightPage.position.set(PW / 2, C + T + 0.0012, 0);
@@ -721,7 +735,8 @@ export async function buildRoom(tier: Tier, pause: () => Promise<void> = async (
   };
   const rig = tripod(1.35);
   const cine = cineCamera();
-  cine.position.y = 1.47;
+  cine.scale.setScalar(1.6); // a cinema camera reads at this distance
+  cine.position.y = 1.5;
   rig.add(cine);
   at(cast(rig), 4.4, 0, 5.15).rotation.y = Math.PI + 0.6;
   contact(1.1, 1.1, 4.4, 0, 5.15);
@@ -771,7 +786,7 @@ export async function buildRoom(tier: Tier, pause: () => Promise<void> = async (
   await pause();
   // ------------------------------------------------------------------ lights (warm, balanced: key per corner + room fill)
   const base = new Map<THREE.Light, number>();
-  const ambient = new THREE.HemisphereLight(0xffe6c8, 0x2e1d12, 1.25);
+  const ambient = new THREE.HemisphereLight(0xfff1e2, 0x2a241f, 1.2);
   root.add(ambient);
   base.set(ambient, ambient.intensity);
   const spot = (pos: THREE.Vector3, aim: THREE.Vector3, intensity: number, angle: number, shadow = false, penumbra = 0.8) => {
@@ -825,9 +840,9 @@ export async function buildRoom(tier: Tier, pause: () => Promise<void> = async (
   };
   const repeat: Record<SurfaceName, [number, number]> = { plaster: [5, 1.6], floor: [7, 5.25], walnut: [1, 1], leather: [1, 1] };
   const tint: Record<SurfaceName, number[]> = {
-    plaster: [0x7d6a5a],
-    floor: [0xb08a6c],
-    walnut: [0x9c7458, 0x6a4c38, 0x4a3426],
+    plaster: [0x7d7873],
+    floor: [0x7e6e62],
+    walnut: [0x7f6a5c, 0x58463a, 0x41342b],
     leather: [0xc49a82],
   };
   const applySurface: Room["applySurface"] = (name, set) => {
@@ -962,6 +977,7 @@ export async function buildRoom(tier: Tier, pause: () => Promise<void> = async (
     glows,
     applySurface,
     placeProp,
+    wallLayout,
     blank,
     dispose: () => {
       for (const d of disposables) d.dispose();

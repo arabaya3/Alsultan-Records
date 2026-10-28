@@ -259,7 +259,7 @@ async function Albums({ cat }: { cat: string | null }) {
         ) : null}
         {STUDIO_ENABLED ? (
           // the studio's photo wall: same cards, in list order, hung in groups on wide screens with the scene
-          <StudioWall albums={albums.map((a) => ({ slug: a.slug, coverId: a.coverId, title: a.title }))} className="studio-wall__grid grid grid-cols-1 gap-x-4 gap-y-10 min-[420px]:grid-cols-2 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">
+          <StudioWall albums={albums.map((a) => ({ slug: a.slug, coverId: a.coverId, title: a.title }))} className="studio-wall__grid grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4">
             {albums.map((a, i) => (
               <li key={a.id} className="studio-wall__item h-full">
                 <AlbumCard album={a} priority={i < 4} />

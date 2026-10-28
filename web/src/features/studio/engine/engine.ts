@@ -4,7 +4,7 @@ import { RoomEnvironment } from "three/examples/jsm/environments/RoomEnvironment
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { MeshoptDecoder } from "three/examples/jsm/libs/meshopt_decoder.module.js";
 import { median, tierAfterProbe, type Tier } from "../capability";
-import { POSES, cameraFor, entryFrom, moveDuration, pathMid, type CameraState, type Vec3 } from "../poses";
+import { POSES, WALL, cameraFor, entryFrom, moveDuration, pathMid, type CameraState, type Vec3 } from "../poses";
 import { SIDE_TEXT, type Station } from "../stations";
 import { buildRoom, PROPS, type FrameSlot, type Room, type SurfaceName, type TextureSet } from "./room";
 
@@ -96,7 +96,7 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: tier === "high", powerPreference: "high-performance", alpha: false, stencil: false });
   renderer.setClearColor(0x14100c, 1);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.15;
+  renderer.toneMappingExposure = 1.05;
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   renderer.shadowMap.enabled = tier === "high";
   renderer.shadowMap.type = THREE.PCFShadowMap;
@@ -281,7 +281,9 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
   };
   const shown = new WeakMap<THREE.Material, string | null>();
   const PAPER = new THREE.Color(0xe6dccb);
-  type Target = { mat: THREE.MeshStandardMaterial; fit: (aspect: number | null) => void };
+  type Target = { mat: THREE.MeshBasicMaterial; fit: (aspect: number | null) => void };
+  // a print sits slightly below pure white so it reads as paper in the room, not as a light source
+  const PRINT = 0.95;
   /** Put a photo on a print (whole photo; the print takes its proportions); null / failed keeps a blank mat. */
   const setImage = (target: Target, img: { key: string; src: string } | null, instant: boolean): Promise<void> => {
     const { mat, fit } = target;
@@ -309,11 +311,11 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
       mat.map = t;
       mat.needsUpdate = true;
       if (instant || opts.reducedMotion) {
-        mat.color.set(0xffffff);
+        mat.color.setScalar(PRINT);
         invalidate();
       } else {
         mat.color.copy(PAPER);
-        gsap.to(mat.color, { r: 1, g: 1, b: 1, duration: 0.5, ease: "power1.out", onUpdate: () => invalidate() });
+        gsap.to(mat.color, { r: PRINT, g: PRINT, b: PRINT, duration: 0.5, ease: "power1.out", onUpdate: () => invalidate() });
       }
     });
   };
@@ -365,7 +367,12 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
     });
   };
   const aspect = () => width / Math.max(1, height);
-  const cameraForStation = (s: Station) => cameraFor(POSES[s], aspect(), SIDE_TEXT[s]);
+  // the album wall frames as many prints as hang (1–5): a short group is seen closer, not lost on a wide wall
+  let wallCount = 5;
+  const cameraForStation = (s: Station) => {
+    const pose = s === "albums" ? { ...POSES.albums, fit: [Math.max(8.6, wallCount * WALL.spacing + 1.6), POSES.albums.fit[1]] as [number, number] } : POSES[s];
+    return cameraFor(pose, aspect(), SIDE_TEXT[s]);
+  };
 
   // ------------------------------------------------------------------ lighting per corner
   let lightTween: gsap.core.Tween | null = null;
@@ -453,6 +460,10 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
     const keys = room.wall.map((_, i) => imgs[i]?.src ?? null);
     if (keys.join("|") === wallKeys.join("|")) return Promise.resolve();
     wallKeys = keys;
+    // re-centre the group: n prints hang balanced in the middle of the rope
+    const n = Math.max(1, keys.filter(Boolean).length);
+    wallCount = n;
+    room.wallLayout(n).forEach((pos, i) => room.wall[i].rest.position.copy(pos));
     const apply = (inst: boolean) =>
       Promise.all(
         room.wall.map((slot, i) => {
@@ -463,8 +474,9 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
     wallTl?.kill();
     if (!dir || instant || opts.reducedMotion) {
       room.wall.forEach((s) => {
-        s.group.position.copy(s.rest.position);
         s.group.rotation.x = 0;
+        if (instant || opts.reducedMotion) s.group.position.copy(s.rest.position);
+        else gsap.to(s.group.position, { x: s.rest.position.x, y: s.rest.position.y, duration: 0.6, ease: "power2.inOut", onUpdate: () => invalidate() });
       });
       const p = apply(instant);
       invalidate();
@@ -537,7 +549,9 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
     }
     input.reception?.forEach((img, i) => room.reception[i] && pending.push(setImage(slotTarget(room.reception[i]), img, instant)));
     input.shelf?.forEach((img, i) => room.shelf[i] && pending.push(setImage(slotTarget(room.shelf[i]), img, instant)));
+    const countBefore = wallCount;
     if (input.wall) pending.push(setWall(input.wall, input.wallDir ?? 0, instant || prevStation !== "albums"));
+    const regroup = input.station === "albums" && prevStation === "albums" && wallCount !== countBefore;
 
     // the album on the table
     if (input.station === "album") {
@@ -568,6 +582,8 @@ export async function createStudio(canvas: HTMLCanvasElement, opts: EngineOption
       goTo(to, 1.7, "power2.out", false);
     } else if (prevStation === null || instant) {
       goTo(to, 0);
+    } else if (regroup) {
+      goTo(to, opts.reducedMotion ? 0 : 0.8, "power2.inOut", false);
     } else if (prevStation !== input.station || moving) {
       const dur = moveDuration([cam.pos.x, cam.pos.y, cam.pos.z], to.position, { tall: aspect() < 1, reduced: opts.reducedMotion });
       goTo(to, dur);
