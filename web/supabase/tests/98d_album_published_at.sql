@@ -15,9 +15,9 @@ select is((select published_at from public.photo_albums where slug = 'pa-draft')
 select is((select listed_at from public.photo_albums where slug = 'pa-draft'), now(), 'listed_at follows the publish time, not the event date');
 
 -- give it an older stored publish time (bypassing the trigger, as a restore would) to observe later changes
-alter table public.photo_albums disable trigger photo_albums_published_at;
+set local session_replication_role = replica;
 update public.photo_albums set published_at = '2026-10-02T09:00:00Z' where slug = 'pa-draft';
-alter table public.photo_albums enable trigger photo_albums_published_at;
+set local session_replication_role = origin;
 
 update public.photo_albums set title = 'Renamed album', description = 'new text', event_date = '2024-05-05' where slug = 'pa-draft';
 select is((select published_at from public.photo_albums where slug = 'pa-draft'), '2026-10-02T09:00:00Z'::timestamptz, 'editing title/description/event date does not move it');
