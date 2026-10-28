@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { activeLogoSrc } from "@/components/brand/Logo";
 import { HeroIntro } from "@/components/home/HeroIntro";
-import { AlbumCard } from "@/components/media/gallery/AlbumCard";
+import { AlbumCard, coverColumn } from "@/components/media/gallery/AlbumCard";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
 import { FadeRise, Reveal } from "@/components/motion/Reveal";
 import { PackageCard } from "@/components/packages/PackageCard";
@@ -120,7 +120,7 @@ export default async function HomePage() {
                       <YouTubeIcon size={18} />
                     </IconLink>
                   ) : null}
-                  <IconLink href="/work" label="كل الأعمال">
+                  <IconLink href="/work" label="كل الأعمال" text>
                     <GridIcon />
                   </IconLink>
                 </div>
@@ -236,15 +236,15 @@ export default async function HomePage() {
                 title={c.title}
                 lead={c.intro ?? undefined}
                 action={
-                  <IconLink href={SITE_TARGETS.albums.path} label="كل الألبومات">
+                  <IconLink href={SITE_TARGETS.albums.path} label="كل الألبومات" text>
                     <GridIcon />
                   </IconLink>
                 }
               />
-              <ul className={`grid gap-x-6 gap-y-10 sm:grid-cols-2 ${albumList.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+              <ul className={`grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-10 ${albumList.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
                 {albumList.map((a) => (
                   <li key={a.id} className="h-full">
-                    <AlbumCard album={a} />
+                    <AlbumCard album={a} sizes={`(max-width: 1023px) 50vw, ${coverColumn(albumList.length === 4 ? 4 : 3)}`} />
                   </li>
                 ))}
               </ul>

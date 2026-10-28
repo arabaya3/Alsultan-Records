@@ -6,9 +6,15 @@ import { bidiDir } from "@/lib/bidi";
 export { arNum };
 export const photoCountLabel = (n: number) => (n === 1 ? "صورة واحدة" : n === 2 ? "صورتان" : n <= 10 ? `${arNum(n)} صور` : `${arNum(n)} صورة`);
 
+/** Variants fit inside a square (thumb 480px, display 1600px), so in this 2:3 frame the thumb is sharp up to ~320px
+ *  of rendered width and the display up to ~1066px — the srcset widths say exactly that, the browser picks. */
+/** One column of a grid inside the content width (max 1440px, gutters 2×3.5rem, 24px gaps). */
+export const coverColumn = (cols: number) => `calc((min(100vw, 1440px) - 7rem - ${(cols - 1) * 24}px) / ${cols})`;
+const COVER_SIZES = `(max-width: 767px) 50vw, (max-width: 1023px) 33vw, ${coverColumn(4)}`;
+
 /** Album tile: whole cover (contain, never cropped or stretched, no hover zoom) in a reserved 2:3 portrait frame,
  *  via the gated /p route (display variant: fit-inside, watermarked, never the original), then title, date, photo count. */
-export function AlbumCard({ album, priority = false }: { album: PhotoAlbum; priority?: boolean }) {
+export function AlbumCard({ album, priority = false, sizes = COVER_SIZES }: { album: PhotoAlbum; priority?: boolean; sizes?: string }) {
   const meta = [formatDateAr(album.event_date), photoCountLabel(album.photoCount)].filter(Boolean).join(" · ");
   return (
     <Link href={`/work/albums/${album.slug}`} data-album-card={album.slug} className="group flex h-full flex-col rounded-lg">
@@ -18,6 +24,8 @@ export function AlbumCard({ album, priority = false }: { album: PhotoAlbum; prio
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={photoUrl(album.coverId, "display")}
+            srcSet={`${photoUrl(album.coverId, "thumb")} 320w, ${photoUrl(album.coverId, "display")} 1066w`}
+            sizes={sizes}
             alt=""
             loading={priority ? "eager" : "lazy"}
             decoding="async"

@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { JsonLd } from "@/components/ui/JsonLd";
-import { PlainTextBlocks } from "@/components/ui/PlainTextBlocks";
+import { OfferDetails } from "@/components/offers/OfferDetails";
 import { parseTextBlocks } from "@/lib/text-blocks";
 import { Section } from "@/components/ui/Layout";
 import { PageHero } from "@/components/ui/PageHero";
@@ -88,33 +88,49 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
         }
         lead={descInHero ? <span className="whitespace-pre-line">{o.description}</span> : undefined}
       >
-        {period || price || dates ? (
-          <div className="flex flex-col gap-2">
-            {period ? <p data-offer-period className="text-lg font-medium text-gold">{period}</p> : null}
-            {price || dates ? (
-              <p className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-                {price ? <span data-offer-price className="text-2xl font-bold text-gold">{price}</span> : null}
-                {dates ? <span data-offer-dates className="text-ivory-muted">{dates}</span> : null}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
+        <div className="flex w-full flex-col gap-5 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
+          {period || price || dates ? (
+            <dl data-offer-meta className="flex flex-wrap items-stretch gap-x-8 gap-y-4">
+              {price ? (
+                <div className="min-w-0">
+                  <dt className="text-sm text-ivory-muted">السعر</dt>
+                  <dd data-offer-price className="text-2xl font-bold text-gold">{price}</dd>
+                </div>
+              ) : null}
+              {period ? (
+                <div className="min-w-0">
+                  <dt className="text-sm text-ivory-muted">الفترة</dt>
+                  <dd data-offer-period className="text-lg font-medium text-gold">{period}</dd>
+                </div>
+              ) : null}
+              {dates ? (
+                <div className="min-w-0">
+                  <dt className="text-sm text-ivory-muted">مدة العرض</dt>
+                  <dd data-offer-dates className="text-ivory">{dates}</dd>
+                </div>
+              ) : null}
+            </dl>
+          ) : null}
+          <WhatsAppCta text={offerWhatsappText(o)} label="اسأل عن العرض على واتساب" size="lg" className="w-full sm:w-auto" />
+        </div>
       </PageHero>
       <Section>
-        <div className="grid gap-10 lg:grid-cols-[1.1fr_1fr]">
+        <div className={o.image_photo_id ? "grid gap-10 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)]" : ""}>
           <div className="min-w-0">
             {o.description && !descInHero ? (
               <div className="mb-10">
                 <h2 className="text-h3 font-bold">تفاصيل العرض</h2>
                 <span aria-hidden="true" className="gold-rule mt-3" />
-                <PlainTextBlocks text={o.description} data-offer-description="" className="mt-5 text-lg text-ivory-muted" />
+                <div className="mt-6">
+                  <OfferDetails text={o.description} />
+                </div>
               </div>
             ) : null}
             {o.items.length ? (
               <>
                 <h2 className="text-h3 font-bold">يشمل العرض</h2>
                 <span aria-hidden="true" className="gold-rule mt-3" />
-                <ul data-offer-items className="mt-5 space-y-3">
+                <ul data-offer-items className="mt-5 grid gap-3 sm:grid-cols-2 sm:gap-x-8">
                   {o.items.map((it, i) => (
                     <li key={i} className="flex items-start gap-3 text-lg break-words">
                       <span aria-hidden="true" className="mt-2.5 size-2 shrink-0 rounded-full bg-gold" />
@@ -145,7 +161,7 @@ async function OfferView({ params }: { params: PageProps<"/offers/[slug]">["para
             </div>
           </div>
           {o.image_photo_id ? (
-            <div className="self-start overflow-hidden rounded-lg border border-hairline-gold bg-night-deep">
+            <div className="self-start overflow-hidden rounded-lg lg:sticky lg:top-24 border border-hairline-gold bg-night-deep">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photoUrl(o.image_photo_id, "display")} alt="" decoding="async" className="mx-auto max-h-[80vh] w-auto max-w-full object-contain" />
             </div>
