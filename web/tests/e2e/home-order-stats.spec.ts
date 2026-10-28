@@ -1,8 +1,4 @@
-  // newest = newest PUBLISHED (migration 0026: listed_at = published_at, or created_at for albums published before
-  // publish times were recorded), id as the tie-break. Never the event date (owner request 2026-10-28).
-  const rows = (await db.from("photo_albums").select("slug").eq("is_published", true).is("archived_at", null).is("deleted_at", null)
-    .order("listed_at", { ascending: false }).order("id", { ascending: false })).data!;
-  const newest = rows.map((a) => a.slug);import { expect, test } from "@playwright/test";
+import { expect, test } from "@playwright/test";
 import { BASE, db, newLoggedIn, skipSiteIntro } from "./qa-helpers";
 
 /**
