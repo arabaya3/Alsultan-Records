@@ -135,9 +135,9 @@ const CASE_SHOTS = path.resolve(__dirname, "../../../docs/screenshots/production
 
 test("OD5 price × image: no empty column, image/text/actions whole on phone and desktop", async ({ page, request }) => {
   test.setTimeout(400_000);
-  // a photo that is already public (published, in a published album) — the offer only points at it
-  const { data: ph } = await db.from("album_photos").select("id, photo_albums!inner(is_published)").eq("is_published", true).eq("upload_status", "ready").eq("photo_albums.is_published", true).limit(1);
-  const photo = ph?.[0]?.id;
+  // a photo that is already public (a published album's cover) — the offer only points at it
+  const { data: ph } = await db.from("photo_albums").select("cover_photo_id").eq("is_published", true).not("cover_photo_id", "is", null).limit(1);
+  const photo = ph?.[0]?.cover_photo_id as string | undefined;
   test.skip(!photo, "needs one published local photo");
   for (const c of CASES) {
     const { error } = await db.from("offers").insert({ id: c.id, slug: c.slug, title: `عرض ${c.key}`, description: SILVER_TEXT, status: "published", currency: "ILS", show_price: c.price, price_minor: 180000, image_photo_id: c.image ? photo : null, starts_on: "2026-01-01", ends_on: "2099-12-31" });
