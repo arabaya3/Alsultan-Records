@@ -210,7 +210,7 @@ export function ReelsViewer({ reels }: { reels: Reel[] }) {
                 <p dir={bidiDir(r.title)} className="line-clamp-2 max-w-[calc(100%-4rem)] text-lg font-medium [overflow-wrap:anywhere]">
                   {r.title}
                 </p>
-                <p className="mt-1 text-sm text-ivory/75">
+                <p dir="ltr" className="mt-1 text-end text-sm text-ivory/75">
                   {i + 1} / {valid.length}
                 </p>
               </div>
