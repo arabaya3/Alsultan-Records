@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, test, type Page } from "@playwright/test";
-import { BASE, db, hideAlbumViaAdmin, newLoggedIn, skipSiteIntro } from "./qa-helpers";
+import { anon, BASE, db, hideAlbumViaAdmin, newLoggedIn, skipSiteIntro } from "./qa-helpers";
 
 /**
  * Owner request 2026-10-28 (feature/album-publishing-reels, migrations 0026–0027):
@@ -140,7 +140,19 @@ async function firstAlbumOnPhotos(page: Page) {
     .getAttribute("data-album-card");
 }
 
-test("AP1: a year-old occasion published today comes first — also before the owner's old manual picks, which stay saved", async ({
+/** What the public home «latest albums» section must show: as anon (same RLS as the site), albums with at least one
+ *  visible photo, strictly listed_at desc, id desc, capped at the section limit. */
+async function expectedHomeAlbums(limit: number): Promise<string[]> {
+  const a = anon();
+  const [albums, photos] = await Promise.all([
+    a.from("photo_albums").select("id, slug").order("listed_at", { ascending: false }).order("id", { ascending: false }),
+    a.from("album_photos").select("album_id"),
+  ]);
+  const withPhotos = new Set((photos.data ?? []).map((p) => p.album_id as string));
+  return (albums.data ?? []).filter((x) => withPhotos.has(x.id)).slice(0, limit).map((x) => x.slug as string);
+}
+
+test("AP1: a year-old occasion published today comes first; home is strictly by latest publish; old manual picks stay saved but are not mixed in", async ({
   browser,
   page,
 }) => {
@@ -160,10 +172,9 @@ test("AP1: a year-old occasion published today comes first — also before the o
   const picks = withPhotos.map((a) => a.id);
   await db.from("site_sections").update({ featured_ids: picks }).eq("key", "albums");
   await saveAlbumsSection(browser);
-  // The admin form stores the picks in its own list order: that stored order is the owner's order from here on.
-  const stored: string[] = (await db.from("site_sections").select("featured_ids").eq("key", "albums").single()).data!.featured_ids;
+  const section = (await db.from("site_sections").select("featured_ids, item_limit").eq("key", "albums").single()).data!;
+  const stored: string[] = section.featured_ids;
   expect([...stored].sort()).toEqual([...picks].sort());
-  const slugOf = new Map(withPhotos.map((a) => [a.id, a.slug]));
   await expect(page.locator(`[data-album-card="${SLUG}"]`)).toHaveCount(0);
 
   const admin = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
@@ -187,7 +198,13 @@ test("AP1: a year-old occasion published today comes first — also before the o
   expect(await firstAlbumOnPhotos(page)).toBe(SLUG);
   await page.goto(`${BASE}/`);
   const cards = await page.locator("[data-home-section=albums] [data-album-card]").evaluateAll((as) => as.map((a) => a.getAttribute("data-album-card")));
-  expect(cards.slice(0, 1 + stored.length)).toEqual([SLUG, ...stored.map((id) => slugOf.get(id))]); // newest, then the picks in order
+  const expected = await expectedHomeAlbums(section.item_limit);
+  expect(expected[0]).toBe(SLUG);
+  expect(expected.length).toBeGreaterThan(stored.length + 1); // enough albums that mixing the picks in would change the order
+  expect(cards).toEqual(expected); // the FULL chronological order, not «newest, then the picks»
+  // the picks are the two OLDEST albums: they must not be pulled up into the latest section
+  const pickSlugs = withPhotos.map((a) => a.slug);
+  for (const slug of pickSlugs) if (!expected.includes(slug)) expect(cards).not.toContain(slug);
   expect((await db.from("site_sections").select("featured_ids").eq("key", "albums").single()).data!.featured_ids).toEqual(stored); // publishing never touches the picks
 });
 

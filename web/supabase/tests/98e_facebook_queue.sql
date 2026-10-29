@@ -1,6 +1,6 @@
 -- 0027 Native reel files + "also post to Facebook" queue: owner-only, idempotent, token never readable.
 begin;
-select plan(16);
+select plan(18);
 
 insert into public.reel_videos (id, title, storage_path, mime, bytes)
 values ('00000000-0000-4000-8000-00000000ee01', 'برومو تجريبي', 'reels/00000000-0000-4000-8000-00000000ee01.mp4', 'video/mp4', 1000);
@@ -30,9 +30,16 @@ select throws_ok($$select public.request_facebook_reel_post('00000000-0000-4000-
 select is((select count(*)::int from public.facebook_reel_posts), 0, 'non-owner cannot even see the queue');
 reset role;
 
--- connecting (server) stores the token in Vault and releases waiting jobs; the worker claims once
+-- connecting (server) stores the token in Vault. 0029: a job requested while NO Page was connected has no approved
+-- Page, so it is not sent to the Page connected later: it stops until the owner confirms (re-request).
 select public.meta_connect('1234567890', 'ستوديو السلطان', 'EAAB-local-test-token-not-real-0000');
-select is((select status from public.facebook_reel_posts), 'queued', 'connection releases waiting jobs');
+select is((select status from public.facebook_reel_posts), 'page_changed', 'job requested before any connection waits for the owner');
+select is((select count(*)::int from public.claim_facebook_jobs(5)), 0, 'and the worker does not take it');
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000a1","role":"authenticated","aal":"aal2"}', true);
+set local role authenticated;
+select public.request_facebook_reel_post('00000000-0000-4000-8000-00000000ee01');
+reset role;
+select is((select status || ' ' || page_id from public.facebook_reel_posts), 'queued 1234567890', 'owner re-confirms → bound to the connected Page, queued');
 select is(public.meta_page_token(), 'EAAB-local-test-token-not-real-0000', 'token round-trips through Vault (service side)');
 select is((select count(*)::int from public.claim_facebook_jobs(5)), 1, 'worker claims the due job');
 select is((select count(*)::int from public.claim_facebook_jobs(5)), 0, 'a second worker gets nothing (no double publish)');

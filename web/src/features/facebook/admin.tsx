@@ -10,7 +10,9 @@ type Post = { id: string; status: string; page_name: string | null; meta_post_id
 const STATUS: Record<string, { label: string; tone?: "success" | "danger" }> = {
   awaiting_connection: { label: "بانتظار الربط" },
   queued: { label: "في الانتظار" },
-  publishing: { label: "جارٍ النشر" },
+  publishing: { label: "جارٍ الرفع" },
+  processing: { label: "أُرسل — بانتظار تأكيد فيسبوك" },
+  page_changed: { label: "الصفحة تغيّرت — يحتاج تأكيدك", tone: "danger" },
   published: { label: "منشور", tone: "success" },
   failed: { label: "فشل", tone: "danger" },
 };
@@ -63,7 +65,7 @@ export async function FacebookSettingsPage() {
               <td className="px-3 py-2">
                 <Badge tone={STATUS[p.status]?.tone}>{STATUS[p.status]?.label ?? p.status}</Badge>
               </td>
-              <td className="px-3 py-2 text-xs">{p.last_error ?? (p.meta_post_id ? `منشور فيسبوك: ${p.meta_post_id}` : "")}</td>
+              <td className="px-3 py-2 text-xs">{p.last_error ?? (p.status === "published" && p.meta_post_id ? `منشور فيسبوك: ${p.meta_post_id}` : "")}</td>
             </tr>
           ))}
         </Table>

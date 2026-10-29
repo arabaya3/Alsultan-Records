@@ -3,7 +3,9 @@
  * read 2026-10-28). This is not a verification against Meta: no app, token or Page was used.
  */
 import { describe, expect, it, vi } from "vitest";
-import { runJob, type Deps, type Job, type JobPatch } from "./worker";
+import { runJob, SaveError, type Deps, type Job, type JobPatch } from "./worker";
+import { checkedSave } from "./save";
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 type Call = { url: string; init: RequestInit };
 const TOKEN = "EAAB-test-page-token-0123456789";
@@ -42,11 +44,12 @@ function deps(f: Deps["fetch"], over: Partial<Deps> = {}) {
 const job = (o: Partial<Job> = {}): Job => ({ id: "j1", reel_video_id: "r1", caption: "برومو عرس", page_id: "123456789", meta_video_id: null, meta_post_id: null, attempts: 1, ...o });
 
 describe("Facebook reel job (simulated Meta)", () => {
-  it("happy path: start → hosted upload → finish (PUBLISHED); stores the Meta id before uploading", async () => {
+  it("happy path: start → hosted upload → finish (PUBLISHED); stores the Meta id before uploading; accepted ≠ published", async () => {
     const m = meta({});
     const { d, saved } = deps(m.f);
     const r = await runJob(job(), d);
-    expect(r).toMatchObject({ status: "published", meta_post_id: "9001" });
+    expect(r).toMatchObject({ status: "processing", next_attempt_at: "2026-10-28T10:01:00.000Z" });
+    expect(saved.some((p) => p.status === "published" || p.meta_post_id)).toBe(false); // not shown as «منشور» yet
     expect(saved[0]).toEqual({ status: "publishing", meta_video_id: "9001" }); // persisted first
     const kinds = m.calls.map((c) => (c.url.includes("rupload") ? "upload" : String(c.init.body ?? "").match(/upload_phase=(\w+)/)?.[1] ?? "status"));
     expect(kinds).toEqual(["start", "status", "upload", "finish"]);
@@ -100,7 +103,8 @@ describe("Facebook reel job (simulated Meta)", () => {
     const m = meta({ finish: () => m.json({ error: { message: "An unexpected error has occurred", code: 2 } }, 500) });
     const { d, saved } = deps(m.f);
     const r = await runJob(job({ attempts: 1 }), d);
-    expect(r).toMatchObject({ status: "queued", next_attempt_at: "2026-10-28T10:01:00.000Z" });
+    // finish_requested_at was saved before finish, so Meta may have it: only status checks from now on
+    expect(r).toMatchObject({ status: "processing", next_attempt_at: "2026-10-28T10:01:00.000Z" });
     expect(saved[0]).toMatchObject({ meta_video_id: "9001" });
   });
 
@@ -142,7 +146,7 @@ describe("Facebook reel job (simulated Meta)", () => {
       return m1.f(u, i);
     });
     const r1 = await runJob(job({ attempts: 1 }), d1);
-    expect(r1.status).toBe("queued");
+    expect(r1.status).toBe("processing");
     const marked = s1.find((p) => p.finish_requested_at);
     expect(marked).toBeTruthy(); // stored BEFORE finish was sent
     expect(s1.indexOf(marked!)).toBeLessThan(s1.length - 1);
@@ -150,7 +154,7 @@ describe("Facebook reel job (simulated Meta)", () => {
     // Run 2: Meta still processing → wait, no finish.
     const m2 = meta({ status: () => ({ status: { uploading_phase: { status: "complete" }, processing_phase: { status: "in_progress" } } }) });
     const r2 = await runJob(job({ attempts: 2, meta_video_id: "9001", finish_requested_at: marked!.finish_requested_at }), deps(m2.f).d);
-    expect(r2.status).toBe("queued");
+    expect(r2.status).toBe("processing");
     expect(m2.calls.some((c) => String(c.init.body ?? "").includes("upload_phase=finish"))).toBe(false);
 
     // Run 3: Meta reports it published → recorded once.
@@ -169,5 +173,89 @@ describe("Facebook reel job (simulated Meta)", () => {
     const r2 = await runJob(job({ attempts: 5, meta_video_id: "9001", finish_requested_at: "2026-10-28T09:00:00Z" }), deps(m2.f).d);
     expect(r2.status).toBe("failed");
     for (const c of [...m.calls, ...m2.calls]) expect(String(c.init.body ?? "")).not.toContain("upload_phase=finish");
+  });
+
+  // ---------------------------------------------------------------- review of e252128
+  const kind = (c: Call) => (c.url.includes("rupload") ? "upload" : String(c.init.body ?? "").match(/upload_phase=(\w+)/)?.[1] ?? "status");
+
+  it("saving meta_video_id fails → the run stops: no status/upload/finish is sent", async () => {
+    const m = meta({});
+    const { d } = deps(m.f, {
+      save: async (_id, p) => {
+        if (p.meta_video_id) throw new SaveError("save failed: job row not updated");
+      },
+    });
+    await expect(runJob(job(), d)).rejects.toBeInstanceOf(SaveError);
+    expect(m.calls.map(kind)).toEqual(["start"]);
+  });
+
+  it("saving finish_requested_at fails → finish is NOT sent", async () => {
+    const m = meta({});
+    const { d } = deps(m.f, {
+      save: async (_id, p) => {
+        if (p.finish_requested_at) throw new SaveError("save failed: 23514");
+      },
+    });
+    await expect(runJob(job(), d)).rejects.toBeInstanceOf(SaveError);
+    expect(m.calls.map(kind)).toEqual(["start", "status", "upload"]);
+  });
+
+  it("checkedSave throws on a database error and when no row was updated", async () => {
+    const fake = (res: { data: unknown; error: unknown }) =>
+      ({ from: () => ({ update: () => ({ eq: () => ({ select: async () => res }) }) }) }) as unknown as SupabaseClient;
+    await expect(checkedSave(fake({ data: null, error: { code: "57014" } }))("j1", { status: "queued" })).rejects.toBeInstanceOf(SaveError);
+    await expect(checkedSave(fake({ data: [], error: null }))("j1", { status: "queued" })).rejects.toBeInstanceOf(SaveError);
+    await expect(checkedSave(fake({ data: [{ id: "j1" }], error: null }))("j1", { status: "queued" })).resolves.toBeUndefined();
+  });
+
+  it("goes to the job's approved Page (job.page_id), never to another connected Page", async () => {
+    const m = meta({});
+    const { d } = deps(m.f, { pageId: "123456789" });
+    await runJob(job({ page_id: "123456789" }), d);
+    for (const c of m.calls.filter((c) => c.url.includes("/video_reels"))) expect(c.url).toContain("/123456789/video_reels");
+
+    const m2 = meta({});
+    const { d: d2, saved } = deps(m2.f, { pageId: "555555555" }); // owner connected a DIFFERENT Page
+    expect(await runJob(job({ page_id: "123456789" }), d2)).toMatchObject({ status: "page_changed" });
+    expect(m2.f).not.toHaveBeenCalled();
+    expect(saved.at(-1)!.last_error).toMatch(/ليست الصفحة/);
+  });
+
+  it("a job requested before any Page was connected (page_id null) is not sent to the Page connected later", async () => {
+    const m = meta({});
+    const { d } = deps(m.f);
+    expect(await runJob(job({ page_id: null }), d)).toMatchObject({ status: "page_changed" });
+    expect(m.f).not.toHaveBeenCalled();
+  });
+
+  it("disconnected, then the same Page reconnected: waits, then resumes on that Page without a new start", async () => {
+    const off = meta({});
+    expect((await runJob(job({ meta_video_id: "9001" }), deps(off.f, { token: null, pageId: null }).d)).status).toBe("awaiting_connection");
+    expect(off.f).not.toHaveBeenCalled();
+    const on = meta({ status: () => ({ status: { uploading_phase: { status: "complete" } } }) });
+    expect((await runJob(job({ meta_video_id: "9001", attempts: 2 }), deps(on.f).d)).status).toBe("processing");
+    expect(on.calls.map(kind)).toEqual(["status", "finish"]);
+  });
+
+  it("processing → published only when Meta's status says publishing completed; a later processing error → failed", async () => {
+    const sent = { meta_video_id: "9001", finish_requested_at: "2026-10-28T09:59:00Z", attempts: 2 };
+    const ok = meta({ status: () => ({ status: { publishing_phase: { status: "complete" } } }) });
+    expect(await runJob(job(sent), deps(ok.f).d)).toMatchObject({ status: "published", meta_post_id: "9001" });
+    const bad = meta({ status: () => ({ status: { video_status: "processing", processing_phase: { status: "error" } } }) });
+    expect(await runJob(job(sent), deps(bad.f).d)).toMatchObject({ status: "failed" });
+    for (const c of [...ok.calls, ...bad.calls]) expect(kind(c)).toBe("status");
+  });
+
+  it("a Meta request that never answers is cut at the per-request timeout (transient, retried later)", async () => {
+    vi.useFakeTimers();
+    try {
+      const hang: Deps["fetch"] = (_u, i) =>
+        new Promise((_, no) => i.signal?.addEventListener("abort", () => no(new DOMException("aborted", "AbortError"))));
+      const p = runJob(job(), deps(hang).d);
+      await vi.advanceTimersByTimeAsync(10_000);
+      expect(await p).toMatchObject({ status: "queued", last_error: "timeout" });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

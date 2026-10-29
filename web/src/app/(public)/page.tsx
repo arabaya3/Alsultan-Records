@@ -90,9 +90,8 @@ export default async function HomePage() {
       : FALLBACK_SERVICES.map((x) => ({ key: x.title, title: x.title, summary: x.summary, href: "/services" }));
   const offerList = offers.status === "ok" ? pick(offers.data, cfg("offers")) : [];
   const promoList = g ? pick(promoVideos(g), cfg("promos")) : [];
-  // Newest PUBLISHED album always first, then the owner's picks, then the next newest (homeAlbums).
-  const albumList =
-    albums.status === "ok" ? homeAlbums(albums.data.filter((a) => a.photoCount > 0), cfg("albums").featured, cfg("albums").limit) : [];
+  // Strictly by latest publish (homeAlbums); the owner's stored picks are kept but not mixed in.
+  const albumList = albums.status === "ok" ? homeAlbums(albums.data.filter((a) => a.photoCount > 0), cfg("albums").limit) : [];
 
   // Hero promo: the self-hosted studio promo by default; the owner may switch to a published YouTube promo.
   const ytPromo =

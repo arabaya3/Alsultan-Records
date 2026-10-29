@@ -73,24 +73,15 @@ describe("occasion date display (Asia/Hebron)", () => {
   });
 });
 
-describe("homeAlbums (newest always first, owner picks kept)", () => {
+describe("homeAlbums (strictly newest published first, picks not mixed in)", () => {
   const list = ["n1", "n2", "n3", "n4", "n5", "n6"].map((id) => ({ id })); // already newest-first
-  it("no picks → the newest, in order", () => {
-    expect(homeAlbums(list, [], 4).map((a) => a.id)).toEqual(["n1", "n2", "n3", "n4"]);
+  it("the full chronological order, capped at the limit", () => {
+    expect(homeAlbums(list, 4).map((a) => a.id)).toEqual(["n1", "n2", "n3", "n4"]);
+    expect(homeAlbums(list, 12).map((a) => a.id)).toEqual(["n1", "n2", "n3", "n4", "n5", "n6"]);
   });
-  it("old manual picks → newest first, then the picks in the owner's order, then the next newest", () => {
-    expect(homeAlbums(list, ["n6", "n4"], 4).map((a) => a.id)).toEqual(["n1", "n6", "n4", "n2"]);
-  });
-  it("picks that fill the section still leave room for the newest (never pushed out)", () => {
-    expect(homeAlbums(list, ["n5", "n6", "n4", "n3"], 4).map((a) => a.id)).toEqual(["n1", "n5", "n6", "n4"]);
-  });
-  it("the newest album picked too is not duplicated; hidden/unknown picks are ignored; picks array untouched", () => {
-    const picks = ["n1", "gone", "n3"];
-    expect(homeAlbums(list, picks, 3).map((a) => a.id)).toEqual(["n1", "n3", "n2"]);
-    expect(picks).toEqual(["n1", "gone", "n3"]);
-  });
-  it("empty list or zero limit → nothing", () => {
-    expect(homeAlbums([], ["x"], 4)).toEqual([]);
-    expect(homeAlbums(list, [], 0)).toEqual([]);
+  it("empty list or zero limit → nothing; the input is not modified", () => {
+    expect(homeAlbums([], 4)).toEqual([]);
+    expect(homeAlbums(list, 0)).toEqual([]);
+    expect(list.map((a) => a.id)).toEqual(["n1", "n2", "n3", "n4", "n5", "n6"]);
   });
 });

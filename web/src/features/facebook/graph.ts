@@ -28,14 +28,26 @@ export class GraphError extends Error {
   }
 }
 
-async function call<T>(f: Fetch, url: string, init: RequestInit): Promise<T> {
+/** Per request (connect + body), well inside the worker's maxDuration; a timeout is a transient 504. */
+export const REQUEST_TIMEOUT_MS = 10_000;
+
+async function callWithin<T>(f: Fetch, url: string, init: RequestInit, timeoutMs: number): Promise<T> {
+  const ctl = new AbortController();
+  const timer = setTimeout(() => ctl.abort(), timeoutMs);
   let res: Response;
+  let raw: unknown;
   try {
-    res = await f(url, init);
+    res = await f(url, { ...init, signal: ctl.signal });
+    raw = await Promise.race([
+      res.json().catch(() => ({})),
+      new Promise((_, no) => ctl.signal.addEventListener("abort", () => no(new Error("abort")), { once: true })),
+    ]);
   } catch {
-    throw new GraphError("network error", 503, null, null);
+    throw ctl.signal.aborted ? new GraphError("timeout", 504, null, null) : new GraphError("network error", 503, null, null);
+  } finally {
+    clearTimeout(timer);
   }
-  const body = (await res.json().catch(() => ({}))) as { error?: { message?: string; code?: number; error_subcode?: number } } & T;
+  const body = raw as { error?: { message?: string; code?: number; error_subcode?: number } } & T;
   if (!res.ok || body.error) {
     const e = body.error ?? {};
     // Meta's message can echo request details; keep only a short, token-free summary.
@@ -54,8 +66,9 @@ export type ReelStatus = {
   publishing_phase?: { status?: string };
 };
 
-export function graphClient(f: Fetch, token: string, version = GRAPH_VERSION) {
+export function graphClient(f: Fetch, token: string, version = GRAPH_VERSION, timeoutMs = REQUEST_TIMEOUT_MS) {
   const g = `https://graph.facebook.com/${version}`;
+  const call = <T,>(f: Fetch, url: string, init: RequestInit) => callWithin<T>(f, url, init, timeoutMs);
   return {
     start: (pageId: string) =>
       call<{ video_id: string; upload_url?: string }>(f, `${g}/${pageId}/video_reels`, {
@@ -79,3 +92,8 @@ export function graphClient(f: Fetch, token: string, version = GRAPH_VERSION) {
 }
 
 export const phaseDone = (p?: { status?: string }) => p?.status === "complete" || p?.status === "completed";
+/** Meta says the reel will not be published (processing/publishing error, upload failed, expired). */
+export const reelFailed = (s: ReelStatus) =>
+  ["error", "upload_failed", "expired"].includes(s.video_status ?? "") ||
+  s.processing_phase?.status === "error" ||
+  s.publishing_phase?.status === "error";
