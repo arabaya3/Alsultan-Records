@@ -94,13 +94,7 @@ test.beforeAll(async () => {
       .eq("key", "albums")
       .single()
   ).data!;
-  const featured: string[] = sec.featured_ids ?? [];
-  featuredBefore = featured;
-  if (featured.length)
-    await db
-      .from("site_sections")
-      .update({ featured_ids: [] })
-      .eq("key", "albums");
+  featuredBefore = sec.featured_ids ?? [];
   heroBefore = (
     await db
       .from("business_settings")
@@ -112,11 +106,10 @@ test.beforeAll(async () => {
 
 test.afterAll(async ({ browser }) => {
   if (albumId) await hideAlbumViaAdmin(browser, albumId); // expires the public albums cache before the rows go
-  if (featuredBefore?.length)
-    await db
-      .from("site_sections")
-      .update({ featured_ids: featuredBefore })
-      .eq("key", "albums");
+  if (featuredBefore) {
+    await db.from("site_sections").update({ featured_ids: featuredBefore }).eq("key", "albums");
+    await saveAlbumsSection(browser);
+  }
   if (heroBefore)
     await db.from("business_settings").update(heroBefore).eq("id", 1);
   if (albumId) {
@@ -130,6 +123,15 @@ test.afterAll(async ({ browser }) => {
   if (copied.length) await db.storage.from("album-media").remove(copied);
 });
 
+/** Re-save the home «albums» section as the owner would: keeps the stored picks, expires the sections cache. */
+async function saveAlbumsSection(browser: import("@playwright/test").Browser) {
+  const o = await newLoggedIn(browser, "owner", "/admin/content/nav");
+  const form = o.getByTestId("section-albums");
+  await form.getByRole("button", { name: /حفظ/ }).click();
+  await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+  await o.close();
+}
+
 async function firstAlbumOnPhotos(page: Page) {
   await page.goto(`${BASE}/work?tab=photos`);
   return page
@@ -138,12 +140,26 @@ async function firstAlbumOnPhotos(page: Page) {
     .getAttribute("data-album-card");
 }
 
-test("AP1: a year-old occasion published today comes first; the draft never showed", async ({
+test("AP1: a year-old occasion published today comes first — also before the owner's old manual picks, which stay saved", async ({
   browser,
   page,
 }) => {
   await skipSiteIntro(page);
   expect(await firstAlbumOnPhotos(page)).not.toBe(SLUG); // draft: not public
+  // Old manual picks for the home section: the two oldest published albums with photos.
+  const old = (
+    await db.from("photo_albums").select("id, slug").eq("is_published", true).is("deleted_at", null).is("archived_at", null)
+      .order("listed_at", { ascending: true }).limit(6)
+  ).data!;
+  const withPhotos: { id: string; slug: string }[] = [];
+  for (const a of old) {
+    const n = (await db.from("album_photos").select("id", { count: "exact", head: true }).eq("album_id", a.id).eq("is_published", true).eq("upload_status", "ready")).count ?? 0;
+    if (n > 0) withPhotos.push(a);
+    if (withPhotos.length === 2) break;
+  }
+  const picks = withPhotos.map((a) => a.id);
+  await db.from("site_sections").update({ featured_ids: picks }).eq("key", "albums");
+  await saveAlbumsSection(browser);
   await expect(page.locator(`[data-album-card="${SLUG}"]`)).toHaveCount(0);
 
   const admin = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
@@ -166,9 +182,9 @@ test("AP1: a year-old occasion published today comes first; the draft never show
 
   expect(await firstAlbumOnPhotos(page)).toBe(SLUG);
   await page.goto(`${BASE}/`);
-  await expect(
-    page.locator("[data-home-section=albums] [data-album-card]").first(),
-  ).toHaveAttribute("data-album-card", SLUG);
+  const cards = await page.locator("[data-home-section=albums] [data-album-card]").evaluateAll((as) => as.map((a) => a.getAttribute("data-album-card")));
+  expect(cards.slice(0, 1 + withPhotos.length)).toEqual([SLUG, ...withPhotos.map((a) => a.slug)]); // newest, then the picks in order
+  expect((await db.from("site_sections").select("featured_ids").eq("key", "albums").single()).data!.featured_ids).toEqual(picks); // never cleared
 });
 
 test("AP2: renaming an older album does not move it above the newest", async ({
@@ -298,7 +314,39 @@ test("AP3: hero «newest album» follows publish and hide; manual restores the o
   await admin.close();
 });
 
-test("RL1: promos as vertical reels — nothing loads before opening, one player, keyboard, Esc, deep link, Back", async ({
+test("PC1: withdrawn photo — the copy already on screen stays, but a new request and a page reload both get 404 (no 5-minute window)", async ({ page }) => {
+  await skipSiteIntro(page);
+  const st = (await db.from("photo_albums").select("is_published").eq("id", albumId).single()).data!;
+  expect(st.is_published).toBe(true); // published by AP1/AP3
+  const thumb = `/p/${photoId}/thumb`;
+  const first = page.waitForResponse((r) => r.url().endsWith(thumb));
+  await page.goto(`${BASE}/work/albums/${SLUG}`);
+  const ok = await first;
+  expect(ok.status()).toBe(200);
+  expect(ok.headers()["cache-control"]).toBe("private, no-cache");
+  const img = page.locator(`[data-album-photo="${photoId}"] img`);
+  await expect.poll(() => img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+
+  await db.from("album_photos").update({ is_published: false }).eq("id", photoId);
+  try {
+    // Already on screen: nothing can take it back (documented), and the page does not need to.
+    expect(await img.evaluate((el: HTMLImageElement) => el.naturalWidth)).toBeGreaterThan(0);
+    // A new request (e.g. another tab, a shared link) → 404 no-store, immediately.
+    const fresh = await page.request.get(`${BASE}${thumb}`);
+    expect(fresh.status()).toBe(404);
+    expect(fresh.headers()["cache-control"]).toBe("no-store");
+    // Reload: the browser must revalidate its stored copy (no-cache) → the server says 404, the stale copy is not used.
+    const again = page.waitForResponse((r) => r.url().endsWith(thumb), { timeout: 20_000 }).catch(() => null);
+    await page.reload();
+    const r = await again;
+    if (r) expect(r.status()).toBe(404); // the page may also drop the card once the album cache refreshes
+    expect(await page.evaluate((u) => fetch(u, { cache: "default" }).then((x) => x.status), thumb)).toBe(404);
+  } finally {
+    await db.from("album_photos").update({ is_published: true }).eq("id", photoId);
+  }
+});
+
+test("RL1: promos — launch gate off by default; when on: vertical reels, nothing loads before opening, one player, keyboard, Esc, deep link, Back", async ({
   browser,
   page,
 }) => {
@@ -347,10 +395,18 @@ test("RL1: promos as vertical reels — nothing loads before opening, one player
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${BASE}/work?tab=promos`);
     const open = page.locator("[data-reels-open]");
-    test.skip(
-      (await open.count()) === 0,
-      "no published promos in this database",
-    );
+    await expect(page.locator("[data-promo-grid] li").first()).toBeVisible();
+    // Launch gate (REELS_VIEWER, same value for the app and this run): OFF by default until real YouTube playback is
+    // verified on phones. OFF → no launcher and a shared ?reel= link opens nothing; the promo grid works as before.
+    if (process.env.REELS_VIEWER !== "1") {
+      await expect(open).toHaveCount(0);
+      const id = (await db.from("showcase_videos").select("id").in("role", ["promo", "both"]).eq("is_published", true).limit(1).single()).data!.id;
+      await page.goto(`${BASE}/work?tab=promos&reel=${id}`);
+      await expect(page.locator("[data-promo-grid] li").first()).toBeVisible();
+      await expect(page.locator("[data-reels-viewer]")).toHaveCount(0);
+      await expect(page.locator("iframe")).toHaveCount(0);
+      return;
+    }
     await expect(page.locator("[data-reels-viewer]")).toHaveCount(0);
     await expect(page.locator("iframe[src*='enablejsapi']")).toHaveCount(0);
 

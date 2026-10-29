@@ -214,12 +214,16 @@ async function Promos() {
   if (!list.length) {
     return <EmptyState title="لا توجد بروموهات منشورة بعد" body="ننشر البروموهات هنا حال جاهزيتها." action={<Link href="/work" className={linkCls}>كل الأعمال</Link>} />;
   }
+  // Launch gate: the vertical viewer stays OFF until real YouTube playback is verified on phones (set REELS_VIEWER=1).
+  const reelsOn = process.env.REELS_VIEWER === "1";
   const s = settings.status === "ok" ? settings.data : null;
   const reels: Reel[] = list.map((v) => ({ id: v.id, youtubeId: v.youtube_id, title: v.title, inquiryHref: bookingHref(s, `مرحبا، شفت البرومو «${v.title}» على موقعكم وحاب أستفسر.`) }));
   return (
     <>
       <h2 className="sr-only">البروموهات</h2>
-      <p className="mb-8">
+      {reelsOn ? (
+        <>
+          <p className="mb-8">
         <Link
           href={`${workHref({ tab: "promos" })}&reel=${encodeURIComponent(list[0]!.id)}`}
           scroll={false}
@@ -228,8 +232,10 @@ async function Promos() {
         >
           شاهد البروموهات بعرض عمودي
         </Link>
-      </p>
-      <ReelsViewer reels={reels} />
+          </p>
+          <ReelsViewer reels={reels} />
+        </>
+      ) : null}
       <ul data-promo-grid className={`grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 ${swapCls}`}>
         {list.map((v, i) => (
           <li key={v.id} className="h-full">

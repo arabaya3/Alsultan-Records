@@ -132,4 +132,42 @@ describe("Facebook reel job (simulated Meta)", () => {
     const { d } = deps(f);
     expect((await runJob(job(), d)).status).toBe("queued");
   });
+
+  it("Meta accepted finish but the reply was lost (network drop) → the retry NEVER sends finish again, only reads status", async () => {
+    // Run 1: start + upload ok, finish request leaves but the connection drops before the reply.
+    let finishes = 0;
+    const m1 = meta({ finish: () => { finishes++; throw new TypeError("socket hang up"); } });
+    const { d: d1, saved: s1 } = deps(async (u, i) => {
+      if (String(i.body ?? "").includes("upload_phase=finish")) { finishes++; throw new TypeError("socket hang up"); }
+      return m1.f(u, i);
+    });
+    const r1 = await runJob(job({ attempts: 1 }), d1);
+    expect(r1.status).toBe("queued");
+    const marked = s1.find((p) => p.finish_requested_at);
+    expect(marked).toBeTruthy(); // stored BEFORE finish was sent
+    expect(s1.indexOf(marked!)).toBeLessThan(s1.length - 1);
+
+    // Run 2: Meta still processing → wait, no finish.
+    const m2 = meta({ status: () => ({ status: { uploading_phase: { status: "complete" }, processing_phase: { status: "in_progress" } } }) });
+    const r2 = await runJob(job({ attempts: 2, meta_video_id: "9001", finish_requested_at: marked!.finish_requested_at }), deps(m2.f).d);
+    expect(r2.status).toBe("queued");
+    expect(m2.calls.some((c) => String(c.init.body ?? "").includes("upload_phase=finish"))).toBe(false);
+
+    // Run 3: Meta reports it published → recorded once.
+    const m3 = meta({ status: () => ({ status: { uploading_phase: { status: "complete" }, publishing_phase: { status: "complete" } } }) });
+    const r3 = await runJob(job({ attempts: 3, meta_video_id: "9001", finish_requested_at: marked!.finish_requested_at }), deps(m3.f).d);
+    expect(r3).toMatchObject({ status: "published", meta_post_id: "9001" });
+    expect(m3.calls.some((c) => String(c.init.body ?? "").includes("upload_phase=finish"))).toBe(false);
+    expect(finishes).toBe(1); // exactly one finish across all runs
+  });
+
+  it("after a sent finish, Meta reports an error, or it never confirms within MAX attempts → failed for the owner to check; still no second finish", async () => {
+    const m = meta({ status: () => ({ status: { video_status: "error" } }) });
+    const r = await runJob(job({ meta_video_id: "9001", finish_requested_at: "2026-10-28T09:00:00Z" }), deps(m.f).d);
+    expect(r.status).toBe("failed");
+    const m2 = meta({ status: () => ({ status: { uploading_phase: { status: "complete" } } }) });
+    const r2 = await runJob(job({ attempts: 5, meta_video_id: "9001", finish_requested_at: "2026-10-28T09:00:00Z" }), deps(m2.f).d);
+    expect(r2.status).toBe("failed");
+    for (const c of [...m.calls, ...m2.calls]) expect(String(c.init.body ?? "")).not.toContain("upload_phase=finish");
+  });
 });

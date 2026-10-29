@@ -14,7 +14,7 @@ import type { SectionConfig } from "@/features/public-content/cms-model";
 import { getActiveOffers, getProcessSteps, getPublishedPackages, getSiteSections } from "@/features/public-content/cms-queries";
 import { bookingHref, telHref } from "@/features/public-content/contact";
 import { FALLBACK_SERVICES, HERO } from "@/features/public-content/home-content";
-import { homeSelection, photoUrl, promoVideos, toCardVideo } from "@/features/public-content/gallery-model";
+import { homeAlbums, homeSelection, photoUrl, promoVideos, toCardVideo } from "@/features/public-content/gallery-model";
 import { getPublishedAlbums, getSiteHeroPhotoId, getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedServices } from "@/features/public-content/queries";
@@ -90,9 +90,9 @@ export default async function HomePage() {
       : FALLBACK_SERVICES.map((x) => ({ key: x.title, title: x.title, summary: x.summary, href: "/services" }));
   const offerList = offers.status === "ok" ? pick(offers.data, cfg("offers")) : [];
   const promoList = g ? pick(promoVideos(g), cfg("promos")) : [];
-  // Home shows the newest PUBLISHED albums (getPublishedAlbums order: publish time, never the event date) unless the
-  // owner picked specific albums for this section in «ترتيب الرئيسية» — the admin says so next to that choice.
-  const albumList = albums.status === "ok" ? pick(albums.data.filter((a) => a.photoCount > 0), cfg("albums")) : [];
+  // Newest PUBLISHED album always first, then the owner's picks, then the next newest (homeAlbums).
+  const albumList =
+    albums.status === "ok" ? homeAlbums(albums.data.filter((a) => a.photoCount > 0), cfg("albums").featured, cfg("albums").limit) : [];
 
   // Hero promo: the self-hosted studio promo by default; the owner may switch to a published YouTube promo.
   const ytPromo =

@@ -219,3 +219,22 @@ export function toCardVideo(v: GalleryVideo, duration: string | null) {
     coverSrc: v.custom_cover_photo_id ? photoUrl(v.custom_cover_photo_id, "thumb") : null,
   };
 }
+
+/**
+ * Home «albums» section (owner request 2026-10-29): the newest PUBLISHED album is always first, even when older
+ * manual picks (site_sections.featured_ids) exist; then the picks in the owner's order; then the next newest, up to
+ * `limit`. The picks are never cleared or rewritten — only how they combine with the newest album changed.
+ * `newestFirst` must already be in publish order (getPublishedAlbums).
+ */
+export function homeAlbums<T extends { id: string }>(newestFirst: T[], featured: string[], limit: number): T[] {
+  if (!newestFirst.length || limit < 1) return [];
+  const byId = new Map(newestFirst.map((a) => [a.id, a]));
+  const out: T[] = [];
+  const add = (a: T | undefined) => {
+    if (a && out.length < limit && !out.includes(a)) out.push(a);
+  };
+  add(newestFirst[0]);
+  for (const id of featured) add(byId.get(id));
+  for (const a of newestFirst) add(a);
+  return out;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { latestAlbumHeroPhoto, newestPublishedFirst } from "./gallery-model";
+import { homeAlbums, latestAlbumHeroPhoto, newestPublishedFirst } from "./gallery-model";
 import { formatDateAr } from "./labels";
 
 type A = { id: string; event_date: string | null; created_at: string | null; published_at: string | null; listed_at: string | null; coverId: string | null };
@@ -70,5 +70,27 @@ describe("occasion date display (Asia/Hebron)", () => {
   });
   it("no date → nothing shown (never today's date)", () => {
     expect(formatDateAr(null)).toBeNull();
+  });
+});
+
+describe("homeAlbums (newest always first, owner picks kept)", () => {
+  const list = ["n1", "n2", "n3", "n4", "n5", "n6"].map((id) => ({ id })); // already newest-first
+  it("no picks → the newest, in order", () => {
+    expect(homeAlbums(list, [], 4).map((a) => a.id)).toEqual(["n1", "n2", "n3", "n4"]);
+  });
+  it("old manual picks → newest first, then the picks in the owner's order, then the next newest", () => {
+    expect(homeAlbums(list, ["n6", "n4"], 4).map((a) => a.id)).toEqual(["n1", "n6", "n4", "n2"]);
+  });
+  it("picks that fill the section still leave room for the newest (never pushed out)", () => {
+    expect(homeAlbums(list, ["n5", "n6", "n4", "n3"], 4).map((a) => a.id)).toEqual(["n1", "n5", "n6", "n4"]);
+  });
+  it("the newest album picked too is not duplicated; hidden/unknown picks are ignored; picks array untouched", () => {
+    const picks = ["n1", "gone", "n3"];
+    expect(homeAlbums(list, picks, 3).map((a) => a.id)).toEqual(["n1", "n3", "n2"]);
+    expect(picks).toEqual(["n1", "gone", "n3"]);
+  });
+  it("empty list or zero limit → nothing", () => {
+    expect(homeAlbums([], ["x"], 4)).toEqual([]);
+    expect(homeAlbums(list, [], 0)).toEqual([]);
   });
 });

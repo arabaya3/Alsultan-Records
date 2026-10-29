@@ -123,7 +123,9 @@ test.describe("with a temporary published album", () => {
     const ok = await request.get(`/p/${PHOTOS[0].id}/thumb`);
     expect(ok.status()).toBe(200);
     expect(ok.headers()["content-type"]).toBe("image/jpeg");
-    expect(ok.headers()["cache-control"]).toBe("private, max-age=300");
+    // Revalidated on every use (owner requirement: a withdrawn photo stops loading on the next request or reload).
+    expect(ok.headers()["cache-control"]).toBe("private, no-cache");
+    expect(ok.headers()["etag"]).toBeTruthy();
     expect(ok.headers()["cdn-cache-control"]).toBe("no-store");
     const meta = await sharp(await ok.body()).metadata();
     expect(Math.max(meta.width!, meta.height!)).toBeLessThanOrEqual(480);

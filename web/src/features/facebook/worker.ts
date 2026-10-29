@@ -6,6 +6,7 @@ export type Job = {
   caption: string | null;
   page_id: string | null;
   meta_video_id: string | null;
+  finish_requested_at?: string | null;
   meta_post_id: string | null;
   attempts: number;
 };
@@ -13,6 +14,7 @@ export type Job = {
 export type JobPatch = {
   status: "awaiting_connection" | "queued" | "publishing" | "published" | "failed";
   meta_video_id?: string;
+  finish_requested_at?: string;
   meta_post_id?: string;
   last_error?: string | null;
   next_attempt_at?: string;
@@ -40,6 +42,9 @@ const backoffMinutes = (attempts: number) => Math.min(60, 2 ** Math.max(0, attem
  *  - never calls `start` twice (meta_video_id is stored first);
  *  - asks Meta for the status before `finish`, so a publish that succeeded but whose response was lost is recorded,
  *    not published a second time;
+ *  - stores finish_requested_at BEFORE sending `finish`; once set, `finish` is NEVER sent again for this job: a retry
+ *    only reads the status (published → recorded; still processing → check again later; error → «failed» for the
+ *    owner to check the Page). Better a reel the owner re-checks by hand than a duplicate post;
  *  - a lost/expired token parks the job as awaiting_connection (keeps meta_video_id), it is not a failure;
  *  - Meta-side/transient errors retry with backoff up to MAX_ATTEMPTS, then «failed» with a readable reason.
  * The site itself is never touched: a Facebook failure cannot unpublish anything locally.
@@ -70,6 +75,17 @@ export async function runJob(job: Job, d: Deps): Promise<JobPatch> {
       if (!url) return done({ status: "failed", last_error: "ملف المقطع غير موجود في التخزين." });
       await g.uploadHosted(videoId, url);
     }
+    if (job.finish_requested_at) {
+      // `finish` was already sent once (its reply may have been lost): only the status decides, never a second finish.
+      if (st.video_status === "error" || st.video_status === "upload_failed" || st.video_status === "expired") {
+        return done({ status: "failed", last_error: "أرسلنا طلب النشر لفيسبوك ولم يكتمل. افحص الصفحة قبل أي محاولة جديدة." });
+      }
+      if (job.attempts >= MAX_ATTEMPTS) {
+        return done({ status: "failed", last_error: "لم يؤكد فيسبوك النشر بعد عدة فحوص. افحص الصفحة قبل أي محاولة جديدة." });
+      }
+      return done({ status: "queued", last_error: null, next_attempt_at: new Date(now.getTime() + backoffMinutes(job.attempts) * 60_000).toISOString() });
+    }
+    await d.save(job.id, { status: "publishing", finish_requested_at: now.toISOString() });
     const fin = await g.finish(d.pageId, videoId, job.caption);
     if (!fin.success) throw new GraphError("finish not accepted", 500, null, null);
     // Meta returns the reel's id; processing continues on Meta's side. The reel id is the post handle we keep.
