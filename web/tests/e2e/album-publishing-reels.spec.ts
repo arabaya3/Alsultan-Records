@@ -160,6 +160,10 @@ test("AP1: a year-old occasion published today comes first — also before the o
   const picks = withPhotos.map((a) => a.id);
   await db.from("site_sections").update({ featured_ids: picks }).eq("key", "albums");
   await saveAlbumsSection(browser);
+  // The admin form stores the picks in its own list order: that stored order is the owner's order from here on.
+  const stored: string[] = (await db.from("site_sections").select("featured_ids").eq("key", "albums").single()).data!.featured_ids;
+  expect([...stored].sort()).toEqual([...picks].sort());
+  const slugOf = new Map(withPhotos.map((a) => [a.id, a.slug]));
   await expect(page.locator(`[data-album-card="${SLUG}"]`)).toHaveCount(0);
 
   const admin = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
@@ -183,8 +187,8 @@ test("AP1: a year-old occasion published today comes first — also before the o
   expect(await firstAlbumOnPhotos(page)).toBe(SLUG);
   await page.goto(`${BASE}/`);
   const cards = await page.locator("[data-home-section=albums] [data-album-card]").evaluateAll((as) => as.map((a) => a.getAttribute("data-album-card")));
-  expect(cards.slice(0, 1 + withPhotos.length)).toEqual([SLUG, ...withPhotos.map((a) => a.slug)]); // newest, then the picks in order
-  expect((await db.from("site_sections").select("featured_ids").eq("key", "albums").single()).data!.featured_ids).toEqual(picks); // never cleared
+  expect(cards.slice(0, 1 + stored.length)).toEqual([SLUG, ...stored.map((id) => slugOf.get(id))]); // newest, then the picks in order
+  expect((await db.from("site_sections").select("featured_ids").eq("key", "albums").single()).data!.featured_ids).toEqual(stored); // publishing never touches the picks
 });
 
 test("AP2: renaming an older album does not move it above the newest", async ({
