@@ -9,6 +9,8 @@ export type Job = {
   finish_requested_at?: string | null;
   meta_post_id: string | null;
   attempts: number;
+  /** Set by claim_facebook_jobs (0030): this worker's lease; every save is conditioned on it. */
+  lease_token?: string | null;
 };
 
 export type JobPatch = {

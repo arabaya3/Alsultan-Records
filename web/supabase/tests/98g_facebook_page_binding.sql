@@ -53,7 +53,8 @@ select is((select status from public.claim_facebook_jobs(5)), 'processing', 'pro
 insert into public.facebook_reel_posts (status, page_id, meta_post_id, published_at)
   select 'published', '1111111111', 'p' || g, now() from generate_series(1, 29) g;
 insert into public.facebook_reel_posts (reel_video_id, status, page_id) values ('00000000-0000-4000-8000-00000000ee12', 'queued', '1111111111');
-update public.facebook_reel_posts set next_attempt_at = now() - interval '1 minute', claimed_at = null where status = 'processing';
+-- 0030: the previous claim holds a lease; simulate it expired (worker gone)
+update public.facebook_reel_posts set next_attempt_at = now() - interval '1 minute', claimed_at = null, lease_until = now() - interval '1 second' where status = 'processing';
 select is((select array_agg(status order by status) from public.claim_facebook_jobs(5)), array['processing'], 'quota full (29 published + 1 processing): status check yes, new upload no');
 select public.meta_disconnect('expired', null);
 select is((select count(*)::int from public.facebook_reel_posts where status = 'awaiting_connection'), 2, 'disconnect parks processing and queued jobs');

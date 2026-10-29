@@ -2,7 +2,7 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { REQUEST_TIMEOUT_MS } from "./graph";
-import { checkedSave } from "./save";
+import { checkedSave, releaseLease } from "./save";
 import { runJob, SaveError, type Job, type JobPatch } from "./worker";
 
 const BUCKET = "reel-media";
@@ -31,12 +31,15 @@ export async function runFacebookJobs(
   // Could not read the connection: send nothing; the claimed jobs are picked up again after the stale window.
   if (tokenErr || connErr) return { ...out, claimed: jobs.length, deferred: jobs.length };
   const pageId = conn && (conn as { status: string }).status === "connected" ? (conn as { page_id: string }).page_id : null;
-  const save = checkedSave(sb);
   for (const j of jobs as Job[]) {
     out.claimed++;
     if (clock() - startedAt + JOB_WORST_MS > RUN_BUDGET_MS) {
       // Not enough time left for the worst case: hand it back untouched (status/next attempt unchanged).
-      await sb.from("facebook_reel_posts").update({ status: j.finish_requested_at ? "processing" : "queued" }).eq("id", j.id).eq("status", "publishing");
+      await sb
+        .from("facebook_reel_posts")
+        .update({ status: j.finish_requested_at ? "processing" : "queued", lease_token: null, lease_until: null })
+        .eq("id", j.id)
+        .eq("lease_token", j.lease_token ?? "");
       out.deferred++;
       continue;
     }
@@ -52,17 +55,19 @@ export async function runFacebookJobs(
           const s = await sb.storage.from(BUCKET).createSignedUrl((v as { storage_path: string }).storage_path, SIGNED_URL_SECONDS);
           return s.data?.signedUrl ?? null;
         },
-        save,
+        save: checkedSave(sb, j.lease_token),
         connectionLost: async (reason) => {
           await sb.rpc("meta_disconnect", { p_status: "expired", p_error: reason });
         },
       });
     } catch (e) {
       if (!(e instanceof SaveError)) throw e;
-      // The database is not taking writes: stop the whole run; this job is reclaimed after the stale window.
+      // The database is not taking writes, or our lease was lost: stop the whole run. The job is reclaimed when its
+      // lease expires (or is already in the hands of the worker that holds the current lease).
       out.saveErrors++;
       break;
     }
+    if (j.lease_token) await releaseLease(sb, j.id, j.lease_token);
     if (r.status === "published") out.published++;
     else if (r.status === "failed") out.failed++;
     else out.waiting++;

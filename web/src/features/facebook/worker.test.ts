@@ -202,10 +202,11 @@ describe("Facebook reel job (simulated Meta)", () => {
 
   it("checkedSave throws on a database error and when no row was updated", async () => {
     const fake = (res: { data: unknown; error: unknown }) =>
-      ({ from: () => ({ update: () => ({ eq: () => ({ select: async () => res }) }) }) }) as unknown as SupabaseClient;
-    await expect(checkedSave(fake({ data: null, error: { code: "57014" } }))("j1", { status: "queued" })).rejects.toBeInstanceOf(SaveError);
-    await expect(checkedSave(fake({ data: [], error: null }))("j1", { status: "queued" })).rejects.toBeInstanceOf(SaveError);
-    await expect(checkedSave(fake({ data: [{ id: "j1" }], error: null }))("j1", { status: "queued" })).resolves.toBeUndefined();
+      ({ from: () => ({ update: () => ({ eq: () => ({ eq: () => ({ select: async () => res }) }) }) }) }) as unknown as SupabaseClient;
+    await expect(checkedSave(fake({ data: null, error: { code: "57014" } }), "L1")("j1", { status: "queued" })).rejects.toBeInstanceOf(SaveError);
+    await expect(checkedSave(fake({ data: [], error: null }), "L1")("j1", { status: "queued" })).rejects.toBeInstanceOf(SaveError); // also: lease lost
+    await expect(checkedSave(fake({ data: [{ id: "j1" }], error: null }), "L1")("j1", { status: "queued" })).resolves.toBeUndefined();
+    await expect(checkedSave(fake({ data: [{ id: "j1" }], error: null }), null)("j1", { status: "queued" })).rejects.toBeInstanceOf(SaveError);
   });
 
   it("goes to the job's approved Page (job.page_id), never to another connected Page", async () => {
