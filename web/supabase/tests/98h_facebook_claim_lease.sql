@@ -13,14 +13,16 @@ insert into public.facebook_reel_posts (reel_video_id, status, page_id, finish_r
 create temp table c1 as select * from public.claim_facebook_jobs(5);
 select ok((select lease_token is not null and lease_until > now() + interval '2 minutes' from c1), 'claim gives a lease for the worker run (> maxDuration)');
 select is((select count(*)::int from public.claim_facebook_jobs(5)), 0, 'while the lease is valid no other worker gets the job, even a processing one');
-select is((with u as (update public.facebook_reel_posts set last_error = 'x' where lease_token = (select lease_token from c1) returning 1) select count(*)::int from u), 1, 'the lease holder can write');
+update public.facebook_reel_posts set last_error = 'x' where lease_token = (select lease_token from c1);
+select is((select last_error from public.facebook_reel_posts where status = 'processing'), 'x', 'the lease holder can write');
 
 -- the worker crashed: lease expires → the job is recovered with a NEW lease; the old worker's writes match nothing
 update public.facebook_reel_posts set lease_until = now() - interval '1 second';
 create temp table c2 as select * from public.claim_facebook_jobs(5);
 select is((select count(*)::int from c2), 1, 'expired lease → job recovered');
 select isnt((select lease_token from c2), (select lease_token from c1), 'with a new lease');
-select is((with u as (update public.facebook_reel_posts set last_error = 'stale' where lease_token = (select lease_token from c1) returning 1) select count(*)::int from u), 0, 'the stale worker cannot overwrite the current one');
+update public.facebook_reel_posts set last_error = 'stale' where lease_token = (select lease_token from c1);
+select is((select last_error from public.facebook_reel_posts where status = 'processing'), 'x', 'the stale worker cannot overwrite the current one');
 
 -- quota: 28 places used + the processing job = 29 → exactly ONE place left; three new jobs queued
 insert into public.facebook_reel_posts (status, page_id, meta_post_id, published_at)
