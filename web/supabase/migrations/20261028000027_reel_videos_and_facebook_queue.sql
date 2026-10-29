@@ -12,8 +12,6 @@
 --                          awaiting_connection → queued → publishing → published | failed
 --                        meta_video_id is stored right after Meta's "start" phase, so a retry resumes the SAME
 --                        Meta upload instead of starting another. meta_post_id is kept once published.
---                        finish_requested_at is stored BEFORE «finish» is sent: if Meta accepted it but the reply was
---                        lost, a retry only reads the status and never sends «finish» again (no double post).
 --                        Deleting the local clip keeps this row (reel_video_id set null) and never deletes the
 --                        Facebook post.
 -- meta_page_connection — the one Page the owner connected. The access token is NEVER in a table column: it lives
@@ -109,7 +107,6 @@ create table public.facebook_reel_posts (
   page_id text,
   page_name text,
   meta_video_id text,
-  finish_requested_at timestamptz,  -- set BEFORE «finish» is sent; afterwards a retry only checks the status
   meta_post_id text,
   attempts int not null default 0,
   last_error text check (last_error is null or char_length(last_error) <= 500),
