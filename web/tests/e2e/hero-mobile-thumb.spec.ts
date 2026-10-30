@@ -21,10 +21,12 @@ async function saveHome(browser: Browser) {
 async function openHome(page: Page) {
   await skipSiteIntro(page);
   const asked: string[] = [];
-  page.on("request", (r) => {
+  // Finished downloads: the browser's speculative request for <img src> is cancelled before any bytes when <source> matches.
+  page.on("requestfinished", (r) => {
     if (r.url().includes(`/p/${photoId}/`)) asked.push(r.url().split("/").pop()!);
   });
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
+  await page.waitForTimeout(1500); // route prefetches run after load
   return asked;
 }
 const hero = (page: Page) => page.locator("[data-hero-intro] > picture img");
@@ -49,11 +51,17 @@ test.afterAll(async ({ browser }) => {
 test.describe("phone", () => {
   // Set when the page is created, as on a real phone: resizing a 1440px page afterwards would fetch both variants.
   test.use({ viewport: { width: 390, height: 844 } });
-  test("390px: the thumb loads first and is the image shown", async ({ page }) => {
+  test("the /work page still preloads and shows its own hero when opened", async ({ page }) => {
+    await skipSiteIntro(page);
+    await page.goto(`${BASE}/work`);
+    const img = page.locator(`img[src="/p/${photoId}/display"]`).first();
+    await expect(img).toHaveAttribute("fetchpriority", "high");
+    expect(await img.evaluate((i: HTMLImageElement) => i.decode().then(() => i.naturalWidth))).toBeGreaterThan(0);
+  });
+  test("390px: only the thumb is downloaded, including after route prefetches, and it is the image shown", async ({ page }) => {
   const asked = await openHome(page);
   await expect.poll(() => hero(page).evaluate((i: HTMLImageElement) => i.currentSrc)).toContain(`/p/${photoId}/thumb`);
-  expect(asked[0]).toBe("thumb");
-  // Open issue (see the PR): after an admin save a late script can still fetch display, after the hero has painted.
+  expect(asked).toEqual(["thumb"]);
   expect(await hero(page).evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
 });
 });
