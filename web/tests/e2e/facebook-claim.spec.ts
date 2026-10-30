@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { expect, test } from "@playwright/test";
+import { checkedSave } from "../../src/features/facebook/save";
+import { SaveError } from "../../src/features/facebook/worker";
 import { db } from "./qa-helpers";
 
 /**
@@ -81,4 +83,31 @@ test("FC2: one place left in the 24 h quota, 4 workers claim at once → exactly
   await db.from("facebook_reel_posts").update({ lease_until: new Date(Date.now() - 1000).toISOString() }).eq("id", processing);
   const later = await together(3);
   expect(later.map((j) => j.id)).toEqual([processing]);
+});
+
+test("FC3: the real checkedSave of a worker that lost its lease fails and changes nothing; the current holder's save lands", async () => {
+  const { data: job } = await db.from("facebook_reel_posts").insert({ reel_video_id: await reel(), status: "queued", page_id: PAGE }).select("id").single();
+  const [a] = await together(1);
+  await db.from("facebook_reel_posts").update({ lease_until: new Date(Date.now() - 1000).toISOString() }).eq("id", job!.id);
+  const [b] = await together(1);
+  await expect(checkedSave(db, a!.lease_token)(job!.id, { status: "failed", last_error: "stale" })).rejects.toBeInstanceOf(SaveError);
+  await checkedSave(db, b!.lease_token)(job!.id, { status: "publishing", last_error: "current" });
+  expect((await db.from("facebook_reel_posts").select("last_error").eq("id", job!.id).single()).data!.last_error).toBe("current");
+});
+
+test("FC4: quota full → a job whose finish was sent, even if queued, is still checked by exactly one of 4 workers; no new upload", async () => {
+  const now = new Date().toISOString();
+  await db.from("facebook_reel_posts").insert(Array.from({ length: 29 }, (_, i) => ({ status: "published", page_id: PAGE, meta_post_id: `q${i}`, published_at: now })));
+  const sent = (await db.from("facebook_reel_posts").insert({ reel_video_id: await reel(), status: "queued", page_id: PAGE, meta_video_id: "9003", finish_requested_at: now }).select("id").single()).data!.id;
+  await db.from("facebook_reel_posts").insert({ reel_video_id: await reel(), status: "queued", page_id: PAGE });
+  const got = await together(4);
+  expect(got.map((j) => [j.id, j.status])).toEqual([[sent, "processing"]]);
+});
+
+test("FC5: disconnecting withdraws an active lease: the running worker's next save fails", async () => {
+  await db.from("facebook_reel_posts").insert({ reel_video_id: await reel(), status: "queued", page_id: PAGE });
+  const [a] = await together(1);
+  await db.rpc("meta_disconnect", { p_status: "disconnected", p_error: null });
+  await expect(checkedSave(db, a!.lease_token)(a!.id, { status: "publishing" })).rejects.toBeInstanceOf(SaveError);
+  await db.rpc("meta_connect", { p_page_id: PAGE, p_page_name: "صفحة اختبار", p_token: "EAAB-local-test-token-not-real-cccc" });
 });

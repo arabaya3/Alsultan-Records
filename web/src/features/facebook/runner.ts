@@ -37,7 +37,7 @@ export async function runFacebookJobs(
       // Not enough time left for the worst case: hand it back untouched (status/next attempt unchanged).
       await sb
         .from("facebook_reel_posts")
-        .update({ status: j.finish_requested_at ? "processing" : "queued", lease_token: null, lease_until: null })
+        .update({ status: j.finish_requested_at ? "processing" : "queued", attempts: j.attempts - 1, lease_token: null, lease_until: null })
         .eq("id", j.id)
         .eq("lease_token", j.lease_token ?? "");
       out.deferred++;
@@ -57,7 +57,8 @@ export async function runFacebookJobs(
         },
         save: checkedSave(sb, j.lease_token),
         connectionLost: async (reason) => {
-          await sb.rpc("meta_disconnect", { p_status: "expired", p_error: reason });
+          const { data, error: lostErr } = await sb.rpc("meta_connection_lost", { p_job: j.id, p_lease: j.lease_token, p_error: reason });
+          if (lostErr || data !== true) throw new SaveError("connection report refused (lease lost?)");
         },
       });
     } catch (e) {

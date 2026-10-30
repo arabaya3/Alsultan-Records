@@ -35,7 +35,7 @@ export type Deps = {
    * MUST throw (SaveError) when the database errors or the row was not updated: the next Meta request depends on it.
    */
   save: (id: string, patch: JobPatch) => Promise<void>;
-  /** The Page token stopped working: forget it and show «انتهى الربط» to the owner. */
+  /** The Page token stopped working: forget it, park the jobs, show «انتهى الربط». Throws SaveError if the lease was lost. */
   connectionLost: (reason: string) => Promise<void>;
   now?: () => Date;
 };
@@ -75,7 +75,8 @@ export async function runJob(job: Job, d: Deps): Promise<JobPatch> {
   if (!d.token || !d.pageId) return done({ status: "awaiting_connection" });
   if (!job.page_id) return done({ status: "page_changed", last_error: NO_PAGE });
   if (job.page_id !== d.pageId) return done({ status: "page_changed", last_error: PAGE_CHANGED });
-  if (!job.reel_video_id) return done({ status: "failed", last_error: "حُذف المقطع من الموقع قبل نشره على فيسبوك." });
+  // A clip deleted after finish was sent: Meta may have it, so the status is still checked below.
+  if (!job.reel_video_id && !job.finish_requested_at) return done({ status: "failed", last_error: "حُذف المقطع من الموقع قبل نشره على فيسبوك." });
 
   const pageId = job.page_id;
   const g = graphClient(d.fetch, d.token);
@@ -101,8 +102,9 @@ export async function runJob(job: Job, d: Deps): Promise<JobPatch> {
       return done({ status: "processing", last_error: null, next_attempt_at: later(job.attempts) });
     }
     if (!phaseDone(st.uploading_phase)) {
-      const url = await d.signedFileUrl(job.reel_video_id);
+      const url = job.reel_video_id ? await d.signedFileUrl(job.reel_video_id) : null;
       if (!url) return done({ status: "failed", last_error: "ملف المقطع غير موجود في التخزين." });
+      await d.save(job.id, { status: "publishing" }); // still ours? a worker that lost its lease stops before uploading
       await g.uploadHosted(videoId, url);
     }
     await d.save(job.id, { status: "publishing", finish_requested_at: now.toISOString() });
@@ -115,8 +117,8 @@ export async function runJob(job: Job, d: Deps): Promise<JobPatch> {
     if (e instanceof SaveError) throw e;
     const err = e instanceof GraphError ? e : new GraphError("unexpected error", 500, null, null);
     if (err.authLost) {
-      await d.connectionLost(err.message);
-      return done({ status: "awaiting_connection", last_error: "انتهى ربط صفحة فيسبوك أو سُحبت الصلاحية. أعد الربط من الإعدادات." });
+      await d.connectionLost(err.message); // parks this job and the others, withdraws their leases (SQL, 0031)
+      return { status: "awaiting_connection" };
     }
     if (err.transient && job.attempts < MAX_ATTEMPTS) {
       return done({ status: finishMarked ? "processing" : "queued", last_error: err.message, next_attempt_at: later(job.attempts) });

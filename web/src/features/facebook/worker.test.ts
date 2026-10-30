@@ -88,7 +88,7 @@ describe("Facebook reel job (simulated Meta)", () => {
     const r = await runJob(job({ meta_video_id: "9001" }), d);
     expect(r.status).toBe("awaiting_connection");
     expect(d.connectionLost).toHaveBeenCalledTimes(1);
-    expect(saved.at(-1)).not.toHaveProperty("meta_video_id"); // the stored id is not cleared
+    expect(saved).toEqual([]); // SQL parks the job (0031); the stored id is not cleared
     expect(JSON.stringify(saved)).not.toContain(TOKEN);
     expect(String((d.connectionLost as ReturnType<typeof vi.fn>).mock.calls[0]![0])).not.toContain("EAAB-secret");
   });
@@ -198,6 +198,31 @@ describe("Facebook reel job (simulated Meta)", () => {
     });
     await expect(runJob(job(), d)).rejects.toBeInstanceOf(SaveError);
     expect(m.calls.map(kind)).toEqual(["start", "status", "upload"]);
+  });
+
+  it("lease lost before the upload → the upload is NOT sent", async () => {
+    const m = meta({});
+    const { d } = deps(m.f, {
+      save: async (_id, p) => {
+        if (!p.meta_video_id) throw new SaveError("save failed: job row not updated (lease lost?)");
+      },
+    });
+    await expect(runJob(job(), d)).rejects.toBeInstanceOf(SaveError);
+    expect(m.calls.map(kind)).toEqual(["start", "status"]);
+  });
+
+  it("a stale worker's dead-token report is refused → it stops without saving", async () => {
+    const m = meta({ status: () => m.json({ error: { message: "expired", code: 190 } }, 400) });
+    const { d, saved } = deps(m.f, { connectionLost: async () => { throw new SaveError("refused"); } });
+    await expect(runJob(job({ meta_video_id: "9001" }), d)).rejects.toBeInstanceOf(SaveError);
+    expect(saved).toEqual([]);
+  });
+
+  it("clip deleted after finish was sent → still only reads the status, records the publication", async () => {
+    const m = meta({ status: () => ({ status: { publishing_phase: { status: "complete" } } }) });
+    const r = await runJob(job({ reel_video_id: null, meta_video_id: "9001", finish_requested_at: "2026-10-28T09:00:00Z" }), deps(m.f).d);
+    expect(r).toMatchObject({ status: "published" });
+    expect(m.calls.map(kind)).toEqual(["status"]);
   });
 
   it("checkedSave throws on a database error and when no row was updated", async () => {
