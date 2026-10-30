@@ -29,6 +29,31 @@ const yearAgo = () => {
   d.setFullYear(d.getFullYear() - 1);
   return d.toISOString().slice(0, 10);
 };
+/** The hero backdrop on a fresh home load. Retried: expireAgainAfterSettling allows a few seconds when a render was in flight. */
+const HERO = "[data-hero-intro] > img, [data-hero-intro] > picture img";
+const expectHomeHero = (page: Page, id: string) =>
+  expect
+    .poll(
+      async () => {
+        await page.goto(`${BASE}/`);
+        return page.locator(HERO).first().getAttribute("src");
+      },
+      { timeout: 12_000, intervals: [500, 1000, 2000] },
+    )
+    .toBe(`/p/${id}/display`);
+/** Published photos that are no album's chosen cover. */
+async function manualHeroFixtures() {
+  const covers = ((await db.from("photo_albums").select("cover_photo_id")).data ?? []).map((a) => a.cover_photo_id);
+  const rows = (await db.from("album_photos").select("id, album_id, sort_order").eq("is_published", true).eq("upload_status", "ready").neq("album_id", albumId).order("sort_order", { ascending: false }).limit(200)).data!;
+  return rows.filter((p) => !covers.includes(p.id));
+}
+const saveHeroSource = async (admin: Page, source: "manual" | "latest_album") => {
+  await admin.goto(`${BASE}/admin/content/home`);
+  const form = admin.getByTestId("home-form");
+  await form.locator(`input[name=hero_cover_source][value=${source}]`).check();
+  await form.getByRole("button", { name: /حفظ/ }).click();
+  await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+};
 const blockYouTube = (page: Page) =>
   page.route(/youtube(-nocookie)?\.com|ytimg\.com/, (r) => r.abort());
 
@@ -110,8 +135,12 @@ test.afterAll(async ({ browser }) => {
     await db.from("site_sections").update({ featured_ids: featuredBefore }).eq("key", "albums");
     await saveAlbumsSection(browser);
   }
-  if (heroBefore)
+  if (heroBefore) {
     await db.from("business_settings").update(heroBefore).eq("id", 1);
+    const o = await newLoggedIn(browser, "owner", "/admin/content/home");
+    await saveHeroSource(o, heroBefore.hero_cover_source as "manual" | "latest_album");
+    await o.close();
+  }
   if (albumId) {
     await db
       .from("photo_albums")
@@ -261,17 +290,13 @@ test("AP3: hero «newest album» follows publish and hide; manual restores the o
   page,
 }) => {
   await skipSiteIntro(page);
+  const [manual] = await manualHeroFixtures();
+  await db.from("business_settings").update({ hero_cover_photo_id: manual.id, hero_cover_source: "manual" }).eq("id", 1);
   const admin = await newLoggedIn(browser, "owner", "/admin/content/home");
-  const form = admin.getByTestId("home-form");
-  await form
-    .locator("input[name=hero_cover_source][value=latest_album]")
-    .check();
-  await form.getByRole("button", { name: /حفظ/ }).click();
-  await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+  await saveHeroSource(admin, "latest_album");
 
-  await page.goto(`${BASE}/`);
-  const hero = page.locator("[data-hero-intro] > img").first();
-  await expect(hero).toHaveAttribute("src", `/p/${photoId}/display`);
+  await expectHomeHero(page, photoId);
+  const hero = page.locator(HERO).first();
   const res = await page.request.get(`${BASE}/p/${photoId}/display`);
   expect(res.status()).toBe(200);
   expect(res.headers()["cdn-cache-control"]).toBe("no-store");
@@ -284,8 +309,15 @@ test("AP3: hero «newest album» follows publish and hide; manual restores the o
     .click();
   await admin.locator("dialog[open] [data-testid=confirm-yes]").click();
   await expect(admin.getByTestId("album-publish")).toBeVisible();
-  await page.goto(`${BASE}/`);
-  await expect(hero).not.toHaveAttribute("src", `/p/${photoId}/display`);
+  await expect
+    .poll(
+      async () => {
+        await page.goto(`${BASE}/`);
+        return hero.getAttribute("src");
+      },
+      { timeout: 12_000, intervals: [500, 1000, 2000] },
+    )
+    .not.toBe(`/p/${photoId}/display`);
   expect(
     (await page.request.get(`${BASE}/p/${photoId}/display`)).status(),
   ).toBe(404);
@@ -314,10 +346,7 @@ test("AP3: hero «newest album» follows publish and hide; manual restores the o
   ).toBe(before);
 
   // back to manual: the owner's stored choice is used again (it was never cleared)
-  await admin.goto(`${BASE}/admin/content/home`);
-  await form.locator("input[name=hero_cover_source][value=manual]").check();
-  await form.getByRole("button", { name: /حفظ/ }).click();
-  await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+  await saveHeroSource(admin, "manual");
   const s = (
     await db
       .from("business_settings")
@@ -325,13 +354,37 @@ test("AP3: hero «newest album» follows publish and hide; manual restores the o
       .eq("id", 1)
       .single()
   ).data!;
-  expect(s.hero_cover_photo_id).toBe(heroBefore!.hero_cover_photo_id);
-  await page.goto(`${BASE}/`);
-  if (s.hero_cover_photo_id)
-    await expect(hero).toHaveAttribute(
-      "src",
-      `/p/${s.hero_cover_photo_id}/display`,
-    );
+  expect(s.hero_cover_photo_id).toBe(manual.id);
+  await expectHomeHero(page, manual.id);
+  await admin.close();
+});
+
+test("AP3b: switching hero modes and picking a manual photo reach the home page promptly after each save", async ({
+  browser,
+  page,
+}) => {
+  await skipSiteIntro(page);
+  const [first, second] = await manualHeroFixtures();
+  await db.from("business_settings").update({ hero_cover_photo_id: first.id, hero_cover_source: "manual" }).eq("id", 1);
+  const admin = await newLoggedIn(browser, "owner", "/admin/content/home");
+  await saveHeroSource(admin, "manual");
+  await expectHomeHero(page, first.id);
+  await saveHeroSource(admin, "latest_album");
+  await expectHomeHero(page, photoId);
+  await saveHeroSource(admin, "manual");
+  await expectHomeHero(page, first.id);
+
+  // Pick another photo in the admin picker, as the owner does.
+  const title = (await db.from("photo_albums").select("title").eq("id", second.album_id).single()).data!.title;
+  await admin.goto(`${BASE}/admin/content/home`);
+  const picker = admin.getByTestId("picker-hero_cover_photo_id");
+  await picker.getByRole("button", { name: "اختيار صورة" }).click();
+  await picker.getByRole("combobox").selectOption({ label: title });
+  await picker.locator(`button:has(img[src="/p/${second.id}/thumb"])`).click();
+  const form = admin.getByTestId("home-form");
+  await form.getByRole("button", { name: /حفظ/ }).click();
+  await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+  await expectHomeHero(page, second.id);
   await admin.close();
 });
 

@@ -24,6 +24,7 @@ import {
   stepSchema,
 } from "./schema";
 import { SECTION_FEATURE } from "./targets";
+import { expireAgainAfterSettling } from "@/lib/expire-after-settling";
 
 type SB = Awaited<ReturnType<typeof cms>>;
 const FEATURE_TABLE = { video: "showcase_videos", service: "services", offer: "offers", album: "photo_albums" } as const;
@@ -159,6 +160,7 @@ export async function saveHome(_p: ActionResult, fd: FormData): Promise<ActionRe
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("تعذّر الحفظ.");
   publish(...T.home, TAGS.videos);
+  expireAgainAfterSettling(...T.home, TAGS.videos);
   return ok("حُفظت الصفحة الرئيسية.");
 }
 
