@@ -143,15 +143,13 @@ export function Lightbox({
       );
       if (!nodes?.length) return;
       const visible = Array.from(nodes).filter((n) => n.offsetParent !== null);
-      const first = visible[0] ?? nodes[0];
-      const last = visible[visible.length - 1] ?? nodes[nodes.length - 1];
-      if (e.shiftKey && document.activeElement === first) {
-        e.preventDefault();
-        last.focus();
-      } else if (!e.shiftKey && document.activeElement === last) {
-        e.preventDefault();
-        first.focus();
-      }
+      const list = visible.length ? visible : Array.from(nodes);
+      // Move focus ourselves (wrapping): Safari's default Tab skips links, so leaving it to the browser could step
+      // past the last control and out of the dialog.
+      e.preventDefault();
+      const at = list.indexOf(document.activeElement as HTMLElement);
+      const next = at < 0 ? (e.shiftKey ? list.length - 1 : 0) : (at + (e.shiftKey ? -1 : 1) + list.length) % list.length;
+      list[next].focus();
     }
   }
 

@@ -18,8 +18,13 @@ export const ArrowStartIcon = () => (
   </svg>
 );
 
-export function IconLink({ href, label, external, children, className = "", ...rest }: { href: string; label: string; external?: boolean; children: React.ReactNode; className?: string } & Record<`data-${string}`, unknown>) {
-  const cls = `${iconLinkCls} ${className}`;
+/** `text`: also show the label next to the icon (a pill) where the destination should read at a glance. */
+const textLinkCls =
+  "inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border border-hairline px-4 text-sm font-medium text-ivory transition-colors duration-200 hover:border-gold hover:text-gold focus-visible:border-gold";
+
+export function IconLink({ href, label, external, text, children, className = "", ...rest }: { href: string; label: string; external?: boolean; text?: boolean; children: React.ReactNode; className?: string } & Record<`data-${string}`, unknown>) {
+  const cls = `${text ? textLinkCls : iconLinkCls} ${className}`;
+  if (text) children = <>{children}<span aria-hidden="true">{label}</span></>;
   return external ? (
     <a href={href} target="_blank" rel="noopener noreferrer" aria-label={label} title={label} className={cls} {...rest}>{children}</a>
   ) : (

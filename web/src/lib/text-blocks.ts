@@ -45,3 +45,32 @@ export function listPreview(text: string | null | undefined, max = 4): { items: 
   if (all.length < 2) return null;
   return { items: all.slice(0, max), more: Math.max(0, all.length - max) };
 }
+
+/**
+ * The same blocks regrouped as titled sections for a details page: each numbered item with its sub-items, and a short
+ * one-line paragraph directly followed by a bullet list («التسليمات والهدايا ⏎ - …») as that list's heading. Anything
+ * else (longer paragraphs, a list without a heading) stays its own untitled section, in place — nothing is dropped,
+ * merged or reordered. `accent` marks the deliveries/gifts heading the owner actually wrote (never inferred from items).
+ */
+export type DetailSection = { title: string | null; number: number | null; lines: string[]; items: string[]; accent: boolean };
+
+const HEADING_MAX = 60;
+const ACCENT = /تسليم|هدي|هدايا/;
+
+export function detailSections(text: string | null | undefined): DetailSection[] {
+  const blocks = parseTextBlocks(text);
+  const out: DetailSection[] = [];
+  const section = (title: string | null, number: number | null, lines: string[], items: string[]) =>
+    out.push({ title, number, lines, items, accent: !!title && ACCENT.test(title) });
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i];
+    const next = blocks[i + 1];
+    if (b.kind === "ol") b.items.forEach((it, j) => section(it.text, j + 1, [], it.children));
+    else if (b.kind === "p" && b.lines.length === 1 && b.lines[0].length <= HEADING_MAX && next?.kind === "ul") {
+      section(b.lines[0], null, [], next.items);
+      i++;
+    } else if (b.kind === "p") section(null, null, b.lines, []);
+    else section(null, null, [], b.items);
+  }
+  return out;
+}

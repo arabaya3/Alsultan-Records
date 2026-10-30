@@ -1,0 +1,786 @@
+{
+ "silver@320": {
+  "before": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1693,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 2122,
+   "overflowX": 0
+  }
+ },
+ "long@320": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1448,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1532,
+   "overflowX": 0
+  }
+ },
+ "priced@320": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1214,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1302,
+   "overflowX": 0
+  }
+ },
+ "offers@320": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1871,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 2311,
+   "overflowX": 0
+  }
+ },
+ "packages@320": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 6093,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 6093,
+   "overflowX": 0
+  }
+ },
+ "home@320": {
+  "before": {
+   "images": 7,
+   "imageKb": 538,
+   "height": 9435,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 10,
+   "imageKb": 180,
+   "height": 7982,
+   "overflowX": 0
+  }
+ },
+ "albums@320": {
+  "before": {
+   "images": 9,
+   "imageKb": 876,
+   "height": 2570,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 9,
+   "imageKb": 98,
+   "height": 2570,
+   "overflowX": 0
+  }
+ },
+ "album@320": {
+  "before": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 3595,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 3579,
+   "overflowX": 0
+  }
+ },
+ "silver@390": {
+  "before": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1555,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1984,
+   "overflowX": 0
+  }
+ },
+ "long@390": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1317,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1401,
+   "overflowX": 0
+  }
+ },
+ "priced@390": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1145,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1233,
+   "overflowX": 0
+  }
+ },
+ "offers@390": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 2155,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 2155,
+   "overflowX": 0
+  }
+ },
+ "packages@390": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 5642,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 5642,
+   "overflowX": 0
+  }
+ },
+ "home@390": {
+  "before": {
+   "images": 7,
+   "imageKb": 538,
+   "height": 9639,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 10,
+   "imageKb": 180,
+   "height": 7751,
+   "overflowX": 0
+  }
+ },
+ "albums@390": {
+  "before": {
+   "images": 9,
+   "imageKb": 876,
+   "height": 2742,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 9,
+   "imageKb": 98,
+   "height": 2742,
+   "overflowX": 0
+  }
+ },
+ "album@390": {
+  "before": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 4005,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 3989,
+   "overflowX": 0
+  }
+ },
+ "silver@430": {
+  "before": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1559,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1988,
+   "overflowX": 0
+  }
+ },
+ "long@430": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1324,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1408,
+   "overflowX": 0
+  }
+ },
+ "priced@430": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1150,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1238,
+   "overflowX": 0
+  }
+ },
+ "offers@430": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 2164,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 2164,
+   "overflowX": 0
+  }
+ },
+ "packages@430": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 5504,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 5504,
+   "overflowX": 0
+  }
+ },
+ "home@430": {
+  "before": {
+   "images": 7,
+   "imageKb": 538,
+   "height": 9848,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 10,
+   "imageKb": 180,
+   "height": 7816,
+   "overflowX": 0
+  }
+ },
+ "albums@430": {
+  "before": {
+   "images": 9,
+   "imageKb": 876,
+   "height": 2892,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 9,
+   "imageKb": 98,
+   "height": 2892,
+   "overflowX": 0
+  }
+ },
+ "album@430": {
+  "before": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 4246,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 4230,
+   "overflowX": 0
+  }
+ },
+ "silver@768": {
+  "before": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1510,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1477,
+   "overflowX": 0
+  }
+ },
+ "long@768": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1151,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1243,
+   "overflowX": 0
+  }
+ },
+ "priced@768": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1027,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1046,
+   "overflowX": 0
+  }
+ },
+ "offers@768": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1704,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1704,
+   "overflowX": 0
+  }
+ },
+ "packages@768": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 4198,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 4198,
+   "overflowX": 0
+  }
+ },
+ "home@768": {
+  "before": {
+   "images": 10,
+   "imageKb": 599,
+   "height": 6944,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 10,
+   "imageKb": 599,
+   "height": 6944,
+   "overflowX": 0
+  }
+ },
+ "albums@768": {
+  "before": {
+   "images": 9,
+   "imageKb": 876,
+   "height": 2530,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 10,
+   "imageKb": 535,
+   "height": 2530,
+   "overflowX": 0
+  }
+ },
+ "album@768": {
+  "before": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 3524,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 3509,
+   "overflowX": 0
+  }
+ },
+ "silver@1024": {
+  "before": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1537,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1504,
+   "overflowX": 0
+  }
+ },
+ "long@1024": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1214,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1278,
+   "overflowX": 0
+  }
+ },
+ "priced@1024": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1056,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1003,
+   "overflowX": 0
+  }
+ },
+ "offers@1024": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1494,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1494,
+   "overflowX": 0
+  }
+ },
+ "packages@1024": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 3926,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 3926,
+   "overflowX": 0
+  }
+ },
+ "home@1024": {
+  "before": {
+   "images": 10,
+   "imageKb": 599,
+   "height": 4674,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 10,
+   "imageKb": 179,
+   "height": 4674,
+   "overflowX": 0
+  }
+ },
+ "albums@1024": {
+  "before": {
+   "images": 9,
+   "imageKb": 876,
+   "height": 2213,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 9,
+   "imageKb": 98,
+   "height": 2213,
+   "overflowX": 0
+  }
+ },
+ "album@1024": {
+  "before": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 3009,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 2989,
+   "overflowX": 0
+  }
+ },
+ "silver@1440": {
+  "before": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1570,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1537,
+   "overflowX": 0
+  }
+ },
+ "long@1440": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1226,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1318,
+   "overflowX": 0
+  }
+ },
+ "priced@1440": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1090,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1036,
+   "overflowX": 0
+  }
+ },
+ "offers@1440": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1529,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1529,
+   "overflowX": 0
+  }
+ },
+ "packages@1440": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 3656,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 3656,
+   "overflowX": 0
+  }
+ },
+ "home@1440": {
+  "before": {
+   "images": 10,
+   "imageKb": 599,
+   "height": 4910,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 10,
+   "imageKb": 179,
+   "height": 4910,
+   "overflowX": 0
+  }
+ },
+ "albums@1440": {
+  "before": {
+   "images": 9,
+   "imageKb": 876,
+   "height": 2716,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 9,
+   "imageKb": 98,
+   "height": 2716,
+   "overflowX": 0
+  }
+ },
+ "album@1440": {
+  "before": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 3837,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 3809,
+   "overflowX": 0
+  }
+ },
+ "silver@1920": {
+  "before": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1573,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 114,
+   "height": 1540,
+   "overflowX": 0
+  }
+ },
+ "long@1920": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1229,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1321,
+   "overflowX": 0
+  }
+ },
+ "priced@1920": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1093,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1040,
+   "overflowX": 0
+  }
+ },
+ "offers@1920": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1533,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 1533,
+   "overflowX": 0
+  }
+ },
+ "packages@1920": {
+  "before": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 3656,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 2,
+   "imageKb": 5,
+   "height": 3656,
+   "overflowX": 0
+  }
+ },
+ "home@1920": {
+  "before": {
+   "images": 10,
+   "imageKb": 599,
+   "height": 4913,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 10,
+   "imageKb": 179,
+   "height": 4913,
+   "overflowX": 0
+  }
+ },
+ "albums@1920": {
+  "before": {
+   "images": 9,
+   "imageKb": 876,
+   "height": 2716,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 9,
+   "imageKb": 98,
+   "height": 2716,
+   "overflowX": 0
+  }
+ },
+ "album@1920": {
+  "before": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 3841,
+   "overflowX": 0
+  },
+  "after": {
+   "images": 24,
+   "imageKb": 359,
+   "height": 3809,
+   "overflowX": 0
+  }
+ }
+}

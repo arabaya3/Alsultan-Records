@@ -109,7 +109,8 @@ async function AlbumView({ params }: { params: PageProps<"/work/albums/[slug]">[
         {/* Actions live in the hero so the photos start right after it. */}
         <AlbumActions backHref={ALBUMS} title={album.title} canSlideshow={photos.length > 1} />
       </PageHero>
-      <Section>
+      {/* the photos follow the title and actions closely (the hero already ends with its own spacing) */}
+      <Section className="pt-2! md:pt-4!">
         <h2 className="sr-only">صور الألبوم</h2>
         {photos.length === 0 ? (
           <EmptyState title="لا توجد صور منشورة في هذا الألبوم بعد" action={<ButtonLink href={ALBUMS} variant="outline">العودة للألبومات</ButtonLink>} />
