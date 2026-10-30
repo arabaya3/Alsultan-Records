@@ -19,6 +19,9 @@ function readEnv(): Record<string, string> {
 export const E = readEnv();
 const host = new URL(E.NEXT_PUBLIC_SUPABASE_URL).hostname;
 if (host !== "127.0.0.1" && host !== "localhost") throw new Error(`QA specs refuse non-local Supabase host ${host}`);
+// Incident 2026-10-29: specs write fixtures, so they never run against the SHARED local project (alsultan-records,
+// API :54321). Use an isolated stack (its own config.toml project_id and ports).
+if (new URL(E.NEXT_PUBLIC_SUPABASE_URL).port === "54321") throw new Error("QA specs refuse the shared local Supabase (:54321)");
 
 export const SB_URL = E.NEXT_PUBLIC_SUPABASE_URL;
 export const PUB_KEY = E.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -104,10 +107,14 @@ export async function overflowPx(page: Page) {
 }
 
 /** Runs SQL as postgres inside the LOCAL supabase db container (fixtures/verification only). */
-/** Local db container (an isolated stack sets E2E_DB_CONTAINER; default = the main local stack). */
-export const DB_CONTAINER = process.env.E2E_DB_CONTAINER ?? "supabase_db_alsultan-records";
+/** Local db container of the ISOLATED stack under test (E2E_DB_CONTAINER, required). Incident 2026-10-29: tests never
+ *  write to the shared local project, so there is no default and the shared container is refused explicitly. */
+export const DB_CONTAINER = process.env.E2E_DB_CONTAINER ?? "";
+const SHARED_DB_CONTAINERS = ["supabase_db_alsultan-records"];
 
 export function psql(sql: string): string {
+  if (!DB_CONTAINER) throw new Error("E2E_DB_CONTAINER is not set: name the isolated stack's db container");
+  if (SHARED_DB_CONTAINERS.includes(DB_CONTAINER)) throw new Error(`refusing to write to the shared local database (${DB_CONTAINER})`);
   // eslint-disable-next-line @typescript-eslint/no-require-imports
   const { execFileSync } = require("node:child_process") as typeof import("node:child_process");
   return execFileSync("docker", ["exec", "-i", DB_CONTAINER, "psql", "-U", "postgres", "-At", "-v", "ON_ERROR_STOP=1"], {
@@ -135,4 +142,23 @@ export function resetSeedSelections(eventIds: string[]) {
 /** Mark the one-time site opening (SiteIntro) as already played in this context, for tests about the page itself. */
 export async function skipSiteIntro(target: Page | import("@playwright/test").BrowserContext) {
   await target.addInitScript(() => { try { sessionStorage.setItem("sultan-intro-v1", "1"); } catch {} });
+}
+
+/**
+ * Before a test deletes a published album straight from the database: hide it through the admin first. That action
+ * expires the public albums cache, so later pages (and later specs) are never served a cached card or hero that
+ * points at deleted rows. Albums are listed newest-published first (migration 0026), so a test album is always on
+ * the home page while it is published.
+ */
+export async function hideAlbumViaAdmin(browser: Browser, albumId: string) {
+  const st = (await db.from("photo_albums").select("is_published").eq("id", albumId).maybeSingle()).data;
+  if (!st?.is_published) return;
+  const admin = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
+  try {
+    await admin.getByTestId("album-unpublish").getByRole("button", { name: "إخفاء الألبوم" }).click();
+    await admin.locator("dialog[open] [data-testid=confirm-yes]").click();
+    await admin.getByTestId("album-publish").waitFor();
+  } finally {
+    await admin.close();
+  }
 }

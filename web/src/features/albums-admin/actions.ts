@@ -2,6 +2,7 @@
 
 import { randomUUID } from "node:crypto";
 import { refresh, updateTag } from "next/cache";
+import { expireAgainAfterSettling } from "@/lib/expire-after-settling";
 import { redirect } from "next/navigation";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
@@ -22,6 +23,7 @@ const db = async () => (await createClient()) as unknown as SB;
 /** Public-affecting change: expire the public albums cache and refresh the admin view. */
 function published() {
   updateTag(TAGS.albums);
+  expireAgainAfterSettling(TAGS.albums);
   refresh();
 }
 

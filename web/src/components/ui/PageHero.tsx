@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { photoUrl } from "@/features/public-content/gallery-model";
-import { getBusinessSettings } from "@/features/public-content/queries";
+import { getSiteHeroPhotoId } from "@/features/public-content/gallery-queries";
 
 export type Crumb = { label: string; href?: string };
 
@@ -13,7 +13,7 @@ export type Crumb = { label: string; href?: string };
  *   breadcrumb? — [{label, href?}] ; last item = current page (no href)
  *   photoId? — a REAL album photo id chosen in the CMS (e.g. business_settings.hero_cover_photo_id). Shown as a
  *              decorative backdrop (object-cover is allowed ONLY here) under a dark gradient for legibility.
- *              Omitted (undefined) → the CMS cover photo (business_settings.hero_cover_photo_id) if set; pass
+ *              Omitted (undefined) → the site hero photo (getSiteHeroPhotoId: manual choice or newest album) if any; pass
  *              null to force no photo (e.g. an album page, so another event's photo never sits behind its title).
  *              Without a photo the CSS ink texture is used. Never pass stock/generated images.
  *   align?   — "center" (default, as in the references) | "start"
@@ -41,8 +41,7 @@ export async function PageHero({
   children?: ReactNode;
 }) {
   if (photoId === undefined) {
-    const s = await getBusinessSettings(); // cached + tagged (admin saves expire it)
-    photoId = s.status === "ok" ? (s.data?.hero_cover_photo_id ?? null) : null;
+    photoId = await getSiteHeroPhotoId(); // manual or newest-album source; cached + tagged reads
   }
   const center = align === "center";
   return (

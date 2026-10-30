@@ -28,6 +28,14 @@ export async function SettingsPage() {
     <>
       <PageHeader title="إعدادات اللوحة" lead="أمان الدخول والأقسام اللي بتظهر بالقائمة. بيانات النشاط تُعدَّل من «الهوية ومعلومات النشاط»." />
       <div className="grid gap-4 lg:grid-cols-2">
+        {isOwner ? (
+          <Card title="صفحة فيسبوك">
+            <p className="text-sm">ربط صفحة السلطان لنشر مقاطع الريلز عليها (اختياري لكل مقطع).</p>
+            <Link href="/admin/settings/facebook" className="mt-2 inline-flex min-h-11 items-center underline underline-offset-4" data-testid="settings-facebook-link">
+              حالة الربط وطلبات النشر
+            </Link>
+          </Card>
+        ) : null}
         {/* One place to edit the studio's details (same columns, same validation): «الهوية ومعلومات النشاط». */}
         <Card title="بيانات النشاط (تظهر في الموقع العام)">
           <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[auto_1fr]" data-testid="settings-business-summary">

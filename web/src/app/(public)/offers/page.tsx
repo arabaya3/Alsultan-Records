@@ -6,7 +6,7 @@ import { Section, SectionHeading } from "@/components/ui/Layout";
 import { ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { getActiveOffers, getPublishedPackages } from "@/features/public-content/cms-queries";
-import { getBusinessSettings } from "@/features/public-content/queries";
+import { getSiteHeroPhotoId } from "@/features/public-content/gallery-queries";
 import { pageMetadata } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -32,8 +32,7 @@ const PLAN = [
 ] as const;
 
 export default async function OffersPage() {
-  const [res, pk, settings] = await Promise.all([getActiveOffers(), getPublishedPackages(), getBusinessSettings()]);
-  const cover = settings.status === "ok" ? (settings.data?.hero_cover_photo_id ?? null) : null;
+  const [res, pk, cover] = await Promise.all([getActiveOffers(), getPublishedPackages(), getSiteHeroPhotoId()]);
   // Linked package shown only while it is published; the offer never changes the package.
   const pkgTitle = new Map(pk.status === "ok" ? pk.data.map((p) => [p.id, p.title] as const) : []);
   return (

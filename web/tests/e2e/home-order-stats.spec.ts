@@ -29,10 +29,13 @@ test("HO1: home order — albums (4, newest first) before videos (3); no counter
   const albums = page.locator("[data-home-section=albums] [data-album-card]");
   await expect(albums).toHaveCount(4);
   const shown = await albums.evaluateAll((as) => as.map((a) => a.getAttribute("data-album-card")));
-  // newest = the owner's event date when set, otherwise when the album was added (same rule as the page)
-  const rows = (await db.from("photo_albums").select("slug, event_date, created_at").eq("is_published", true)).data!;
-  const key = (a: (typeof rows)[number]) => a.event_date ?? String(a.created_at).slice(0, 10);
-  const newest = [...rows].sort((a, b) => key(b).localeCompare(key(a)) || String(b.created_at).localeCompare(String(a.created_at))).map((a) => a.slug);
+  // newest = newest PUBLISHED (migration 0026: listed_at = published_at, or created_at for albums published before
+  // publish times were recorded), id as the tie-break. Never the event date (owner request 2026-10-28).
+  const rows = (
+    await db.from("photo_albums").select("slug").eq("is_published", true).is("archived_at", null).is("deleted_at", null)
+      .order("listed_at", { ascending: false }).order("id", { ascending: false })
+  ).data!;
+  const newest = rows.map((a) => a.slug);
   expect(shown).toEqual(newest.filter((s) => shown.includes(s)).slice(0, 4)); // newest first
   expect(newest.slice(0, 4).sort()).toEqual([...shown].sort());
   await expect(page.locator("section[aria-labelledby=work-title] [data-work-card]")).toHaveCount(3);

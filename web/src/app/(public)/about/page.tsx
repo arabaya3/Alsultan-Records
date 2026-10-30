@@ -8,6 +8,7 @@ import { PageHero } from "@/components/ui/PageHero";
 import { ServiceStrip } from "@/components/ui/ServiceStrip";
 import { photoUrl } from "@/features/public-content/gallery-model";
 import { getBusinessSettings } from "@/features/public-content/queries";
+import { getSiteHeroPhotoId } from "@/features/public-content/gallery-queries";
 import { pageMetadata } from "@/features/public-content/seo";
 import { SITE_NAME_AR } from "@/features/public-content/site";
 
@@ -25,7 +26,7 @@ const ABOUT = [
 ] as const;
 
 export default async function AboutPage() {
-  const settings = await getBusinessSettings();
+  const [settings, heroPhoto] = await Promise.all([getBusinessSettings(), getSiteHeroPhotoId()]);
   const s = settings.status === "ok" ? settings.data : null;
   return (
     <>
@@ -38,7 +39,7 @@ export default async function AboutPage() {
         }
         eyebrow={SITE_NAME_AR}
         lead="ستوديو وتسجيلات السلطان، من ميثلون – جنين."
-        photoId={s?.hero_cover_photo_id ?? null}
+        photoId={heroPhoto}
       />
       <Section>
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr] lg:gap-16">
@@ -66,7 +67,7 @@ export default async function AboutPage() {
           <SitePromoPlayer
             caption={PROMO_CAPTION}
             sizes="(min-width: 1024px) 896px, 100vw"
-            coverSrc={s?.hero_cover_photo_id ? photoUrl(s.hero_cover_photo_id, "display") : null}
+            coverSrc={heroPhoto ? photoUrl(heroPhoto, "display") : null}
           />
         </FadeRise>
       </Section>

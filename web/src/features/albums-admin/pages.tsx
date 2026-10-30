@@ -13,6 +13,7 @@ import { AlbumUploader } from "./AlbumUploader";
 import { NewAlbumForm } from "./NewAlbumForm";
 import { PhotoReorder } from "./PhotoReorder";
 import { ALBUM_BUCKET } from "./rules";
+import { dateAr } from "@/features/portal/format";
 import {
   createCategory,
   deleteCategory,
@@ -44,6 +45,7 @@ type Album = {
   cover_photo_id: string | null;
   sort_order: number;
   is_published: boolean;
+  published_at: string | null;
   category_id: string | null;
   archived_at: string | null;
   deleted_at: string | null;
@@ -65,7 +67,7 @@ type Photo = {
   deleted_at: string | null;
 };
 const ALBUM_COLS =
-  "id, slug, title, description, event_date, source_label, source_url, rights_note, cover_photo_id, sort_order, is_published, category_id, archived_at, deleted_at";
+  "id, slug, title, description, event_date, source_label, source_url, rights_note, cover_photo_id, sort_order, is_published, published_at, category_id, archived_at, deleted_at";
 const PHOTO_COLS = "id, storage_path_original, variants, width, height, bytes, alt_text, sort_order, is_published, upload_status, last_error, attempts, deleted_at";
 // Generated DB types may lag the CMS migration: read through an untyped client.
 const db = async () => (await createClient()) as unknown as SupabaseClient;
@@ -109,9 +111,11 @@ function AlbumFields({ a, categories }: { a?: Album; categories: Category[] }) {
       <Field label="الوصف (اختياري)" className="sm:col-span-2">
         <textarea name="description" rows={3} maxLength={LONG_TEXT} defaultValue={a?.description ?? ""} className={inputCls} />
       </Field>
-      <Field label="الترتيب" hint="الأصغر يظهر أولاً.">
-        <input name="sort_order" type="number" inputMode="numeric" min={-1000} max={100000} step={1} defaultValue={a?.sort_order ?? 100} className={inputCls} />
-      </Field>
+      <p className="text-xs text-on-cream-muted sm:col-span-2" data-testid="album-dates-note">
+        تاريخ المناسبة اختياري ويقبل أي يوم (ماضٍ أو قادم)، ويظهر للزوار فقط إذا عبّأته. ترتيب الألبومات في الموقع حسب تاريخ النشر:
+        يُسجَّل تلقائياً أول مرة تنشر فيها الألبوم، والألبوم الأحدث نشراً يظهر أولاً. تعديل الألبوم أو إضافة صور له لا يغيّر مكانه.
+        {a?.published_at ? ` نُشر أول مرة: ${dateAr(a.published_at)}.` : ""}
+      </p>
       <Field label="اسم المصدر (يظهر للعامة)" hint="مثال: فيسبوك — ستوديو السلطان">
         <input name="source_label" maxLength={120} defaultValue={a?.source_label ?? ""} className={inputCls} />
       </Field>
@@ -193,7 +197,8 @@ export async function AlbumsPage({ searchParams }: { searchParams: SP }) {
   const sp = await searchParams;
   const view = pick(one(sp.view), VIEWS) ?? "active";
   const sb = await db();
-  let q = sb.from("photo_albums").select(ALBUM_COLS).order("sort_order").order("created_at", { ascending: false });
+  // Same order as the public list (migration 0026): newest published first; drafts by creation time.
+  let q = sb.from("photo_albums").select(ALBUM_COLS).order("listed_at", { ascending: false }).order("id", { ascending: false });
   q = view === "trash" ? q.not("deleted_at", "is", null) : view === "archived" ? q.is("deleted_at", null).not("archived_at", "is", null) : q.is("deleted_at", null).is("archived_at", null);
   const [{ data, error }, photos, cats] = await Promise.all([
     q,
@@ -246,7 +251,10 @@ export async function AlbumsPage({ searchParams }: { searchParams: SP }) {
                   {c.visible} ظاهرة من {c.all}
                   {c.open ? <span className="block text-xs text-on-cream-muted">{c.open} غير مكتملة</span> : null}
                 </td>
-                <td className="px-3 py-2">{albumState(a)}</td>
+                <td className="px-3 py-2">
+                  {albumState(a)}
+                  {a.published_at ? <span className="block text-xs text-on-cream-muted">نُشر {dateAr(a.published_at)}</span> : null}
+                </td>
                 <td className="px-3 py-2">
                   <Link href={`/admin/albums/${a.id}`} className={btn("ghost")}>
                     إدارة
