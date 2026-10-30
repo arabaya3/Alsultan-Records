@@ -20,7 +20,7 @@ export type HeroIntroProps = {
   whatsappHref: string | null;
   phone: { label: string; href: string } | null;
   /** Self-hosted studio promo (static asset in /public/promo) or a YouTube promo; null hides the card. */
-  promo: { caption: string; coverSrc?: string | null; youtube?: { youtubeId: string; title: string } | null } | null;
+  promo: { caption: string; coverSrc?: string | null; coverMobileSrc?: string | null; youtube?: { youtubeId: string; title: string } | null } | null;
   /** Active owner logo (/a/<id>); null = built-in logo. */
   logoSrc?: string | null;
   primaryLabel?: string;
@@ -126,8 +126,13 @@ export function HeroIntro(p: HeroIntroProps) {
         // Full-bleed cinematic backdrop: the owner's CMS cover photo, heavily dimmed (decorative, object-cover allowed
         // only for this backdrop) so wide screens are not empty and the text keeps AA contrast.
         <>
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={p.promo.coverSrc} alt="" aria-hidden="true" decoding="async" className="absolute inset-0 -z-20 size-full object-cover opacity-35 blur-[2px]" />
+          {/* Phones get the small variant: dimmed and blurred, it is the page's LCP and needs no more. Both go through /p. */}
+          {p.promo.coverMobileSrc ? <link rel="preload" as="image" href={p.promo.coverMobileSrc} media="(max-width: 767px)" fetchPriority="high" /> : null}
+          <picture>
+            {p.promo.coverMobileSrc ? <source media="(max-width: 767px)" srcSet={p.promo.coverMobileSrc} /> : null}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={p.promo.coverSrc} alt="" aria-hidden="true" decoding="async" className="absolute inset-0 -z-20 size-full object-cover opacity-35 blur-[2px]" />
+          </picture>
           <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(to_left,rgb(13_12_11/0.92)_0%,rgb(13_12_11/0.78)_45%,rgb(13_12_11/0.6)_100%)]" />
         </>
       ) : null}

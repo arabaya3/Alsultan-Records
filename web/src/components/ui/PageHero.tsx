@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHeroBackdrop } from "./PageHeroBackdrop";
 import type { ReactNode } from "react";
 import { photoUrl } from "@/features/public-content/gallery-model";
 import { getSiteHeroPhotoId } from "@/features/public-content/gallery-queries";
@@ -48,16 +49,7 @@ export async function PageHero({
     <div className={`relative isolate overflow-hidden hero-flow text-ivory ${photoId ? "bg-night-deep" : "ink-texture"}`}>
       {photoId ? (
         <>
-          {/* Decorative backdrop: gated same-origin variant, plain <img> as elsewhere for /p/<id>. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={photoUrl(photoId, "display")}
-            alt=""
-            aria-hidden="true"
-            decoding="async"
-            fetchPriority="high"
-            className="absolute inset-0 -z-20 size-full object-cover opacity-60"
-          />
+          <PageHeroBackdrop src={photoUrl(photoId, "display")} />
           <div
             aria-hidden="true"
             className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,var(--color-night)_0%,rgb(13_12_11/0.82)_45%,rgb(13_12_11/0.55)_100%)]"
