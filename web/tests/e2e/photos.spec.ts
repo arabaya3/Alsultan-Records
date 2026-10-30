@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import sharp from "sharp";
-import { db } from "./qa-helpers";
+import { db, hideAlbumViaAdmin } from "./qa-helpers";
 
 /**
  * Photos tab, album page, lightbox and the gated /p route. LOCAL STACK ONLY.
@@ -90,7 +90,10 @@ test.describe("with a temporary published album", () => {
     }
     await db.from("photo_albums").update({ cover_photo_id: PHOTOS[1].id }).eq("id", ALBUM.id);
   });
-  test.afterAll(cleanup);
+  test.afterAll(async ({ browser }) => {
+    await hideAlbumViaAdmin(browser, ALBUM.id);
+    await cleanup();
+  });
 
   // Public pages are cached ("use cache", minutes). A fresh server or the tag TTL makes the album visible;
   // wait for it rather than assuming instant invalidation.
@@ -120,7 +123,9 @@ test.describe("with a temporary published album", () => {
     const ok = await request.get(`/p/${PHOTOS[0].id}/thumb`);
     expect(ok.status()).toBe(200);
     expect(ok.headers()["content-type"]).toBe("image/jpeg");
-    expect(ok.headers()["cache-control"]).toBe("private, max-age=300");
+    // Revalidated on every use (owner requirement: a withdrawn photo stops loading on the next request or reload).
+    expect(ok.headers()["cache-control"]).toBe("private, no-cache");
+    expect(ok.headers()["etag"]).toBeTruthy();
     expect(ok.headers()["cdn-cache-control"]).toBe("no-store");
     const meta = await sharp(await ok.body()).metadata();
     expect(Math.max(meta.width!, meta.height!)).toBeLessThanOrEqual(480);

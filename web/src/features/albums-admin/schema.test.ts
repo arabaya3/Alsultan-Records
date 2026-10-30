@@ -13,7 +13,20 @@ describe("readAlbumForm", () => {
   it("accepts a valid album and nulls empty optionals", () => {
     const r = readAlbumForm(fd({ event_date: "2026-07-13" }));
     expect(r.success).toBe(true);
-    expect(r.data).toMatchObject({ slug: "wedding-2026-07", event_date: "2026-07-13", description: null, rights_note: null, sort_order: 100 });
+    expect(r.data).toMatchObject({ slug: "wedding-2026-07", event_date: "2026-07-13", description: null, rights_note: null });
+  });
+  // Owner request 2026-10-28: an album added today for an occasion a year ago; the date stays optional.
+  it.each(["2025-10-28", "2019-01-01", "2026-10-28", "2027-06-01"])("accepts any occasion date (%s): past, today or future", (d) => {
+    expect(readAlbumForm(fd({ event_date: d })).data?.event_date).toBe(d);
+  });
+  it("leaves an empty occasion date empty (never today's date)", () => {
+    expect(readAlbumForm(fd({ event_date: "" })).data?.event_date).toBeNull();
+  });
+  it("has no order field: the public order is the publish time, so a stale sort_order is never written", () => {
+    const r = readAlbumForm(fd({ sort_order: "-500" }));
+    expect(r.success).toBe(true);
+    expect(r.data).not.toHaveProperty("sort_order");
+    expect(r.data).not.toHaveProperty("published_at");
   });
   it.each([
     ["slug", "Bad Slug"],

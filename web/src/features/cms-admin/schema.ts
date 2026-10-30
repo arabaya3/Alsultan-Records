@@ -130,6 +130,8 @@ export const homeSchema = z
     hero_secondary_label: optText(40, "نص الزر الثاني"),
     booking_message: optText(LONG_TEXT, "رسالة واتساب"),
     hero_cover_photo_id: optUuid,
+    // Missing (an older form) → "manual", the behaviour before migration 0026.
+    hero_cover_source: z.preprocess((v) => (v === "" || v == null ? "manual" : v), z.enum(["manual", "latest_album"], { message: "مصدر صورة الواجهة غير صالح" })),
     hero_promo_source: z.enum(["site", "youtube"], { message: "مصدر الفيديو غير صالح" }),
     hero_promo_video_id: optUuid,
   })

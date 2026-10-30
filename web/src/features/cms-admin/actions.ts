@@ -24,6 +24,7 @@ import {
   stepSchema,
 } from "./schema";
 import { SECTION_FEATURE } from "./targets";
+import { expireAgainAfterSettling } from "@/lib/expire-after-settling";
 
 type SB = Awaited<ReturnType<typeof cms>>;
 const FEATURE_TABLE = { video: "showcase_videos", service: "services", offer: "offers", album: "photo_albums" } as const;
@@ -151,7 +152,7 @@ export async function saveIdentity(_p: ActionResult, fd: FormData): Promise<Acti
 
 export async function saveHome(_p: ActionResult, fd: FormData): Promise<ActionResult> {
   if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
-  const keys = ["hero_title", "hero_subtitle", "hero_primary_label", "hero_secondary_label", "booking_message", "hero_cover_photo_id", "hero_promo_source", "hero_promo_video_id"] as const;
+  const keys = ["hero_title", "hero_subtitle", "hero_primary_label", "hero_secondary_label", "booking_message", "hero_cover_photo_id", "hero_cover_source", "hero_promo_source", "hero_promo_video_id"] as const;
   const parsed = homeSchema.safeParse(Object.fromEntries(keys.map((k) => [k, str(fd, k)])));
   if (!parsed.success) return fail(firstIssue(parsed.error));
   const sb = await cms();
@@ -159,6 +160,7 @@ export async function saveHome(_p: ActionResult, fd: FormData): Promise<ActionRe
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("تعذّر الحفظ.");
   publish(...T.home, TAGS.videos);
+  expireAgainAfterSettling(...T.home, TAGS.videos);
   return ok("حُفظت الصفحة الرئيسية.");
 }
 
