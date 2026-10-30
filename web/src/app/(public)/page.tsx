@@ -380,6 +380,7 @@ export default async function HomePage() {
         promo={{
           caption: PROMO_CAPTION,
           coverSrc: s?.hero_cover_photo_id ? photoUrl(s.hero_cover_photo_id, "display") : null,
+          coverMobileSrc: s?.hero_cover_photo_id ? photoUrl(s.hero_cover_photo_id, "thumb") : null,
           youtube: ytPromo ? { youtubeId: ytPromo.youtube_id, title: ytPromo.title } : null,
         }}
         strip={works.slice(0, 4).map((v) => ({ youtubeId: v.youtube_id, title: v.title }))}
