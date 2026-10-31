@@ -13,7 +13,7 @@
  * memory nor the disk ever holds the collection. S3 ETags are never treated as MD5. An object already at the
  * destination is hashed against the source: identical is kept, different stops that photo and is never overwritten.
  * A photo switches only when its original and both variants are verified, and only if it is still `ready`, on Supabase,
- * with the same paths. Originals are also checked against the sha256 recorded in the database.
+ * and unchanged since the check. Originals are also checked against the sha256 recorded in the database.
  * If Supabase refuses for a plan restriction (HTTP 402) the run stops: it does not try another way round.
  */
 import fs from "node:fs";
@@ -88,7 +88,7 @@ const record = (e) => {
 
 async function* photoPages() {
   for (let last = "00000000-0000-0000-0000-000000000000"; ; ) {
-    const r = await fetch(`${URL_BASE}/rest/v1/album_photos?select=id,storage_path_original,variants,sha256,upload_status,storage_provider${ALBUM ? `&album_id=eq.${ALBUM}` : ""}&id=gt.${last}&order=id&limit=500`, { headers: auth });
+    const r = await fetch(`${URL_BASE}/rest/v1/album_photos?select=id,storage_path_original,variants,sha256,upload_status,storage_provider,storage_copies,updated_at${ALBUM ? `&album_id=eq.${ALBUM}` : ""}&id=gt.${last}&order=id&limit=500`, { headers: auth });
     planCheck(r);
     if (!r.ok) throw new Error(`photo list ${r.status}`);
     const rows = await r.json();
@@ -160,9 +160,13 @@ async function send(path) {
 }
 
 /** Verified copy of one object, or throws. The manifest entry is written only after reading the copy back. */
-async function copyOne(path, expectedSha) {
+async function copyOne(path, expectedSha, changedAt) {
   const known = manifest.get(path);
-  if (known?.verified && (!expectedSha || known.sha256 === expectedSha)) return known;
+  // A manifest line is only trusted for this bucket, while the object is still there, and if the photo has not changed since.
+  if (known?.verified && known.dest === `s3:${Bucket}` && new Date(known.at) >= new Date(changedAt) && (!expectedSha || known.sha256 === expectedSha)) {
+    const head = await destHead(path);
+    if (head && Number(head.ContentLength) === known.size) return known;
+  }
   let src;
   if (await destHead(path)) {
     src = await hashStream((await sourceStream(path)).stream);
@@ -179,11 +183,23 @@ async function copyOne(path, expectedSha) {
   return entry;
 }
 
+/** Recorded before any byte is copied, so deleting the photo during or after the copy also clears S3. Returns the new updated_at. */
+async function markCopy(p) {
+  if ((p.storage_copies ?? []).includes("s3")) return p.updated_at;
+  const q = new URLSearchParams({ id: `eq.${p.id}`, select: "updated_at" });
+  const r = await fetch(`${URL_BASE}/rest/v1/album_photos?${q}`, { method: "PATCH", headers: { ...auth, "Content-Type": "application/json", Prefer: "return=representation" }, body: JSON.stringify({ storage_copies: ["s3"] }) });
+  planCheck(r);
+  if (!r.ok) throw new Error(`mark ${r.status}`);
+  const [row] = await r.json();
+  if (!row) throw new Error("photo is gone");
+  return row.updated_at;
+}
+
 const pathsOf = (p) => [p.storage_path_original, p.variants?.thumb, p.variants?.display].filter(Boolean);
 
-async function switchPhoto(p) {
-  const q = new URLSearchParams({ id: `eq.${p.id}`, storage_provider: "eq.supabase", upload_status: "eq.ready", storage_path_original: `eq.${p.storage_path_original}`, select: "id" });
-  const r = await fetch(`${URL_BASE}/rest/v1/album_photos?${q}`, { method: "PATCH", headers: { ...auth, "Content-Type": "application/json", Prefer: "return=representation" }, body: JSON.stringify({ storage_provider: "s3" }) });
+async function switchPhoto(p, updatedAt) {
+  const q = new URLSearchParams({ id: `eq.${p.id}`, storage_provider: "eq.supabase", upload_status: "eq.ready", updated_at: `eq.${updatedAt}`, select: "id" });
+  const r = await fetch(`${URL_BASE}/rest/v1/album_photos?${q}`, { method: "PATCH", headers: { ...auth, "Content-Type": "application/json", Prefer: "return=representation" }, body: JSON.stringify({ storage_provider: "s3", storage_copies: ["supabase", "s3"] }) });
   planCheck(r);
   if (!r.ok) throw new Error(`switch ${r.status}`);
   return (await r.json()).length === 1;
@@ -203,13 +219,14 @@ async function handle(p) {
   stats.verifiedAlready += paths.filter((x) => manifest.get(x)?.verified).length;
   if (!COPY || p.upload_status !== "ready" || stop) return;
   try {
+    const changedAt = await markCopy(p);
     for (const path of paths) {
-      const had = manifest.get(path)?.verified;
-      await copyOne(path, path === p.storage_path_original ? p.sha256 : null);
-      if (!had) stats.copied++;
+      const before = manifest.get(path);
+      const entry = await copyOne(path, path === p.storage_path_original ? p.sha256 : null, changedAt);
+      if (entry !== before) stats.copied++;
     }
     const complete = p.variants?.thumb && p.variants?.display;
-    if (SWITCH && complete && (await switchPhoto(p))) stats.switched++;
+    if (SWITCH && complete && (await switchPhoto(p, changedAt))) stats.switched++;
   } catch (e) {
     if (e instanceof PlanLimit) {
       stop = e.message;

@@ -2,7 +2,7 @@
 -- and each cleanup worker only ever claims its own store's items.
 -- Users (LOCAL DEV seed): owner a1, admin a2, customer b1.
 begin;
-select plan(19);
+select plan(22);
 
 insert into public.photo_albums (id, slug, title, is_published) values
   ('00000000-0000-4000-8000-00000000ba01', 'pgtap-s3-album', 'pgTAP S3', true);
@@ -45,6 +45,15 @@ select is(public.album_s3_upload_set('00000000-0000-4000-8000-00000000bb02', 'se
 select is(public.album_s3_upload_set('00000000-0000-4000-8000-00000000bb02', 'third', 'first'), 'third', 'an expired upload can be replaced by naming it');
 select is(public.album_s3_upload_set('00000000-0000-4000-8000-00000000bb03', 'x'), null, 'not an S3 reservation: nothing recorded');
 reset role;
+
+-- a photo with a second copy: deleting clears both stores
+insert into public.album_photos (id, album_id, storage_path_original, mime, bytes, upload_status, storage_provider, storage_copies) values
+  ('00000000-0000-4000-8000-00000000bb04', '00000000-0000-4000-8000-00000000ba01', 'albums/00000000-0000-4000-8000-00000000ba01/00000000-0000-4000-8000-00000000bb04/original.jpg', 'image/jpeg', 10, 'ready', 's3', '{supabase,s3}');
+delete from private.storage_cleanup_queue;
+delete from public.album_photos where id = '00000000-0000-4000-8000-00000000bb04';
+select is((select count(*)::int from private.storage_cleanup_queue where provider = 's3'), 1, 'copied photo: queued for S3 once');
+select is((select count(*)::int from private.storage_cleanup_queue where provider = 'supabase'), 1, 'copied photo: queued for Supabase too');
+select throws_ok($$update public.album_photos set storage_copies = '{gcs}' where id = '00000000-0000-4000-8000-00000000bb03'$$, '23514', null, 'unknown copy store refused');
 
 -- deleting enqueues on the photo's own store; each worker claims only its own
 delete from private.storage_cleanup_queue;

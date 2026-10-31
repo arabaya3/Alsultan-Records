@@ -267,6 +267,7 @@ test("S9: migration script: dry run changes nothing; copy verifies, keeps the so
 
   const again = JSON.parse(migrate(["--manifest", man, "--copy", "--switch"]).out);
   expect(again.copied).toBe(0);
+  expect((await photoRow(album)).find((p) => p.id === before.id)!.storage_copies).toEqual(["supabase", "s3"]);
   expect(again.switched).toBe(0);
   await db.storage.from("album-media").remove([before.storage_path_original, before.variants.thumb, before.variants.display]);
 });

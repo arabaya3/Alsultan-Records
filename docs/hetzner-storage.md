@@ -42,13 +42,14 @@ node scripts/migrate-album-media-to-s3.mjs --manifest <file> --copy --switch  # 
 - Safe to stop and rerun. The manifest records path, source, destination, size and sha256. Failures go to `<manifest>.failed`.
 - Objects are streamed and read back from S3 to hash them. ETags are not treated as MD5.
 - A different file at the destination stops that photo and is not overwritten.
+- A photo is marked in `storage_copies` before its copy starts. Deleting a photo clears every store it may be in, including the Supabase copy of a migrated photo.
 - Only `ready` photos are copied. Unfinished rows are counted and stay on Supabase.
 - Objects with no photo row are not copied. Compare the manifest with `storage.objects` before ever deleting the source.
 
 ## Going back
 
 - **New uploads:** remove `ALBUM_STORAGE_WRITE` and redeploy. Photos already on S3 keep serving, so keep the `S3_*` variables.
-- **Migrated photos:** the Supabase copies are still there, so set those rows back to `storage_provider = 'supabase'` (a production data change that needs approval). Photos uploaded directly to S3 have no Supabase copy and must stay.
+- **Migrated photos:** the Supabase copies are still there, so set those rows back to `storage_provider = 'supabase'` (a production data change that needs approval). `storage_copies` stays as it is, so deleting such a photo later still clears both stores. Photos uploaded directly to S3 have no Supabase copy and must stay.
 - **The code:** old code cannot read S3 photos. Before rolling it back, return every migrated row and stop S3 uploads.
 - Leave the migration in place; it is additive.
 

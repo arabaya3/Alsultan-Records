@@ -20,8 +20,9 @@ export async function POST(req: Request): Promise<Response> {
     return Response.json({ ok: false }, { status: 401, headers: NO_STORE });
   }
   try {
-    const r = await runPhotoJobs();
+    // First: photo jobs can use up the function's time.
     if (s3Env()) await processS3Cleanup(createAdminClient() as unknown as SupabaseClient);
+    const r = await runPhotoJobs();
     return Response.json({ ok: true, claimed: r.claimed, ready: r.ready, failed: r.failed, ms: r.ms }, { headers: NO_STORE });
   } catch {
     return Response.json({ ok: false, error: "worker error" }, { status: 500, headers: NO_STORE });

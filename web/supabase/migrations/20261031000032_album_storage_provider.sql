@@ -5,9 +5,11 @@
 -- ------------------------------------------------------------------ 1. which store holds this photo's objects
 alter table public.album_photos
   add column storage_provider text not null default 'supabase' check (storage_provider in ('supabase', 's3')),
-  add column s3_upload_id text;
+  add column s3_upload_id text,
+  -- Stores that may also hold this photo's objects (set BEFORE a copy starts), so deleting the photo clears them all.
+  add column storage_copies text[] not null default '{}' check (storage_copies <@ array['supabase', 's3']);
 grant insert (storage_provider) on public.album_photos to authenticated;
--- anon's column grants are unchanged: neither column is readable anonymously.
+-- anon's column grants are unchanged: none of these columns is readable anonymously.
 
 -- Remember the open multipart upload of a reservation. The first upload wins; the browser never sees the id.
 create or replace function public.album_s3_upload_set(p_photo_id uuid, p_upload_id text, p_replace text default null)
@@ -51,8 +53,9 @@ create or replace function app.album_photos_delete_enqueue()
 returns trigger language plpgsql security definer set search_path = '' as $$
 begin
   insert into private.storage_cleanup_queue (bucket, path, reason, provider)
-  select 'album-media', p, 'album_photo_deleted:' || old.id::text, old.storage_provider
-  from app.media_paths(old.storage_path_original, old.variants) p;
+  select 'album-media', p, 'album_photo_deleted:' || old.id::text, s.store
+  from app.media_paths(old.storage_path_original, old.variants) p
+  cross join (select distinct unnest(old.storage_provider || old.storage_copies) as store) s;
   return old;
 end $$;
 
@@ -100,3 +103,36 @@ begin
 end $$;
 revoke all on function public.claim_s3_cleanup(int) from public, anon;
 grant execute on function public.claim_s3_cleanup(int) to authenticated, service_role;
+
+-- ------------------------------------------------------------------ 4. cron also runs for queued S3 deletions
+-- The app removes S3 objects from the photo jobs route, so that route must be called with no photo waiting too.
+create or replace function app.invoke_photo_jobs(p_reason text default 'cron')
+returns bigint
+language plpgsql security definer set search_path = '' as $$
+declare v_url text; v_key text; v_id bigint;
+begin
+  select s.decrypted_secret into v_url from vault.decrypted_secrets s where s.name = 'jobs_url';
+  select s.decrypted_secret into v_key from vault.decrypted_secrets s where s.name = 'jobs_secret';
+  if v_url is null or v_key is null then
+    return null;
+  end if;
+  if not exists (select 1 from public.album_photos p where app.photo_job_claimable(p))
+     and not exists (select 1 from private.storage_cleanup_queue q
+                     where q.provider = 's3' and q.done_at is null and q.dead_at is null and q.next_attempt_at <= now()
+                       and (q.claimed_at is null or q.claimed_at < now() - interval '15 minutes')) then
+    return null;
+  end if;
+  select net.http_post(
+    url := v_url,
+    body := jsonb_build_object('reason', p_reason),
+    headers := jsonb_build_object('Content-Type', 'application/json',
+                                  'x-jobs-secret', v_key,
+                                  'Authorization', 'Bearer ' || v_key),
+    timeout_milliseconds := 55000
+  ) into v_id;
+  return v_id;
+exception when others then
+  raise warning 'photo jobs invoke failed: %', sqlerrm;
+  return null;
+end $$;
+revoke execute on function app.invoke_photo_jobs(text) from public, anon, authenticated;
