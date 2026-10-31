@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { PageHeroBackdrop } from "./PageHeroBackdrop";
+import { RotatingBackdrop } from "./RotatingBackdrop";
 import type { ReactNode } from "react";
 import { photoUrl } from "@/features/public-content/gallery-model";
-import { getSiteHeroPhotoId } from "@/features/public-content/gallery-queries";
+import { getSiteHeroPhotoIds } from "@/features/public-content/gallery-queries";
 
 export type Crumb = { label: string; href?: string };
 
@@ -14,7 +15,7 @@ export type Crumb = { label: string; href?: string };
  *   breadcrumb? — [{label, href?}] ; last item = current page (no href)
  *   photoId? — a REAL album photo id chosen in the CMS (e.g. business_settings.hero_cover_photo_id). Shown as a
  *              decorative backdrop (object-cover is allowed ONLY here) under a dark gradient for legibility.
- *              Omitted (undefined) → the site hero photo (getSiteHeroPhotoId: manual choice or newest album) if any; pass
+ *              Omitted (undefined) → the site hero photo, then the other album covers in turn (getSiteHeroPhotoIds); pass
  *              null to force no photo (e.g. an album page, so another event's photo never sits behind its title).
  *              Without a photo the CSS ink texture is used. Never pass stock/generated images.
  *   align?   — "center" (default, as in the references) | "start"
@@ -41,8 +42,11 @@ export async function PageHero({
   align?: "center" | "start";
   children?: ReactNode;
 }) {
+  let rotation: string[] = [];
   if (photoId === undefined) {
-    photoId = await getSiteHeroPhotoId(); // manual or newest-album source; cached + tagged reads
+    const ids = await getSiteHeroPhotoIds(); // cached + tagged reads
+    photoId = ids[0] ?? null;
+    rotation = ids.map((id) => photoUrl(id, "display"));
   }
   const center = align === "center";
   return (
@@ -50,6 +54,7 @@ export async function PageHero({
       {photoId ? (
         <>
           <PageHeroBackdrop src={photoUrl(photoId, "display")} />
+          <RotatingBackdrop srcs={rotation} className="absolute inset-0 -z-20 size-full object-cover opacity-60" />
           <div
             aria-hidden="true"
             className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,var(--color-night)_0%,rgb(13_12_11/0.82)_45%,rgb(13_12_11/0.55)_100%)]"

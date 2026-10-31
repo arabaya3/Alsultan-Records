@@ -106,7 +106,7 @@ function AlbumFields({ a, categories }: { a?: Album; categories: Category[] }) {
           ))}
         </select>
       </Field>
-      <Field label="تاريخ المناسبة (اختياري)">
+      <Field label="تاريخ المناسبة (أي تاريخ؛ إذا تُرك فارغًا يظهر تاريخ النشر)">
         <input name="event_date" type="date" defaultValue={a?.event_date ?? ""} className={inputCls} />
       </Field>
       <Field label="الوصف (اختياري)" className="sm:col-span-2">
