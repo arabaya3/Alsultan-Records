@@ -72,6 +72,11 @@ export function latestAlbumHeroPhoto(albums: Pick<PhotoAlbum, "id" | "listed_at"
   return newestPublishedFirst(albums).find((a) => a.coverId)?.coverId ?? null;
 }
 
+/** Hero backdrops: one cover per published album, newest first. Follows whatever is uploaded and published. */
+export function albumHeroPhotos(albums: Pick<PhotoAlbum, "id" | "listed_at" | "published_at" | "created_at" | "coverId">[], limit = 8): string[] {
+  return newestPublishedFirst(albums).flatMap((a) => (a.coverId ? [a.coverId] : [])).slice(0, limit);
+}
+
 export const albumPhotoRow = z.object({
   id: z.string(),
   album_id: z.string(),
@@ -209,6 +214,12 @@ export function paginate<T>(items: T[], page: number, size = PAGE_SIZE) {
 }
 
 /** Props for <YouTubeCard> / the dialog: original title, categories, video page link. */
+/** The newest YouTube video on the site (not a promo), for the home hero. */
+export function latestVideo(g: VideoGallery): GalleryVideo | null {
+  const dated = g.videos.filter((v) => !isPromoRole(v) && v.published_at);
+  return [...dated].sort((a, b) => Date.parse(b.published_at!) - Date.parse(a.published_at!))[0] ?? g.videos.find((v) => !isPromoRole(v)) ?? null;
+}
+
 export function toCardVideo(v: GalleryVideo, duration: string | null) {
   return {
     youtubeId: v.youtube_id,

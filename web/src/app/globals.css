@@ -271,3 +271,10 @@ html[data-site-intro="on"] .site-intro {
   .chip-scroller[data-more-start] { --fs: 28px; }
   .chip-scroller[data-more-end] { --fe: 44px; }
 }
+
+/* Hero backdrop change (RotatingBackdrop): the opacity each hero sets is the end state. */
+@keyframes backdrop-in {
+  from {
+    opacity: 0;
+  }
+}

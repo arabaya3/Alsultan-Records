@@ -63,12 +63,11 @@ test("desktop 1440: landscape file, plays, Esc closes + focus returns; covers lo
   const page = await ctx.newPage();
   const media: string[] = [];
   page.on("request", (r) => r.url().includes(".mp4") && media.push(r.url()));
-  await page.goto(BASE() + "/", { waitUntil: "networkidle" });
+  await page.goto(BASE() + "/about", { waitUntil: "networkidle" });
   expect(media, "no mp4 requested before the click").toEqual([]);
-  const cover = page.locator("[data-hero-intro] [data-promo-cover]");
+  const cover = page.locator("[data-promo-cover]");
   await expect.poll(() => cover.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth)).toBeGreaterThan(0);
   expect(await cover.evaluate((i: HTMLImageElement) => i.currentSrc)).toContain(L.coverWebp);
-  await expect(page.locator("[data-hero-intro]")).toHaveAttribute("data-intro-state", "done", { timeout: 10_000 });
   await page.screenshot({ path: path.join(SHOTS, "home-1440.png") });
   const { trigger } = await openAndPlay(page, L);
   await expect(page.locator("[data-promo-dialog='landscape']")).toBeVisible();
@@ -85,11 +84,10 @@ test("desktop 1440: landscape file, plays, Esc closes + focus returns; covers lo
 test("mobile 390 (touch emulation): portrait file sized to the viewport, plays, closes", async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 3 });
   const page = await ctx.newPage();
-  await page.goto(BASE() + "/", { waitUntil: "networkidle" });
-  const cover = page.locator("[data-hero-intro] [data-promo-cover]");
+  await page.goto(BASE() + "/about", { waitUntil: "networkidle" });
+  const cover = page.locator("[data-promo-cover]");
   await expect.poll(() => cover.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth)).toBeGreaterThan(0);
   expect(await cover.evaluate((i: HTMLImageElement) => i.currentSrc)).toContain(P.coverWebp);
-  await expect(page.locator("[data-hero-intro]")).toHaveAttribute("data-intro-state", "done", { timeout: 10_000 });
   await page.screenshot({ path: path.join(SHOTS, "home-390.png") });
   const { trigger, box } = await openAndPlay(page, P);
   expect(Math.abs(box.width / box.height - 9 / 16)).toBeLessThan(0.02);
@@ -110,15 +108,14 @@ test("static files: range request → 206, immutable cache, covers 200", async (
   }
 });
 
-test("home JSON-LD: VideoObject with absolute URLs", async ({ page }) => {
-  await page.goto("/");
+test("home hero: the newest YouTube video, nothing from YouTube or the promo loads before the click", async ({ page }) => {
+  const media: string[] = [];
+  page.on("request", (r) => /\.mp4|youtube\.com\/embed|youtube-nocookie/.test(r.url()) && media.push(r.url()));
+  await page.goto("/", { waitUntil: "networkidle" });
+  await expect(page.locator("[data-hero-intro] [data-promo-trigger]")).toContainText("شاهد أحدث أعمالنا");
+  expect(media).toEqual([]);
   const blocks = await page.locator('script[type="application/ld+json"]').allTextContents();
-  const v = blocks.map((b) => JSON.parse(b)).find((d) => d["@type"] === "VideoObject");
-  expect(v).toBeTruthy();
-  expect(v.duration).toBe("PT28S");
-  expect(v.uploadDate).toBe("2026-10-17");
-  expect(v.contentUrl).toMatch(new RegExp(`^https?://[^/]+${L.video.replace(/\./g, "\\.")}$`));
-  expect(v.thumbnailUrl[0]).toMatch(/^https?:\/\/.+\.jpg$/);
+  expect(blocks.map((b) => JSON.parse(b)).find((d) => d["@type"] === "VideoObject")).toBeUndefined();
 });
 
 test("no overflow 360/390/768/1440/1920; reduced motion works; axe on /", async ({ browser }) => {
