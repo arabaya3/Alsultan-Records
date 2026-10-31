@@ -68,3 +68,5 @@ Supabase's quota must be cleared before the copy, and the copy itself uses that 
 
 - Admin previews use 10-minute signed URLs directly from the bucket. Only thumb and display are signed.
 - The emulator used in the automated tests does not enforce bucket privacy or signed part lengths. `s3-check.mjs` proves those on the real bucket.
+
+CORS changes on Hetzner took several minutes to apply in testing, and until then uploads fail with a CORS error. Wait for a preflight to answer 200 before judging an upload failure.

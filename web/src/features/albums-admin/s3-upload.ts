@@ -26,7 +26,7 @@ const xhrSend: PartSender = (url, body, signal, onBytes) =>
   new Promise((resolve, reject) => {
     const x = new XMLHttpRequest();
     x.open("PUT", url);
-    // Hetzner refuses a CORS preflight that names no request header, and a sliced Blob has no type of its own.
+    // A sliced Blob has no type of its own; the bucket's CORS rule allows exactly this one header.
     x.setRequestHeader("Content-Type", "application/octet-stream");
     x.upload.onprogress = (e) => onBytes(e.loaded);
     x.onload = () => resolve(x.status);
