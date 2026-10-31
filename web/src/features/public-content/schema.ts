@@ -26,6 +26,8 @@ export const businessSettingsRow = z.object({
   hero_secondary_label: nullableText,
   booking_message: nullableText,
   hero_cover_photo_id: nullableText,
+  /** Migration 0026. Absent (older schema) or unknown → "manual" (the stored hero_cover_photo_id, as before). */
+  hero_cover_source: z.enum(["manual", "latest_album"]).nullable().optional().catch(null).transform((v) => v ?? "manual"),
   hero_promo_source: z.enum(["site", "youtube"]).nullable().optional().catch(null).transform((v) => v ?? "site"),
   hero_promo_video_id: nullableText,
   active_logo_id: nullableText,

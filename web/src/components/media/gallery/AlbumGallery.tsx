@@ -19,7 +19,11 @@ function Thumb({ p, index, onOpen }: { p: AlbumGalleryPhoto; index: number; onOp
   return (
     <button
       type="button"
-      onClick={onOpen}
+      // Safari does not focus a button on click: focus it first, so the viewer returns focus here when it closes
+      onClick={(e) => {
+        e.currentTarget.focus();
+        onOpen();
+      }}
       aria-haspopup="dialog"
       aria-label={`عرض الصورة ${index + 1}${p.alt ? `: ${p.alt}` : ""}`}
       data-album-photo={p.id}

@@ -43,8 +43,34 @@ export const photoAlbumRow = z.object({
   sort_order: z.number().nullable().optional().transform((v) => v ?? 0),
   category_id: nullableText,
   created_at: nullableText,
+  published_at: nullableText,
+  listed_at: nullableText,
 });
 export type PhotoAlbumRow = z.infer<typeof photoAlbumRow>;
+
+/**
+ * Public album order (migration 0026): newest PUBLISHED first. `listed_at` = published_at, or created_at for albums
+ * published before publish times were recorded (documented fallback; no invented date). Never the event date,
+ * the title or the manual sort_order. Ties (same instant) break on id, so pages never overlap or skip.
+ */
+export function listedKey(a: Pick<PhotoAlbumRow, "listed_at" | "published_at" | "created_at">): string {
+  const v = a.listed_at ?? a.published_at ?? a.created_at;
+  const t = v ? Date.parse(v) : NaN;
+  return Number.isNaN(t) ? "" : new Date(t).toISOString();
+}
+export function newestPublishedFirst<T extends Pick<PhotoAlbumRow, "id" | "listed_at" | "published_at" | "created_at">>(xs: T[]): T[] {
+  return [...xs].sort((a, b) => listedKey(b).localeCompare(listedKey(a)) || (a.id < b.id ? 1 : a.id > b.id ? -1 : 0));
+}
+
+/**
+ * Automatic hero (business_settings.hero_cover_source = 'latest_album'): the cover of the newest published album
+ * that has a usable photo. `coverId` is already the album's chosen cover when it is a ready+published photo, else
+ * its first published photo in album order (getPublishedAlbums). Only anon-visible rows reach this function, so a
+ * draft, hidden, archived or trashed album/photo can never be chosen. null → the designed (photo-less) hero.
+ */
+export function latestAlbumHeroPhoto(albums: Pick<PhotoAlbum, "id" | "listed_at" | "published_at" | "created_at" | "coverId">[]): string | null {
+  return newestPublishedFirst(albums).find((a) => a.coverId)?.coverId ?? null;
+}
 
 export const albumPhotoRow = z.object({
   id: z.string(),
@@ -192,4 +218,13 @@ export function toCardVideo(v: GalleryVideo, duration: string | null) {
     href: `/work/v/${v.youtube_id}`,
     coverSrc: v.custom_cover_photo_id ? photoUrl(v.custom_cover_photo_id, "thumb") : null,
   };
+}
+
+/**
+ * Home «albums» section (review of e252128): every album strictly by latest publish (listed_at desc, id desc), up to
+ * the section's `limit`. The owner's manual picks (site_sections.featured_ids) stay stored untouched but are NOT
+ * mixed into this «latest» section. `newestFirst` must already be in publish order (getPublishedAlbums).
+ */
+export function homeAlbums<T extends { id: string }>(newestFirst: T[], limit: number): T[] {
+  return limit < 1 ? [] : newestFirst.slice(0, limit);
 }

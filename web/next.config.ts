@@ -7,6 +7,9 @@ const supabaseOrigin = supabase?.origin ?? "";
 const supabaseWs = supabaseOrigin.replace(/^http/, "ws");
 // Hosted projects: album uploads use the direct storage hostname (<ref>.storage.supabase.co, recommended for large
 // files) — see src/features/albums-admin/upload-engine.ts. Only that exact host is allowed, never a wildcard.
+// Album uploads and admin previews can go straight to the S3 bucket (its host only; the keys never leave the server).
+const s3Url = process.env.S3_ENDPOINT && process.env.S3_BUCKET ? new URL(process.env.S3_ENDPOINT) : null;
+const s3Origin = !s3Url ? "" : process.env.S3_FORCE_PATH_STYLE === "1" ? s3Url.origin : `${s3Url.protocol}//${process.env.S3_BUCKET}.${s3Url.host}`;
 const storageDirect = /^https:\/\/[a-z0-9]{20}\.supabase\.co$/.test(supabaseOrigin) ? supabaseOrigin.replace(".supabase.co", ".storage.supabase.co") : "";
 
 // Next injects inline bootstrap scripts; moving to a nonce-based CSP via proxy.ts would allow
@@ -15,10 +18,10 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: https://i.ytimg.com ${supabaseOrigin}`,
+  `img-src 'self' data: blob: https://i.ytimg.com ${supabaseOrigin} ${s3Origin}`.trimEnd(),
   `media-src 'self' blob: ${supabaseOrigin}`,
   "font-src 'self'",
-  `connect-src 'self' ${supabaseOrigin} ${storageDirect} ${supabaseWs} https://challenges.cloudflare.com`.replace(/\s+/g, " "),
+  `connect-src 'self' ${supabaseOrigin} ${storageDirect} ${s3Origin} ${supabaseWs} https://challenges.cloudflare.com`.replace(/\s+/g, " "),
   "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",

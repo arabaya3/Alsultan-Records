@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { PageHeroBackdrop } from "./PageHeroBackdrop";
 import type { ReactNode } from "react";
 import { photoUrl } from "@/features/public-content/gallery-model";
-import { getBusinessSettings } from "@/features/public-content/queries";
+import { getSiteHeroPhotoId } from "@/features/public-content/gallery-queries";
 
 export type Crumb = { label: string; href?: string };
 
@@ -13,7 +14,7 @@ export type Crumb = { label: string; href?: string };
  *   breadcrumb? — [{label, href?}] ; last item = current page (no href)
  *   photoId? — a REAL album photo id chosen in the CMS (e.g. business_settings.hero_cover_photo_id). Shown as a
  *              decorative backdrop (object-cover is allowed ONLY here) under a dark gradient for legibility.
- *              Omitted (undefined) → the CMS cover photo (business_settings.hero_cover_photo_id) if set; pass
+ *              Omitted (undefined) → the site hero photo (getSiteHeroPhotoId: manual choice or newest album) if any; pass
  *              null to force no photo (e.g. an album page, so another event's photo never sits behind its title).
  *              Without a photo the CSS ink texture is used. Never pass stock/generated images.
  *   align?   — "center" (default, as in the references) | "start"
@@ -41,24 +42,14 @@ export async function PageHero({
   children?: ReactNode;
 }) {
   if (photoId === undefined) {
-    const s = await getBusinessSettings(); // cached + tagged (admin saves expire it)
-    photoId = s.status === "ok" ? (s.data?.hero_cover_photo_id ?? null) : null;
+    photoId = await getSiteHeroPhotoId(); // manual or newest-album source; cached + tagged reads
   }
   const center = align === "center";
   return (
     <div className={`relative isolate overflow-hidden hero-flow text-ivory ${photoId ? "bg-night-deep" : "ink-texture"}`}>
       {photoId ? (
         <>
-          {/* Decorative backdrop: gated same-origin variant, plain <img> as elsewhere for /p/<id>. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img
-            src={photoUrl(photoId, "display")}
-            alt=""
-            aria-hidden="true"
-            decoding="async"
-            fetchPriority="high"
-            className="absolute inset-0 -z-20 size-full object-cover opacity-60"
-          />
+          <PageHeroBackdrop src={photoUrl(photoId, "display")} />
           <div
             aria-hidden="true"
             className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,var(--color-night)_0%,rgb(13_12_11/0.82)_45%,rgb(13_12_11/0.55)_100%)]"

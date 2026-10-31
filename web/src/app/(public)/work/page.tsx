@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { AlbumCard } from "@/components/media/gallery/AlbumCard";
 import { ProjectTile } from "@/components/media/ProjectTile";
 import { SitePromoPlayer } from "@/components/media/promo/SitePromoPlayer";
+import { ReelsViewer, type Reel } from "@/components/media/reels/ReelsViewer";
 import { PROMO_CAPTION } from "@/components/media/promo/promo-seo";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
 import { FadeRise } from "@/components/motion/Reveal";
@@ -14,9 +15,10 @@ import { EmptyState, ErrorState, Skeleton, TileGridSkeleton } from "@/components
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { getAlbumCategories } from "@/features/public-content/cms-queries";
 import { filterVideos, isWork, promoVideos, paginate, parseWorkQuery, toCardVideo, workHref, type WorkQuery } from "@/features/public-content/gallery-model";
-import { getPublishedAlbums, getVideoGallery } from "@/features/public-content/gallery-queries";
+import { getPublishedAlbums, getSiteHeroPhotoId, getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel, eventTypeLabel, formatDateAr } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedProjects } from "@/features/public-content/queries";
+import { bookingHref } from "@/features/public-content/contact";
 import { IconLink } from "@/components/ui/IconLink";
 import { ChipScroller } from "@/components/ui/ChipScroller";
 import { pageMetadata, safeHttp } from "@/features/public-content/seo";
@@ -206,15 +208,34 @@ async function Videos({ q }: { q: WorkQuery }) {
 
 /** Promos (role promo/both), separate from the occasion categories. Pinned first (query order). */
 async function Promos() {
-  const res = await getVideoGallery();
+  const [res, settings] = await Promise.all([getVideoGallery(), getBusinessSettings()]);
   if (res.status === "unavailable") return <ErrorState action={<WhatsAppCta />} />;
   const list = promoVideos(res.data);
   if (!list.length) {
     return <EmptyState title="لا توجد بروموهات منشورة بعد" body="ننشر البروموهات هنا حال جاهزيتها." action={<Link href="/work" className={linkCls}>كل الأعمال</Link>} />;
   }
+  // Launch gate: the vertical viewer stays OFF until real YouTube playback is verified on phones (set REELS_VIEWER=1).
+  const reelsOn = process.env.REELS_VIEWER === "1";
+  const s = settings.status === "ok" ? settings.data : null;
+  const reels: Reel[] = list.map((v) => ({ id: v.id, youtubeId: v.youtube_id, title: v.title, inquiryHref: bookingHref(s, `مرحبا، شفت البرومو «${v.title}» على موقعكم وحاب أستفسر.`) }));
   return (
     <>
       <h2 className="sr-only">البروموهات</h2>
+      {reelsOn ? (
+        <>
+          <p className="mb-8">
+        <Link
+          href={`${workHref({ tab: "promos" })}&reel=${encodeURIComponent(list[0]!.id)}`}
+          scroll={false}
+          data-reels-open
+          className="inline-flex min-h-12 items-center gap-2 rounded-sm bg-gold px-5 font-medium text-ink hover:bg-gold-press"
+        >
+          شاهد البروموهات بعرض عمودي
+        </Link>
+          </p>
+          <ReelsViewer reels={reels} />
+        </>
+      ) : null}
       <ul data-promo-grid className={`grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 ${swapCls}`}>
         {list.map((v, i) => (
           <li key={v.id} className="h-full">
@@ -338,10 +359,9 @@ async function Projects() {
   );
 }
 
-/** Hero with the CMS-chosen real photo (business_settings.hero_cover_photo_id) when set, else the ink texture. */
+/** Hero with the site hero photo (manual choice or the newest album, getSiteHeroPhotoId), else the ink texture. */
 async function WorkHero({ searchParams }: { searchParams: PageProps<"/work">["searchParams"] }) {
-  const [settings, sp] = await Promise.all([getBusinessSettings(), searchParams]);
-  const photoId = settings.status === "ok" ? (settings.data?.hero_cover_photo_id ?? null) : null;
+  const [photoId, sp] = await Promise.all([getSiteHeroPhotoId(), searchParams]);
   return <PageHero title="أعمالنا" lead={LEAD[parseWorkQuery(sp).tab]} photoId={photoId} />;
 }
 

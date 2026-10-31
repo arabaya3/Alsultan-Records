@@ -118,7 +118,22 @@ export async function NavSectionsPage() {
                         <input type="checkbox" name="is_visible" defaultChecked={s.is_visible} /> ظاهر
                       </label>
                     </div>
-                    {kind ? <CheckList name="featured_ids" legend="عناصر مميزة (تظهر أولاً)" options={opts[kind]} selected={s.featured_ids ?? []} max={12} /> : null}
+                    {kind ? (
+                      <CheckList
+                        name="featured_ids"
+                        legend={kind === "album" ? "ألبومات مختارة يدوياً" : "عناصر مميزة (تظهر أولاً)"}
+                        options={opts[kind]}
+                        selected={s.featured_ids ?? []}
+                        max={12}
+                      />
+                    ) : null}
+                    {kind === "album" ? (
+                      <p className="text-sm text-muted" data-testid="albums-featured-note">
+                        {(s.featured_ids ?? []).length
+                          ? "قسم «أحدث الألبومات» في الرئيسية يعرض الألبومات حسب أحدث نشر فقط. اختياراتك محفوظة كما هي ولا تُدخَل بينها."
+                          : "بدون اختيار: الرئيسية تعرض أحدث الألبومات المنشورة (حسب تاريخ النشر). صفحة الألبومات تعرض الأحدث نشراً دائماً."}
+                      </p>
+                    ) : null}
                   </div>
                 </CmsForm>
               </Card>

@@ -169,6 +169,7 @@ type Home = {
   hero_secondary_label: string | null;
   booking_message: string | null;
   hero_cover_photo_id: string | null;
+  hero_cover_source: "manual" | "latest_album" | null;
   hero_promo_source: "site" | "youtube" | null;
   hero_promo_video_id: string | null;
 };
@@ -179,7 +180,7 @@ export async function HomeContentPage() {
   const [biz, photos, promos] = await Promise.all([
     sb
       .from("business_settings")
-      .select("hero_title, hero_subtitle, hero_primary_label, hero_secondary_label, booking_message, hero_cover_photo_id, hero_promo_source, hero_promo_video_id")
+      .select("hero_title, hero_subtitle, hero_primary_label, hero_secondary_label, booking_message, hero_cover_photo_id, hero_cover_source, hero_promo_source, hero_promo_video_id")
       .eq("id", 1)
       .maybeSingle(),
     pickPhotos(sb),
@@ -218,8 +219,22 @@ export async function HomeContentPage() {
             <Field label="رسالة واتساب الافتراضية للحجز" hint="تُكتب تلقائياً عند ضغط زر الحجز." className="sm:col-span-2">
               <textarea name="booking_message" rows={2} maxLength={LONG_TEXT} defaultValue={h.booking_message ?? ""} className={inputCls} />
             </Field>
+            <fieldset className="space-y-2 text-sm sm:col-span-2" data-testid="hero-cover-source">
+              <legend className="mb-1 font-medium">مصدر صورة خلفية الواجهة</legend>
+              <label className="flex min-h-10 items-center gap-2">
+                <input type="radio" name="hero_cover_source" value="manual" defaultChecked={(h.hero_cover_source ?? "manual") === "manual"} /> صورة أختارها بنفسي (من القائمة تحت)
+              </label>
+              <label className="flex min-h-10 items-center gap-2">
+                <input type="radio" name="hero_cover_source" value="latest_album" defaultChecked={h.hero_cover_source === "latest_album"} /> تلقائياً من أحدث ألبوم منشور
+              </label>
+              <p className="text-xs text-on-cream-muted">
+                التلقائي: غلاف أحدث ألبوم منشور (أو أول صورة ظاهرة فيه إذا الغلاف مخفي). يتغيّر وحده لما تنشر ألبوماً جديداً أو تغيّر غلافه أو تخفي
+                الصورة. لا يستخدم أبداً صورة من مسودة أو ألبوم مخفي أو سلة المحذوفات. إذا ما في صورة ظاهرة تظهر الخلفية الداكنة بدون صورة. اختيارك
+                اليدوي يبقى محفوظاً ويرجع لما تختار «صورة أختارها بنفسي».
+              </p>
+            </fieldset>
             <div className="sm:col-span-2">
-              <PhotoPicker name="hero_cover_photo_id" label="صورة الغلاف (اختياري)" photos={photos} defaultValue={h.hero_cover_photo_id} />
+              <PhotoPicker name="hero_cover_photo_id" label="الصورة المختارة يدوياً (اختياري)" photos={photos} defaultValue={h.hero_cover_photo_id} />
             </div>
             <fieldset className="space-y-2 text-sm sm:col-span-2">
               <legend className="mb-1 font-medium">الفيديو التعريفي في الواجهة</legend>

@@ -6,7 +6,7 @@ import { EmptyState, ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { getPublishedPackages } from "@/features/public-content/cms-queries";
 import { groupPackages } from "@/features/public-content/cms-model";
-import { getBusinessSettings } from "@/features/public-content/queries";
+import { getSiteHeroPhotoId } from "@/features/public-content/gallery-queries";
 import { pageMetadata } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -16,8 +16,7 @@ export const metadata = pageMetadata({
 });
 
 export default async function PackagesPage() {
-  const [res, settings] = await Promise.all([getPublishedPackages(), getBusinessSettings()]);
-  const cover = settings.status === "ok" ? (settings.data?.hero_cover_photo_id ?? null) : null;
+  const [res, cover] = await Promise.all([getPublishedPackages(), getSiteHeroPhotoId()]);
   const groups = res.status === "ok" ? groupPackages(res.data) : [];
   const labelled = groups.filter((g) => g.label);
   return (

@@ -103,8 +103,11 @@ test("UA1 offers: list-shaped description keeps its structure — card preview +
   await page.screenshot({ path: path.join(SHOTS, "after", "offers-local-1440.png"), fullPage: true });
   await card.click();
   const desc = page.locator("[data-offer-description]");
-  await expect(desc.locator(":scope > ol > li")).toHaveCount(6);
-  await expect(desc.locator(":scope > ol > li").first().locator("ul > li")).toHaveCount(2);
+  // Requirement changed (fix/production-presentation): each numbered service is now its own titled card with its
+  // details, instead of one long nested list — same six services, same two details under the first, same text.
+  await expect(desc.locator("[data-offer-section]")).toHaveCount(6);
+  await expect(desc.locator("[data-offer-section]").first().locator("h3")).toHaveText(/تصوير سهرة العريس/);
+  await expect(desc.locator("[data-offer-section]").first().locator("ul > li")).toHaveCount(2);
   for (const line of OFFER_TEXT.split("\n")) await expect(desc).toContainText(line.replace(/^\s*(\d+\.|-)\s+/, ""));
   // One page heading: the visible h1 (after a client navigation Next keeps the previous page hidden in the DOM, out
   // of the accessibility tree) and exactly one h1 in the page's own HTML.

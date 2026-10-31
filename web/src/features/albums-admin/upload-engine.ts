@@ -3,13 +3,15 @@ import { createClient } from "@/lib/supabase/browser";
 import { publicEnv } from "@/lib/env/public";
 import { cancelAlbumUpload, completeAlbumUpload, getPhotoStatuses, reserveAlbumUpload, retryPhoto, type PhotoStatus } from "./actions";
 import { photoErrorText } from "./photo-errors";
+import { startS3Upload, signS3Parts } from "./s3-upload-actions";
+import { S3UploadDenied, uploadToS3 } from "./s3-upload";
 import { ALBUM_BUCKET, ALBUM_UPLOAD_CONCURRENCY, checkAlbumFileContent, fileSha256, type FormatId } from "./rules";
 
 /**
  * Browser upload queue for album photos (admin). Per file:
  *   check (first 64 bytes + size by kind) → sha256 (streamed, 4 MB slices) → reserve (server action) →
- *   TUS resumable upload straight to Supabase Storage (6 MB chunks, the admin's own JWT refreshed before every
- *   request, exponential backoff) → complete (server checks the stored object) → poll until ready/failed.
+ *   straight to the store the reservation names: TUS on Supabase Storage (6 MB chunks, the admin's own JWT refreshed
+ *   before every request, exponential backoff) or multipart on S3 (./s3-upload.ts) → complete (server checks the stored object) → poll until ready/failed.
  * At most `concurrency` files are in flight; a failing file never stops the others. Files are never read into
  * memory whole (hash and upload both read slices).
  * Resume: TUS keeps the partial upload under a fingerprint bound to the reservation path; choosing the same file
@@ -50,6 +52,7 @@ type Task = {
   stop: Promise<never>;
   kill: (why: "cancel" | "dispose") => void;
   upload?: tus.Upload;
+  s3?: AbortController;
   released?: boolean;
 };
 
@@ -218,6 +221,8 @@ export class AlbumUploadQueue {
         reject(new Stopped());
         // cancel: drop the partial upload too; dispose: keep it resumable
         if (task.upload) void task.upload.abort(why === "cancel").catch(() => undefined);
+        // S3: stored parts stay for a resume; a cancel drops them through the server (cancelAlbumUpload).
+        task.s3?.abort();
         if (why === "cancel") this.release(task);
       },
     };
@@ -280,7 +285,7 @@ export class AlbumUploadQueue {
       if (this.absorb(it, r.photoId) === "busy") return this.set(it, { state: "skipped", message: "الملف نفسه قيد الرفع في صف آخر." });
       this.set(it, { state: "uploading", photoId: r.photoId, format: checked.format, warning: r.warning, resumed: r.resumed, message: r.resumed ? "متابعة رفع سابق لنفس الملف…" : "" });
       task.phase = "upload";
-      await this.guard(task, this.tusUpload(task, file, r.path, r.contentType));
+      await this.guard(task, r.provider === "s3" ? this.s3Upload(task, file, r.photoId) : this.tusUpload(task, file, r.path, r.contentType));
       task.phase = "commit"; // from here on the upload is kept (cancel() ignores it)
       this.set(it, { locked: true, sent: it.size });
       const done = await completeAlbumUpload(r.photoId).catch(() => ({ ok: false, message: "تعذّر تأكيد الرفع — تحقّق من الاتصال ثم أعد المحاولة." }));
@@ -298,6 +303,21 @@ export class AlbumUploadQueue {
     const t = data.session?.access_token;
     if (!t) throw new Error("انتهت الجلسة — سجّل الدخول من جديد ثم أعد المحاولة.");
     return t;
+  }
+
+  private async s3Upload(task: Task, file: File, photoId: string): Promise<void> {
+    const it = task.it;
+    task.s3 = new AbortController();
+    try {
+      await uploadToS3(photoId, file, { start: startS3Upload, sign: signS3Parts }, task.s3.signal, (sent) => {
+        if (task.stopped) return;
+        it.sent = sent;
+        this.emit();
+      });
+    } catch (e) {
+      if (e instanceof S3UploadDenied) throw e;
+      throw new Error(`انقطع الرفع بعد عدة محاولات — اضغط «إعادة المحاولة»؛ ${RESUME_HINT}`);
+    }
   }
 
   private tusUpload(task: Task, file: File, path: string, contentType: string): Promise<void> {

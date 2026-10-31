@@ -23,6 +23,10 @@ export default defineConfig({
     { name: "chromium", use: { ...devices["Desktop Chrome"], viewport: { width: 1440, height: 1000 } }, grepInvert: /@mobile/ },
     // Mobile project only runs specs tagged @mobile.
     { name: "mobile", use: { ...devices["Pixel 7"] }, grep: /@mobile/ },
+    // WebKit (Safari engine), only when PW_WEBKIT=1 (default runs unchanged): the public offer, album list, album and viewer specs.
+    // Over plain http the production CSP upgrade-insecure-requests breaks WebKit on localhost, so run it through a local
+    // gate that strips that header (see docs/production-presentation.md).
+    ...(process.env.PW_WEBKIT ? [{ name: "webkit", use: { ...devices["Desktop Safari"], viewport: { width: 1440, height: 1000 } }, testMatch: /(offer-details|offers|album-covers|photos|ui-audit-followup).spec.ts$/, grepInvert: /@mobile/ }] : []),
   ],
   webServer: process.env.PW_WEBSERVER
     ? { command: "npx next start -p 3400", url: BASE_URL, reuseExistingServer: true, timeout: 120_000 }

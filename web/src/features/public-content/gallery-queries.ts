@@ -5,6 +5,8 @@ import { getPublicClient } from "./client";
 import {
   albumPhotoRow,
   buildGallery,
+  latestAlbumHeroPhoto,
+  newestPublishedFirst,
   photoAlbumRow,
   videoCategoryLinkRow,
   videoCategoryRow,
@@ -13,7 +15,7 @@ import {
   type VideoGallery,
 } from "./gallery-model";
 import type { Loaded } from "./schema";
-import { getShowcaseVideos } from "./queries";
+import { getBusinessSettings, getShowcaseVideos } from "./queries";
 import type { z } from "zod";
 
 function parseRows<S extends z.ZodType>(schema: S, rows: unknown): z.output<S>[] {
@@ -54,7 +56,11 @@ export async function getVideoGallery(): Promise<Loaded<VideoGallery>> {
 
 const ALBUM_COLUMNS = "id, slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order, created_at";
 
-/** Published albums with their published photo count and a usable cover (falls back to the first photo). */
+/**
+ * Published albums, newest PUBLISHED first (listed_at desc, id desc — see newestPublishedFirst), with their published
+ * photo count and a usable cover (falls back to the first photo). One tag (TAGS.albums) covers every change that
+ * affects this list: publish/unpublish, archive/trash, cover, photo hide/trash (albums-admin/actions.ts).
+ */
 export async function getPublishedAlbums(): Promise<Loaded<PhotoAlbum[]>> {
   "use cache";
   cacheLife("minutes");
@@ -63,13 +69,18 @@ export async function getPublishedAlbums(): Promise<Loaded<PhotoAlbum[]>> {
   if (!sb) return { status: "unavailable" };
   try {
     // Anon RLS hides unpublished, archived and trashed albums/photos.
-    const readAlbums = (cols: string) =>
-      sb.from("photo_albums").select(cols).order("sort_order", { ascending: true }).order("event_date", { ascending: false, nullsFirst: false });
+    const readAlbums = (cols: string, byListed: boolean) => {
+      const q = sb.from("photo_albums").select(cols);
+      return byListed
+        ? q.order("listed_at", { ascending: false }).order("id", { ascending: false })
+        : q.order("created_at", { ascending: false }).order("id", { ascending: false });
+    };
     const [albumsFirst, photos] = await Promise.all([
-      readAlbums(`${ALBUM_COLUMNS}, category_id`),
-      sb.from("album_photos").select("id, album_id, sort_order").order("sort_order", { ascending: true }),
+      readAlbums(`${ALBUM_COLUMNS}, category_id, published_at, listed_at`, true),
+      sb.from("album_photos").select("id, album_id, sort_order").order("sort_order", { ascending: true }).order("id", { ascending: true }),
     ]);
-    const albums = albumsFirst.error ? await readAlbums(ALBUM_COLUMNS) : albumsFirst; // CMS column not migrated yet
+    // Older schema (before 0026 / the CMS migration): same rule from created_at, never the event date.
+    const albums = albumsFirst.error ? await readAlbums(ALBUM_COLUMNS, false) : albumsFirst;
     if (albums.error || photos.error) throw albums.error ?? photos.error;
     const byAlbum = new Map<string, string[]>();
     for (const p of (photos.data ?? []) as { id: string; album_id: string }[]) {
@@ -77,7 +88,7 @@ export async function getPublishedAlbums(): Promise<Loaded<PhotoAlbum[]>> {
     }
     return {
       status: "ok",
-      data: parseRows(photoAlbumRow, albums.data).map((a) => {
+      data: newestPublishedFirst(parseRows(photoAlbumRow, albums.data)).map((a) => {
         const ids = byAlbum.get(a.id) ?? [];
         const coverId = a.cover_photo_id && ids.includes(a.cover_photo_id) ? a.cover_photo_id : (ids[0] ?? null);
         return { ...a, photoCount: ids.length, coverId };
@@ -116,4 +127,23 @@ export async function getAlbumBySlug(slug: string): Promise<Loaded<{ album: Phot
   } catch {
     return { status: "unavailable" };
   }
+}
+
+/**
+ * The public hero backdrop (home + inner pages that use the shared hero). business_settings.hero_cover_source:
+ *   "manual"       → hero_cover_photo_id (the owner's chosen photo; unchanged behaviour);
+ *   "latest_album" → latestAlbumHeroPhoto(getPublishedAlbums()): follows the newest published album, so publishing
+ *                    an album, changing its cover, or hiding/trashing the photo or album (all expire TAGS.albums)
+ *                    moves the hero with no further step. null → the designed photo-less hero.
+ * Both reads are already cached and tagged; this adds no cache layer of its own. The bytes come from /p/<id>/display,
+ * which re-checks publication on every request and is never stored by shared caches.
+ */
+export async function getSiteHeroPhotoId(): Promise<string | null> {
+  const s = await getBusinessSettings();
+  if (s.status !== "ok" || !s.data) return null;
+  if (s.data.hero_cover_source === "latest_album") {
+    const albums = await getPublishedAlbums();
+    return albums.status === "ok" ? latestAlbumHeroPhoto(albums.data) : null;
+  }
+  return s.data.hero_cover_photo_id ?? null;
 }

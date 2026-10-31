@@ -47,6 +47,8 @@ export const EXPORT_TABLES = [
   "video_categories", "showcase_videos", "showcase_video_categories", "album_categories", "photo_albums", "album_photos",
   "import_items", "brand_assets", "site_sections", "nav_items", "slug_redirects", "service_links", "process_steps",
   "offers", "offer_items", "announcements",
+  // reels + Facebook queue (0027–0031); the Page token lives in Vault and is never exported
+  "reel_videos", "meta_page_connection", "facebook_reel_posts",
 ];
 
 const parse = (p) => Object.fromEntries(fs.readFileSync(p, "utf8").split(/\r?\n/).filter((l) => l.includes("=") && !l.startsWith("#")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));
