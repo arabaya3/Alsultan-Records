@@ -21,7 +21,7 @@ const Bucket = process.env.S3_BUCKET!;
 const s3 = new S3Client({
   endpoint: process.env.S3_ENDPOINT,
   region: process.env.S3_REGION,
-  forcePathStyle: true,
+  forcePathStyle: process.env.S3_FORCE_PATH_STYLE === "1",
   credentials: { accessKeyId: process.env.S3_ACCESS_KEY_ID ?? "x", secretAccessKey: process.env.S3_SECRET_ACCESS_KEY ?? "x" },
 });
 const BASE = process.env.BASE_URL!;
@@ -230,7 +230,7 @@ test("S8: a Supabase photo and an S3 photo side by side both serve, each from it
 });
 
 const migrate = (args: string[]) => {
-  const env = { ...process.env, MIGRATE_TARGET: "local", S3_FORCE_PATH_STYLE: "1", ENV_FILE: ".env.local" };
+  const env = { ...process.env, MIGRATE_TARGET: "local", ENV_FILE: ".env.local" };
   try {
     return { code: 0, out: execFileSync("node", ["scripts/migrate-album-media-to-s3.mjs", ...args, "--album", album], { env, encoding: "utf8" }) };
   } catch (e) {
