@@ -33,13 +33,13 @@ reset role;
 
 -- customer: no upload id
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000b1","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000b1","role":"authenticated","aal":"aal2"}', true);
 select throws_ok($$select public.album_s3_upload_set('00000000-0000-4000-8000-00000000bb02', 'x')$$, '42501', null, 'a customer cannot set an upload id');
 reset role;
 
 -- admin: first upload wins, only on an open S3 reservation
 set local role authenticated;
-select set_config('request.jwt.claims', '{"sub":"00000000-0000-0000-0000-0000000000a2","role":"authenticated"}', true);
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000a2","role":"authenticated","aal":"aal2"}', true);
 select is(public.album_s3_upload_set('00000000-0000-4000-8000-00000000bb02', 'first'), 'first', 'first upload recorded');
 select is(public.album_s3_upload_set('00000000-0000-4000-8000-00000000bb02', 'second'), 'first', 'a second tab gets the first upload');
 select is(public.album_s3_upload_set('00000000-0000-4000-8000-00000000bb02', 'third', 'first'), 'third', 'an expired upload can be replaced by naming it');

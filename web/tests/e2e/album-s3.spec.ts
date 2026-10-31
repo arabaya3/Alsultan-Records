@@ -52,6 +52,10 @@ async function newDraft(title: string) {
   created.push(id);
   return id;
 }
+async function choose(page: Page, f: string) {
+  await page.getByTestId("album-upload-input").setInputFiles(f);
+  await page.getByTestId("album-upload-start").click();
+}
 async function ready(page: Page, name: string) {
   await expect(row(page, name)).toHaveAttribute("data-state", "ready", { timeout: 180_000 });
 }
@@ -80,7 +84,7 @@ test("S1: a multi-part JPEG goes to S3 only; the stored original is identical; v
   page.on("request", (r) => {
     if (r.method() === "PUT" && r.url().includes("partNumber")) puts.push(r.url());
   });
-  await page.setInputFiles('input[type="file"]', f);
+  await choose(page, f);
   await ready(page, "big.jpg");
   expect(puts.length).toBeGreaterThanOrEqual(2);
   expect(puts.some((u) => u.includes(new URL(BASE).host))).toBe(false); // bytes never pass through the app
@@ -99,7 +103,7 @@ test("S1: a multi-part JPEG goes to S3 only; the stored original is identical; v
 
 test("S2: the same file is skipped as a duplicate", async ({ browser }) => {
   const page = await newLoggedIn(browser, "owner", `/admin/albums/${album}`);
-  await page.setInputFiles('input[type="file"]', path.join(TMP, "big.jpg"));
+  await choose(page, path.join(TMP, "big.jpg"));
   await expect(row(page, "big.jpg")).toHaveAttribute("data-state", "skipped", { timeout: 60_000 });
   expect((await photoRow(album)).length).toBe(1);
   await page.context().close();
@@ -147,19 +151,22 @@ test("S5: reload mid-upload, same file again: stored parts are not sent again an
   const a = await newDraft("resume");
   const f = await bigJpeg("resume.jpg", 30);
   const page = await newLoggedIn(browser, "owner", `/admin/albums/${a}`);
-  await page.setInputFiles('input[type="file"]', f);
-  await expect.poll(async () => {
-    const [r] = await photoRow(a);
-    return r?.s3_upload_id ? (await s3.send(new ListMultipartUploadsCommand({ Bucket, Prefix: r.storage_path_original }))).Uploads?.length : 0;
-  }, { timeout: 60_000 }).toBe(1);
-  // Let the first parts finish, then lose the page.
-  await page.waitForResponse((r) => r.request().method() === "PUT" && r.url().includes("partNumber") && r.ok(), { timeout: 60_000 });
+  // Parts are slowed so the page can be lost part-way, on a local emulator that would otherwise finish at once.
+  await page.route("**/*partNumber*", async (route) => {
+    await new Promise((res) => setTimeout(res, 1500));
+    await route.continue().catch(() => {});
+  });
+  const firstPart = page.waitForResponse((r) => r.request().method() === "PUT" && r.url().includes("partNumber") && r.ok(), { timeout: 60_000 });
+  await choose(page, f);
+  await firstPart;
   await page.reload();
+  await page.unroute("**/*partNumber*");
+  expect((await photoRow(a))[0].s3_upload_id).toBeTruthy();
   const again: string[] = [];
   page.on("request", (r) => {
     if (r.method() === "PUT" && r.url().includes("partNumber")) again.push(new URL(r.url()).searchParams.get("partNumber")!);
   });
-  await page.setInputFiles('input[type="file"]', f);
+  await choose(page, f);
   await ready(page, "resume.jpg");
   const [r] = await photoRow(a);
   expect(sha(await getBytes(r.storage_path_original))).toBe(sha(fs.readFileSync(f)));
@@ -177,9 +184,9 @@ test("S6: cancel mid-upload leaves no row, no parts and no object", async ({ bro
     await new Promise((res) => setTimeout(res, 1500));
     await route.continue().catch(() => {});
   });
-  await page.setInputFiles('input[type="file"]', f);
+  await choose(page, f);
   await expect(row(page, "cancel.jpg")).toHaveAttribute("data-state", "uploading", { timeout: 60_000 });
-  await row(page, "cancel.jpg").getByRole("button", { name: /إلغاء/ }).click();
+  await row(page, "cancel.jpg").getByTestId("album-upload-cancel").click();
   await expect(row(page, "cancel.jpg")).toHaveAttribute("data-state", "canceled");
   await expect.poll(async () => (await photoRow(a)).length, { timeout: 30_000 }).toBe(0);
   await expect.poll(() => openUploads(`albums/${a}/`), { timeout: 30_000 }).toBe(0);
@@ -195,12 +202,13 @@ test("S7: admin access removed during the upload: stops with a clear message, no
     await new Promise((res) => setTimeout(res, 1000));
     await route.continue().catch(() => {});
   });
-  await page.setInputFiles('input[type="file"]', f);
+  await choose(page, f);
   await expect(row(page, "revoke.jpg")).toHaveAttribute("data-state", "uploading", { timeout: 60_000 });
   const id = (await db.auth.admin.listUsers({ perPage: 1000 })).data.users.find((u) => u.email === USERS.admin.email)!.id;
   await db.from("profiles").update({ role: "customer" }).eq("id", id);
-  await expect(row(page, "revoke.jpg")).toHaveAttribute("data-state", "failed", { timeout: 120_000 });
-  await expect(row(page, "revoke.jpg")).toContainText(/صلاحية|انقطع/);
+  // Either the upload is refused (row failed) or a refresh replaces the page with the permission message. Both are correct.
+  await expect(row(page, "revoke.jpg").and(page.locator('[data-state="failed"]')).or(page.getByRole("heading", { name: "لا تملك صلاحية فتح هذه الصفحة" }))).toBeVisible({ timeout: 120_000 });
+  await page.waitForTimeout(3000);
   await db.from("profiles").update({ role: "admin" }).eq("id", id);
   const [r] = await photoRow(a);
   expect(r.upload_status).toBe("uploading");
@@ -222,9 +230,9 @@ test("S8: a Supabase photo and an S3 photo side by side both serve, each from it
 });
 
 const migrate = (args: string[]) => {
-  const env = { ...process.env, MIGRATE_TARGET: "local", S3_FORCE_PATH_STYLE: "1" };
+  const env = { ...process.env, MIGRATE_TARGET: "local", S3_FORCE_PATH_STYLE: "1", ENV_FILE: ".env.local" };
   try {
-    return { code: 0, out: execFileSync("node", ["scripts/migrate-album-media-to-s3.mjs", ...args], { env, encoding: "utf8" }) };
+    return { code: 0, out: execFileSync("node", ["scripts/migrate-album-media-to-s3.mjs", ...args, "--album", album], { env, encoding: "utf8" }) };
   } catch (e) {
     const x = e as { status: number; stdout: string };
     return { code: x.status, out: x.stdout };

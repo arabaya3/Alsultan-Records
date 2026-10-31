@@ -21,6 +21,7 @@ import type { StoredPart } from "./multipart";
  * private. Object keys are the same paths the database stores (albums/<album>/<photo>/...).
  */
 const SIGN_PART_SECONDS = 15 * 60;
+const CALL_DEADLINE_MS = 30_000;
 
 export type S3Env = { endpoint: string; region: string; bucket: string; accessKeyId: string; secretAccessKey: string; forcePathStyle: boolean };
 
@@ -41,18 +42,22 @@ function s3(): { client: S3Client; bucket: string } {
   if (cached) return cached;
   const c = s3Env();
   if (!c) throw new Error("S3 is not configured");
-  cached = {
-    bucket: c.bucket,
-    client: new S3Client({
+  const client = new S3Client({
       endpoint: c.endpoint,
       region: c.region,
       forcePathStyle: c.forcePathStyle,
       credentials: { accessKeyId: c.accessKeyId, secretAccessKey: c.secretAccessKey },
       // The SDK's default CRC32 checksums are not understood by every S3-compatible store and break presigned parts.
+      // A store that stops answering must fail the call, not hold a function until Vercel kills it.
+      requestHandler: { connectionTimeout: 5_000, requestTimeout: 20_000 },
+      maxAttempts: 2,
       requestChecksumCalculation: "WHEN_REQUIRED",
       responseChecksumValidation: "WHEN_REQUIRED",
-    }),
-  };
+  });
+  // A store that accepts the connection and then goes silent is only caught by a deadline on the whole call.
+  const send = client.send.bind(client) as (cmd: unknown, opts?: { abortSignal?: AbortSignal }) => Promise<unknown>;
+  (client as unknown as { send: typeof send }).send = (cmd, opts) => send(cmd, { ...opts, abortSignal: opts?.abortSignal ?? AbortSignal.timeout(CALL_DEADLINE_MS) });
+  cached = { bucket: c.bucket, client };
   return cached;
 }
 

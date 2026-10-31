@@ -47,6 +47,8 @@ export async function processS3Cleanup(sb: SupabaseClient, limit = 100): Promise
       }
     }
     results.push({ id: it.id, bucket: it.bucket, path: it.path, ok: !error, error });
+    // Store trouble: stop here rather than use up the function's time. Unprocessed claims return after 15 minutes.
+    if (error && !bad) break;
   }
   const done = results.filter((r) => r.ok).map((r) => r.id);
   let completeError: string | undefined;

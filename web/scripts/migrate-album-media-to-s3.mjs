@@ -4,6 +4,7 @@
  *   node scripts/migrate-album-media-to-s3.mjs --manifest <file>            # dry run: counts and sizes only
  *   node scripts/migrate-album-media-to-s3.mjs --manifest <file> --copy     # copy and verify (resumable)
  *   node scripts/migrate-album-media-to-s3.mjs --manifest <file> --copy --switch   # also point verified photos at S3
+ *   Add --album <id> to work on one album first.
  *
  * Environment: NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SECRET_KEY, S3_*. ENV_FILE=<path> loads them from a file.
  * Target guard: MIGRATE_TARGET must equal the project ref in the URL, or "local" for a loopback URL.
@@ -40,6 +41,8 @@ if (process.env.ENV_FILE) {
 }
 const COPY = has("--copy"), SWITCH = has("--switch");
 const manifestPath = arg("--manifest");
+const ALBUM = arg("--album");
+if (ALBUM && !/^[0-9a-f-]{36}$/i.test(ALBUM)) throw new Error("--album needs an album id");
 if (!manifestPath) throw new Error("--manifest <file> is required");
 if (SWITCH && !COPY) throw new Error("--switch needs --copy");
 for (const k of ["NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_SECRET_KEY", "S3_ENDPOINT", "S3_REGION", "S3_BUCKET", "S3_ACCESS_KEY_ID", "S3_SECRET_ACCESS_KEY"]) if (!env[k]) throw new Error(`missing ${k}`);
@@ -85,7 +88,7 @@ const record = (e) => {
 
 async function* photoPages() {
   for (let last = "00000000-0000-0000-0000-000000000000"; ; ) {
-    const r = await fetch(`${URL_BASE}/rest/v1/album_photos?select=id,storage_path_original,variants,sha256,upload_status,storage_provider&id=gt.${last}&order=id&limit=500`, { headers: auth });
+    const r = await fetch(`${URL_BASE}/rest/v1/album_photos?select=id,storage_path_original,variants,sha256,upload_status,storage_provider${ALBUM ? `&album_id=eq.${ALBUM}` : ""}&id=gt.${last}&order=id&limit=500`, { headers: auth });
     planCheck(r);
     if (!r.ok) throw new Error(`photo list ${r.status}`);
     const rows = await r.json();
