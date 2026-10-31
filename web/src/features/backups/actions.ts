@@ -7,6 +7,7 @@ import { guard, OWNER_ONLY } from "@/features/admin/guard";
 import { fail, FORBIDDEN, ok, type ActionResult } from "@/features/admin/result";
 import { BACKUP_TABLES, runBackupCore } from "./core";
 import { zip } from "./zip";
+import { s3Env, s3List } from "@/lib/album-storage/s3";
 
 /**
  * Owner-only full export. Documented use of the secret-key client:
@@ -22,7 +23,7 @@ export async function runBackup(): Promise<ActionResult> {
   const session = await guard(OWNER_ONLY);
   if (!session) return FORBIDDEN;
   const sb = await createClient();
-  const res = await runBackupCore({ owner: sb, admin: createAdminClient(), zip, tables: BACKUP_TABLES });
+  const res = await runBackupCore({ owner: sb, admin: createAdminClient(), zip, tables: BACKUP_TABLES, s3Objects: s3Env() ? s3List() : undefined });
   if ("error" in res) return fail("تعذّر بدء النسخة الاحتياطية.");
   refresh();
   const succeeded = Object.keys(res.tableCounts).length;

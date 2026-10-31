@@ -1467,6 +1467,9 @@ isOneToOne: false
 "admin_set_user_role":
 { Args: { "p_role": Database["public"]['Enums']["app_role"],"p_user_id": string }; Returns: undefined
                            },
+"album_photo_object_ref":
+{ Args: { "p_photo_id": string,"p_variant": string }; Returns: { provider: string; path: string }[]
+                           },
 "album_photo_object_path":
 { Args: { "p_photo_id": string,"p_variant": string }; Returns: string
                            },

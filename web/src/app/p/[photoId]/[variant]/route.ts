@@ -1,6 +1,7 @@
 import "server-only";
 import { getPublicClient } from "@/features/public-content/client";
 import { PHOTO_VARIANTS } from "@/features/public-content/gallery-model";
+import { s3Read } from "@/lib/album-storage/s3";
 
 /**
  * Published album photos: GET /p/{photoId}/{thumb|display}. The original is NEVER served.
@@ -8,11 +9,12 @@ import { PHOTO_VARIANTS } from "@/features/public-content/gallery-model";
  * `album-media` is a private bucket. Every request:
  *   1. reads the album_photos row with the ANONYMOUS key — RLS returns it only while the photo AND its
  *      album are published. No row → 404. This is the authorization step.
- *   2. resolves the object path with the anon RPC public.album_photo_object_path(id, variant) (migration
- *      0015, SECURITY DEFINER): it returns the stored variant path only while photo + album are published.
+ *   2. resolves the object with the anon RPC public.album_photo_object_ref(id, variant) (migration 0032, SECURITY
+ *      DEFINER): it returns the store and variant path only while photo + album are published.
  *      Paths are not anon-selectable columns, so no secret key is needed anywhere on this route. The
  *      variant is whitelisted to thumb|display BEFORE the call — "original" is never requested.
- *   3. downloads the object with the ANONYMOUS key — the storage policy re-checks publication in the database.
+ *   3. downloads the object: on Supabase with the ANONYMOUS key (the storage policy re-checks publication in the
+ *      database); on S3 with the server's keys, which is why steps 1 and 2 must have passed first.
  *   4. streams the bytes.
  *
  * Cache (owner requirement: a withdrawn photo must stop loading): `private, no-cache` + the object's ETag. The
@@ -27,6 +29,12 @@ import { PHOTO_VARIANTS } from "@/features/public-content/gallery-model";
  * after that is not cut off.
  */
 const CACHE_OK = "private, no-cache";
+const OK_HEADERS = {
+  "Cache-Control": CACHE_OK,
+  "CDN-Cache-Control": "no-store",
+  "Vercel-CDN-Cache-Control": "no-store",
+  "X-Content-Type-Options": "nosniff",
+};
 const DEADLINE_MS = 8000;
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BUCKET = "album-media";
@@ -67,15 +75,41 @@ export async function GET(req: Request, ctx: { params: Promise<{ photoId: string
     if (!visible) return fail(404);
 
     // 2. Path for the authorized id + whitelisted variant (RPC re-checks publication).
-    const { data: path, error: pathError } = await anon
-      .rpc("album_photo_object_path", { p_photo_id: visible.id, p_variant: variant })
+    const { data: refs, error: pathError } = await anon
+      .rpc("album_photo_object_ref", { p_photo_id: visible.id, p_variant: variant })
       .abortSignal(deadline.signal);
     if (pathError) return fail(abortedError(pathError, deadline.signal) ? 504 : 503);
+    const path = refs?.[0]?.path;
     if (typeof path !== "string" || !path || path.includes("..") || path.startsWith("/")) return fail(404);
+
+    const inm = req.headers.get("if-none-match");
+    if (refs?.[0]?.provider === "s3") {
+      const headers = new Headers(OK_HEADERS);
+      let got;
+      try {
+        got = await s3Read(path, { ifNoneMatch: inm, signal: deadline.signal });
+      } catch (e) {
+        return fail(isAbort(e) || deadline.signal.aborted ? 504 : 503);
+      }
+      clearTimeout(timer);
+      if (got.kind === "missing") return fail(404);
+      if (got.kind === "not-modified") {
+        if (got.etag) headers.set("etag", got.etag);
+        return new Response(null, { status: 304, headers });
+      }
+      if (got.contentLength !== undefined) headers.set("content-length", String(got.contentLength));
+      if (got.etag) headers.set("etag", got.etag);
+      if (got.lastModified) headers.set("last-modified", got.lastModified.toUTCString());
+      if (!/^image\/(jpeg|png|webp|avif)/.test(got.contentType ?? "")) {
+        void got.body.cancel().catch(() => {});
+        return fail(404);
+      }
+      headers.set("content-type", got.contentType!);
+      return new Response(got.body, { status: 200, headers });
+    }
 
     // 3. Bytes with the anonymous key (storage policy re-checks). A conditional request lets storage answer 304.
     const objectUrl = `${url.replace(/\/$/, "")}/storage/v1/object/authenticated/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`;
-    const inm = req.headers.get("if-none-match");
     let upstream: Response;
     try {
       upstream = await fetch(objectUrl, {
@@ -88,12 +122,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ photoId: string
     }
     clearTimeout(timer); // headers arrived: the stream itself is not cut off
 
-    const headers = new Headers({
-      "Cache-Control": CACHE_OK,
-      "CDN-Cache-Control": "no-store",
-      "Vercel-CDN-Cache-Control": "no-store",
-      "X-Content-Type-Options": "nosniff",
-    });
+    const headers = new Headers(OK_HEADERS);
     if (upstream.status === 304) {
       void upstream.body?.cancel().catch(() => {});
       const etag = upstream.headers.get("etag");

@@ -83,6 +83,8 @@ export async function runBackupCore(opts: {
   admin: Client;
   zip: ZipFn;
   tables?: readonly string[];
+  /** Album objects moved to S3 (the caller holds the keys): listed too, or the manifest would silently miss them. */
+  s3Objects?: AsyncIterable<{ path: string; size: number | null; updated_at: string | null }>;
 }): Promise<BackupResult | { error: string }> {
   const { owner: sb, admin, zip } = opts;
   const tables = opts.tables ?? BACKUP_TABLES;
@@ -115,6 +117,14 @@ export async function runBackupCore(opts: {
       const before = manifest.length;
       await listBucket(admin, b, "", manifest);
       objectCounts[b] = manifest.length - before;
+    }
+    if (opts.s3Objects) {
+      let n = 0;
+      for await (const o of opts.s3Objects) {
+        manifest.push({ bucket: "s3:album-media", path: o.path, size: o.size, mimetype: null, updated_at: o.updated_at });
+        n++;
+      }
+      objectCounts["s3:album-media"] = n;
     }
     const data = Buffer.from(JSON.stringify({ generated_at: new Date().toISOString(), note: "Binary objects are NOT included; this lists what must be copied separately.", objects: manifest }), "utf8");
     const up = await sb.storage.from(BACKUP_BUCKET).upload(`${runId}/storage-manifest.zip`, zip([{ name: "storage-manifest.json", data }]), {

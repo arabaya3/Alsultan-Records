@@ -12,7 +12,10 @@ import { dbMessage, fail, FORBIDDEN, isUuid, ok, str, uuid, type ActionResult } 
 import { runPhotoJobs } from "@/features/photo-processing/runner";
 import { readAlbumForm, altTextSchema, readCategoryForm } from "./schema";
 import { after } from "next/server";
-import { ALBUM_BUCKET, ALBUM_MAX_FILES_PER_BATCH, albumObjectPath, FORMATS, fmtMb, maxBytesFor, SHA256_RE, type FormatId } from "./rules";
+import { ALBUM_MAX_FILES_PER_BATCH, albumObjectPath, FORMATS, fmtMb, maxBytesFor, SHA256_RE, type FormatId } from "./rules";
+import { albumStore, type AlbumProvider } from "@/lib/album-storage";
+import { partSizeFor, partsProblem } from "@/lib/album-storage/multipart";
+import { albumWriteProvider, s3Head, s3MultipartAbort, s3MultipartComplete, s3MultipartParts } from "@/lib/album-storage/s3";
 
 const SLUG_DUP = { "23505": "هذا المعرّف مستخدم لألبوم آخر." };
 const CAT_DUP = { "23505": "هذا المعرّف مستخدم لتصنيف آخر." };
@@ -172,7 +175,8 @@ export async function purgeAlbum(_p: ActionResult, fd: FormData): Promise<Action
  * Upload flow (one call per file; the browser runs a few files in parallel):
  *   1. reserveAlbumUpload  — validates name/format/size/sha256, dedupes, creates the row `uploading` at a fixed
  *                            path. The storage policy lets an admin write ONLY at a reserved `uploading` path.
- *   2. (browser) TUS resumable upload straight to Storage with the admin's own JWT — no file passes through Vercel.
+ *   2. (browser) straight to the store — TUS with the admin's own JWT on Supabase, or multipart on short-lived URLs
+ *      on S3 (s3-upload-actions.ts). No file passes through Vercel. The row's storage_provider says which.
  *   3. completeAlbumUpload — checks the object exists and its size matches, flips the row to `pending`, and starts
  *                            processing AFTER the response (next/server after()); the cron worker is the fallback.
  * Resume: choosing the same file again (same sha256) returns the same reservation, so the TUS client continues
@@ -180,7 +184,7 @@ export async function purgeAlbum(_p: ActionResult, fd: FormData): Promise<Action
  */
 export type ReserveInput = { name: string; size: number; sha256: string; format: FormatId };
 export type Reserved =
-  | { ok: true; photoId: string; path: string; contentType: string; resumed: boolean; warning?: string }
+  | { ok: true; photoId: string; path: string; contentType: string; provider: AlbumProvider; resumed: boolean; warning?: string }
   | { ok: false; message: string; skipped?: boolean; photoId?: string };
 
 type Dup = { album_id: string; album_title: string; photo_id: string };
@@ -206,34 +210,36 @@ export async function reserveAlbumUpload(albumId: string, f: ReserveInput): Prom
   const dups = ((dup.data ?? []) as Dup[]).filter(Boolean);
   const same = dups.find((d) => d.album_id === albumId);
   if (same) {
-    const { data: p } = await sb.from("album_photos").select("id, upload_status, storage_path_original, mime").eq("id", same.photo_id).maybeSingle();
+    const { data: p } = await sb.from("album_photos").select("id, upload_status, storage_path_original, mime, storage_provider").eq("id", same.photo_id).maybeSingle();
     if (p && p.mime === def.mime) {
       // An unfinished upload of this very file: hand back the same reservation (the browser resumes it).
-      if (p.upload_status === "uploading") return { ok: true, photoId: p.id, path: p.storage_path_original, contentType: def.mime, resumed: true };
+      if (p.upload_status === "uploading") return { ok: true, photoId: p.id, path: p.storage_path_original, contentType: def.mime, provider: p.storage_provider, resumed: true };
       // A dead row from an interrupted session (failed/pending, nothing stored): reopen it for this upload.
       if (p.upload_status === "failed" || p.upload_status === "pending") {
-        const info = await sb.storage.from(ALBUM_BUCKET).info(p.storage_path_original);
-        if (!info.data) {
+        const stored = await albumStore(p.storage_provider, sb).head(p.storage_path_original);
+        if (!stored) {
           const re = await sb.rpc("album_upload_reopen", { p_photo_id: p.id, p_bytes: size });
-          if (!re.error && re.data === true) return { ok: true, photoId: p.id, path: p.storage_path_original, contentType: def.mime, resumed: true };
+          if (!re.error && re.data === true) return { ok: true, photoId: p.id, path: p.storage_path_original, contentType: def.mime, provider: p.storage_provider, resumed: true };
         }
       }
     }
     return { ok: false, skipped: true, photoId: same.photo_id, message: "الصورة موجودة في هذا الألبوم — تم تخطيها." };
   }
+  const provider = albumWriteProvider();
+  if (provider === "misconfigured") return { ok: false, message: "إعداد التخزين غير مكتمل — لم يبدأ الرفع." };
   const other = dups.find((d) => d.album_id !== albumId);
   const { data: last } = await sb.from("album_photos").select("sort_order").eq("album_id", albumId).order("sort_order", { ascending: false }).limit(1).maybeSingle();
   const photoId = randomUUID();
   const path = albumObjectPath(albumId, photoId, format);
   const ins = await sb
     .from("album_photos")
-    .insert({ id: photoId, album_id: albumId, storage_path_original: path, mime: def.mime, bytes: size, sha256: sha, sort_order: (last?.sort_order ?? 0) + 10, upload_status: "uploading" })
+    .insert({ id: photoId, album_id: albumId, storage_path_original: path, mime: def.mime, bytes: size, sha256: sha, sort_order: (last?.sort_order ?? 0) + 10, upload_status: "uploading", storage_provider: provider })
     .select("id")
     .single();
   if (ins.error || !ins.data) {
     return ins.error?.code === "23505" ? { ok: false, skipped: true, message: "الصورة موجودة في هذا الألبوم — تم تخطيها." } : { ok: false, message: dbMessage(ins.error) };
   }
-  return { ok: true, photoId, path, contentType: def.mime, resumed: false, warning: other ? `تنبيه: الصورة نفسها موجودة في ألبوم «${other.album_title}».` : undefined };
+  return { ok: true, photoId, path, contentType: def.mime, provider, resumed: false, warning: other ? `تنبيه: الصورة نفسها موجودة في ألبوم «${other.album_title}».` : undefined };
 }
 
 /** Step 3: the browser says the upload finished. Trust nothing: the object must exist with the reserved size. */
@@ -241,16 +247,19 @@ export async function completeAlbumUpload(photoId: string): Promise<{ ok: boolea
   if (!(await guard(ADMIN_ROLES))) return { ok: false, message: FORBIDDEN.message };
   if (!isUuid(photoId)) return { ok: false, message: "طلب غير صالح." };
   const sb = await db();
-  const { data: p } = await sb.from("album_photos").select("id, upload_status, storage_path_original, bytes, mime").eq("id", photoId).is("deleted_at", null).maybeSingle();
+  const { data: p } = await sb.from("album_photos").select("id, upload_status, storage_path_original, bytes, mime, storage_provider, s3_upload_id").eq("id", photoId).is("deleted_at", null).maybeSingle();
   if (!p) return { ok: false, message: "الصورة غير موجودة." };
   if (p.upload_status !== "uploading") return { ok: ["pending", "processing", "ready"].includes(p.upload_status) }; // repeated call: idempotent
-  const info = await sb.storage.from(ALBUM_BUCKET).info(p.storage_path_original);
-  if (!info.data) return { ok: false, message: "الملف لم يكتمل رفعه بعد." };
-  const stored = Number((info.data as { size?: number }).size ?? -1);
+  const store = albumStore(p.storage_provider, sb);
+  const assembled = p.storage_provider === "s3" ? await assembleS3(sb, p) : null;
+  if (assembled) return { ok: false, message: assembled };
+  const info = await store.head(p.storage_path_original);
+  if (!info) return { ok: false, message: "الملف لم يكتمل رفعه بعد." };
+  const stored = info.size;
   const format = (Object.keys(FORMATS) as FormatId[]).find((k) => FORMATS[k].mime === p.mime);
   if (!format || stored <= 0 || stored !== Number(p.bytes) || stored > maxBytesFor(format)) {
     // Incomplete or tampered object: remove it so the same reservation can be uploaded again.
-    await sb.storage.from(ALBUM_BUCKET).remove([p.storage_path_original]);
+    await store.remove([p.storage_path_original]);
     return { ok: false, message: "حجم الملف المرفوع لا يطابق الملف الأصلي — أعد المحاولة." };
   }
   const up = await sb.rpc("album_upload_complete", { p_photo_id: photoId });
@@ -268,15 +277,34 @@ export async function completeAlbumUpload(photoId: string): Promise<{ ok: boolea
   return { ok: true };
 }
 
+/** S3: turn the stored parts into the object. The parts are S3's own list, never the browser's; a repeated call finds
+ *  the object already assembled. Returns a message when the upload is not whole yet. */
+async function assembleS3(sb: SB, p: { id: string; storage_path_original: string; bytes: number; s3_upload_id: string | null }): Promise<string | null> {
+  try {
+    if (!p.s3_upload_id) return (await s3Head(p.storage_path_original)) ? null : "الملف لم يكتمل رفعه بعد.";
+    const parts = await s3MultipartParts(p.storage_path_original, p.s3_upload_id);
+    if (!parts) return (await s3Head(p.storage_path_original)) ? null : "انتهت صلاحية الرفع — أعد اختيار الملف.";
+    const size = Number(p.bytes);
+    if (partsProblem(parts, size, partSizeFor(size))) return "الملف لم يكتمل رفعه بعد.";
+    await s3MultipartComplete(p.storage_path_original, p.s3_upload_id, parts);
+    return null;
+  } catch {
+    return "تعذّر تأكيد الرفع — أعد المحاولة.";
+  }
+}
+
 /** Cancel one upload: drop the reservation (and any stored object) while it is still `uploading`.
  *  The row goes first, conditionally: if completeAlbumUpload already flipped it to `pending`, nothing is
  *  deleted (the confirmed original is kept); only after the row is gone is its object removed. */
 export async function cancelAlbumUpload(photoId: string): Promise<void> {
   if (!(await guard(ADMIN_ROLES)) || !isUuid(photoId)) return;
   const sb = await db();
-  const { data: gone } = await sb.from("album_photos").delete().eq("id", photoId).eq("upload_status", "uploading").select("storage_path_original");
-  const path = gone?.[0]?.storage_path_original;
-  if (path) await sb.storage.from(ALBUM_BUCKET).remove([path]);
+  const { data: gone } = await sb.from("album_photos").delete().eq("id", photoId).eq("upload_status", "uploading").select("storage_path_original, storage_provider, s3_upload_id");
+  const row = gone?.[0];
+  if (!row) return;
+  // Parts and object are also covered by the abort rule and the cleanup queue, so a failure here leaves no lasting orphan.
+  if (row.s3_upload_id) await s3MultipartAbort(row.storage_path_original, row.s3_upload_id).catch(() => undefined);
+  await albumStore(row.storage_provider, sb).remove([row.storage_path_original]).catch(() => undefined);
 }
 
 export type PhotoStatus = { id: string; status: "uploading" | "pending" | "processing" | "ready" | "failed"; error: string | null; attempts: number };
@@ -333,10 +361,9 @@ export async function getUnfinishedPhotos(albumId: string): Promise<PhotoStatus[
 export async function discardFailedUpload(photoId: string): Promise<void> {
   if (!(await guard(ADMIN_ROLES)) || !isUuid(photoId)) return;
   const sb = await db();
-  const { data: p } = await sb.from("album_photos").select("storage_path_original, upload_status").eq("id", photoId).maybeSingle();
+  const { data: p } = await sb.from("album_photos").select("storage_path_original, upload_status, storage_provider").eq("id", photoId).maybeSingle();
   if (!p || p.upload_status !== "pending") return;
-  const info = await sb.storage.from(ALBUM_BUCKET).info(p.storage_path_original);
-  if (info.data) return; // the object arrived after all: let the queue process it
+  if (await albumStore(p.storage_provider, sb).head(p.storage_path_original)) return; // the object arrived after all: let the queue process it
   await sb.from("album_photos").delete().eq("id", photoId).eq("upload_status", "pending");
 }
 

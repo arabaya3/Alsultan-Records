@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * /p route outcomes with a simulated database and storage (no network): 404 vs 503 vs 504, 304 revalidation,
  * and the cache headers. The real stack is covered by the e2e specs (photos, album-covers, album-publishing-reels).
  */
-type Db = { row: "yes" | "no" | "error" | "hang"; path?: "ok" | "error" | "hang" };
+type Db = { row: "yes" | "no" | "error" | "hang"; path?: "ok" | "error" | "hang"; provider?: "supabase" | "s3" };
 let dbState: Db = { row: "yes", path: "ok" };
 
 function query(kind: "row" | "path") {
@@ -15,7 +15,7 @@ function query(kind: "row" | "path") {
       return new Promise((res) => signal?.addEventListener("abort", () => res({ data: null, error: { message: "AbortError: The operation was aborted." } })));
     if (mode === "error") return Promise.resolve({ data: null, error: { message: "connection refused", code: "PGRST000" } });
     if (kind === "row") return Promise.resolve({ data: mode === "yes" ? { id: PHOTO } : null, error: null });
-    return Promise.resolve({ data: "albums/a/b/thumb.webp", error: null });
+    return Promise.resolve({ data: [{ provider: dbState.provider ?? "supabase", path: "albums/a/b/thumb.webp" }], error: null });
   };
   const b = {
     select: () => b,
@@ -33,6 +33,9 @@ function query(kind: "row" | "path") {
 vi.mock("@/features/public-content/client", () => ({
   getPublicClient: () => ({ from: () => query("row"), rpc: () => query("path") }),
 }));
+
+const s3Read = vi.fn();
+vi.mock("@/lib/album-storage/s3", () => ({ s3Read: (...a: unknown[]) => s3Read(...a) }));
 
 const PHOTO = "11111111-2222-4333-8444-555555555555";
 const call = async (headers: Record<string, string> = {}) => {
@@ -135,6 +138,54 @@ describe("/p/[photoId]/[variant]", () => {
 
   it("non-image content → 404", async () => {
     vi.stubGlobal("fetch", vi.fn(async () => img(200, { "content-type": "text/html" })));
+    expect((await call()).status).toBe(404);
+  });
+});
+
+describe("/p on S3", () => {
+  const body = () => new Blob([new Uint8Array([1, 2, 3])]).stream();
+  beforeEach(() => {
+    s3Read.mockReset();
+    dbState = { row: "yes", path: "ok", provider: "s3" };
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("Supabase must not be asked"); }));
+  });
+
+  it("200 with the same private, revalidated headers", async () => {
+    s3Read.mockResolvedValue({ kind: "ok", body: body(), contentType: "image/webp", contentLength: 3, etag: '"v1"' });
+    const r = await call();
+    expect(r.status).toBe(200);
+    expect(r.headers.get("cache-control")).toBe("private, no-cache");
+    expect(r.headers.get("cdn-cache-control")).toBe("no-store");
+    expect(r.headers.get("etag")).toBe('"v1"');
+  });
+  it("304 passes the browser's ETag, after the publication checks", async () => {
+    s3Read.mockResolvedValue({ kind: "not-modified", etag: '"v1"' });
+    const r = await call({ "if-none-match": '"v1"' });
+    expect(r.status).toBe(304);
+    expect(s3Read.mock.calls[0][1]).toMatchObject({ ifNoneMatch: '"v1"' });
+  });
+  it("withdrawn: storage is not even asked, and an ETag cannot earn a 304", async () => {
+    dbState = { row: "no", provider: "s3" };
+    const r = await call({ "if-none-match": '"v1"' });
+    expect(r.status).toBe(404);
+    expect(s3Read).not.toHaveBeenCalled();
+  });
+  it("missing object → 404; storage error → 503; never cached", async () => {
+    s3Read.mockResolvedValueOnce({ kind: "missing" });
+    expect((await call()).status).toBe(404);
+    s3Read.mockRejectedValueOnce(new Error("down"));
+    const r = await call();
+    expect(r.status).toBe(503);
+    expect(r.headers.get("cache-control")).toBe("no-store");
+  });
+  it("storage timing out → 504", async () => {
+    const e = new Error("t");
+    e.name = "AbortError";
+    s3Read.mockRejectedValueOnce(e);
+    expect((await call()).status).toBe(504);
+  });
+  it("an object that is not an image is not served", async () => {
+    s3Read.mockResolvedValue({ kind: "ok", body: body(), contentType: "text/html" });
     expect((await call()).status).toBe(404);
   });
 });

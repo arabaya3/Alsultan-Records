@@ -1,7 +1,9 @@
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ALBUM_BUCKET, ALBUM_MAX_PIXELS, FORMATS, formatByMime, maxBytesFor, sniffFormat } from "@/features/albums-admin/rules";
+import { albumStore } from "@/lib/album-storage";
+import { s3MultipartAbort } from "@/lib/album-storage/s3";
+import { ALBUM_MAX_PIXELS, FORMATS, formatByMime, maxBytesFor, sniffFormat } from "@/features/albums-admin/rules";
 import { JOB_BATCH, JOB_TIME_BUDGET_MS, SHA256_RE, makeVariants, sha256Hex, variantPaths } from "./core";
 import { RAW_DECODE_TIMEOUT_MS, decodeRaw } from "./raw";
 
@@ -62,24 +64,24 @@ async function processOne(sb: Untyped, job: Claimed, deadline: number): Promise<
   try {
     format = formatByMime(job.mime);
     if (!format) throw new Error("unsupported type");
-    const dl = await sb.storage.from(ALBUM_BUCKET).download(path);
-    if (dl.error || !dl.data) throw new Error("original not found in storage");
-    const input = Buffer.from(await dl.data.arrayBuffer());
+    const { data: row } = await sb.from("album_photos").select("sha256, storage_provider").eq("id", job.id).maybeSingle();
+    if (!row) throw new Error("photo row is gone");
+    const store = albumStore(row.storage_provider, sb);
+    const input = await store.download(path);
+    if (!input) throw new Error("original not found in storage");
     if (!input.length || input.length > maxBytesFor(format)) throw new Error("original size out of range");
     // The bytes must really be the declared format (a renamed or forged file never gets variants).
     if (sniffFormat(new Uint8Array(input.subarray(0, 64)), path) !== format) throw new Error("file content does not match its type");
     const actual = sha256Hex(input);
-    const { data: row } = await sb.from("album_photos").select("sha256").eq("id", job.id).maybeSingle();
-    const expected = (row?.sha256 as string | null | undefined) ?? null;
+    const expected = (row.sha256 as string | null | undefined) ?? null;
     if (expected && SHA256_RE.test(expected) && expected !== actual) throw new Error("checksum mismatch (upload corrupted)");
     const v = FORMATS[format].kind === "raw" ? await makeVariants(await decodeRawInBudget(input, deadline)) : await makeVariants(input, ALBUM_MAX_PIXELS);
     const paths = variantPaths(path);
-    const opts = { contentType: "image/webp", upsert: true, cacheControl: "31536000" };
-    const [t, d] = await Promise.all([
-      sb.storage.from(ALBUM_BUCKET).upload(paths.thumb, v.thumb, opts),
-      sb.storage.from(ALBUM_BUCKET).upload(paths.display, v.display, opts),
-    ]);
-    if (t.error || d.error) throw new Error("variant upload failed");
+    try {
+      await Promise.all([store.put(paths.thumb, v.thumb, "image/webp"), store.put(paths.display, v.display, "image/webp")]);
+    } catch {
+      throw new Error("variant upload failed");
+    }
     // Verified size/format (+ checksum for rows created before sha256 existed). Worker bookkeeping, service role.
     await sb.from("album_photos").update({ bytes: input.length, format, ...(expected ? {} : { sha256: actual }) }).eq("id", job.id);
     await complete(sb, job.id, { ok: true, variants: paths, width: v.width, height: v.height });
@@ -110,14 +112,14 @@ const PERMANENT = /RAW file could not be read|RAW decode failed|RAW decode timed
 async function pruneAbandonedUploads(sb: Untyped): Promise<number> {
   const { data } = await sb
     .from("album_photos")
-    .select("id, storage_path_original")
+    .select("id, storage_path_original, storage_provider, s3_upload_id")
     .eq("upload_status", "uploading")
     .lt("created_at", new Date(Date.now() - 24 * 3600_000).toISOString())
     .limit(50);
   let n = 0;
   for (const r of data ?? []) {
-    const info = await sb.storage.from(ALBUM_BUCKET).info(r.storage_path_original);
-    if (info.data) continue;
+    if (await albumStore(r.storage_provider, sb).head(r.storage_path_original)) continue;
+    if (r.s3_upload_id) await s3MultipartAbort(r.storage_path_original, r.s3_upload_id);
     const del = await sb.from("album_photos").delete().eq("id", r.id).eq("upload_status", "uploading").select("id");
     n += del.data?.length ?? 0;
   }

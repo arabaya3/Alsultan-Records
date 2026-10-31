@@ -16,6 +16,8 @@
     "postbuild": "node scripts/check-raw-trace.mjs"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "3.1161.0",
+    "@aws-sdk/s3-request-presigner": "3.1161.0",
     "@noble/hashes": "1.8.0",
     "@supabase/ssr": "0.12.7",
     "@supabase/supabase-js": "2.118.0",

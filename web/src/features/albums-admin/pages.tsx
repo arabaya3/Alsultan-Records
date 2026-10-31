@@ -12,7 +12,7 @@ import { AlbumGallery } from "@/components/media/gallery/AlbumGallery";
 import { AlbumUploader } from "./AlbumUploader";
 import { NewAlbumForm } from "./NewAlbumForm";
 import { PhotoReorder } from "./PhotoReorder";
-import { ALBUM_BUCKET } from "./rules";
+import { albumStore } from "@/lib/album-storage";
 import { dateAr } from "@/features/portal/format";
 import {
   createCategory,
@@ -55,6 +55,7 @@ type Photo = {
   id: string;
   storage_path_original: string;
   variants: Record<string, string> | null;
+  storage_provider?: string;
   width: number | null;
   height: number | null;
   bytes: number | null;
@@ -68,7 +69,7 @@ type Photo = {
 };
 const ALBUM_COLS =
   "id, slug, title, description, event_date, source_label, source_url, rights_note, cover_photo_id, sort_order, is_published, published_at, category_id, archived_at, deleted_at";
-const PHOTO_COLS = "id, storage_path_original, variants, width, height, bytes, alt_text, sort_order, is_published, upload_status, last_error, attempts, deleted_at";
+const PHOTO_COLS = "id, storage_path_original, storage_provider, variants, width, height, bytes, alt_text, sort_order, is_published, upload_status, last_error, attempts, deleted_at";
 // Generated DB types may lag the CMS migration: read through an untyped client.
 const db = async () => (await createClient()) as unknown as SupabaseClient;
 
@@ -282,10 +283,15 @@ export async function AlbumsPage({ searchParams }: { searchParams: SP }) {
   );
 }
 
-async function signedMap(sb: SupabaseClient, paths: string[]) {
-  if (!paths.length) return new Map<string, string>();
-  const signed = await sb.storage.from(ALBUM_BUCKET).createSignedUrls(paths, 600);
-  return new Map((signed.data ?? []).filter((s) => s.signedUrl && s.path).map((s) => [s.path as string, s.signedUrl]));
+/** Short-lived preview URLs, asked from whichever store holds each photo. */
+async function signedMap(sb: SupabaseClient, photos: Photo[], variants: ("thumb" | "display")[]) {
+  const out = new Map<string, string>();
+  for (const provider of ["supabase", "s3"] as const) {
+    const paths = photos.filter((p) => (p.storage_provider ?? "supabase") === provider).flatMap((p) => variants.map((v) => p.variants?.[v])).filter((x): x is string => !!x);
+    if (!paths.length) continue;
+    for (const [k, v] of await albumStore(provider, sb).signedGet(paths, 600)) out.set(k, v);
+  }
+  return out;
 }
 
 export async function AlbumEditPage({ params, searchParams }: { params: IdParams; searchParams?: SP }) {
@@ -307,7 +313,7 @@ export async function AlbumEditPage({ params, searchParams }: { params: IdParams
   const trashed = all.filter((p) => p.deleted_at);
   const categories = (cats.data ?? []) as Category[];
   // Admin previews: short-lived signed URLs (admin storage policy), thumb variant only (never needs the original).
-  const urlByPath = await signedMap(sb, all.map((p) => p.variants?.thumb).filter((x): x is string => !!x));
+  const urlByPath = await signedMap(sb, all, ["thumb"]);
   const thumbOf = (p: Photo) => (p.variants?.thumb ? (urlByPath.get(p.variants.thumb) ?? null) : null);
   const visible = photos.filter((p) => p.is_published && p.upload_status === "ready").length;
   const notReady = photos.filter((p) => p.upload_status !== "ready").length;
@@ -521,7 +527,7 @@ export async function AlbumPreviewPage({ params }: { params: IdParams }) {
   const a = albumRes.data as Album;
   const photos = ((photosRes.data ?? []) as Photo[]).filter((p) => p.variants?.thumb && p.variants?.display);
   const shown = photos.filter((p) => p.is_published);
-  const urls = await signedMap(sb, shown.flatMap((p) => [p.variants!.thumb, p.variants!.display]));
+  const urls = await signedMap(sb, shown, ["thumb", "display"]);
   return (
     <>
       <PageHeader
