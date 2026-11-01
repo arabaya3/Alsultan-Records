@@ -78,7 +78,7 @@ async function AlbumView({ params }: { params: PageProps<"/work/albums/[slug]">[
   if (!res.data) notFound();
   const { album, photos } = res.data;
   const sourceUrl = safeHttp(album.source_url);
-  const meta = [formatDateAr(album.event_date), photoCountLabel(photos.length)].filter(Boolean);
+  const meta = [formatDateAr(album.event_date ?? album.published_at?.slice(0, 10) ?? album.created_at?.slice(0, 10) ?? null), photoCountLabel(photos.length)].filter(Boolean);
 
   return (
     <article data-album-page={album.slug}>

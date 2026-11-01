@@ -85,3 +85,18 @@ describe("homeAlbums (strictly newest published first, picks not mixed in)", () 
     expect(list.map((a) => a.id)).toEqual(["n1", "n2", "n3", "n4", "n5", "n6"]);
   });
 });
+
+describe("hero sources", () => {
+  it("backdrops: one cover per album, newest published first, albums without a cover skipped", async () => {
+    const { albumHeroPhotos } = await import("./gallery-model");
+    const list = [album("old", { published_at: "2026-01-01T00:00:00Z" }), album("new", { published_at: "2026-03-01T00:00:00Z" }), album("none", { published_at: "2026-04-01T00:00:00Z", coverId: null })];
+    expect(albumHeroPhotos(list as never)).toEqual(["new-cover", "old-cover"]);
+  });
+  it("hero video: the newest non-promo by YouTube date", async () => {
+    const { latestVideo } = await import("./gallery-model");
+    const v = (id: string, published_at: string | null, role = "work") => ({ id, published_at, role, is_promo: role === "promo" });
+    const g = { videos: [v("a", "2026-01-01"), v("b", "2026-09-01"), v("p", "2026-10-30", "promo"), v("c", null)], categories: [], promo: null };
+    expect(latestVideo(g as never)?.id).toBe("b");
+    expect(latestVideo({ ...g, videos: [v("p", "2026-10-30", "promo")] } as never)).toBeNull();
+  });
+});

@@ -12,11 +12,13 @@ export function PromoPlayer({
   title,
   caption,
   duration,
+  label = "شاهد البرومو",
 }: {
   youtubeId: string;
   title: string;
   caption: string;
   duration?: string | null;
+  label?: string;
 }) {
   const [open, setOpen] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
@@ -44,7 +46,7 @@ export function PromoPlayer({
         <span className="absolute inset-x-0 bottom-0 flex items-center gap-4 p-4 sm:p-5">
           <PlayBadge size={56} className="bg-black/40 text-gold transition-colors duration-200 group-hover:bg-gold group-hover:text-ink" />
           <span className="min-w-0">
-            <span className="block font-display text-lg font-semibold text-ivory sm:text-xl">شاهد البرومو</span>
+            <span className="block font-display text-lg font-semibold text-ivory sm:text-xl">{label}</span>
             <span className="block truncate text-sm text-ivory/85">
               {caption}
               {duration ? ` · ${duration}` : ""}

@@ -5,7 +5,7 @@ import { getPublicClient } from "./client";
 import {
   albumPhotoRow,
   buildGallery,
-  latestAlbumHeroPhoto,
+  albumHeroPhotos, latestAlbumHeroPhoto,
   newestPublishedFirst,
   photoAlbumRow,
   videoCategoryLinkRow,
@@ -108,7 +108,7 @@ export async function getAlbumBySlug(slug: string): Promise<Loaded<{ album: Phot
   try {
     const { data, error } = await sb
       .from("photo_albums")
-      .select("id, slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order")
+      .select("id, slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order, created_at, published_at, listed_at")
       .eq("slug", slug)
       .maybeSingle();
     if (error) throw error;
@@ -138,6 +138,13 @@ export async function getAlbumBySlug(slug: string): Promise<Loaded<{ album: Phot
  * Both reads are already cached and tagged; this adds no cache layer of its own. The bytes come from /p/<id>/display,
  * which re-checks publication on every request and is never stored by shared caches.
  */
+/** The site hero photo first (see getSiteHeroPhotoId), then the other album covers: the backdrops change as photos are published. */
+export async function getSiteHeroPhotoIds(): Promise<string[]> {
+  const [first, albums] = await Promise.all([getSiteHeroPhotoId(), getPublishedAlbums()]);
+  const covers = albums.status === "ok" ? albumHeroPhotos(albums.data) : [];
+  return [...new Set([...(first ? [first] : []), ...covers])];
+}
+
 export async function getSiteHeroPhotoId(): Promise<string | null> {
   const s = await getBusinessSettings();
   if (s.status !== "ok" || !s.data) return null;

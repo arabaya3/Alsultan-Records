@@ -154,7 +154,7 @@ test("OD5 price × image: no empty column, image/text/actions whole on phone and
         await expect(page.locator("[data-offer-description]")).toBeVisible();
         await expect(page.locator("[data-offer-price]")).toHaveCount(c.price ? 1 : 0);
         await expect(page.locator("[data-offer-price]").or(page.locator("[data-offer-dates]")).first()).toBeVisible();
-        const img = page.locator("main img[src*='/display']");
+        const img = page.locator("main img[src*='/display']:not([aria-hidden])");
         await expect(img).toHaveCount(c.image ? 1 : 0);
         const desc = await page.locator("[data-offer-description]").boundingBox();
         if (c.image) {

@@ -25,7 +25,8 @@ async function cover(browser: Browser, width: number, dpr: number) {
 test("AC1 sharp on dense screens: the picked variant has at least as many pixels as the frame needs", async ({ browser }) => {
   for (const [w, dpr, variant] of [[390, 1, "thumb"], [390, 2, "display"], [390, 3, "display"], [1440, 1, "thumb"], [1440, 2, "display"]] as const) {
     const r = await cover(browser, w, dpr);
-    expect(r.src, `${w}px @${dpr}x`).toMatch(new RegExp(`/p/[0-9a-f-]+/${variant}$`));
+    // The browser may reuse the sharper copy when the same photo is already loaded as the hero backdrop.
+    expect(r.src, `${w}px @${dpr}x`).toMatch(new RegExp(`/p/[0-9a-f-]+/(${variant}|display)$`));
     // the frame is 2:3 with object-contain: the image must cover the frame's width or height in device pixels
     const need = Math.min(r.box.width, (r.box.height * 2) / 3) * dpr;
     if (variant === "thumb") expect(r.natural, `${w}px @${dpr}x natural ${r.natural} vs needed ${need.toFixed(0)}`).toBeGreaterThanOrEqual(Math.floor(need * 0.95));

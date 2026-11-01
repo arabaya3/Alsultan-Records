@@ -3,6 +3,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useLayoutEffect, useRef } from "react";
+import { RotatingBackdrop } from "@/components/ui/RotatingBackdrop";
 import { SitePromoPlayer } from "@/components/media/promo/SitePromoPlayer";
 import { PromoPlayer } from "@/components/media/youtube/PromoPlayer";
 import { ActiveLogoImg } from "@/components/brand/ActiveLogoImg";
@@ -20,7 +21,7 @@ export type HeroIntroProps = {
   whatsappHref: string | null;
   phone: { label: string; href: string } | null;
   /** Self-hosted studio promo (static asset in /public/promo) or a YouTube promo; null hides the card. */
-  promo: { caption: string; coverSrc?: string | null; coverMobileSrc?: string | null; youtube?: { youtubeId: string; title: string } | null } | null;
+  promo: { caption: string; coverSrc?: string | null; coverMobileSrc?: string | null; rotation?: string[]; rotationMobile?: string[]; youtube?: { youtubeId: string; title: string } | null } | null;
   /** Active owner logo (/a/<id>); null = built-in logo. */
   logoSrc?: string | null;
   primaryLabel?: string;
@@ -133,6 +134,7 @@ export function HeroIntro(p: HeroIntroProps) {
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={p.promo.coverSrc} alt="" aria-hidden="true" decoding="async" className="absolute inset-0 -z-20 size-full object-cover opacity-35 blur-[2px]" />
           </picture>
+          <RotatingBackdrop srcs={p.promo.rotation ?? []} mobileSrcs={p.promo.rotationMobile} className="absolute inset-0 -z-20 size-full object-cover opacity-35 blur-[2px]" />
           <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(to_left,rgb(13_12_11/0.92)_0%,rgb(13_12_11/0.78)_45%,rgb(13_12_11/0.6)_100%)]" />
         </>
       ) : null}
@@ -274,7 +276,7 @@ export function HeroIntro(p: HeroIntroProps) {
           {p.promo ? (
             <div data-intro="media">
               {p.promo.youtube ? (
-                <PromoPlayer youtubeId={p.promo.youtube.youtubeId} title={p.promo.youtube.title} caption={p.promo.caption} />
+                <PromoPlayer label="شاهد أحدث أعمالنا" youtubeId={p.promo.youtube.youtubeId} title={p.promo.youtube.title} caption={p.promo.caption} />
               ) : (
                 // Same video → same poster everywhere (home, أعمالنا, من نحن): the promo's own cover frames.
                 // The owner's hero photo stays the hero backdrop above.

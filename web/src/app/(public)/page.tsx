@@ -14,8 +14,8 @@ import type { SectionConfig } from "@/features/public-content/cms-model";
 import { getActiveOffers, getProcessSteps, getPublishedPackages, getSiteSections } from "@/features/public-content/cms-queries";
 import { bookingHref, telHref } from "@/features/public-content/contact";
 import { FALLBACK_SERVICES, HERO } from "@/features/public-content/home-content";
-import { homeAlbums, homeSelection, photoUrl, promoVideos, toCardVideo } from "@/features/public-content/gallery-model";
-import { getPublishedAlbums, getSiteHeroPhotoId, getVideoGallery } from "@/features/public-content/gallery-queries";
+import { homeAlbums, homeSelection, latestVideo, photoUrl, promoVideos, toCardVideo } from "@/features/public-content/gallery-model";
+import { getPublishedAlbums, getSiteHeroPhotoIds, getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedServices } from "@/features/public-content/queries";
 import { CORE_SERVICES, SITE_NAME_AR } from "@/features/public-content/site";
@@ -66,7 +66,7 @@ const HEADING_ID: Record<SectionConfig["key"], string> = {
 };
 
 export default async function HomePage() {
-  const [settings, gallery, services, sections, offers, steps, albums, packages, heroPhoto] = await Promise.all([
+  const [settings, gallery, services, sections, offers, steps, albums, packages, heroPhotos] = await Promise.all([
     getBusinessSettings(),
     getVideoGallery(),
     getPublishedServices(),
@@ -75,7 +75,7 @@ export default async function HomePage() {
     getProcessSteps(),
     getPublishedAlbums(),
     getPublishedPackages(),
-    getSiteHeroPhotoId(),
+    getSiteHeroPhotoIds(),
   ]);
 
   const s = settings.status === "ok" ? settings.data : null;
@@ -93,11 +93,8 @@ export default async function HomePage() {
   // Strictly by latest publish (homeAlbums); the owner's stored picks are kept but not mixed in.
   const albumList = albums.status === "ok" ? homeAlbums(albums.data.filter((a) => a.photoCount > 0), cfg("albums").limit) : [];
 
-  // Hero promo: the self-hosted studio promo by default; the owner may switch to a published YouTube promo.
-  const ytPromo =
-    s?.hero_promo_source === "youtube" && g
-      ? (g.videos.find((v) => v.id === s.hero_promo_video_id) ?? g.promo ?? promoVideos(g)[0] ?? null)
-      : null;
+  // Hero video: always the newest YouTube video on the site. The self-hosted promo only if there is none.
+  const ytPromo = g ? latestVideo(g) : null;
 
   const renderSection = (c: SectionConfig, tone: "dark" | "darker") => {
     const hid = HEADING_ID[c.key];
@@ -375,9 +372,11 @@ export default async function HomePage() {
         whatsappHref={book}
         phone={s?.phone ? { label: s.phone, href: telHref(s.phone) } : null}
         promo={{
-          caption: PROMO_CAPTION,
-          coverSrc: heroPhoto ? photoUrl(heroPhoto, "display") : null,
-          coverMobileSrc: heroPhoto ? photoUrl(heroPhoto, "thumb") : null,
+          caption: ytPromo ? ytPromo.title : PROMO_CAPTION,
+          coverSrc: heroPhotos[0] ? photoUrl(heroPhotos[0], "display") : null,
+          coverMobileSrc: heroPhotos[0] ? photoUrl(heroPhotos[0], "thumb") : null,
+          rotation: heroPhotos.map((id) => photoUrl(id, "display")),
+          rotationMobile: heroPhotos.map((id) => photoUrl(id, "thumb")),
           youtube: ytPromo ? { youtubeId: ytPromo.youtube_id, title: ytPromo.title } : null,
         }}
         strip={works.slice(0, 4).map((v) => ({ youtubeId: v.youtube_id, title: v.title }))}
