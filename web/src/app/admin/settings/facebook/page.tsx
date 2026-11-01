@@ -4,10 +4,15 @@ import { PageSkeleton } from "@/features/admin/ui";
 
 export const metadata = { title: "صفحة فيسبوك" };
 
-export default function Page() {
+async function Content({ searchParams }: { searchParams: Promise<{ result?: string }> }) {
+  const { result } = await searchParams;
+  return <FacebookSettingsPage result={result} />;
+}
+
+export default function Page({ searchParams }: { searchParams: Promise<{ result?: string }> }) {
   return (
     <Suspense fallback={<PageSkeleton />}>
-      <FacebookSettingsPage />
+      <Content searchParams={searchParams} />
     </Suspense>
   );
 }
