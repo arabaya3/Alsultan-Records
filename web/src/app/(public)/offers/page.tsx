@@ -6,7 +6,6 @@ import { Section, SectionHeading } from "@/components/ui/Layout";
 import { ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { getActiveOffers, getPublishedPackages } from "@/features/public-content/cms-queries";
-import { getSiteHeroPhotoId } from "@/features/public-content/gallery-queries";
 import { pageMetadata } from "@/features/public-content/seo";
 
 export const metadata = pageMetadata({
@@ -32,7 +31,7 @@ const PLAN = [
 ] as const;
 
 export default async function OffersPage() {
-  const [res, pk, cover] = await Promise.all([getActiveOffers(), getPublishedPackages(), getSiteHeroPhotoId()]);
+  const [res, pk] = await Promise.all([getActiveOffers(), getPublishedPackages()]);
   // Linked package shown only while it is published; the offer never changes the package.
   const pkgTitle = new Map(pk.status === "ok" ? pk.data.map((p) => [p.id, p.title] as const) : []);
   return (
@@ -44,7 +43,6 @@ export default async function OffersPage() {
           </>
         }
         lead="عروض لفترة محدودة على مناسباتكم. للباقات الثابتة شوف صفحة البكجات، وللتفاصيل راسلنا على واتساب."
-        photoId={cover}
       />
       <Section>
         {res.status === "unavailable" ? (

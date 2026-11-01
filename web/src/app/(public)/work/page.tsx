@@ -15,7 +15,7 @@ import { EmptyState, ErrorState, Skeleton, TileGridSkeleton } from "@/components
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { getAlbumCategories } from "@/features/public-content/cms-queries";
 import { filterVideos, isWork, promoVideos, paginate, parseWorkQuery, toCardVideo, workHref, type WorkQuery } from "@/features/public-content/gallery-model";
-import { getPublishedAlbums, getSiteHeroPhotoId, getVideoGallery } from "@/features/public-content/gallery-queries";
+import { getPublishedAlbums, getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel, eventTypeLabel, formatDateAr } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedProjects } from "@/features/public-content/queries";
 import { bookingHref } from "@/features/public-content/contact";
@@ -359,10 +359,10 @@ async function Projects() {
   );
 }
 
-/** Hero with the site hero photo (manual choice or the newest album, getSiteHeroPhotoId), else the ink texture. */
+/** Hero with the rotating site backdrops (getSiteHeroPhotoIds), else the ink texture. */
 async function WorkHero({ searchParams }: { searchParams: PageProps<"/work">["searchParams"] }) {
-  const [photoId, sp] = await Promise.all([getSiteHeroPhotoId(), searchParams]);
-  return <PageHero title="أعمالنا" lead={LEAD[parseWorkQuery(sp).tab]} photoId={photoId} />;
+  const sp = await searchParams;
+  return <PageHero title="أعمالنا" lead={LEAD[parseWorkQuery(sp).tab]} />;
 }
 
 export default function WorkPage(props: PageProps<"/work">) {
