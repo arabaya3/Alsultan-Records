@@ -39,7 +39,6 @@ export default async function AboutPage() {
         }
         eyebrow={SITE_NAME_AR}
         lead="ستوديو وتسجيلات السلطان، من ميثلون – جنين."
-        photoId={heroPhoto}
       />
       <Section>
         <div className="grid gap-12 lg:grid-cols-[1.4fr_1fr] lg:gap-16">
