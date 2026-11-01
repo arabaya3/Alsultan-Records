@@ -18,7 +18,7 @@ test.use({ launchOptions: { args: ["--autoplay-policy=no-user-gesture-required"]
 
 async function openAndPlay(page: Page, expected: typeof L) {
   expect(await page.locator("video").count(), "no <video> before the click").toBe(0);
-  const trigger = page.locator("[data-hero-intro] [data-promo-trigger]");
+  const trigger = page.locator("[data-promo-trigger]");
   await expect(trigger).toBeVisible();
   await expect(trigger).toContainText("شاهد البرومو");
   await expect(trigger).toContainText("فيديو تعريفي · ٢٨ ث");
