@@ -13,7 +13,7 @@ import { EmptyState, ErrorState, Skeleton, TileGridSkeleton } from "@/components
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { getAlbumCategories } from "@/features/public-content/cms-queries";
 import { filterVideos, isWork, promoVideos, paginate, parseWorkQuery, toCardVideo, workHref, type WorkQuery } from "@/features/public-content/gallery-model";
-import { getPublishedAlbums, getVideoGallery } from "@/features/public-content/gallery-queries";
+import { getPublishedAlbums, getReelFiles, getVideoGallery } from "@/features/public-content/gallery-queries";
 import { durationLabel, eventTypeLabel, formatDateAr } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedProjects } from "@/features/public-content/queries";
 import { bookingHref } from "@/features/public-content/contact";
@@ -37,7 +37,7 @@ const LEAD_GENERIC = "فيديوهات وصور من أعراس ومناسبات
 
 /* Segmented tabs (gold = active) and category chips. Each is a real, shareable URL (server-rendered). */
 const tabCls = (active: boolean) =>
-  `inline-flex min-h-12 items-center justify-center gap-2 rounded-sm px-5 text-base font-semibold transition-colors duration-200 sm:px-7 ${
+  `flex min-h-12 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-2 text-sm font-semibold transition-colors duration-200 sm:gap-2 sm:px-7 sm:text-base ${
     active ? "bg-gold text-ink" : "text-ivory-muted hover:bg-surface-2 hover:text-ivory"
   }`;
 const chipCls = (active: boolean) =>
@@ -70,16 +70,16 @@ function PhotoIcon() {
 function Tabs({ tab, promos }: { tab: WorkQuery["tab"]; promos: boolean }) {
   return (
     <nav aria-label="نوع الأعمال" className="mb-8 flex justify-center">
-      <ul className="inline-flex flex-wrap justify-center gap-1 rounded-md border border-hairline bg-surface p-1">
+      <ul className="grid w-full max-w-xl auto-cols-fr grid-flow-col gap-1 rounded-md border border-hairline bg-surface p-1 sm:inline-flex sm:w-auto sm:max-w-none">
         <li>
           <Link href={workHref({ tab: "videos" })} aria-current={tab === "videos" ? "page" : undefined} data-work-tab="videos" className={tabCls(tab === "videos")}>
-            <VideoIcon />
+            <span className="hidden sm:inline"><VideoIcon /></span>
             الفيديوهات
           </Link>
         </li>
         <li>
           <Link href={workHref({ tab: "photos" })} aria-current={tab === "photos" ? "page" : undefined} data-work-tab="photos" className={tabCls(tab === "photos")}>
-            <PhotoIcon />
+            <span className="hidden sm:inline"><PhotoIcon /></span>
             ألبومات الصور
           </Link>
         </li>
@@ -108,8 +108,17 @@ function GridSkeleton({ ratio = "aspect-video" }: { ratio?: string }) {
   );
 }
 
+type ReelSource = { id: string; youtube_id: string; title: string };
+function toReels(list: ReelSource[], files: Map<string, { width: number | null; height: number | null }>, inquiry: (v: ReelSource) => string | null): Reel[] {
+  return list.map((v) => {
+    const f = files.get(v.id);
+    return { id: v.id, youtubeId: v.youtube_id, title: v.title, inquiryHref: inquiry(v), file: f ? { src: `/r/${v.id}`, width: f.width, height: f.height } : null };
+  });
+}
+const withReel = (base: string, id: string) => `${base}${base.includes("?") ? "&" : "?"}reel=${encodeURIComponent(id)}`;
+
 async function Videos({ q }: { q: WorkQuery }) {
-  const [res, settings] = await Promise.all([getVideoGallery(), getBusinessSettings()]);
+  const [res, settings, files] = await Promise.all([getVideoGallery(), getBusinessSettings(), getReelFiles()]);
   if (res.status === "unavailable") return <ErrorState action={<WhatsAppCta />} />;
   const g = res.data;
   if (g.videos.length === 0) {
@@ -130,7 +139,7 @@ async function Videos({ q }: { q: WorkQuery }) {
   const reelsOn = process.env.REELS_VIEWER === "1";
   const s = settings.status === "ok" ? settings.data : null;
   const base = workHref({ cat: active?.slug ?? null });
-  const reels: Reel[] = list.map((v) => ({ id: v.id, youtubeId: v.youtube_id, title: v.title, inquiryHref: bookingHref(s, `مرحبا، شفت الفيديو «${v.title}» وبدي أستفسر`) }));
+  const reels = toReels(list, files, (v) => bookingHref(s, `مرحبا، شفت الفيديو «${v.title}» وبدي أستفسر`));
 
   return (
     <>
@@ -160,21 +169,7 @@ async function Videos({ q }: { q: WorkQuery }) {
         </nav>
       ) : null}
 
-      {reelsOn && list.length ? (
-        <>
-          <p className="mb-8">
-            <Link
-              href={`${base}${base.includes("?") ? "&" : "?"}reel=${encodeURIComponent(list[0]!.id)}`}
-              scroll={false}
-              data-reels-open
-              className="inline-flex min-h-12 items-center gap-2 rounded-sm bg-gold px-5 font-medium text-ink hover:bg-gold-press"
-            >
-              تشغيل بوضع الريلز
-            </Link>
-          </p>
-          <ReelsViewer reels={reels} />
-        </>
-      ) : null}
+      {reelsOn && list.length ? <ReelsViewer reels={reels} /> : null}
 
       <h2 className="sr-only">{active ? `فيديوهات: ${active.title}` : "كل الفيديوهات"}</h2>
       <div key={`${active?.slug ?? "all"}-${page}`} className={swapCls}>
@@ -184,7 +179,7 @@ async function Videos({ q }: { q: WorkQuery }) {
           <ul data-video-grid className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             {shown.map((v, i) => (
               <li key={v.id} className="h-full">
-                <YouTubeCard video={toCardVideo(v, durationLabel(v.duration_seconds))} priority={page === 1 && i < 3} />
+                <YouTubeCard video={toCardVideo(v, durationLabel(v.duration_seconds))} priority={page === 1 && i < 3} reelHref={reelsOn ? withReel(base, v.id) : undefined} />
               </li>
             ))}
           </ul>
@@ -212,7 +207,7 @@ async function Videos({ q }: { q: WorkQuery }) {
 
 /** Promos (role promo/both), separate from the occasion categories. Pinned first (query order). */
 async function Promos() {
-  const [res, settings] = await Promise.all([getVideoGallery(), getBusinessSettings()]);
+  const [res, settings, files] = await Promise.all([getVideoGallery(), getBusinessSettings(), getReelFiles()]);
   if (res.status === "unavailable") return <ErrorState action={<WhatsAppCta />} />;
   const list = promoVideos(res.data);
   if (!list.length) {
@@ -221,29 +216,19 @@ async function Promos() {
   // Launch gate: the vertical viewer stays OFF until real YouTube playback is verified on phones (set REELS_VIEWER=1).
   const reelsOn = process.env.REELS_VIEWER === "1";
   const s = settings.status === "ok" ? settings.data : null;
-  const reels: Reel[] = list.map((v) => ({ id: v.id, youtubeId: v.youtube_id, title: v.title, inquiryHref: bookingHref(s, `مرحبا، شفت البرومو «${v.title}» على موقعكم وحاب أستفسر.`) }));
+  const reels = toReels(list, files, (v) => bookingHref(s, `مرحبا، شفت البرومو «${v.title}» على موقعكم وحاب أستفسر.`));
   return (
     <>
       <h2 className="sr-only">البروموهات</h2>
-      {reelsOn ? (
-        <>
-          <p className="mb-8">
-        <Link
-          href={`${workHref({ tab: "promos" })}&reel=${encodeURIComponent(list[0]!.id)}`}
-          scroll={false}
-          data-reels-open
-          className="inline-flex min-h-12 items-center gap-2 rounded-sm bg-gold px-5 font-medium text-ink hover:bg-gold-press"
-        >
-          تشغيل بوضع الريلز
-        </Link>
-          </p>
-          <ReelsViewer reels={reels} />
-        </>
-      ) : null}
+      {reelsOn ? <ReelsViewer reels={reels} /> : null}
       <ul data-promo-grid className={`grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3 ${swapCls}`}>
         {list.map((v, i) => (
           <li key={v.id} className="h-full">
-            <YouTubeCard video={{ ...toCardVideo(v, durationLabel(v.duration_seconds)), categories: [] }} priority={i < 3} />
+            <YouTubeCard
+              video={{ ...toCardVideo(v, durationLabel(v.duration_seconds)), categories: [] }}
+              priority={i < 3}
+              reelHref={reelsOn ? withReel(workHref({ tab: "promos" }), v.id) : undefined}
+            />
           </li>
         ))}
       </ul>

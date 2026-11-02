@@ -1,4 +1,5 @@
 import "server-only";
+import { s3SignedGet } from "@/lib/album-storage/s3";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { REQUEST_TIMEOUT_MS } from "./graph";
@@ -50,9 +51,11 @@ export async function runFacebookJobs(
         token: typeof token === "string" ? token : null,
         pageId,
         signedFileUrl: async (reelId) => {
-          const { data: v } = await sb.from("reel_videos").select("storage_path").eq("id", reelId).maybeSingle();
+          const { data: v } = await sb.from("reel_videos").select("storage_path, storage_provider").eq("id", reelId).maybeSingle();
           if (!v) return null;
-          const s = await sb.storage.from(BUCKET).createSignedUrl((v as { storage_path: string }).storage_path, SIGNED_URL_SECONDS);
+          const row = v as { storage_path: string; storage_provider?: string };
+          if (row.storage_provider === "s3") return s3SignedGet(row.storage_path, SIGNED_URL_SECONDS);
+          const s = await sb.storage.from(BUCKET).createSignedUrl(row.storage_path, SIGNED_URL_SECONDS);
           return s.data?.signedUrl ?? null;
         },
         save: checkedSave(sb, j.lease_token),

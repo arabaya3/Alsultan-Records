@@ -8,6 +8,7 @@ import { ActionForm } from "@/features/admin/ActionForm";
 import { PageTabs, VIDEOS_TABS } from "@/features/cms-admin/pages/shared";
 import { Badge, btn, Card, DL, Field, FilterChips, inputCls, LoadError, Notice, PageHeader, Table } from "@/features/admin/ui";
 import { isUuid } from "@/features/admin/result";
+import { ReelFileUploader } from "./ReelFileUploader";
 import { PhotoPicker, type PickPhoto } from "@/features/cms-admin/fields";
 import { pickPhotos } from "@/features/cms-admin/data";
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -312,6 +313,7 @@ export async function VideoEditPage({ params }: { params: IdParams }) {
   ]);
   const photos = await pickPhotos(sb as unknown as SupabaseClient);
   if (row.error || !row.data) return <LoadError what="الفيديو" />;
+  const { data: reelFile } = await (sb as unknown as SupabaseClient).from("reel_videos").select("id, upload_status, width, height").eq("showcase_video_id", id).maybeSingle();
   const v = {
     ...(row.data as Omit<VideoRow, "title_source" | "needs_review">),
     title_source: details.data?.title_source ?? "youtube",
@@ -337,6 +339,12 @@ export async function VideoEditPage({ params }: { params: IdParams }) {
           </Card>
         </div>
         <div className="space-y-4">
+          <Card title="الملف الأصلي لوضع الريلز">
+            <ReelFileUploader
+              videoId={v.id}
+              current={reelFile ? { id: reelFile.id as string, status: reelFile.upload_status as string, width: (reelFile.width as number | null) ?? null, height: (reelFile.height as number | null) ?? null } : null}
+            />
+          </Card>
           <Card title="المعاينة">
             <Image src={youTubeThumbUrl(v.youtube_id)} alt="" width={480} height={270} className="w-full rounded-sm" />
             <a href={youTubeWatchUrl(v.youtube_id)} target="_blank" rel="noopener noreferrer" className="mt-2 inline-block text-sm underline" dir="ltr">

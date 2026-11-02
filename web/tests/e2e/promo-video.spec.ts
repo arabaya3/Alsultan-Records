@@ -66,6 +66,7 @@ test("no overflow 360/390/768/1440/1920; reduced motion works; axe on /", async 
 });
 
 test("/work: no studio promo on the videos tab; YouTube works open the YouTube dialog", async ({ page }) => {
+  test.skip(process.env.REELS_VIEWER === "1", "with reels mode on, cards open the viewer (reels-player spec)");
   await page.goto("/work", { waitUntil: "networkidle" });
   await expect(page.locator("main [data-promo-trigger]")).toHaveCount(0);
   expect(await page.locator("video, iframe").count()).toBe(0);

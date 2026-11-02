@@ -28,6 +28,7 @@ async function playbackState(page: Page) {
 }
 
 test("no iframe before click; the former YouTube promo (now a normal work on /work) opens, plays, closes and returns focus", async ({ page }) => {
+  test.skip(process.env.REELS_VIEWER === "1", "with reels mode on, cards open the viewer (reels-player spec)");
   await page.goto("/work", { waitUntil: "networkidle" });
   expect(await page.locator("iframe").count(), "no iframe on load (no autoplay)").toBe(0);
 
@@ -65,6 +66,7 @@ test("no iframe before click; the former YouTube promo (now a normal work on /wo
 });
 
 test("dialog traps keyboard focus", async ({ page }) => {
+  test.skip(process.env.REELS_VIEWER === "1", "with reels mode on, cards open the viewer (reels-player spec)");
   await page.goto("/work", { waitUntil: "networkidle" });
   await page.locator(`[data-video-grid] [data-youtube-card="${PROMO}"]`).focus();
   await page.keyboard.press("Enter");
@@ -78,6 +80,7 @@ test("dialog traps keyboard focus", async ({ page }) => {
 });
 
 test("works grid on /work opens each video", async ({ page }) => {
+  test.skip(process.env.REELS_VIEWER === "1", "with reels mode on, cards open the viewer (reels-player spec)");
   await page.goto("/work", { waitUntil: "networkidle" });
   const cards = page.locator("[data-youtube-card]");
   const n = await cards.count();
