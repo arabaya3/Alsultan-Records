@@ -2,9 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { AlbumCard } from "@/components/media/gallery/AlbumCard";
 import { ProjectTile } from "@/components/media/ProjectTile";
-import { SitePromoPlayer } from "@/components/media/promo/SitePromoPlayer";
 import { ReelsViewer, type Reel } from "@/components/media/reels/ReelsViewer";
-import { PROMO_CAPTION } from "@/components/media/promo/promo-seo";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
 import { FadeRise } from "@/components/motion/Reveal";
 import { buttonClasses } from "@/components/ui/Button";
@@ -125,11 +123,9 @@ async function Videos({ q }: { q: WorkQuery }) {
   }
   const channel = settings.status === "ok" ? safeHttp(settings.data?.youtube_url ?? null) : null;
   const active = q.cat ? (g.categories.find((c) => c.slug === q.cat) ?? null) : null;
-  // Unfiltered: every published YouTube work, including the one flagged is_promo (a real work, no
-  // longer featured; the highlight slot belongs to the self-hosted studio promo).
+  // Unfiltered: every published YouTube work, including the one flagged is_promo (a real work, no longer featured).
   const list = active ? filterVideos(g, active.slug) : g.videos.filter(isWork);
   const { shown, page, hasMore, total } = paginate(q.cat && !active ? [] : list, q.page);
-  const featured = !q.cat && page === 1;
   // Same launch gate as the promos. Every video of the current filter, not only the loaded page.
   const reelsOn = process.env.REELS_VIEWER === "1";
   const s = settings.status === "ok" ? settings.data : null;
@@ -164,19 +160,6 @@ async function Videos({ q }: { q: WorkQuery }) {
         </nav>
       ) : null}
 
-      {featured ? (
-        // Featured slot: the self-hosted studio film (large, gold frame), then the YouTube works grid.
-        <div data-work-promo className="mx-auto mb-14 max-w-5xl">
-          <div className="rounded-lg border border-hairline-gold p-1 shadow-[0_24px_60px_-30px_rgb(233_185_73/0.45)]">
-            <SitePromoPlayer label="فيديو تعريفي بالاستوديو" caption={PROMO_CAPTION} priority sizes="(min-width: 1024px) 64rem, 100vw" />
-          </div>
-          <div className="mt-4 text-center">
-            <p className="font-display text-lg font-semibold text-ivory">فيديو تعريفي بالاستوديو</p>
-            <p className="mt-1 text-ivory-muted">لمحة سريعة عن شغلنا في الأعراس والمناسبات: تصوير، أفلام وDJ.</p>
-          </div>
-        </div>
-      ) : null}
-
       {reelsOn && list.length ? (
         <>
           <p className="mb-8">
@@ -201,7 +184,7 @@ async function Videos({ q }: { q: WorkQuery }) {
           <ul data-video-grid className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
             {shown.map((v, i) => (
               <li key={v.id} className="h-full">
-                <YouTubeCard video={toCardVideo(v, durationLabel(v.duration_seconds))} priority={!featured && i < 3} />
+                <YouTubeCard video={toCardVideo(v, durationLabel(v.duration_seconds))} priority={page === 1 && i < 3} />
               </li>
             ))}
           </ul>
