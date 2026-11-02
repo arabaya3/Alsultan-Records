@@ -2,7 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useLayoutEffect, useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
+import { YouTubeDialog } from "@/components/media/youtube/YouTubeDialog";
 import { RotatingBackdrop } from "@/components/ui/RotatingBackdrop";
 import { SitePromoPlayer } from "@/components/media/promo/SitePromoPlayer";
 import { PromoPlayer } from "@/components/media/youtube/PromoPlayer";
@@ -44,6 +45,8 @@ export type HeroIntroProps = {
  */
 export function HeroIntro(p: HeroIntroProps) {
   const ref = useRef<HTMLElement>(null);
+  const [stripOpen, setStripOpen] = useState<{ youtubeId: string; title: string } | null>(null);
+  const stripTrigger = useRef<HTMLButtonElement | null>(null);
 
   useLayoutEffect(() => {
     const root = ref.current;
@@ -285,29 +288,40 @@ export function HeroIntro(p: HeroIntroProps) {
             </div>
           ) : null}
           {p.strip.length >= 3 ? (
-            // Decorative glimpse of the studio's own published works; it reveals once and then stays still.
-            <ul
-              aria-hidden="true"
-              className="mt-3 hidden grid-cols-4 gap-2 sm:grid"
-            >
+            // The studio's latest published works: each opens its video in place.
+            <ul aria-label="أحدث الأعمال" className="mt-3 hidden grid-cols-4 gap-2 sm:grid">
               {p.strip.slice(0, 4).map((v) => (
                 <li
                   key={v.youtubeId}
                   data-intro="thumb"
-                  className="relative aspect-video overflow-hidden rounded-sm bg-surface ring-1 ring-hairline"
+                  className="relative aspect-video overflow-hidden rounded-sm bg-surface ring-1 ring-hairline transition-shadow hover:ring-gold"
                 >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={youTubeThumbUrl(v.youtubeId)}
-                    alt=""
-                    loading="lazy"
-                    decoding="async"
-                    className="absolute inset-0 size-full object-cover opacity-80"
-                  />
+                  <button
+                    type="button"
+                    data-hero-strip={v.youtubeId}
+                    aria-haspopup="dialog"
+                    aria-label={`تشغيل: ${v.title}`}
+                    title={v.title}
+                    onClick={(e) => {
+                      stripTrigger.current = e.currentTarget;
+                      setStripOpen(v);
+                    }}
+                    className="group absolute inset-0 size-full cursor-pointer focus-visible:outline-2 focus-visible:outline-gold"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={youTubeThumbUrl(v.youtubeId)}
+                      alt=""
+                      loading="lazy"
+                      decoding="async"
+                      className="absolute inset-0 size-full object-cover opacity-80 transition-opacity group-hover:opacity-100"
+                    />
+                  </button>
                 </li>
               ))}
             </ul>
           ) : null}
+          <YouTubeDialog video={stripOpen} onClose={() => setStripOpen(null)} returnFocus={stripTrigger} />
         </div>
       </div>
     </section>
