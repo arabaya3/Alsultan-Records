@@ -21,6 +21,8 @@ export function PromoPlayer({
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
+  // The large hero frame needs the full-size thumbnail; YouTube serves a 120 px placeholder when a video has none.
+  const [hq, setHq] = useState(false);
   const triggerRef = useRef<HTMLButtonElement>(null);
   if (!isYouTubeId(youtubeId)) return null;
   return (
@@ -34,7 +36,11 @@ export function PromoPlayer({
         className="group relative block aspect-video w-full overflow-hidden rounded-md bg-black text-start ring-1 ring-hairline-gold"
       >
         <Image
-          src={youTubeThumbUrl(youtubeId)}
+          src={youTubeThumbUrl(youtubeId, hq ? "hq" : "max")}
+          onLoad={(e) => {
+            if (!hq && e.currentTarget.naturalWidth <= 120) setHq(true);
+          }}
+          onError={() => setHq(true)}
           alt=""
           fill
           unoptimized
