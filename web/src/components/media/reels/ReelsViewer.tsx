@@ -15,6 +15,18 @@ function command(frame: HTMLIFrameElement | null, func: "pauseVideo" | "playVide
   frame?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args: [] }), "https://www.youtube-nocookie.com");
 }
 
+/** Plays the reel as soon as it is shown. The player ignores commands until it is ready, so they are sent a few times.
+ *  Sound is only restored after the visitor turned it on; browsers allow that once they have interacted with the page. */
+function startPlaying(frame: HTMLIFrameElement, muted: () => boolean) {
+  for (const ms of [0, 400, 1200, 2500]) {
+    window.setTimeout(() => {
+      if (!frame.isConnected) return;
+      command(frame, "playVideo");
+      if (!muted()) command(frame, "unMute");
+    }, ms);
+  }
+}
+
 /**
  * Promos as a vertical "reels" feed (owner request 2026-10-28), opened from the promos tab.
  *
@@ -39,6 +51,10 @@ export function ReelsViewer({ reels }: { reels: Reel[] }) {
 
   const [active, setActive] = useState(Math.max(openIndex, 0));
   const [muted, setMuted] = useState(true);
+  const mutedRef = useRef(true);
+  useEffect(() => {
+    mutedRef.current = muted;
+  }, [muted]);
   const [copied, setCopied] = useState(false);
   const feedRef = useRef<HTMLDivElement>(null);
   const frameRef = useRef<HTMLIFrameElement>(null);
@@ -93,7 +109,6 @@ export function ReelsViewer({ reels }: { reels: Reel[] }) {
           if (!e.isIntersecting) continue;
           const i = Number((e.target as HTMLElement).dataset.reelIndex);
           setActive(i);
-          setMuted(true);
           window.history.replaceState(window.history.state, "", hrefFor(valid[i]!.id));
         }
       },
@@ -172,7 +187,7 @@ export function ReelsViewer({ reels }: { reels: Reel[] }) {
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="البروموهات بعرض عمودي"
+      aria-label="وضع الريلز"
       data-reels-viewer
       onKeyDown={onKeyDown}
       className="fixed inset-0 z-[80] bg-night-deep text-ivory"
@@ -199,6 +214,7 @@ export function ReelsViewer({ reels }: { reels: Reel[] }) {
                     title={r.title}
                     allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                     allowFullScreen
+                    onLoad={(e) => startPlaying(e.currentTarget, () => mutedRef.current)}
                     className="absolute inset-0 size-full"
                   />
                 ) : (

@@ -230,7 +230,7 @@ async function Promos() {
           data-reels-open
           className="inline-flex min-h-12 items-center gap-2 rounded-sm bg-gold px-5 font-medium text-ink hover:bg-gold-press"
         >
-          شاهد البروموهات بعرض عمودي
+          تشغيل بوضع الريلز
         </Link>
           </p>
           <ReelsViewer reels={reels} />

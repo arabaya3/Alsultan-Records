@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Forbidden, guard, OWNER_ONLY } from "@/features/admin/guard";
 import { Badge, Card, Notice, PageHeader, Table } from "@/features/admin/ui";
 import { dateAr } from "@/features/portal/format";
+import { FAILURE_TEXT, metaEnv } from "./oauth";
 
 type Conn = { page_id: string; page_name: string; status: "connected" | "expired" | "disconnected"; graph_version: string; status_changed_at: string; last_error: string | null };
 type Post = { id: string; status: string; page_name: string | null; meta_post_id: string | null; attempts: number; last_error: string | null; created_at: string };
@@ -22,8 +23,9 @@ const STATUS: Record<string, { label: string; tone?: "success" | "danger" }> = {
  * Connecting needs a Meta App + Facebook Login with the owner's own account (never a password, never a token
  * pasted into the browser); until that is set up this page says «غير مربوط» and explains the steps.
  */
-export async function FacebookSettingsPage() {
+export async function FacebookSettingsPage({ result }: { result?: string } = {}) {
   if (!(await guard(OWNER_ONLY))) return <Forbidden />;
+  const canConnect = metaEnv() !== null;
   const sb = (await createClient()) as unknown as SupabaseClient;
   const [conn, posts] = await Promise.all([
     sb.from("meta_page_connection").select("page_id, page_name, status, graph_version, status_changed_at, last_error").eq("id", 1).maybeSingle(),
@@ -49,6 +51,15 @@ export async function FacebookSettingsPage() {
             <p>
               <Badge>غير مربوط</Badge> ما في صفحة فيسبوك مربوطة بالموقع. نشر المقاطع في الموقع يعمل عادي؛ خيار «انشر على فيسبوك أيضاً» ينتظر الربط.
             </p>
+          )}
+          {result === "connected" ? <Notice>تم ربط الصفحة.</Notice> : result && FAILURE_TEXT[result] ? <Notice>{FAILURE_TEXT[result]}</Notice> : null}
+          {canConnect ? (
+            // A full page navigation: the answer comes back from Facebook.
+            <a href="/api/facebook/connect" data-testid="facebook-connect" className="inline-flex min-h-11 items-center rounded-sm bg-gold px-4 font-medium text-ink hover:bg-gold-press">
+              {connected ? "إعادة الربط" : "ربط صفحة فيسبوك"}
+            </a>
+          ) : (
+            <p data-testid="facebook-not-configured" className="text-on-cream-muted">زر الربط يظهر بعد إعداد تطبيق Meta (META_APP_ID وMETA_APP_SECRET).</p>
           )}
           <Notice>
             الربط يتم بتسجيل الدخول بحساب فيسبوك الخاص بك عبر تطبيق Meta رسمي. الموقع لا يطلب كلمة سر فيسبوك أبداً، ورمز الوصول يُحفظ على الخادم فقط.
