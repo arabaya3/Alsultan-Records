@@ -1,5 +1,6 @@
 "use server";
 
+import { allRowsResult } from "@/lib/supabase/all-rows";
 import { randomUUID } from "node:crypto";
 import { refresh, updateTag } from "next/cache";
 import { expireAgainAfterSettling } from "@/lib/expire-after-settling";
@@ -310,10 +311,12 @@ export async function cancelAlbumUpload(photoId: string): Promise<void> {
 export type PhotoStatus = { id: string; status: "uploading" | "pending" | "processing" | "ready" | "failed"; error: string | null; attempts: number };
 
 async function statuses(sb: SB, where: { albumId?: string; ids?: string[] }): Promise<PhotoStatus[]> {
-  let q = sb.from("album_photos").select("id, upload_status, last_error, attempts").is("deleted_at", null);
-  if (where.ids) q = q.in("id", where.ids);
-  if (where.albumId) q = q.eq("album_id", where.albumId);
-  const { data } = await q;
+  const { data } = await allRowsResult((a, b) => {
+    let q = sb.from("album_photos").select("id, upload_status, last_error, attempts").is("deleted_at", null);
+    if (where.ids) q = q.in("id", where.ids);
+    if (where.albumId) q = q.eq("album_id", where.albumId);
+    return q.order("id").range(a, b);
+  });
   // requeue_album_photos parks rows as failed / attempts 0 / "requeued by admin" = waiting in the queue.
   return (data ?? []).map((r) => {
     const queued = r.upload_status === "failed" && r.last_error === "requeued by admin";
@@ -441,7 +444,7 @@ export async function setPhotoAlt(_p: ActionResult, fd: FormData): Promise<Actio
 }
 
 async function renumber(sb: SB, albumId: string, orderedIds: string[]): Promise<string | null> {
-  const { data: rows, error } = await sb.from("album_photos").select("id, sort_order").eq("album_id", albumId).is("deleted_at", null).order("sort_order").order("created_at");
+  const { data: rows, error } = await allRowsResult((a, b) => sb.from("album_photos").select("id, sort_order").eq("album_id", albumId).is("deleted_at", null).order("sort_order").order("created_at").order("id").range(a, b));
   if (error || !rows) return dbMessage(error);
   const known = new Set(rows.map((r) => r.id));
   const order = [...orderedIds.filter((id) => known.has(id)), ...rows.map((r) => r.id).filter((id) => !orderedIds.includes(id))];
@@ -464,7 +467,7 @@ export async function movePhoto(_p: ActionResult, fd: FormData): Promise<ActionR
   const sb = await db();
   const p = await photoOf(sb, id);
   if (!p) return fail("الصورة غير موجودة.");
-  const { data: rows, error } = await sb.from("album_photos").select("id").eq("album_id", p.album_id).is("deleted_at", null).order("sort_order").order("created_at");
+  const { data: rows, error } = await allRowsResult((a, b) => sb.from("album_photos").select("id").eq("album_id", p.album_id).is("deleted_at", null).order("sort_order").order("created_at").order("id").range(a, b));
   if (error || !rows) return fail(dbMessage(error));
   const ids = rows.map((r) => r.id as string);
   const i = ids.indexOf(id);
