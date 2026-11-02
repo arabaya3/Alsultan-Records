@@ -11,16 +11,17 @@ export type Reel = { id: string; youtubeId: string; title: string; inquiryHref: 
 const embedUrl = (id: string) =>
   `https://www.youtube-nocookie.com/embed/${id}?autoplay=1&mute=1&playsinline=1&rel=0&modestbranding=1&enablejsapi=1`;
 
-function command(frame: HTMLIFrameElement | null, func: "pauseVideo" | "playVideo" | "mute" | "unMute") {
-  frame?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args: [] }), "https://www.youtube-nocookie.com");
+function command(frame: HTMLIFrameElement | null, func: "pauseVideo" | "playVideo" | "mute" | "unMute" | "loadVideoById", args: unknown[] = []) {
+  frame?.contentWindow?.postMessage(JSON.stringify({ event: "command", func, args }), "https://www.youtube-nocookie.com");
 }
 
-/** Plays the reel as soon as it is shown. The player ignores commands until it is ready, so they are sent a few times.
+/** Plays what is loaded. The player ignores commands until it is ready, so they are sent a few times.
  *  Sound is only restored after the visitor turned it on; browsers allow that once they have interacted with the page. */
 function startPlaying(frame: HTMLIFrameElement, muted: () => boolean) {
   for (const ms of [0, 400, 1200, 2500]) {
     window.setTimeout(() => {
       if (!frame.isConnected) return;
+      frame.contentWindow?.postMessage(JSON.stringify({ event: "listening" }), "https://www.youtube-nocookie.com");
       command(frame, "playVideo");
       if (!muted()) command(frame, "unMute");
     }, ms);
@@ -34,9 +35,10 @@ function startPlaying(frame: HTMLIFrameElement, muted: () => boolean) {
  *   (open = push, switching reels = replace, so Back never walks through every reel).
  * - Native vertical scroll-snap: swipe/scroll between reels; ↑/↓ and the buttons do the same. No touch handlers,
  *   so page scrolling and the edge back gesture are never intercepted.
- * - Only the visible reel mounts an iframe (muted autoplay); the rest are thumbnails, so opening the page loads no
- *   player. Leaving a reel unmounts its player; hiding the tab pauses it. If the browser refuses autoplay, YouTube's
- *   own play button stays on the frame (never a blank screen).
+ * - One player for the whole viewer, created on open, so opening the page loads none. Switching loads the next video
+ *   INTO that player: a new iframe each time is what browsers refuse to autoplay, while a player the visitor has
+ *   already used keeps playing. Hiding the tab pauses it. If the browser still refuses, YouTube's own play button
+ *   stays on the frame (never a blank screen).
  * - Our sources are YouTube links with no stored orientation, so every clip is fitted WHOLE inside the stage
  *   (16:9 letterboxed on a phone) — never cropped to 9:16. Native vertical files are a separate, documented step.
  */
@@ -117,6 +119,26 @@ export function ReelsViewer({ reels }: { reels: Reel[] }) {
     for (const c of Array.from(feedRef.current.children)) io.observe(c);
     return () => io.disconnect();
   }, [open, valid, hrefFor]);
+
+  // The first video the player opens with; later ones are loaded into it.
+  const startId = useMemo(() => valid[Math.max(openIndex, 0)]?.youtubeId ?? "", [open]); // eslint-disable-line react-hooks/exhaustive-deps -- fixed for one opening
+  const playing = useRef(startId);
+  const playerReady = useRef(false);
+  const activeId = valid[active]?.youtubeId;
+  useEffect(() => {
+    playerReady.current = false;
+    playing.current = startId;
+  }, [startId, open]);
+  const syncPlayer = useCallback(() => {
+    const frame = frameRef.current;
+    if (!frame || !playerReady.current || !activeId) return;
+    if (playing.current !== activeId) {
+      playing.current = activeId;
+      command(frame, "loadVideoById", [activeId]);
+    }
+    startPlaying(frame, () => mutedRef.current);
+  }, [activeId]);
+  useEffect(syncPlayer, [syncPlayer]);
 
   // Hidden tab → pause; back → resume (still muted unless the visitor unmuted).
   useEffect(() => {
@@ -205,22 +227,12 @@ export function ReelsViewer({ reels }: { reels: Reel[] }) {
               aria-label={`${i + 1} من ${valid.length}: ${r.title}`}
               className="relative flex h-dvh snap-start snap-always items-center justify-center"
             >
-              {/* Fit the whole 16:9 clip inside the stage; never crop it. */}
+              {/* Fit the whole 16:9 clip inside the stage; never crop it. The player floats above the active reel. */}
               <div className="relative aspect-video w-full max-w-[min(100vw,calc(100dvh*16/9))] bg-black">
-                {isActive ? (
-                  <iframe
-                    ref={frameRef}
-                    src={embedUrl(r.youtubeId)}
-                    title={r.title}
-                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                    allowFullScreen
-                    onLoad={(e) => startPlaying(e.currentTarget, () => mutedRef.current)}
-                    className="absolute inset-0 size-full"
-                  />
-                ) : (
+                {
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={youTubeThumbUrl(r.youtubeId)} alt="" loading="lazy" decoding="async" className="absolute inset-0 size-full object-contain" />
-                )}
+                }
               </div>
               <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-night-deep via-night-deep/70 to-transparent px-4 pt-16 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <p dir={bidiDir(r.title)} className="line-clamp-2 max-w-[calc(100%-4rem)] text-lg font-medium [overflow-wrap:anywhere]">
@@ -233,6 +245,23 @@ export function ReelsViewer({ reels }: { reels: Reel[] }) {
             </section>
           );
         })}
+      </div>
+
+      <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+        <div data-reels-player className="pointer-events-auto relative aspect-video w-full max-w-[min(100vw,calc(100dvh*16/9))]">
+          <iframe
+            ref={frameRef}
+            src={embedUrl(startId)}
+            title={valid[active]?.title ?? "وضع الريلز"}
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            allowFullScreen
+            onLoad={() => {
+              playerReady.current = true;
+              syncPlayer();
+            }}
+            className="absolute inset-0 size-full"
+          />
+        </div>
       </div>
 
       {/* Controls float above the feed; they are real buttons (no gestures needed). */}
