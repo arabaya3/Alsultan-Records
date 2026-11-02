@@ -514,9 +514,8 @@ test("RL1: promos — launch gate off by default; when on: vertical reels, nothi
         .poll(() => new URL(page.url()).searchParams.get("reel"))
         .not.toBe(first);
       await expect(viewer.locator("iframe")).toHaveCount(1);
-      await expect(
-        viewer.locator("[data-reel][data-active='1'] iframe"),
-      ).toHaveCount(1);
+      // One player for the whole viewer: the video is loaded into it, so its iframe is not replaced.
+      await expect(viewer.locator("[data-reels-player] iframe")).toHaveCount(1);
     }
     const deep = page.url();
     await page.keyboard.press("Escape");

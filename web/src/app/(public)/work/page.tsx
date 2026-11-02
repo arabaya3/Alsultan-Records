@@ -130,6 +130,11 @@ async function Videos({ q }: { q: WorkQuery }) {
   const list = active ? filterVideos(g, active.slug) : g.videos.filter(isWork);
   const { shown, page, hasMore, total } = paginate(q.cat && !active ? [] : list, q.page);
   const featured = !q.cat && page === 1;
+  // Same launch gate as the promos. Every video of the current filter, not only the loaded page.
+  const reelsOn = process.env.REELS_VIEWER === "1";
+  const s = settings.status === "ok" ? settings.data : null;
+  const base = workHref({ cat: active?.slug ?? null });
+  const reels: Reel[] = list.map((v) => ({ id: v.id, youtubeId: v.youtube_id, title: v.title, inquiryHref: bookingHref(s, `مرحبا، شفت الفيديو «${v.title}» وبدي أستفسر`) }));
 
   return (
     <>
@@ -170,6 +175,22 @@ async function Videos({ q }: { q: WorkQuery }) {
             <p className="mt-1 text-ivory-muted">لمحة سريعة عن شغلنا في الأعراس والمناسبات: تصوير، أفلام وDJ.</p>
           </div>
         </div>
+      ) : null}
+
+      {reelsOn && list.length ? (
+        <>
+          <p className="mb-8">
+            <Link
+              href={`${base}${base.includes("?") ? "&" : "?"}reel=${encodeURIComponent(list[0]!.id)}`}
+              scroll={false}
+              data-reels-open
+              className="inline-flex min-h-12 items-center gap-2 rounded-sm bg-gold px-5 font-medium text-ink hover:bg-gold-press"
+            >
+              تشغيل بوضع الريلز
+            </Link>
+          </p>
+          <ReelsViewer reels={reels} />
+        </>
       ) : null}
 
       <h2 className="sr-only">{active ? `فيديوهات: ${active.title}` : "كل الفيديوهات"}</h2>
