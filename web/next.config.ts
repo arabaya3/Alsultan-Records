@@ -41,7 +41,14 @@ const securityHeaders = [
   ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }]),
 ];
 
+const siteOrigin = process.env.NEXT_PUBLIC_SITE_URL ? new URL(process.env.NEXT_PUBLIC_SITE_URL).origin : "";
+const OLD_HOST = "sultan-records.vercel.app";
+
 const nextConfig: NextConfig = {
+  async redirects() {
+    if (!siteOrigin || new URL(siteOrigin).host === OLD_HOST) return [];
+    return [{ source: "/:path((?!api/|_next/).*)", has: [{ type: "host", value: OLD_HOST }], destination: `${siteOrigin}/:path`, permanent: true }];
+  },
   // RAW decoding (src/features/photo-processing/raw.ts): LibRaw as WebAssembly, loaded at runtime from
   // node_modules; its .wasm must ship with every function that runs the photo worker.
   serverExternalPackages: ["libraw-wasm"],

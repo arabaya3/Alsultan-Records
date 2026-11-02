@@ -19,7 +19,7 @@ import { getPublishedAlbums, getSiteHeroPhotoIds, getVideoGallery } from "@/feat
 import { durationLabel } from "@/features/public-content/labels";
 import { getBusinessSettings, getPublishedServices } from "@/features/public-content/queries";
 import { CORE_SERVICES, SITE_NAME_AR } from "@/features/public-content/site";
-import { localBusinessJsonLd, pageMetadata, safeHttp } from "@/features/public-content/seo";
+import { localBusinessJsonLd, pageMetadata, safeHttp, websiteJsonLd } from "@/features/public-content/seo";
 import { ArrowStartIcon, GridIcon, IconLink } from "@/components/ui/IconLink";
 import { YouTubeIcon } from "@/components/ui/SocialIcons";
 import { SITE_TARGETS } from "@/lib/site-targets";
@@ -360,6 +360,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <JsonLd data={websiteJsonLd()} />
       {s ? <JsonLd data={localBusinessJsonLd(s)} /> : null}
       {ytPromo ? null : <JsonLd data={promoVideoJsonLd()} />}
 
