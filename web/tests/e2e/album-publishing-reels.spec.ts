@@ -468,12 +468,14 @@ test("RL1: promos — launch gate off by default; when on: vertical reels, nothi
     await blockYouTube(page);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.goto(`${BASE}/work?tab=promos`);
-    const open = page.locator("[data-reels-open]");
+    // Cards open reels mode directly (no separate launcher).
+    const open = page.locator("[data-promo-grid] [data-reel-card]").first();
     await expect(page.locator("[data-promo-grid] li").first()).toBeVisible();
     // Launch gate (REELS_VIEWER, same value for the app and this run): OFF by default until real YouTube playback is
     // verified on phones. OFF → no launcher and a shared ?reel= link opens nothing; the promo grid works as before.
     if (process.env.REELS_VIEWER !== "1") {
       await expect(open).toHaveCount(0);
+      await expect(page.locator("[data-reels-open]")).toHaveCount(0);
       const id = (await db.from("showcase_videos").select("id").in("role", ["promo", "both"]).eq("is_published", true).limit(1).single()).data!.id;
       await page.goto(`${BASE}/work?tab=promos&reel=${id}`);
       await expect(page.locator("[data-promo-grid] li").first()).toBeVisible();
@@ -493,10 +495,9 @@ test("RL1: promos — launch gate off by default; when on: vertical reels, nothi
       /autoplay=1&mute=1/,
     );
     await expect(page.locator("[data-reels-close]")).toBeFocused();
-    await expect(page.locator("[data-reels-mute]")).toHaveAttribute(
-      "aria-pressed",
-      "false",
-    );
+    // A YouTube clip keeps YouTube's own player; the site's sound control is for studio files only.
+    await expect(viewer.locator("[data-reels-player]")).toHaveAttribute("data-kind", "youtube");
+    await expect(page.locator("[data-reels-mute]")).toHaveCount(0);
     const first = new URL(page.url()).searchParams.get("reel");
     expect(first).toBeTruthy();
     expect(

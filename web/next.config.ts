@@ -19,7 +19,7 @@ const csp = [
   `script-src 'self' 'unsafe-inline' https://challenges.cloudflare.com${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: https://i.ytimg.com ${supabaseOrigin} ${s3Origin}`.trimEnd(),
-  `media-src 'self' blob: ${supabaseOrigin}`,
+  `media-src 'self' blob: ${supabaseOrigin} ${s3Origin}`.trimEnd(),
   "font-src 'self'",
   `connect-src 'self' ${supabaseOrigin} ${storageDirect} ${s3Origin} ${supabaseWs} https://challenges.cloudflare.com`.replace(/\s+/g, " "),
   "frame-src https://challenges.cloudflare.com https://www.youtube-nocookie.com",
@@ -27,7 +27,8 @@ const csp = [
   "base-uri 'self'",
   "form-action 'self'",
   "object-src 'none'",
-  ...(isDev ? [] : ["upgrade-insecure-requests"]),
+  // E2E_HTTP_STORAGE: local test builds whose S3 emulator only speaks http (never set in production).
+  ...(isDev || process.env.E2E_HTTP_STORAGE === "1" ? [] : ["upgrade-insecure-requests"]),
 ].join("; ");
 
 const securityHeaders = [

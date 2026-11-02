@@ -27,6 +27,9 @@ export default defineConfig({
     // Over plain http the production CSP upgrade-insecure-requests breaks WebKit on localhost, so run it through a local
     // gate that strips that header (see docs/production-presentation.md).
     ...(process.env.PW_WEBKIT ? [{ name: "webkit", use: { ...devices["Desktop Safari"], viewport: { width: 1440, height: 1000 } }, testMatch: /(offer-details|offers|album-covers|photos|ui-audit-followup).spec.ts$/, grepInvert: /@mobile/ }] : []),
+    // Reels mode on phones: Chrome on Android always; Safari on iPhone with PW_WEBKIT=1.
+    { name: "mobile-chrome", use: { ...devices["Pixel 7"] }, testMatch: /reels-player.spec/ },
+    ...(process.env.PW_WEBKIT ? [{ name: "mobile-safari", use: { ...devices["iPhone 13"] }, testMatch: /reels-player.spec/ }] : []),
   ],
   webServer: process.env.PW_WEBSERVER
     ? { command: "npx next start -p 3400", url: BASE_URL, reuseExistingServer: true, timeout: 120_000 }

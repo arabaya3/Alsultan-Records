@@ -32,6 +32,18 @@ function parseRows<S extends z.ZodType>(schema: S, rows: unknown): z.output<S>[]
  * categories and links whose video AND category are published. If the category tables are not
  * reachable the videos still render (uncategorised) rather than failing the whole page.
  */
+/** Published videos with a ready studio file for reels mode (no paths: the file is read through /r/<id>). */
+export async function getReelFiles(): Promise<Map<string, { width: number | null; height: number | null }>> {
+  "use cache";
+  cacheLife("minutes");
+  cacheTag(TAGS.videos);
+  const sb = getPublicClient();
+  if (!sb) return new Map();
+  const { data, error } = await (sb as unknown as { rpc: (f: string) => PromiseLike<{ data: unknown; error: unknown }> }).rpc("reel_files");
+  if (error || !Array.isArray(data)) return new Map();
+  return new Map((data as { video_id: string; width: number | null; height: number | null }[]).map((r) => [r.video_id, { width: r.width, height: r.height }]));
+}
+
 export async function getVideoGallery(): Promise<Loaded<VideoGallery>> {
   "use cache";
   cacheLife("minutes");

@@ -140,6 +140,7 @@ test("titles are the original DB titles (display-only separator cleanup); long t
 });
 
 test("dialog: plays in-page, shows title + category links + video page link", async ({ browser }) => {
+  test.skip(process.env.REELS_VIEWER === "1", "with reels mode on, cards open the viewer (reels-player spec)");
   const ctx = await browser.newContext({ viewport: { width: 1440, height: 1000 } });
   const page = await ctx.newPage();
   await page.goto(process.env.BASE_URL + "/work");
