@@ -1,3 +1,4 @@
+import { allRowsResult } from "@/lib/supabase/all-rows";
 import { photoErrorText } from "./photo-errors";
 import { LONG_TEXT } from "@/lib/text-limits";
 import Link from "next/link";
@@ -203,7 +204,7 @@ export async function AlbumsPage({ searchParams }: { searchParams: SP }) {
   q = view === "trash" ? q.not("deleted_at", "is", null) : view === "archived" ? q.is("deleted_at", null).not("archived_at", "is", null) : q.is("deleted_at", null).is("archived_at", null);
   const [{ data, error }, photos, cats] = await Promise.all([
     q,
-    sb.from("album_photos").select("album_id, is_published, upload_status").is("deleted_at", null),
+    allRowsResult((a, b) => sb.from("album_photos").select("album_id, is_published, upload_status").is("deleted_at", null).order("id").range(a, b)),
     sb.from("album_categories").select("id, slug, title, sort_order, is_published").order("sort_order").order("title"),
   ]);
   if (error) return <LoadError what="الألبومات" />;
@@ -303,7 +304,7 @@ export async function AlbumEditPage({ params, searchParams }: { params: IdParams
   const sb = await db();
   const [albumRes, photosRes, cats] = await Promise.all([
     sb.from("photo_albums").select(ALBUM_COLS).eq("id", id).maybeSingle(),
-    sb.from("album_photos").select(PHOTO_COLS).eq("album_id", id).order("sort_order").order("created_at"),
+    allRowsResult((a, b) => sb.from("album_photos").select(PHOTO_COLS).eq("album_id", id).order("sort_order").order("created_at").order("id").range(a, b)),
     sb.from("album_categories").select("id, slug, title, sort_order, is_published").order("sort_order").order("title"),
   ]);
   if (albumRes.error || !albumRes.data) return <LoadError what="الألبوم" />;
@@ -521,7 +522,7 @@ export async function AlbumPreviewPage({ params }: { params: IdParams }) {
   const sb = await db();
   const [albumRes, photosRes] = await Promise.all([
     sb.from("photo_albums").select(ALBUM_COLS).eq("id", id).maybeSingle(),
-    sb.from("album_photos").select(PHOTO_COLS).eq("album_id", id).is("deleted_at", null).eq("upload_status", "ready").order("sort_order").order("created_at"),
+    allRowsResult((a, b) => sb.from("album_photos").select(PHOTO_COLS).eq("album_id", id).is("deleted_at", null).eq("upload_status", "ready").order("sort_order").order("created_at").order("id").range(a, b)),
   ]);
   if (albumRes.error || !albumRes.data) return <LoadError what="الألبوم" />;
   const a = albumRes.data as Album;

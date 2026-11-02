@@ -1,4 +1,5 @@
 import "server-only";
+import { allRows, allRowsResult } from "@/lib/supabase/all-rows";
 import { cacheLife, cacheTag } from "next/cache";
 import { TAGS } from "@/lib/cache-tags";
 import { getPublicClient } from "./client";
@@ -77,7 +78,7 @@ export async function getPublishedAlbums(): Promise<Loaded<PhotoAlbum[]>> {
     };
     const [albumsFirst, photos] = await Promise.all([
       readAlbums(`${ALBUM_COLUMNS}, category_id, published_at, listed_at`, true),
-      sb.from("album_photos").select("id, album_id, sort_order").order("sort_order", { ascending: true }).order("id", { ascending: true }),
+      allRowsResult((a, b) => sb.from("album_photos").select("id, album_id, sort_order").order("sort_order", { ascending: true }).order("id", { ascending: true }).range(a, b)),
     ]);
     // Older schema (before 0026 / the CMS migration): same rule from created_at, never the event date.
     const albums = albumsFirst.error ? await readAlbums(ALBUM_COLUMNS, false) : albumsFirst;
@@ -114,13 +115,16 @@ export async function getAlbumBySlug(slug: string): Promise<Loaded<{ album: Phot
     if (error) throw error;
     const parsed = photoAlbumRow.safeParse(data);
     if (!data || !parsed.success) return { status: "ok", data: null };
-    const res = await sb
-      .from("album_photos")
-      .select("id, album_id, width, height, alt_text, sort_order")
-      .eq("album_id", parsed.data.id)
-      .order("sort_order", { ascending: true });
-    if (res.error) throw res.error;
-    const photos = parseRows(albumPhotoRow, res.data);
+    const rows = await allRows((a, b) =>
+      sb
+        .from("album_photos")
+        .select("id, album_id, width, height, alt_text, sort_order")
+        .eq("album_id", parsed.data.id)
+        .order("sort_order", { ascending: true })
+        .order("id", { ascending: true })
+        .range(a, b),
+    );
+    const photos = parseRows(albumPhotoRow, rows);
     const ids = photos.map((p) => p.id);
     const coverId = parsed.data.cover_photo_id && ids.includes(parsed.data.cover_photo_id) ? parsed.data.cover_photo_id : (ids[0] ?? null);
     return { status: "ok", data: { album: { ...parsed.data, photoCount: photos.length, coverId }, photos } };
