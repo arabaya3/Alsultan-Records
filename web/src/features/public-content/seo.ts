@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import type { GalleryVideo } from "./gallery-model";
 import { cleanVideoTitle } from "./labels";
 import type { BusinessSettings, Project } from "./schema";
-import { SITE_NAME_AR, siteUrl } from "./site";
+import { SITE_NAME_AR, SITE_NAME_EN, siteUrl } from "./site";
 
 /** Default share image: the studio logo (published brand asset). Pages with their own image override it. */
 const DEFAULT_SHARE_IMAGE = { url: "/brand/logo-main.webp", width: 900, height: 748, alt: SITE_NAME_AR };
@@ -81,6 +81,11 @@ export function youTubeVideoJsonLd(v: Pick<GalleryVideo, "youtube_id" | "title" 
 
 function safeHttp(v: string | null): string | null {
   return v && /^https?:\/\//i.test(v) ? v : null;
+}
+
+/** WebSite: tells search engines the site's name (shown instead of the address in results). */
+export function websiteJsonLd(): Record<string, unknown> {
+  return { "@context": "https://schema.org", "@type": "WebSite", name: SITE_NAME_AR, alternateName: [SITE_NAME_EN, "السلطان"], url: siteUrl() };
 }
 
 /** LocalBusiness built ONLY from real business_settings fields; omits anything missing. */
