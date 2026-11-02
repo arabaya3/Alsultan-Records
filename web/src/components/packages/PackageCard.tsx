@@ -3,7 +3,7 @@ import { offerPriceLabel, packageWhatsappText, type Package } from "@/features/p
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { bidiDir } from "@/lib/bidi";
 
-function CheckIcon() {
+export function CheckIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" className="mt-0.5 shrink-0 text-gold">
       <circle cx="12" cy="12" r="10" fill="currentColor" />
