@@ -1,14 +1,9 @@
 import { ContactBand } from "@/components/home/ContactBand";
-import { SitePromoPlayer } from "@/components/media/promo/SitePromoPlayer";
-import { PROMO_CAPTION } from "@/components/media/promo/promo-seo";
-import { FadeRise } from "@/components/motion/Reveal";
 import { ButtonLink } from "@/components/ui/Button";
-import { Section, SectionHeading } from "@/components/ui/Layout";
+import { Section } from "@/components/ui/Layout";
 import { PageHero } from "@/components/ui/PageHero";
 import { ServiceStrip } from "@/components/ui/ServiceStrip";
-import { photoUrl } from "@/features/public-content/gallery-model";
 import { getBusinessSettings } from "@/features/public-content/queries";
-import { getSiteHeroPhotoId } from "@/features/public-content/gallery-queries";
 import { pageMetadata } from "@/features/public-content/seo";
 import { SITE_NAME_AR } from "@/features/public-content/site";
 
@@ -26,7 +21,7 @@ const ABOUT = [
 ] as const;
 
 export default async function AboutPage() {
-  const [settings, heroPhoto] = await Promise.all([getBusinessSettings(), getSiteHeroPhotoId()]);
+  const settings = await getBusinessSettings();
   const s = settings.status === "ok" ? settings.data : null;
   return (
     <>
@@ -59,16 +54,6 @@ export default async function AboutPage() {
             </div>
           </aside>
         </div>
-      </Section>
-      <Section tone="darker" labelledBy="about-promo-title">
-        <SectionHeading id="about-promo-title" title="شاهد التعريف بالسلطان" align="center" />
-        <FadeRise className="mx-auto max-w-4xl overflow-hidden rounded-lg border border-hairline-gold">
-          <SitePromoPlayer
-            caption={PROMO_CAPTION}
-            sizes="(min-width: 1024px) 896px, 100vw"
-            coverSrc={heroPhoto ? photoUrl(heroPhoto, "display") : null}
-          />
-        </FadeRise>
       </Section>
       <ContactBand settings={s} />
     </>
