@@ -31,7 +31,7 @@ export class GraphError extends Error {
 /** Per request (connect + body), well inside the worker's maxDuration; a timeout is a transient 504. */
 export const REQUEST_TIMEOUT_MS = 10_000;
 
-async function callWithin<T>(f: Fetch, url: string, init: RequestInit, timeoutMs: number): Promise<T> {
+export async function callWithin<T>(f: Fetch, url: string, init: RequestInit, timeoutMs: number): Promise<T> {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs);
   let res: Response;

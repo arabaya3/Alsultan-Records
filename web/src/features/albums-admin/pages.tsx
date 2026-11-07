@@ -285,7 +285,7 @@ export async function AlbumsPage({ searchParams }: { searchParams: SP }) {
 }
 
 /** Short-lived preview URLs, asked from whichever store holds each photo. */
-async function signedMap(sb: SupabaseClient, photos: Photo[], variants: ("thumb" | "display")[]) {
+export async function signedMap(sb: SupabaseClient, photos: Photo[], variants: ("thumb" | "display")[]) {
   const out = new Map<string, string>();
   for (const provider of ["supabase", "s3"] as const) {
     const paths = photos.filter((p) => (p.storage_provider ?? "supabase") === provider).flatMap((p) => variants.map((v) => p.variants?.[v])).filter((x): x is string => !!x);
@@ -347,6 +347,12 @@ export async function AlbumEditPage({ params, searchParams }: { params: IdParams
             <Link href={`/admin/albums/${a.id}/preview`} className={btn("ghost")} data-testid="album-preview-link">
               معاينة
             </Link>
+            {/* Facebook is its own action: publishing on the site and on the Page never imply each other. */}
+            {locked ? null : (
+              <Link href={`/admin/albums/${a.id}/facebook`} className={btn("ghost")} data-testid="album-facebook-link">
+                نشر على فيسبوك
+              </Link>
+            )}
             {locked ? null : a.is_published ? (
               <ActionForm
                 action={setAlbumPublished}
