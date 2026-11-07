@@ -167,6 +167,15 @@ export async function s3SignPart(key: string, uploadId: string, n: number, lengt
   });
 }
 
+/** A single PUT of exactly this key, type and length (browser-made web copies), valid for SIGN_PART_SECONDS. */
+export async function s3SignPut(key: string, contentType: string, length: number): Promise<string> {
+  const { client, bucket } = s3();
+  return getSignedUrl(client, new PutObjectCommand({ Bucket: bucket, Key: key, ContentType: contentType, ContentLength: length }), {
+    expiresIn: SIGN_PART_SECONDS,
+    signableHeaders: new Set(["content-length", "content-type"]),
+  });
+}
+
 export async function s3MultipartComplete(key: string, uploadId: string, parts: (StoredPart & { etag: string })[]): Promise<void> {
   const { client, bucket } = s3();
   const sorted = [...parts].sort((a, b) => a.n - b.n);

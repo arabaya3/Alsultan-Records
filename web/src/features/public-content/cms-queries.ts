@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { publicLife } from "./cache-life";
 import type { z } from "zod";
 import { TAGS } from "@/lib/cache-tags";
 import { DEFAULT_FOOTER_NAV, DEFAULT_HEADER_NAV, isSiteTarget, offerPath, targetPath } from "@/lib/site-targets";
@@ -51,7 +52,7 @@ export type SiteNav = { header: NavLink[]; footer: NavLink[]; fromDb: boolean };
 
 export async function getSiteNav(): Promise<SiteNav> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.nav);
   const fallback = { header: defaultNav(DEFAULT_HEADER_NAV), footer: defaultNav(DEFAULT_FOOTER_NAV), fromDb: false };
   const sb = getPublicClient();
@@ -70,7 +71,7 @@ export async function getSiteNav(): Promise<SiteNav> {
 
 export async function getSiteSections(): Promise<SectionConfig[]> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.sections);
   const sb = getPublicClient();
   if (!sb) return resolveSections(null);
@@ -90,7 +91,7 @@ const FALLBACK_STEPS: ProcessStep[] = STEPS.map((s) => ({ key: s.title, title: s
 
 export async function getProcessSteps(): Promise<ProcessStep[]> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.process);
   const sb = getPublicClient();
   if (!sb) return FALLBACK_STEPS;
@@ -111,27 +112,30 @@ const OFFER_COLUMNS =
 /** Active offers (anon RLS already applies the Asia/Hebron date rule; re-checked here). Pinned first. */
 export async function getActiveOffers(): Promise<Loaded<Offer[]>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.offers);
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    const { data, error } = await sb.from("offers").select(OFFER_COLUMNS).order("sort_order", { ascending: true });
-    if (error) {
-      // Table not there yet → simply no offers (not an outage message).
-      return error.code === "42P01" || error.code === "PGRST205" ? { status: "ok", data: [] } : { status: "unavailable" };
-    }
-    const today = hebronToday();
-    const rows = parseRows(offerRow, data).filter((o) => isOfferActive(o, today));
-    const items = new Map<string, string[]>();
-    if (rows.length) {
-      const res = await sb.from("offer_items").select("offer_id, label, sort_order").in("offer_id", rows.map((r) => r.id)).order("sort_order", { ascending: true });
-      for (const it of res.error ? [] : parseRows(offerItemRow, res.data)) items.set(it.offer_id, [...(items.get(it.offer_id) ?? []), it.label]);
-    }
-    return { status: "ok", data: sortOffers(rows).map((r) => ({ ...r, items: items.get(r.id) ?? [] })) };
-  } catch {
-    return { status: "unavailable" };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<Offer[]>> => {
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        const { data, error } = await sb.from("offers").select(OFFER_COLUMNS).order("sort_order", { ascending: true });
+        if (error) {
+          // Table not there yet → simply no offers (not an outage message).
+          return error.code === "42P01" || error.code === "PGRST205" ? { status: "ok", data: [] } : { status: "unavailable" };
+        }
+        const today = hebronToday();
+        const rows = parseRows(offerRow, data).filter((o) => isOfferActive(o, today));
+        const items = new Map<string, string[]>();
+        if (rows.length) {
+          const res = await sb.from("offer_items").select("offer_id, label, sort_order").in("offer_id", rows.map((r) => r.id)).order("sort_order", { ascending: true });
+          for (const it of res.error ? [] : parseRows(offerItemRow, res.data)) items.set(it.offer_id, [...(items.get(it.offer_id) ?? []), it.label]);
+        }
+        return { status: "ok", data: sortOffers(rows).map((r) => ({ ...r, items: items.get(r.id) ?? [] })) };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })(),
+  );
 }
 
 const PACKAGE_COLUMNS = "id, slug, title, description, image_photo_id, display_price_minor, currency, show_price, whatsapp_message, featured, sort_order, group_label, gift";
@@ -139,37 +143,43 @@ const PACKAGE_COLUMNS = "id, slug, title, description, image_photo_id, display_p
 /** Published packages (anon RLS: status = 'published'), owner order, with their included services. */
 export async function getPublishedPackages(): Promise<Loaded<Package[]>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.packages);
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    const { data, error } = await sb.from("packages").select(PACKAGE_COLUMNS).order("sort_order", { ascending: true });
-    if (error) return error.code === "42P01" || error.code === "PGRST205" ? { status: "ok", data: [] } : { status: "unavailable" };
-    const rows = parseRows(packageRow, data);
-    const items = new Map<string, string[]>();
-    if (rows.length) {
-      const res = await sb.from("package_items").select("package_id, label, sort_order").in("package_id", rows.map((r) => r.id)).order("sort_order", { ascending: true });
-      for (const it of res.error ? [] : parseRows(packageItemRow, res.data)) items.set(it.package_id, [...(items.get(it.package_id) ?? []), it.label]);
-    }
-    return { status: "ok", data: sortPackages(rows).map((r) => ({ ...r, items: items.get(r.id) ?? [] })) };
-  } catch {
-    return { status: "unavailable" };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<Package[]>> => {
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        const { data, error } = await sb.from("packages").select(PACKAGE_COLUMNS).order("sort_order", { ascending: true });
+        if (error) return error.code === "42P01" || error.code === "PGRST205" ? { status: "ok", data: [] } : { status: "unavailable" };
+        const rows = parseRows(packageRow, data);
+        const items = new Map<string, string[]>();
+        if (rows.length) {
+          const res = await sb.from("package_items").select("package_id, label, sort_order").in("package_id", rows.map((r) => r.id)).order("sort_order", { ascending: true });
+          for (const it of res.error ? [] : parseRows(packageItemRow, res.data)) items.set(it.package_id, [...(items.get(it.package_id) ?? []), it.label]);
+        }
+        return { status: "ok", data: sortPackages(rows).map((r) => ({ ...r, items: items.get(r.id) ?? [] })) };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })(),
+  );
 }
 
 export async function getOfferBySlug(slug: string): Promise<Loaded<Offer | null>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.offers, `offer:${slug}`);
-  const all = await getActiveOffers();
-  if (all.status !== "ok") return all;
-  return { status: "ok", data: all.data.find((o) => o.slug === slug) ?? null };
+  return publicLife(
+    await (async (): Promise<Loaded<Offer | null>> => {
+      const all = await getActiveOffers();
+      if (all.status !== "ok") return all;
+      return { status: "ok", data: all.data.find((o) => o.slug === slug) ?? null };
+    })(),
+  );
 }
 
 export async function getActiveAnnouncements(): Promise<Announcement[]> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.announcements, TAGS.offers);
   const sb = getPublicClient();
   if (!sb) return [];
@@ -204,7 +214,7 @@ export async function getActiveAnnouncements(): Promise<Announcement[]> {
 
 export async function getServiceLinks(): Promise<ServiceLink[]> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.services, TAGS.videos, TAGS.albums);
   const sb = getPublicClient();
   if (!sb) return [];
@@ -219,7 +229,7 @@ export async function getServiceLinks(): Promise<ServiceLink[]> {
 
 export async function getAlbumCategories(): Promise<AlbumCategory[]> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.albums);
   const sb = getPublicClient();
   if (!sb) return [];

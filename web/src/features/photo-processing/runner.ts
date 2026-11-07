@@ -6,6 +6,17 @@ import { s3MultipartAbort } from "@/lib/album-storage/s3";
 import { ALBUM_MAX_PIXELS, FORMATS, formatByMime, maxBytesFor, sniffFormat } from "@/features/albums-admin/rules";
 import { JOB_BATCH, JOB_TIME_BUDGET_MS, SHA256_RE, makeVariants, sha256Hex, variantPaths } from "./core";
 import { RAW_DECODE_TIMEOUT_MS, decodeRaw } from "./raw";
+import { revalidateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
+
+/** Public album caches must show photos that just became ready. Never fails the job over a cache call. */
+export function expirePublicAlbums() {
+  try {
+    revalidateTag(TAGS.albums, "max");
+  } catch {
+    /* outside a request scope (scripts/tests): the hourly revalidation picks it up */
+  }
+}
 
 /**
  * Server-side photo processing queue worker (docs/cms-contract.md → Albums → Processing; migration 0018).
@@ -164,6 +175,9 @@ async function runPhotoJobsOnce(opts: { limit?: number; budgetMs?: number }): Pr
     if (!jobs.length) break;
     for (const job of jobs) outcomes.push(await processOne(sb, job, deadline));
   }
+  // New photos in a published album: public album pages are cached for hours, so expire them here (this worker
+  // runs from the cron route and from after(), where updateTag is not available).
+  if (outcomes.some((o) => o.ok)) expirePublicAlbums();
   return {
     claimed: outcomes.length,
     ready: outcomes.filter((o) => o.ok).length,

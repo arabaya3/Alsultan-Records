@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { cacheTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 import { Suspense } from "react";
 import { AlbumCard } from "@/components/media/gallery/AlbumCard";
 import { ProjectTile } from "@/components/media/ProjectTile";
@@ -294,6 +296,17 @@ async function Albums({ cat }: { cat: string | null }) {
 
 async function WorkBody({ searchParams }: { searchParams: PageProps<"/work">["searchParams"] }) {
   const q = parseWorkQuery(await searchParams);
+  return <WorkContent tab={q.tab} cat={q.cat} page={q.page} />;
+}
+
+/** The query-dependent body, cached per (tab, cat, page): the page reads searchParams so it renders per request,
+ *  but the render itself is a cache hit until an admin change expires these tags (Vercel Hobby CPU budget). */
+async function WorkContent({ tab, cat, page }: WorkQuery) {
+  "use cache";
+  // No explicit cacheLife on purpose: the lifetime comes from the reads inside (hours when they succeed, minutes
+  // after a failed read), so a database blip is not cached here for an hour.
+  cacheTag(TAGS.videos, "video-categories", TAGS.albums, TAGS.business);
+  const q: WorkQuery = { tab, cat, page };
   const gallery = await getVideoGallery();
   const hasPromos = gallery.status === "ok" && promoVideos(gallery.data).length > 0;
   return (
