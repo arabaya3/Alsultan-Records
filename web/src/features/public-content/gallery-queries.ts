@@ -1,6 +1,7 @@
 import "server-only";
 import { allRows, allRowsResult } from "@/lib/supabase/all-rows";
 import { cacheLife, cacheTag } from "next/cache";
+import { publicLife } from "./cache-life";
 import { TAGS } from "@/lib/cache-tags";
 import { getPublicClient } from "./client";
 import {
@@ -35,7 +36,7 @@ function parseRows<S extends z.ZodType>(schema: S, rows: unknown): z.output<S>[]
 /** Published videos with a ready studio file for reels mode (no paths: the file is read through /r/<id>). */
 export async function getReelFiles(): Promise<Map<string, { width: number | null; height: number | null }>> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.videos);
   const sb = getPublicClient();
   if (!sb) return new Map();
@@ -46,25 +47,28 @@ export async function getReelFiles(): Promise<Map<string, { width: number | null
 
 export async function getVideoGallery(): Promise<Loaded<VideoGallery>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.videos, "video-categories");
-  const videos = await getShowcaseVideos();
-  if (videos.status !== "ok") return videos;
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    const [cats, links] = await Promise.all([
-      sb.from("video_categories").select("id, slug, title, sort_order").order("sort_order", { ascending: true }),
-      sb.from("showcase_video_categories").select("video_id, category_id, is_primary"),
-    ]);
-    if (cats.error || links.error) throw cats.error ?? links.error;
-    return {
-      status: "ok",
-      data: buildGallery(videos.data, parseRows(videoCategoryRow, cats.data), parseRows(videoCategoryLinkRow, links.data)),
-    };
-  } catch {
-    return { status: "ok", data: buildGallery(videos.data, [], []) };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<VideoGallery>> => {
+      const videos = await getShowcaseVideos();
+      if (videos.status !== "ok") return videos;
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        const [cats, links] = await Promise.all([
+          sb.from("video_categories").select("id, slug, title, sort_order").order("sort_order", { ascending: true }),
+          sb.from("showcase_video_categories").select("video_id, category_id, is_primary"),
+        ]);
+        if (cats.error || links.error) throw cats.error ?? links.error;
+        return {
+          status: "ok",
+          data: buildGallery(videos.data, parseRows(videoCategoryRow, cats.data), parseRows(videoCategoryLinkRow, links.data)),
+        };
+      } catch {
+        return { status: "ok", data: buildGallery(videos.data, [], []) };
+      }
+    })(),
+  );
 }
 
 const ALBUM_COLUMNS = "id, slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order, created_at";
@@ -76,73 +80,79 @@ const ALBUM_COLUMNS = "id, slug, title, description, event_date, source_label, s
  */
 export async function getPublishedAlbums(): Promise<Loaded<PhotoAlbum[]>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.albums);
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    // Anon RLS hides unpublished, archived and trashed albums/photos.
-    const readAlbums = (cols: string, byListed: boolean) => {
-      const q = sb.from("photo_albums").select(cols);
-      return byListed
-        ? q.order("listed_at", { ascending: false }).order("id", { ascending: false })
-        : q.order("created_at", { ascending: false }).order("id", { ascending: false });
-    };
-    const [albumsFirst, photos] = await Promise.all([
-      readAlbums(`${ALBUM_COLUMNS}, category_id, published_at, listed_at`, true),
-      allRowsResult((a, b) => sb.from("album_photos").select("id, album_id, sort_order").order("sort_order", { ascending: true }).order("id", { ascending: true }).range(a, b)),
-    ]);
-    // Older schema (before 0026 / the CMS migration): same rule from created_at, never the event date.
-    const albums = albumsFirst.error ? await readAlbums(ALBUM_COLUMNS, false) : albumsFirst;
-    if (albums.error || photos.error) throw albums.error ?? photos.error;
-    const byAlbum = new Map<string, string[]>();
-    for (const p of (photos.data ?? []) as { id: string; album_id: string }[]) {
-      byAlbum.set(p.album_id, [...(byAlbum.get(p.album_id) ?? []), p.id]);
-    }
-    return {
-      status: "ok",
-      data: newestPublishedFirst(parseRows(photoAlbumRow, albums.data)).map((a) => {
-        const ids = byAlbum.get(a.id) ?? [];
-        const coverId = a.cover_photo_id && ids.includes(a.cover_photo_id) ? a.cover_photo_id : (ids[0] ?? null);
-        return { ...a, photoCount: ids.length, coverId };
-      }),
-    };
-  } catch {
-    return { status: "unavailable" };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<PhotoAlbum[]>> => {
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        // Anon RLS hides unpublished, archived and trashed albums/photos.
+        const readAlbums = (cols: string, byListed: boolean) => {
+          const q = sb.from("photo_albums").select(cols);
+          return byListed
+            ? q.order("listed_at", { ascending: false }).order("id", { ascending: false })
+            : q.order("created_at", { ascending: false }).order("id", { ascending: false });
+        };
+        const [albumsFirst, photos] = await Promise.all([
+          readAlbums(`${ALBUM_COLUMNS}, category_id, published_at, listed_at`, true),
+          allRowsResult((a, b) => sb.from("album_photos").select("id, album_id, sort_order").order("sort_order", { ascending: true }).order("id", { ascending: true }).range(a, b)),
+        ]);
+        // Older schema (before 0026 / the CMS migration): same rule from created_at, never the event date.
+        const albums = albumsFirst.error ? await readAlbums(ALBUM_COLUMNS, false) : albumsFirst;
+        if (albums.error || photos.error) throw albums.error ?? photos.error;
+        const byAlbum = new Map<string, string[]>();
+        for (const p of (photos.data ?? []) as { id: string; album_id: string }[]) {
+          byAlbum.set(p.album_id, [...(byAlbum.get(p.album_id) ?? []), p.id]);
+        }
+        return {
+          status: "ok",
+          data: newestPublishedFirst(parseRows(photoAlbumRow, albums.data)).map((a) => {
+            const ids = byAlbum.get(a.id) ?? [];
+            const coverId = a.cover_photo_id && ids.includes(a.cover_photo_id) ? a.cover_photo_id : (ids[0] ?? null);
+            return { ...a, photoCount: ids.length, coverId };
+          }),
+        };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })(),
+  );
 }
 
 export async function getAlbumBySlug(slug: string): Promise<Loaded<{ album: PhotoAlbum; photos: AlbumPhoto[] } | null>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.albums, `photo-album:${slug}`);
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    const { data, error } = await sb
-      .from("photo_albums")
-      .select("id, slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order, created_at, published_at, listed_at")
-      .eq("slug", slug)
-      .maybeSingle();
-    if (error) throw error;
-    const parsed = photoAlbumRow.safeParse(data);
-    if (!data || !parsed.success) return { status: "ok", data: null };
-    const rows = await allRows((a, b) =>
-      sb
-        .from("album_photos")
-        .select("id, album_id, width, height, alt_text, sort_order")
-        .eq("album_id", parsed.data.id)
-        .order("sort_order", { ascending: true })
-        .order("id", { ascending: true })
-        .range(a, b),
-    );
-    const photos = parseRows(albumPhotoRow, rows);
-    const ids = photos.map((p) => p.id);
-    const coverId = parsed.data.cover_photo_id && ids.includes(parsed.data.cover_photo_id) ? parsed.data.cover_photo_id : (ids[0] ?? null);
-    return { status: "ok", data: { album: { ...parsed.data, photoCount: photos.length, coverId }, photos } };
-  } catch {
-    return { status: "unavailable" };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<{ album: PhotoAlbum; photos: AlbumPhoto[] } | null>> => {
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        const { data, error } = await sb
+          .from("photo_albums")
+          .select("id, slug, title, description, event_date, source_label, source_url, cover_photo_id, sort_order, created_at, published_at, listed_at")
+          .eq("slug", slug)
+          .maybeSingle();
+        if (error) throw error;
+        const parsed = photoAlbumRow.safeParse(data);
+        if (!data || !parsed.success) return { status: "ok", data: null };
+        const rows = await allRows((a, b) =>
+          sb
+            .from("album_photos")
+            .select("id, album_id, width, height, alt_text, sort_order")
+            .eq("album_id", parsed.data.id)
+            .order("sort_order", { ascending: true })
+            .order("id", { ascending: true })
+            .range(a, b),
+        );
+        const photos = parseRows(albumPhotoRow, rows);
+        const ids = photos.map((p) => p.id);
+        const coverId = parsed.data.cover_photo_id && ids.includes(parsed.data.cover_photo_id) ? parsed.data.cover_photo_id : (ids[0] ?? null);
+        return { status: "ok", data: { album: { ...parsed.data, photoCount: photos.length, coverId }, photos } };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })(),
+  );
 }
 
 /**

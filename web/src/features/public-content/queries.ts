@@ -1,5 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
+import { publicLife } from "./cache-life";
 import type { z } from "zod";
 import { TAGS } from "@/lib/cache-tags";
 import { getPublicClient, publicMediaUrl } from "./client";
@@ -91,24 +92,27 @@ async function mediaById(ids: string[]): Promise<Map<string, PublicMedia>> {
 
 export async function getBusinessSettings(): Promise<Loaded<BusinessSettings | null>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.business);
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    const { data, error } = await sb.from("business_settings").select("*").limit(1).maybeSingle();
-    if (error) throw error;
-    if (!data) return { status: "ok", data: null };
-    const parsed = businessSettingsRow.safeParse(data);
-    return { status: "ok", data: parsed.success ? parsed.data : null };
-  } catch {
-    return { status: "unavailable" };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<BusinessSettings | null>> => {
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        const { data, error } = await sb.from("business_settings").select("*").limit(1).maybeSingle();
+        if (error) throw error;
+        if (!data) return { status: "ok", data: null };
+        const parsed = businessSettingsRow.safeParse(data);
+        return { status: "ok", data: parsed.success ? parsed.data : null };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })(),
+  );
 }
 
 export async function getHeroMedia(): Promise<PublicMedia | null> {
   "use cache";
-  cacheLife("minutes");
+  cacheLife("hours");
   cacheTag(TAGS.business, TAGS.media);
   const settings = await getBusinessSettings();
   const id = settings.status === "ok" ? settings.data?.hero_media_id : null;
@@ -122,116 +126,131 @@ export async function getHeroMedia(): Promise<PublicMedia | null> {
 
 export async function getPublishedProjects(limit?: number): Promise<Loaded<Project[]>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.projects);
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    let q = sb
-      .from("events")
-      .select(PROJECT_COLUMNS)
-      .eq("is_published", true)
-      .eq("publication_consent", "granted")
-      .not("public_slug", "is", null)
-      .order("featured", { ascending: false })
-      .order("featured_order", { ascending: true, nullsFirst: false })
-      .order("event_date", { ascending: false, nullsFirst: false });
-    if (limit) q = q.limit(limit);
-    const { data, error } = await q;
-    if (error) throw error;
-    const rows = parseRows(projectRow, data);
-    const media = await mediaForEvents(rows.map((r) => r.id));
-    return {
-      status: "ok",
-      data: rows.map((r) => {
-        const list = media.get(r.id) ?? [];
-        return { ...r, media: list, cover: list[0] ?? null };
-      }),
-    };
-  } catch {
-    return { status: "unavailable" };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<Project[]>> => {
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        let q = sb
+          .from("events")
+          .select(PROJECT_COLUMNS)
+          .eq("is_published", true)
+          .eq("publication_consent", "granted")
+          .not("public_slug", "is", null)
+          .order("featured", { ascending: false })
+          .order("featured_order", { ascending: true, nullsFirst: false })
+          .order("event_date", { ascending: false, nullsFirst: false });
+        if (limit) q = q.limit(limit);
+        const { data, error } = await q;
+        if (error) throw error;
+        const rows = parseRows(projectRow, data);
+        const media = await mediaForEvents(rows.map((r) => r.id));
+        return {
+          status: "ok",
+          data: rows.map((r) => {
+            const list = media.get(r.id) ?? [];
+            return { ...r, media: list, cover: list[0] ?? null };
+          }),
+        };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })(),
+  );
 }
 
 export async function getProjectBySlug(slug: string): Promise<Loaded<Project | null>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.projects, `project:${slug}`);
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    const { data, error } = await sb
-      .from("events")
-      .select(PROJECT_COLUMNS)
-      .eq("public_slug", slug)
-      .eq("is_published", true)
-      .eq("publication_consent", "granted")
-      .maybeSingle();
-    if (error) throw error;
-    const parsed = projectRow.safeParse(data);
-    if (!data || !parsed.success) return { status: "ok", data: null };
-    const list = (await mediaForEvents([parsed.data.id])).get(parsed.data.id) ?? [];
-    return { status: "ok", data: { ...parsed.data, media: list, cover: list[0] ?? null } };
-  } catch {
-    return { status: "unavailable" };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<Project | null>> => {
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        const { data, error } = await sb
+          .from("events")
+          .select(PROJECT_COLUMNS)
+          .eq("public_slug", slug)
+          .eq("is_published", true)
+          .eq("publication_consent", "granted")
+          .maybeSingle();
+        if (error) throw error;
+        const parsed = projectRow.safeParse(data);
+        if (!data || !parsed.success) return { status: "ok", data: null };
+        const list = (await mediaForEvents([parsed.data.id])).get(parsed.data.id) ?? [];
+        return { status: "ok", data: { ...parsed.data, media: list, cover: list[0] ?? null } };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })(),
+  );
 }
 
 export async function getPublishedServices(): Promise<Loaded<Service[]>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.services, TAGS.albums);
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    const read = (cols: string) => sb.from("services").select(cols).eq("is_published", true).order("sort_order", { ascending: true });
-    let { data, error } = await read(SERVICE_COLUMNS);
-    if (error) ({ data, error } = await read(SERVICE_COLUMNS_LEGACY)); // CMS column not migrated yet
-    if (error) throw error;
-    const rows = parseRows(serviceRow, data);
-    const covers = await mediaById(
-      rows.flatMap((r) => (r.cover_media_id ? [r.cover_media_id] : [])),
-    );
-    return {
-      status: "ok",
-      data: rows.map((r) => ({
-        ...r,
-        cover: r.cover_media_id ? (covers.get(r.cover_media_id) ?? null) : null,
-        coverPhotoSrc: r.cover_photo_id ? photoUrl(r.cover_photo_id, "display") : null,
-      })),
-    };
-  } catch {
-    return { status: "unavailable" };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<Service[]>> => {
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        const read = (cols: string) => sb.from("services").select(cols).eq("is_published", true).order("sort_order", { ascending: true });
+        let { data, error } = await read(SERVICE_COLUMNS);
+        if (error) ({ data, error } = await read(SERVICE_COLUMNS_LEGACY)); // CMS column not migrated yet
+        if (error) throw error;
+        const rows = parseRows(serviceRow, data);
+        const covers = await mediaById(
+          rows.flatMap((r) => (r.cover_media_id ? [r.cover_media_id] : [])),
+        );
+        return {
+          status: "ok",
+          data: rows.map((r) => ({
+            ...r,
+            cover: r.cover_media_id ? (covers.get(r.cover_media_id) ?? null) : null,
+            coverPhotoSrc: r.cover_photo_id ? photoUrl(r.cover_photo_id, "display") : null,
+          })),
+        };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })(),
+  );
 }
 
 export async function getServiceBySlug(slug: string): Promise<Loaded<Service | null>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.services, `service:${slug}`);
-  const all = await getPublishedServices();
-  if (all.status !== "ok") return all;
-  return { status: "ok", data: all.data.find((s) => s.slug === slug) ?? null };
+  return publicLife(
+    await (async (): Promise<Loaded<Service | null>> => {
+      const all = await getPublishedServices();
+      if (all.status !== "ok") return all;
+      return { status: "ok", data: all.data.find((s) => s.slug === slug) ?? null };
+    })(),
+  );
 }
 
 export async function getApprovedReviews(limit = 6): Promise<Loaded<ReviewRow[]>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.reviews);
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    const { data, error } = await sb
-      .from("reviews")
-      .select("id, rating, body, display_name")
-      .eq("status", "approved")
-      .order("created_at", { ascending: false })
-      .limit(limit);
-    if (error) throw error;
-    return { status: "ok", data: parseRows(reviewRow, data) };
-  } catch {
-    return { status: "unavailable" };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<ReviewRow[]>> => {
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        const { data, error } = await sb
+          .from("reviews")
+          .select("id, rating, body, display_name")
+          .eq("status", "approved")
+          .order("created_at", { ascending: false })
+          .limit(limit);
+        if (error) throw error;
+        return { status: "ok", data: parseRows(reviewRow, data) };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })(),
+  );
 }
 
 const VIDEO_COLUMNS_LEGACY = "id, youtube_id, title, description, category, duration_seconds, published_at, is_promo, sort_order";
@@ -240,22 +259,25 @@ const VIDEO_COLUMNS = `${VIDEO_COLUMNS_LEGACY}, role, pinned, custom_cover_photo
 /** Published showcase videos (pinned, then main promo, then sort_order). Anon RLS returns published rows only. */
 export async function getShowcaseVideos(): Promise<Loaded<ShowcaseVideo[]>> {
   "use cache";
-  cacheLife("minutes");
   cacheTag(TAGS.videos);
-  const sb = getPublicClient();
-  if (!sb) return { status: "unavailable" };
-  try {
-    // Rows are validated with Zod (the table may be newer than the generated types).
-    // RLS (showcase_public_read) returns published rows only; is_published is not anon-selectable.
-    const read = (cols: string) =>
-      sb.from("showcase_videos").select(cols).order("is_promo", { ascending: false }).order("sort_order", { ascending: true });
-    let { data, error } = await read(VIDEO_COLUMNS);
-    if (error) ({ data, error } = await read(VIDEO_COLUMNS_LEGACY)); // CMS columns not migrated yet
-    if (error) throw error;
-    const rows = parseRows(showcaseVideoRow, data);
-    // Stable sort: pinned first, otherwise the order above.
-    return { status: "ok", data: rows.map((v, i) => ({ v, i })).sort((a, b) => Number(b.v.pinned) - Number(a.v.pinned) || a.i - b.i).map((x) => x.v) };
-  } catch {
-    return { status: "unavailable" };
-  }
+  return publicLife(
+    await (async (): Promise<Loaded<ShowcaseVideo[]>> => {
+      const sb = getPublicClient();
+      if (!sb) return { status: "unavailable" };
+      try {
+        // Rows are validated with Zod (the table may be newer than the generated types).
+        // RLS (showcase_public_read) returns published rows only; is_published is not anon-selectable.
+        const read = (cols: string) =>
+          sb.from("showcase_videos").select(cols).order("is_promo", { ascending: false }).order("sort_order", { ascending: true });
+        let { data, error } = await read(VIDEO_COLUMNS);
+        if (error) ({ data, error } = await read(VIDEO_COLUMNS_LEGACY)); // CMS columns not migrated yet
+        if (error) throw error;
+        const rows = parseRows(showcaseVideoRow, data);
+        // Stable sort: pinned first, otherwise the order above.
+        return { status: "ok", data: rows.map((v, i) => ({ v, i })).sort((a, b) => Number(b.v.pinned) - Number(a.v.pinned) || a.i - b.i).map((x) => x.v) };
+      } catch {
+        return { status: "unavailable" };
+      }
+    })(),
+  );
 }

@@ -1,6 +1,7 @@
 "use server";
 
-import { refresh } from "next/cache";
+import { refresh, updateTag } from "next/cache";
+import { TAGS } from "@/lib/cache-tags";
 import { createClient } from "@/lib/supabase/server";
 import { guard, ADMIN_ROLES } from "@/features/admin/guard";
 import { pick } from "@/features/admin/query";
@@ -20,6 +21,7 @@ export async function moderateReviews(_p: ActionResult, fd: FormData): Promise<A
     if (!error && count) okCount++;
     else if (!firstError) firstError = dbMessage(error);
   }
+  if (okCount) updateTag(TAGS.reviews); // public pages cache approved reviews (cacheLife "hours")
   refresh();
   const word = status === "approved" ? "نُشر" : status === "rejected" ? "رُفض" : "أُعيد للمراجعة";
   const msg = `${word} ${okCount} من ${ids.length}.${okCount < ids.length ? ` تعذّر ${ids.length - okCount}: ${firstError}` : ""}`;
