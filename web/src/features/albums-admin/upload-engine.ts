@@ -1,7 +1,8 @@
 import * as tus from "tus-js-client";
 import { createClient } from "@/lib/supabase/browser";
 import { publicEnv } from "@/lib/env/public";
-import { cancelAlbumUpload, completeAlbumUpload, getPhotoStatuses, reserveAlbumUpload, retryPhoto, type PhotoStatus } from "./actions";
+import { cancelAlbumUpload, completeAlbumUpload, getPhotoStatuses, reserveAlbumUpload, retryPhoto, signVariantUploads, type PhotoStatus } from "./actions";
+import { makeClientVariants, type ClientVariants } from "./client-variants";
 import { photoErrorText } from "./photo-errors";
 import { startS3Upload, signS3Parts } from "./s3-upload-actions";
 import { S3UploadDenied, uploadToS3 } from "./s3-upload";
@@ -83,15 +84,19 @@ export class AlbumUploadQueue {
   private disposed = false;
   private supabase = createClient();
   private pollMs: number;
+  private makeVariants: (file: File, format: FormatId) => Promise<ClientVariants | null>;
+  private putVariant: (url: string, blob: Blob) => Promise<boolean>;
 
   constructor(
     private albumId: string,
     private onChange: (items: UploadItem[]) => void,
     private onReady: () => void = () => {},
     private concurrency = ALBUM_UPLOAD_CONCURRENCY,
-    opts: { pollMs?: number } = {},
+    opts: { pollMs?: number; makeVariants?: (file: File, format: FormatId) => Promise<ClientVariants | null>; putVariant?: (url: string, blob: Blob) => Promise<boolean> } = {},
   ) {
     this.pollMs = opts.pollMs ?? POLL_MS;
+    this.makeVariants = opts.makeVariants ?? makeClientVariants;
+    this.putVariant = opts.putVariant ?? putSigned;
   }
 
   /** In-flight work (warn before leaving the page). */
@@ -288,13 +293,38 @@ export class AlbumUploadQueue {
       await this.guard(task, r.provider === "s3" ? this.s3Upload(task, file, r.photoId) : this.tusUpload(task, file, r.path, r.contentType));
       task.phase = "commit"; // from here on the upload is kept (cancel() ignores it)
       this.set(it, { locked: true, sent: it.size });
-      const done = await completeAlbumUpload(r.photoId).catch(() => ({ ok: false, message: "تعذّر تأكيد الرفع — تحقّق من الاتصال ثم أعد المحاولة." }));
+      // Web copies made here, not on the server (Vercel CPU budget). Best effort: any failure → the server worker.
+      const dims = await this.clientVariants(file, checked.format, r.photoId);
+      const done = await completeAlbumUpload(r.photoId, dims ?? undefined).catch(() => ({ ok: false, message: "تعذّر تأكيد الرفع — تحقّق من الاتصال ثم أعد المحاولة." }));
       if (!done.ok) return this.set(it, { state: "failed", failedAt: "upload", locked: false, message: done.message ?? "تعذّر تأكيد الرفع." });
       this.set(it, { state: "processing", locked: false, sent: it.size, message: "" });
       this.ensurePolling();
     } catch (e) {
       if (e instanceof Stopped || task.stopped) return;
       this.set(it, { state: "failed", failedAt: "upload", locked: false, message: e instanceof Error && e.message ? e.message : "انقطع الرفع." });
+    }
+  }
+
+  /** Make the two web copies in the browser and store them next to the original. Returns the original's pixel size
+   *  when both are stored, else null (nothing to clean up: the server worker overwrites the same two paths). */
+  private async clientVariants(file: File, format: FormatId, photoId: string): Promise<{ width: number; height: number } | null> {
+    try {
+      const v = await this.makeVariants(file, format);
+      if (!v) return null;
+      const t = await signVariantUploads(photoId, { thumb: v.thumb.size, display: v.display.size });
+      if (!t.ok) return null;
+      let stored: boolean[];
+      if (t.provider === "s3") {
+        stored = await Promise.all([this.putVariant(t.urls.thumb, v.thumb), this.putVariant(t.urls.display, v.display)]);
+      } else {
+        const bucket = this.supabase.storage.from(ALBUM_BUCKET);
+        stored = await Promise.all(
+          (["thumb", "display"] as const).map(async (k) => !(await bucket.uploadToSignedUrl(t.tokens[k].path, t.tokens[k].token, v[k], { contentType: "image/webp", upsert: true })).error),
+        );
+      }
+      return stored.every(Boolean) ? { width: v.width, height: v.height } : null;
+    } catch {
+      return null;
     }
   }
 
@@ -427,5 +457,15 @@ export class AlbumUploadQueue {
         this.polling = false;
       }
     }, this.pollMs);
+  }
+}
+
+/** PUT a browser-made copy to a presigned S3 URL (bound to type and exact length). */
+async function putSigned(url: string, blob: Blob): Promise<boolean> {
+  try {
+    const res = await fetch(url, { method: "PUT", body: blob, headers: { "content-type": "image/webp" } });
+    return res.ok;
+  } catch {
+    return false;
   }
 }

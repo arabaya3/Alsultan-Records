@@ -1,12 +1,10 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import sharp from "sharp";
+import { VARIANT_RECIPE } from "@/features/albums-admin/variant-rules";
 
 /** Variant recipe — identical to the original admin uploader and import scripts. Do not change casually:
  *  existing variants on staging were produced with exactly these values. */
-export const VARIANTS = {
-  thumb: { size: 480, quality: 76 },
-  display: { size: 1600, quality: 82 },
-} as const;
+export const VARIANTS = VARIANT_RECIPE;
 
 /** Per-run limits sized for a Vercel Hobby function (maxDuration 60 s). */
 export const JOB_BATCH = 8;
@@ -62,7 +60,4 @@ export async function makeVariants(
   };
 }
 
-export function variantPaths(originalPath: string): { thumb: string; display: string } {
-  const base = originalPath.slice(0, originalPath.lastIndexOf("/"));
-  return { thumb: `${base}/thumb.webp`, display: `${base}/display.webp` };
-}
+export { variantPaths } from "@/features/albums-admin/variant-rules";

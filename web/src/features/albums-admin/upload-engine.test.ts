@@ -65,6 +65,9 @@ const server = vi.hoisted(() => ({
   pollCalls: 0,
   retry: null as null | (() => Promise<Status[]>),
   nextId: 1,
+  completeArgs: [] as { id: string; client?: { width: number; height: number } }[],
+  signed: [] as { id: string; sizes: { thumb: number; display: number } }[],
+  sign: { ok: false } as { ok: boolean; provider?: string; urls?: Record<string, string> },
 }));
 
 vi.mock("./actions", () => ({
@@ -85,7 +88,8 @@ vi.mock("./actions", () => ({
     server.bySha.set(f.sha256, id);
     return { ok: true, photoId: id, path: `albums/a/${id}/original.jpg`, contentType: "image/jpeg", resumed: false };
   }),
-  completeAlbumUpload: vi.fn(async (id: string) => {
+  completeAlbumUpload: vi.fn(async (id: string, client?: { width: number; height: number }) => {
+    server.completeArgs.push({ id, client });
     if (server.completeGate) await server.completeGate;
     if (server.photos.get(id) !== "uploading") return { ok: false, message: "gone" };
     server.photos.set(id, "pending");
@@ -107,6 +111,10 @@ vi.mock("./actions", () => ({
     });
   }),
   retryPhoto: vi.fn(async () => (server.retry ? server.retry() : [])),
+  signVariantUploads: vi.fn(async (id: string, sizes: { thumb: number; display: number }) => {
+    server.signed.push({ id, sizes });
+    return server.sign;
+  }),
 }));
 
 const { AlbumUploadQueue } = await import("./upload-engine");
@@ -142,7 +150,7 @@ let snap: { key: string; state: string; photoId?: string; name: string }[] = [];
 let changes = 0;
 beforeEach(() => {
   h.FakeUpload.all = [];
-  Object.assign(server, { photos: new Map(), bySha: new Map(), reserveGate: null, completeGate: null, canceled: [], completed: [], pollCalls: 0, retry: null, nextId: 1 });
+  Object.assign(server, { photos: new Map(), bySha: new Map(), reserveGate: null, completeGate: null, canceled: [], completed: [], pollCalls: 0, retry: null, nextId: 1, completeArgs: [], signed: [], sign: { ok: false } });
   changes = 0;
   q = new AlbumUploadQueue("00000000-0000-4000-8000-0000000000aa", (i) => ((snap = i), changes++), () => {}, 3, { pollMs: 5 });
 });
@@ -364,5 +372,52 @@ describe("resume wording matches TUS behaviour", () => {
     expect(msg).toContain("أعد اختيار نفس الملف");
     expect(msg).toContain(RESUME_HINT);
     expect(msg).not.toMatch(/من حيث توقّف/);
+  });
+});
+
+describe("web copies made in the browser (Vercel CPU budget)", () => {
+  const blob = (n: number) => new Blob([new Uint8Array(n)], { type: "image/webp" });
+  const variants = async () => ({ thumb: blob(10), display: blob(20), width: 4000, height: 3000 });
+
+  it("stores both copies on the signed S3 URLs and reports the original size to completeAlbumUpload", async () => {
+    const puts: string[] = [];
+    server.sign = { ok: true, provider: "s3", urls: { thumb: "https://s3.test/t", display: "https://s3.test/d" } };
+    const cq = new AlbumUploadQueue("00000000-0000-4000-8000-0000000000aa", (i) => (snap = i), () => {}, 3, {
+      pollMs: 5,
+      makeVariants: variants,
+      putVariant: async (url) => (puts.push(url), true),
+    });
+    cq.add([jpeg("a.jpg", 1)]);
+    await finishAll();
+    await until(() => server.completeArgs.length === 1, "complete");
+    expect(server.signed[0].sizes).toEqual({ thumb: 10, display: 20 });
+    expect(puts.sort()).toEqual(["https://s3.test/d", "https://s3.test/t"]);
+    expect(server.completeArgs[0].client).toEqual({ width: 4000, height: 3000 });
+    cq.dispose();
+  });
+
+  it("falls back to the server worker (no size reported) when a copy cannot be stored", async () => {
+    server.sign = { ok: true, provider: "s3", urls: { thumb: "https://s3.test/t", display: "https://s3.test/d" } };
+    const cq = new AlbumUploadQueue("00000000-0000-4000-8000-0000000000aa", (i) => (snap = i), () => {}, 3, {
+      pollMs: 5,
+      makeVariants: variants,
+      putVariant: async (url) => url.endsWith("/t"),
+    });
+    cq.add([jpeg("a.jpg", 2)]);
+    await finishAll();
+    await until(() => server.completeArgs.length === 1, "complete");
+    expect(server.completeArgs[0].client).toBeUndefined();
+    await until(() => snap[0]?.state === "ready", "ready via worker");
+    cq.dispose();
+  });
+
+  it("never blocks the upload when the browser cannot make copies (RAW, no WebP encoder)", async () => {
+    const cq = new AlbumUploadQueue("00000000-0000-4000-8000-0000000000aa", (i) => (snap = i), () => {}, 3, { pollMs: 5, makeVariants: async () => null });
+    cq.add([jpeg("a.jpg", 3)]);
+    await finishAll();
+    await until(() => snap[0]?.state === "ready", "ready");
+    expect(server.signed).toEqual([]);
+    expect(server.completeArgs[0].client).toBeUndefined();
+    cq.dispose();
   });
 });

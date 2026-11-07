@@ -16,7 +16,11 @@ import { after } from "next/server";
 import { ALBUM_MAX_FILES_PER_BATCH, albumObjectPath, FORMATS, fmtMb, maxBytesFor, SHA256_RE, type FormatId } from "./rules";
 import { albumStore, type AlbumProvider } from "@/lib/album-storage";
 import { partSizeFor, partsProblem } from "@/lib/album-storage/multipart";
-import { albumWriteProvider, s3Head, s3MultipartAbort, s3MultipartComplete, s3MultipartParts } from "@/lib/album-storage/s3";
+import { albumWriteProvider, s3Head, s3MultipartAbort, s3MultipartComplete, s3MultipartParts, s3SignPut } from "@/lib/album-storage/s3";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { ALBUM_BUCKET, ALBUM_MAX_PIXELS } from "./rules";
+import { CLIENT_VARIANT_MAX_BYTES, validDimensions, variantPaths, type VariantKey } from "./variant-rules";
+import { acceptClientVariants } from "./client-variant-accept";
 
 const SLUG_DUP = { "23505": "هذا المعرّف مستخدم لألبوم آخر." };
 const CAT_DUP = { "23505": "هذا المعرّف مستخدم لتصنيف آخر." };
@@ -243,8 +247,44 @@ export async function reserveAlbumUpload(albumId: string, f: ReserveInput): Prom
   return { ok: true, photoId, path, contentType: def.mime, provider, resumed: false, warning: other ? `تنبيه: الصورة نفسها موجودة في ألبوم «${other.album_title}».` : undefined };
 }
 
-/** Step 3: the browser says the upload finished. Trust nothing: the object must exist with the reserved size. */
-export async function completeAlbumUpload(photoId: string): Promise<{ ok: boolean; message?: string }> {
+/**
+ * Step 2b (optional): where the browser may store the web copies it made (client-variants.ts), so no image is decoded
+ * on Vercel. Only for an open reservation (`uploading`) and only the two fixed variant paths of that photo. S3: one
+ * PUT URL per copy bound to type and exact length. Supabase: a one-time signed upload token per path (minted with the
+ * service role after this admin check). Nothing here is trusted later: completeAlbumUpload re-checks the stored copies.
+ */
+export type VariantTargets =
+  | { ok: true; provider: "s3"; urls: Record<VariantKey, string> }
+  | { ok: true; provider: "supabase"; tokens: Record<VariantKey, { path: string; token: string }> }
+  | { ok: false };
+export async function signVariantUploads(photoId: string, sizes: Record<VariantKey, number>): Promise<VariantTargets> {
+  if (!(await guard(ADMIN_ROLES)) || !isUuid(photoId) || !sizes || typeof sizes !== "object") return { ok: false };
+  const keys: VariantKey[] = ["thumb", "display"];
+  if (keys.some((k) => !Number.isInteger(sizes[k]) || sizes[k] <= 0 || sizes[k] > CLIENT_VARIANT_MAX_BYTES[k])) return { ok: false };
+  const sb = await db();
+  const { data: p } = await sb.from("album_photos").select("id, album_id, storage_path_original, storage_provider").eq("id", photoId).eq("upload_status", "uploading").is("deleted_at", null).maybeSingle();
+  if (!p) return { ok: false };
+  const paths = variantPaths(p.storage_path_original);
+  try {
+    if (p.storage_provider === "s3") {
+      const [thumb, display] = await Promise.all(keys.map((k) => s3SignPut(paths[k], "image/webp", sizes[k])));
+      return { ok: true, provider: "s3", urls: { thumb, display } };
+    }
+    const bucket = createAdminClient().storage.from(ALBUM_BUCKET);
+    const signed = await Promise.all(keys.map((k) => bucket.createSignedUploadUrl(paths[k], { upsert: true })));
+    if (signed.some((r) => r.error || !r.data)) return { ok: false };
+    return { ok: true, provider: "supabase", tokens: { thumb: { path: paths.thumb, token: signed[0].data!.token }, display: { path: paths.display, token: signed[1].data!.token } } };
+  } catch {
+    return { ok: false };
+  }
+}
+
+/**
+ * Step 3: the browser says the upload finished. Trust nothing: the object must exist with the reserved size.
+ * `client`: the browser also stored web copies (step 2b) and reports the original's pixel size. When the copies pass
+ * the checks the photo is ready at once and no worker runs; otherwise the server worker processes it as before.
+ */
+export async function completeAlbumUpload(photoId: string, client?: { width: number; height: number }): Promise<{ ok: boolean; message?: string }> {
   if (!(await guard(ADMIN_ROLES))) return { ok: false, message: FORBIDDEN.message };
   if (!isUuid(photoId)) return { ok: false, message: "طلب غير صالح." };
   const sb = await db();
@@ -263,10 +303,28 @@ export async function completeAlbumUpload(photoId: string): Promise<{ ok: boolea
     await store.remove([p.storage_path_original]);
     return { ok: false, message: "حجم الملف المرفوع لا يطابق الملف الأصلي — أعد المحاولة." };
   }
+  if (client && validDimensions(client, ALBUM_MAX_PIXELS)) {
+    const admin = createAdminClient() as unknown as SB;
+    const accepted = await acceptClientVariants({ store: albumStore(p.storage_provider, admin), admin }, p, client, format).catch(() => "fallback" as const);
+    if (accepted === "ready") {
+      updateTag(TAGS.albums); // a published album shows the new photo on the next visit
+      return { ok: true };
+    }
+    if (accepted === "queued") {
+      scheduleWorker();
+      return { ok: true };
+    }
+  }
   const up = await sb.rpc("album_upload_complete", { p_photo_id: photoId });
   if (up.error) return { ok: false, message: dbMessage(up.error) };
   if (up.data !== true) return { ok: false, message: "تغيّرت حالة الصورة أثناء الرفع — حدّث الصفحة." };
-  // Heavy work after the response (and in the cron worker if this instance stops): the admin is never blocked.
+  scheduleWorker();
+  return { ok: true };
+}
+
+/** Heavy work after the response (and in the cron worker if this instance stops): the admin is never blocked.
+ *  Only reached for files the browser could not prepare (RAW, TIFF, or no WebP encoder). */
+function scheduleWorker() {
   after(async () => {
     try {
       const r = await runPhotoJobs({ limit: 2, budgetMs: 40_000 });
@@ -275,7 +333,6 @@ export async function completeAlbumUpload(photoId: string): Promise<{ ok: boolea
       console.error("[album-upload] after-complete worker error (the cron worker retries):", e instanceof Error ? e.message : e);
     }
   });
-  return { ok: true };
 }
 
 /** S3: turn the stored parts into the object. The parts are S3's own list, never the browser's; a repeated call finds
