@@ -112,7 +112,7 @@ export async function getBusinessSettings(): Promise<Loaded<BusinessSettings | n
 
 export async function getHeroMedia(): Promise<PublicMedia | null> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   cacheTag(TAGS.business, TAGS.media);
   const settings = await getBusinessSettings();
   const id = settings.status === "ok" ? settings.data?.hero_media_id : null;

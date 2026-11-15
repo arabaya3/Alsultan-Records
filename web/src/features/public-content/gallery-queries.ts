@@ -36,7 +36,7 @@ function parseRows<S extends z.ZodType>(schema: S, rows: unknown): z.output<S>[]
 /** Published videos with a ready studio file for reels mode (no paths: the file is read through /r/<id>). */
 export async function getReelFiles(): Promise<Map<string, { width: number | null; height: number | null }>> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   cacheTag(TAGS.videos);
   const sb = getPublicClient();
   if (!sb) return new Map();

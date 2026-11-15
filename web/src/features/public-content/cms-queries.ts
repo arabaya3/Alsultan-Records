@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife, cacheTag } from "next/cache";
-import { publicLife } from "./cache-life";
+import { publicLife, untilHebronMidnight } from "./cache-life";
 import type { z } from "zod";
 import { TAGS } from "@/lib/cache-tags";
 import { DEFAULT_FOOTER_NAV, DEFAULT_HEADER_NAV, isSiteTarget, offerPath, targetPath } from "@/lib/site-targets";
@@ -52,7 +52,7 @@ export type SiteNav = { header: NavLink[]; footer: NavLink[]; fromDb: boolean };
 
 export async function getSiteNav(): Promise<SiteNav> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   cacheTag(TAGS.nav);
   const fallback = { header: defaultNav(DEFAULT_HEADER_NAV), footer: defaultNav(DEFAULT_FOOTER_NAV), fromDb: false };
   const sb = getPublicClient();
@@ -71,7 +71,7 @@ export async function getSiteNav(): Promise<SiteNav> {
 
 export async function getSiteSections(): Promise<SectionConfig[]> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   cacheTag(TAGS.sections);
   const sb = getPublicClient();
   if (!sb) return resolveSections(null);
@@ -91,7 +91,7 @@ const FALLBACK_STEPS: ProcessStep[] = STEPS.map((s) => ({ key: s.title, title: s
 
 export async function getProcessSteps(): Promise<ProcessStep[]> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   cacheTag(TAGS.process);
   const sb = getPublicClient();
   if (!sb) return FALLBACK_STEPS;
@@ -135,6 +135,7 @@ export async function getActiveOffers(): Promise<Loaded<Offer[]>> {
         return { status: "unavailable" };
       }
     })(),
+    true,
   );
 }
 
@@ -174,12 +175,13 @@ export async function getOfferBySlug(slug: string): Promise<Loaded<Offer | null>
       if (all.status !== "ok") return all;
       return { status: "ok", data: all.data.find((o) => o.slug === slug) ?? null };
     })(),
+    true,
   );
 }
 
 export async function getActiveAnnouncements(): Promise<Announcement[]> {
   "use cache";
-  cacheLife("hours");
+  untilHebronMidnight();
   cacheTag(TAGS.announcements, TAGS.offers);
   const sb = getPublicClient();
   if (!sb) return [];
@@ -214,7 +216,7 @@ export async function getActiveAnnouncements(): Promise<Announcement[]> {
 
 export async function getServiceLinks(): Promise<ServiceLink[]> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   cacheTag(TAGS.services, TAGS.videos, TAGS.albums);
   const sb = getPublicClient();
   if (!sb) return [];
@@ -229,7 +231,7 @@ export async function getServiceLinks(): Promise<ServiceLink[]> {
 
 export async function getAlbumCategories(): Promise<AlbumCategory[]> {
   "use cache";
-  cacheLife("hours");
+  cacheLife("days");
   cacheTag(TAGS.albums);
   const sb = getPublicClient();
   if (!sb) return [];
