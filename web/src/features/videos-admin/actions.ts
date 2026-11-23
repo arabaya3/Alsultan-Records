@@ -2,6 +2,7 @@
 
 import { refresh, updateTag } from "next/cache";
 import { TAGS } from "@/lib/cache-tags";
+import { expireAgainAfterSettling } from "@/lib/expire-after-settling";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { youTubeWatchUrl } from "@/lib/youtube";
@@ -15,11 +16,15 @@ const LINKS_FAIL = "حُفظ الفيديو، لكن تعذّر حفظ التص�
 
 type SB = Awaited<ReturnType<typeof createClient>>;
 
-/** Videos and categories feed /work, the home works/promos sections and the hero promo. */
+/**
+ * Videos and categories feed /work and the home works/promos sections. Expired now and once more a few seconds
+ * later, so a rebuild of the (statically cached) home page that was already in flight cannot leave the old state.
+ */
 function invalidate() {
   updateTag(TAGS.videos);
   updateTag(TAGS.sections);
   updateTag(TAGS.business);
+  expireAgainAfterSettling(TAGS.videos, TAGS.sections, TAGS.business);
   refresh();
 }
 

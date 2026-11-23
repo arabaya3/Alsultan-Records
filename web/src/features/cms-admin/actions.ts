@@ -29,9 +29,16 @@ import { expireAgainAfterSettling } from "@/lib/expire-after-settling";
 type SB = Awaited<ReturnType<typeof cms>>;
 const FEATURE_TABLE = { video: "showcase_videos", service: "services", offer: "offers", album: "photo_albums" } as const;
 
-/** Expire every affected public cache tag and refresh the admin view. */
+/**
+ * Expire every affected public cache tag and refresh the admin view. Call it after the last successful write.
+ * The tags are expired now and once more a few seconds later: /packages, /offers, /services and the home page are
+ * statically cached, and a rebuild that read the old rows before this save and finishes after it would otherwise be
+ * stored as fresh and stay until the timed refresh. Such a rebuild is common, not rare: the admin forms link to the
+ * public page they edit («عرض في الموقع»), and that link prefetches it.
+ */
 function publish(...tags: CacheTag[]) {
   for (const t of new Set(tags)) updateTag(t);
+  expireAgainAfterSettling(...tags);
   refresh();
 }
 
@@ -160,7 +167,6 @@ export async function saveHome(_p: ActionResult, fd: FormData): Promise<ActionRe
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("تعذّر الحفظ.");
   publish(...T.home, TAGS.videos);
-  expireAgainAfterSettling(...T.home, TAGS.videos);
   return ok("حُفظت الصفحة الرئيسية.");
 }
 
