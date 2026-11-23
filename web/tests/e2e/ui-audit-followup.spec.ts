@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
-import { BASE, db, newLoggedIn } from "./qa-helpers";
+import { BASE, db, newLoggedIn, refreshPublicCache } from "./qa-helpers";
 
 /**
  * UI audit follow-up (docs/ui-audit-followup.md) — regression tests for the behaviours this change introduced.
@@ -25,6 +25,7 @@ const OFFER_TEXT = "1. تصوير سهرة العريس\n- كاميرا صور �
 const uploaded: string[] = [];
 let navAlbumsWasVisible: boolean | null = null;
 let navContactWasVisible: boolean | null = null;
+let heroBefore: { hero_cover_source: string | null; hero_cover_photo_id: string | null } | null = null;
 
 async function jpeg(i: number) {
   const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800"><rect width="100%" height="100%" fill="${["#3a2f1e", "#1f2a33", "#2f1f2a"][i]}"/><circle cx="600" cy="400" r="200" fill="#c9a24a"/><text x="50%" y="90%" font-size="60" fill="#fff" text-anchor="middle" font-family="sans-serif">QA ${i + 1}</text></svg>`;
@@ -36,6 +37,7 @@ async function put(p: string, body: Buffer) {
   uploaded.push(p);
 }
 async function cleanup() {
+  if (heroBefore) await db.from("business_settings").update(heroBefore).eq("id", 1);
   await db.from("photo_albums").update({ cover_photo_id: null }).eq("id", ALBUM.id);
   await db.from("album_photos").delete().eq("album_id", ALBUM.id);
   await db.from("photo_albums").delete().eq("id", ALBUM.id);
@@ -46,10 +48,16 @@ async function cleanup() {
   if (navContactWasVisible !== null) await db.from("nav_items").update({ is_visible: navContactWasVisible }).eq("target", "contact");
 }
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser }) => {
   fs.mkdirSync(VIDEO, { recursive: true });
   const { error: ae } = await db.from("photo_albums").insert({ id: ALBUM.id, slug: ALBUM.slug, title: ALBUM.title, is_published: true, sort_order: 1 });
   if (ae) throw new Error(ae.message);
+  // The newest published album's cover is the page-hero photo on every page. The viewer tests need this album's first
+  // photo to be fetched by the viewer itself, not to be on the page behind it already: pin the hero to another photo.
+  heroBefore = (await db.from("business_settings").select("hero_cover_source, hero_cover_photo_id").eq("id", 1).single()).data;
+  const other = (await db.from("album_photos").select("id").eq("is_published", true).eq("upload_status", "ready").neq("album_id", ALBUM.id).limit(1).single()).data;
+  if (!other) throw new Error("needs one published photo outside the fixture album");
+  await db.from("business_settings").update({ hero_cover_source: "manual", hero_cover_photo_id: other.id }).eq("id", 1);
   for (const [i, p] of PHOTOS.entries()) {
     const base = `albums/${ALBUM.id}/${p.id}`;
     const img = await jpeg(i);
@@ -80,10 +88,15 @@ test.beforeAll(async () => {
   navAlbumsWasVisible = nav.find((n) => n.target === "albums")?.is_visible ?? null;
   navContactWasVisible = nav.find((n) => n.target === "contact")?.is_visible ?? null;
   await db.from("nav_items").update({ is_visible: true }).in("target", ["albums", "contact"]);
+  // All of the above was written with the secret key: visitors see it after the next admin save (day-long cache, tags).
+  await refreshPublicCache(browser);
 });
-test.afterAll(cleanup);
+test.afterAll(async ({ browser }) => {
+  await cleanup();
+  await refreshPublicCache(browser);
+});
 
-/** Cached public pages pick up direct DB writes within the cache window: retry the navigation until they do. */
+/** Retry the navigation until the page, refreshed by the admin save in beforeAll, shows the fixture. */
 async function gotoUntil(page: Page, url: string, ready: (p: Page) => Promise<void>) {
   await expect(async () => {
     await page.goto(`${url}${url.includes("?") ? "&" : "?"}_=${Date.now()}`);
@@ -178,7 +191,11 @@ test("UA4 viewer: visible loading, error + retry recovers, fast arrows show the 
   expect(await page.evaluate(() => document.body.style.overflow)).toBe("hidden"); // scroll locked while open
   await expect(lb.locator(`[data-lightbox-image='${PHOTOS[0].id}']`)).toHaveCSS("opacity", "1", { timeout: 10_000 });
   // neighbours only: the opened photo + the next one (no previous on the first), never the whole album at once
-  await expect.poll(() => new Set(displayRequests.map((u) => u.split("/p/")[1].split("/")[0])).size).toBeLessThanOrEqual(2);
+  // (counted over this album's photos: the page hero behind the viewer fades through OTHER albums' covers every 8 s,
+  // which is not the viewer preloading anything)
+  const albumRequests = () => [...new Set(displayRequests.map((u) => u.split("/p/")[1].split("/")[0]))].filter((id) => PHOTOS.some((ph) => ph.id === id));
+  await expect.poll(() => albumRequests().length).toBeLessThanOrEqual(2);
+  expect(albumRequests().every((id) => id === PHOTOS[0].id || id === PHOTOS[1].id)).toBe(true);
   // next photo fails once → error with retry → recovers
   await page.keyboard.press("ArrowLeft"); // RTL: ← = next
   await expect(lb.locator("[data-lightbox-error]")).toBeVisible();
