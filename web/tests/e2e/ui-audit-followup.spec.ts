@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import sharp from "sharp";
-import { BASE, db, newLoggedIn, refreshPublicCache } from "./qa-helpers";
+import { BASE, db, hideAlbumViaAdmin, newLoggedIn, refreshPublicCache } from "./qa-helpers";
 
 /**
  * UI audit follow-up (docs/ui-audit-followup.md) — regression tests for the behaviours this change introduced.
@@ -92,6 +92,9 @@ test.beforeAll(async ({ browser }) => {
   await refreshPublicCache(browser);
 });
 test.afterAll(async ({ browser }) => {
+  // Hidden through the admin before the rows are deleted: that expires the albums cache, so no later page is served a
+  // card or hero pointing at the deleted album (see hideAlbumViaAdmin).
+  await hideAlbumViaAdmin(browser, ALBUM.id);
   await cleanup();
   await refreshPublicCache(browser);
 });
