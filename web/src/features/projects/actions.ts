@@ -1,12 +1,13 @@
 "use server";
 
-import { refresh, updateTag } from "next/cache";
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { guard, ADMIN_ROLES } from "@/features/admin/guard";
 import { pick } from "@/features/admin/query";
 import { dbMessage, fail, FORBIDDEN, ok, optDate, optStr, str, uuid, type ActionResult } from "@/features/admin/result";
+import { expirePublicProjects } from "@/features/publishing/public-cache";
 import { retractEventPublicCopies } from "@/features/publishing/server";
 import { cleanupMessage, processStorageCleanup } from "@/features/publishing/cleanup";
 import { Constants } from "@/types/database";
@@ -77,8 +78,7 @@ export async function updateEvent(_p: ActionResult, fd: FormData): Promise<Actio
   const sb = await createClient();
   const { error } = await sb.from("events").update(parsed.data).eq("id", id);
   if (error) return fail(dbMessage(error, { ...SLUG_TAKEN, "23514": "لا يمكن إزالة الرابط العام لمناسبة منشورة. أوقف النشر أولاً." }));
-  updateTag("projects"); // a published event's public page/lists/sitemap must not stay stale
-  updateTag("media");
+  expirePublicProjects(); // a published event's public page/lists/sitemap must not stay stale
   refresh();
   return ok("حُفظت المناسبة.");
 }
@@ -94,8 +94,7 @@ export async function trashEvent(_p: ActionResult, fd: FormData): Promise<Action
   const sb = await createClient();
   const { error } = await sb.rpc("trash_event", { p_id: id });
   if (error) return fail(dbMessage(error, { P0002: "المناسبة غير موجودة أو موجودة في سلة المحذوفات." }));
-  updateTag("projects");
-  updateTag("media");
+  expirePublicProjects();
   if (fd.get("from") === "detail") redirect("/admin/events?view=trash");
   return ok("نُقلت المناسبة إلى سلة المحذوفات. يمكنك استرجاعها في أي وقت.");
 }
@@ -107,8 +106,7 @@ export async function restoreEvent(_p: ActionResult, fd: FormData): Promise<Acti
   const sb = await createClient();
   const { error } = await sb.rpc("restore_event", { p_id: id });
   if (error) return fail(dbMessage(error, { P0002: "المناسبة ليست في سلة المحذوفات." }));
-  updateTag("projects");
-  updateTag("media");
+  expirePublicProjects();
   return ok("استُرجعت المناسبة.");
 }
 
@@ -126,13 +124,12 @@ export async function setConsent(_p: ActionResult, fd: FormData): Promise<Action
         "42501": "سحب العميل موافقته على النشر؛ لا يمكن إعادة منحها إلا من حساب العميل نفسه.",
       }),
     );
-  updateTag("projects");
-  updateTag("media");
   let extra = "";
   if (status !== "granted") {
     const r = await retractEventPublicCopies(sb, id);
     if (r.message) extra = ` ${r.message}`;
   }
+  expirePublicProjects(); // after the last write: a render in between must not cache the half-changed state
   refresh();
   return ok(`حُدّثت حالة الموافقة.${extra}`);
 }
@@ -160,13 +157,12 @@ export async function setPublication(_p: ActionResult, fd: FormData): Promise<Ac
         "22023": "أضف رابطاً عاماً للمناسبة واحفظه قبل النشر.",
       }),
     );
-  updateTag("projects");
-  updateTag("media");
   let extra = "";
   if (!publish) {
     const r = await retractEventPublicCopies(sb, id);
     if (r.message) extra = ` ${r.message}`;
   }
+  expirePublicProjects(); // after the last write: a render in between must not cache the half-changed state
   refresh();
   return ok(publish ? "نُشرت المناسبة في صفحة الأعمال." : `أُوقف النشر.${extra}`);
 }
@@ -180,8 +176,7 @@ export async function cleanupPublic(_p: ActionResult, fd: FormData): Promise<Act
   if (ev?.is_published && ev.publication_consent === "granted")
     return fail("المناسبة منشورة حالياً؛ أوقف نشر الصور فرادى من صفحة الوسائط.");
   const r = await retractEventPublicCopies(sb, id);
-  updateTag("projects");
-  updateTag("media");
+  if (r.rows) expirePublicProjects();
   refresh();
   return ok(`أُزيلت ${r.rows} نسخة عامة من السجل. ${r.message}`.trim());
 }

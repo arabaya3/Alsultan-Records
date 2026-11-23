@@ -3,7 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { randomUUID } from "node:crypto";
 import path from "node:path";
 import sharp from "sharp";
-import { db, hideAlbumViaAdmin } from "./qa-helpers";
+import { db, hideAlbumViaAdmin, refreshAlbumsCache } from "./qa-helpers";
 
 /**
  * Photos tab, album page, lightbox and the gated /p route. LOCAL STACK ONLY.
@@ -53,7 +53,7 @@ test("empty state is honest when no album is published", async ({ page }) => {
 });
 
 test.describe("with a temporary published album", () => {
-  test.beforeAll(async () => {
+  test.beforeAll(async ({ browser }) => {
     await cleanup();
     const { error: ae } = await db.from("photo_albums").insert({
       id: ALBUM.id,
@@ -89,6 +89,8 @@ test.describe("with a temporary published album", () => {
       if (error) throw new Error(error.message);
     }
     await db.from("photo_albums").update({ cover_photo_id: PHOTOS[1].id }).eq("id", ALBUM.id);
+    // Written with the secret key: the public album list (cached for a day) follows the next admin save of an album.
+    await refreshAlbumsCache(browser, ALBUM.id);
   });
   test.afterAll(async ({ browser }) => {
     await hideAlbumViaAdmin(browser, ALBUM.id);

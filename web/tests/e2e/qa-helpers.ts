@@ -203,3 +203,18 @@ export async function refreshPublicCache(browser: Browser) {
     await page.context().close();
   });
 }
+
+/**
+ * The albums counterpart of refreshPublicCache: an album written straight to the database reaches the public album
+ * list after an admin save of an album. This re-saves that album's «بيانات الألبوم» form UNCHANGED (updateAlbum expires
+ * the albums tag).
+ */
+export async function refreshAlbumsCache(browser: Browser, albumId: string) {
+  await withAdminBrowser(browser, async (b) => {
+    const page = await newLoggedIn(b, "owner", `/admin/albums/${albumId}`);
+    const form = page.getByTestId("album-edit");
+    await form.getByRole("button", { name: "حفظ", exact: true }).click();
+    await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+    await page.context().close();
+  });
+}

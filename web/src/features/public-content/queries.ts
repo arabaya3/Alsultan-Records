@@ -126,7 +126,7 @@ export async function getHeroMedia(): Promise<PublicMedia | null> {
 
 export async function getPublishedProjects(limit?: number): Promise<Loaded<Project[]>> {
   "use cache";
-  cacheTag(TAGS.projects);
+  cacheTag(TAGS.projects, TAGS.media); // carries each project's published photos
   return publicLife(
     await (async (): Promise<Loaded<Project[]>> => {
       const sb = getPublicClient();
@@ -162,7 +162,7 @@ export async function getPublishedProjects(limit?: number): Promise<Loaded<Proje
 
 export async function getProjectBySlug(slug: string): Promise<Loaded<Project | null>> {
   "use cache";
-  cacheTag(TAGS.projects, `project:${slug}`);
+  cacheTag(TAGS.projects, TAGS.media, `project:${slug}`); // carries the project's published photos
   return publicLife(
     await (async (): Promise<Loaded<Project | null>> => {
       const sb = getPublicClient();
@@ -189,7 +189,7 @@ export async function getProjectBySlug(slug: string): Promise<Loaded<Project | n
 
 export async function getPublishedServices(): Promise<Loaded<Service[]>> {
   "use cache";
-  cacheTag(TAGS.services, TAGS.albums);
+  cacheTag(TAGS.services, TAGS.albums, TAGS.media); // a service cover can be a published media asset
   return publicLife(
     await (async (): Promise<Loaded<Service[]>> => {
       const sb = getPublicClient();

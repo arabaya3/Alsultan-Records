@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { anon, as, BASE, db, EV, psql, SB_URL, uiLogin } from "./qa-helpers";
+import { anon, as, BASE, db, EV, newLoggedIn, psql, SB_URL, uiLogin } from "./qa-helpers";
 
 /**
  * Release blocker: publication consent withdrawal (migration 0010, /m route, storage-cleanup).
@@ -37,7 +37,7 @@ async function objectExists(bucket: string, path: string): Promise<boolean> {
 
 test.describe.configure({ mode: "serial" });
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser }) => {
   // Seed state: A2 published with consent granted, owned by customer A.
   psql(`update public.events set publication_consent = 'granted', is_published = true where id = '${EV.A2}';`);
   const { data: src } = await db
@@ -58,20 +58,17 @@ test.beforeAll(async () => {
   await db.storage.from("public-media").remove([pubDisplay, pubThumb]);
   privateBefore = (await db.from("media_assets").select("id", { count: "exact", head: true }).eq("event_id", EV.A2).eq("bucket", "private-media")).count ?? 0;
 
-  // Admin publishes one image exactly like publishMediaItem (RLS-scoped admin session).
-  const admin = await as("admin");
-  const c1 = await admin.storage.from("private-media").copy(source.display, pubDisplay, { destinationBucket: "public-media" });
-  const c2 = await admin.storage.from("private-media").copy(source.thumb, pubThumb, { destinationBucket: "public-media" });
-  expect(c1.error, c1.error?.message).toBeNull();
-  expect(c2.error, c2.error?.message).toBeNull();
-  const ins = await admin
-    .from("media_assets")
-    .insert({ event_id: EV.A2, bucket: "public-media", path: pubDisplay, kind: "image", mime: "image/webp", width: 2048, height: 1365,
-              sort_order: 0, variants: { display: pubDisplay, thumb: pubThumb }, visibility: "public", upload_status: "ready" })
-    .select("id")
-    .single();
-  expect(ins.error, ins.error?.message).toBeNull();
-  publicId = ins.data!.id;
+  // The admin publishes one image with the real «نشر في الأعمال» button (publishMediaItem): the copy, the public row and
+  // the refresh of the public pages are all the product's own.
+  const page = await newLoggedIn(browser, "admin", `/admin/events/${EV.A2}/media`);
+  const item = page.locator(`[data-testid=media-item]:has(input[name="ids"][value="${source.id}"])`);
+  await item.getByRole("button", { name: "نشر في الأعمال" }).click();
+  await expect(item.getByRole("button", { name: "إلغاء النشر" })).toBeVisible();
+  await page.context().close();
+  const row = (await db.from("media_assets").select("id, path, variants, visibility").eq("bucket", "public-media").eq("path", pubDisplay).single()).data!;
+  expect(row.visibility).toBe("public");
+  expect(row.variants).toEqual({ display: pubDisplay, thumb: pubThumb });
+  publicId = row.id;
 });
 
 test.afterAll(async () => {
@@ -92,10 +89,12 @@ test("published media is served through /m with a bounded public cache", async (
   // The bucket itself is not public: the old direct URL shape never works.
   expect((await request.get(`${SB_URL}/storage/v1/object/public/public-media/${pubDisplay}`)).ok()).toBe(false);
 
-  // Project page and listing (allowing the 1-minute public page cache to pick up the new cover).
+  // Project page and listing: the publish action refreshed them, so one request each (no waiting for a timed refresh).
   // Projects are listed on /work («مشاريع مختارة»); since the gallery round the homepage shows videos/albums, not projects.
-  expect((await request.get(`${BASE}/work/${SLUG}`)).status()).toBe(200);
-  const work = await poll(async () => (await request.get(`${BASE}/work`)).text(), (t) => t.includes(`/m/${publicId}/`), 90_000);
+  const project = await request.get(`${BASE}/work/${SLUG}`);
+  expect(project.status()).toBe(200);
+  expect(await project.text()).toContain(`/m/${publicId}/`);
+  const work = await (await request.get(`${BASE}/work`)).text();
   expect(work).toContain(`/work/${SLUG}`);
   expect(work).toContain(`/m/${publicId}/`);
   expect(work).not.toContain("/storage/v1/object/public/");
@@ -187,7 +186,7 @@ test("forced failure is retried with backoff, then succeeds", async () => {
   expect(await objectExists("public-media", path)).toBe(false);
 });
 
-test("private originals stay; owner customer can still download via signed URL; customer re-grants", async ({ page, request }) => {
+test("private originals stay; owner customer can still download via signed URL; customer re-grants", async ({ page, request, browser }) => {
   const count = (await db.from("media_assets").select("id", { count: "exact", head: true }).eq("event_id", EV.A2).eq("bucket", "private-media")).count;
   expect(count).toBe(privateBefore);
   for (const p of [source.path, source.display, source.thumb]) expect(await objectExists("private-media", p)).toBe(true);
@@ -204,8 +203,14 @@ test("private originals stay; owner customer can still download via signed URL; 
   await card.getByRole("button", { name: "تأكيد" }).click();
   await expect(card.getByRole("status")).toContainText("سُجّلت موافقتك");
   expect(psql(`select publication_consent || '|' || (consent_revoked_by_customer_at is null) from public.events where id = '${EV.A2}'`)).toBe("granted|true");
-  const admin = await as("admin");
-  const p = await admin.rpc("set_event_publication", { p_event_id: EV.A2, p_publish: true });
-  expect(p.error).toBeNull();
-  expect((await request.get(`${BASE}/work/${SLUG}`)).status()).toBe(200);
+  // …through the admin's own «نشر في صفحة الأعمال» (the action also refreshes the public pages).
+  const adminPage = await newLoggedIn(browser, "admin", `/admin/events/${EV.A2}`);
+  await adminPage.getByTestId("publish-form").getByRole("button", { name: "نشر في صفحة الأعمال" }).click();
+  await expect(adminPage.getByRole("button", { name: "إيقاف النشر" })).toBeVisible();
+  await adminPage.context().close();
+  expect(psql(`select is_published from public.events where id = '${EV.A2}'`)).toBe("t");
+  const back = await request.get(`${BASE}/work/${SLUG}`);
+  expect(back.status()).toBe(200);
+  expect(await back.text()).not.toContain(publicId); // the withdrawn photo does not come back with the project
+  expect(await (await request.get(`${BASE}/work`)).text()).toContain(`/work/${SLUG}`);
 });
