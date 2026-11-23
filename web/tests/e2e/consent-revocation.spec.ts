@@ -150,11 +150,17 @@ test("staff cannot republish after the customer withdrew", async () => {
 });
 
 test("scheduled worker (pg_cron -> pg_net -> storage-cleanup) deletes the published copies", async () => {
+  test.setTimeout(240_000);
   expect(psql(`select count(*) from cron.job where jobname = 'storage-cleanup' and active`)).toBe("1");
-  psql(`select app.invoke_storage_cleanup('e2e-manual');`);
+  // The worker takes 100 jobs per call, oldest first. After the upload specs the queue can hold hundreds of older jobs,
+  // so it is called again on every check until it has reached these two (each call is the same scheduled path).
   const left = await poll(
-    () => Number(psql(`select count(*) from private.storage_cleanup_queue where bucket = 'public-media' and path in ('${pubDisplay}', '${pubThumb}') and done_at is null`)),
+    () => {
+      psql(`select app.invoke_storage_cleanup('e2e-manual');`);
+      return Number(psql(`select count(*) from private.storage_cleanup_queue where bucket = 'public-media' and path in ('${pubDisplay}', '${pubThumb}') and done_at is null`));
+    },
     (n) => n === 0,
+    180_000,
   );
   expect(left).toBe(0);
   expect(await objectExists("public-media", pubDisplay)).toBe(false);

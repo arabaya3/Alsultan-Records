@@ -225,6 +225,17 @@ test("PM2: stopping and restarting the project's publication in the admin is on 
   expect(back.html).not.toContain(id); // republishing the project does not bring an unpublished photo back
   expect((await body(request, `${BASE}/work`)).html).toContain(`/work/${SLUG}`);
   expect((await body(request, `${BASE}/sitemap.xml`)).html).toContain(`/work/${SLUG}`);
+
+  // Unpublishing the project deleted the public row; its two files are removed by the cleanup worker, which can lag.
+  // Publishing the photo again must not depend on that: plant leftovers at exactly those paths and publish.
+  const base = `events/${EV.A2}/${sourceId}`;
+  const leftover = new Blob([new Uint8Array([0x52, 0x49, 0x46, 0x46])], { type: "image/webp" });
+  for (const f of ["display.webp", "thumb.webp"]) expect((await db.storage.from("public-media").upload(`${base}/${f}`, leftover, { upsert: true })).error).toBeNull();
+  const again = await publishPhoto(admin);
+  const img = await request.get(`${BASE}/m/${again}/display`);
+  expect(img.status()).toBe(200);
+  expect((await img.body()).length).toBeGreaterThan(100); // the real variant, not the 4-byte leftover
+  expect((await body(request, PROJECT)).html).toContain(`/m/${again}/`);
 });
 
 test("PM3: a customer's consent withdrawal while the sitemap is being rebuilt does not leave the project listed", async ({ browser, request }) => {

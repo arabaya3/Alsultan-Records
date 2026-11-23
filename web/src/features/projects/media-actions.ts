@@ -173,12 +173,12 @@ export async function publishMediaItem(_p: ActionResult, fd: FormData): Promise<
   const pubThumb = `${base}/thumb.webp`;
   const existing = await sb.from("media_assets").select("id, visibility").eq("bucket", "public-media").eq("path", pubDisplay).maybeSingle();
   if (existing.data?.visibility === "public") return ok("الصورة منشورة مسبقاً.");
-  // A stale (withdrawn/unpublished) copy row still awaiting the cleanup worker: replace it.
+  // No live public row from here on. Whatever still sits at these two paths is a leftover of an earlier publication
+  // that the cleanup worker has not reached yet (its row is either stale — withdrawn/unpublished — or already
+  // deleted when the project was unpublished): clear it, or the copy below fails on the existing object.
   // Inserting the new public row cancels the pending deletion of these paths (migration 0010).
-  if (existing.data) {
-    await sb.storage.from(PUBLIC_BUCKET).remove([pubDisplay, pubThumb]);
-    await sb.from("media_assets").delete().eq("id", existing.data.id);
-  }
+  await sb.storage.from(PUBLIC_BUCKET).remove([pubDisplay, pubThumb]);
+  if (existing.data) await sb.from("media_assets").delete().eq("id", existing.data.id);
 
   const c1 = await sb.storage.from(PRIVATE_BUCKET).copy(v.display, pubDisplay, { destinationBucket: PUBLIC_BUCKET });
   const c2 = typeof v.thumb === "string" ? await sb.storage.from(PRIVATE_BUCKET).copy(v.thumb, pubThumb, { destinationBucket: PUBLIC_BUCKET }) : { error: null };

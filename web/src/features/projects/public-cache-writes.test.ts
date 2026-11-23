@@ -115,6 +115,9 @@ describe("one photo: publish / unpublish / delete", () => {
     expect(expires()).toBe(1);
     expect(log.indexOf("EXPIRE")).toBeGreaterThan(log.indexOf("insert:media_assets"));
     expect(log.indexOf("EXPIRE")).toBeGreaterThan(log.lastIndexOf("storage:copy"));
+    // a leftover object of an earlier publication is cleared before the copy (the copy fails on an existing object)
+    expect(log.indexOf("storage:remove")).toBeGreaterThanOrEqual(0);
+    expect(log.indexOf("storage:remove")).toBeLessThan(log.indexOf("storage:copy"));
   });
 
   it("publish: nothing is expired when the row could not be inserted, the copy failed, the event is not public, or the caller is not an admin", async () => {
@@ -123,7 +126,7 @@ describe("one photo: publish / unpublish / delete", () => {
     expect((await publishMediaItem(START, form({ id: ASSET }))).ok).toBe(false);
 
     script.tables = { media_assets: [privateAsset, { data: null, error: null }], events: [publishedEvent] };
-    script.storage = [{ error: { message: "copy failed" } }];
+    script.storage = [{ error: null }, { error: { message: "copy failed" } }]; // leftover removal, then the copy
     expect((await publishMediaItem(START, form({ id: ASSET }))).ok).toBe(false);
 
     script.tables = { media_assets: [privateAsset], events: [{ data: { is_published: false, publication_consent: "granted" }, error: null }] };
