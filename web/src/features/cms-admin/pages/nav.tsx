@@ -6,7 +6,7 @@ import { cms } from "../db";
 import { CmsForm } from "../CmsForm";
 import { SortableList } from "../SortableList";
 import { pickAlbums, pickOffers, pickServices, pickVideos, type Opt, type SectionRow } from "../data";
-import { PAGE_TARGET_LABEL, PAGE_TARGET_PATH, SECTION_FEATURE, SECTION_KEYS, SECTION_LABEL, type SectionKey } from "../targets";
+import { PAGE_TARGET_LABEL, PAGE_TARGET_PATH, SECTION_FEATURE, SECTION_FIELDS, SECTION_KEYS, SECTION_LABEL, type SectionKey } from "../targets";
 import { saveNavItem, saveOrder, saveSection, saveSectionOrder, setSectionVisible } from "../actions";
 import { CheckList, CmsLoadError } from "./shared";
 import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
@@ -65,7 +65,16 @@ export async function NavSectionsPage() {
         </Card>
 
         <Card title="أقسام الصفحة الرئيسية">
-          <p className="mb-3 text-sm text-on-cream-muted">رتّب الأقسام وأظهرها أو أخفها. القسم بلا محتوى منشور لا يظهر حتى لو كان مفعّلاً.</p>
+          <p className="mb-3 text-sm text-on-cream-muted">
+            رتّب الأقسام وأظهرها أو أخفها: الصفحة الرئيسية تعرض الأقسام الظاهرة بهذا الترتيب تحت الواجهة. القسم بلا محتوى منشور لا يظهر حتى لو كان
+            مفعّلاً.
+          </p>
+          <div className="mb-3" data-testid="poster-note">
+            <Notice>
+              التصميم المعتمد للرئيسية هو: «من نحن» ثم «الخدمات» ثم «أعمالنا» ثم «تواصل معنا». باقي الأقسام (العروض، الألبومات، العدّاد، البرومو، طريقة
+              شغلنا) تظهر بنفس الأسلوب إذا أظهرتها.
+            </Notice>
+          </div>
           <SortableList
             label="ترتيب أقسام الرئيسية"
             action={saveSectionOrder}
@@ -90,35 +99,62 @@ export async function NavSectionsPage() {
         <div className="grid gap-4 lg:grid-cols-2">
           {sections.map((s) => {
             const kind = SECTION_FEATURE[s.key];
+            const uses = SECTION_FIELDS[s.key];
+            const off = "cursor-not-allowed bg-cream-2 text-on-cream-muted";
             return (
               <Card key={s.key} title={SECTION_LABEL[s.key]} id={`section-${s.key}`}>
                 <CmsForm action={saveSection} testId={`section-${s.key}`}>
                   <input type="hidden" name="key" value={s.key} />
                   <div className="grid gap-3">
-                    <Field label="العنوان">
-                      <input name="title" maxLength={120} defaultValue={s.title ?? ""} className={inputCls} />
-                    </Field>
-                    <Field label="المقدمة" hint={LONG_TEXT_HINT}>
-                      <textarea name="intro" rows={2} maxLength={LONG_TEXT} defaultValue={s.intro ?? ""} className={inputCls} />
-                    </Field>
+                    {uses.why ? (
+                      <p className="rounded-md border border-cream-line bg-cream-2 px-3 py-2 text-sm text-on-cream-muted" data-testid="section-why">
+                        {uses.why}
+                      </p>
+                    ) : null}
+                    {uses.title ? (
+                      <Field label="العنوان">
+                        <input name="title" maxLength={120} defaultValue={s.title ?? ""} className={inputCls} />
+                      </Field>
+                    ) : (
+                      <>
+                        <input type="hidden" name="title" value={s.title ?? ""} />
+                        <Field label="العنوان" hint="غير مستخدم في هذا القسم.">
+                          <input disabled value={s.title ?? ""} readOnly className={`${inputCls} ${off}`} data-testid="off-title" />
+                        </Field>
+                      </>
+                    )}
+                    {uses.intro ? (
+                      <Field label="المقدمة" hint={LONG_TEXT_HINT}>
+                        <textarea name="intro" rows={2} maxLength={LONG_TEXT} defaultValue={s.intro ?? ""} className={inputCls} />
+                      </Field>
+                    ) : (
+                      <>
+                        <input type="hidden" name="intro" value={s.intro ?? ""} />
+                        <Field label="المقدمة" hint="غير مستخدمة في هذا القسم.">
+                          <textarea disabled rows={2} value={s.intro ?? ""} readOnly className={`${inputCls} ${off}`} data-testid="off-intro" />
+                        </Field>
+                      </>
+                    )}
                     {s.key === "stats" ? (
                       <Field label="الرقم" hint="العدد الحقيقي للحفلات والمناسبات اللي وثّقها الاستوديو. القسم ما بظهر بالموقع بدون رقم.">
                         <input name="stat_value" type="number" inputMode="numeric" min={1} max={10000000} step={1} defaultValue={s.stat_value ?? ""} className={inputCls} data-testid="stat-value" />
                       </Field>
                     ) : null}
                     <div className="grid grid-cols-2 gap-3">
-                      {s.key === "stats" ? (
-                        <input type="hidden" name="item_limit" value={s.item_limit} />
-                      ) : (
+                      {uses.limit ? (
                         <Field label="عدد العناصر" hint="من 1 إلى 12">
                           <input name="item_limit" type="number" inputMode="numeric" min={1} max={12} step={1} defaultValue={s.item_limit} className={inputCls} />
                         </Field>
+                      ) : (
+                        // Not used by this section: the stored number goes back unchanged.
+                        <input type="hidden" name="item_limit" value={s.item_limit} />
                       )}
                       <label className="flex min-h-10 items-center gap-2 self-end text-sm">
                         <input type="checkbox" name="is_visible" defaultChecked={s.is_visible} /> ظاهر
                       </label>
                     </div>
-                    {kind ? (
+                    {kind && !uses.featured ? (s.featured_ids ?? []).map((id) => <input key={id} type="hidden" name="featured_ids" value={id} />) : null}
+                    {kind && uses.featured ? (
                       <CheckList
                         name="featured_ids"
                         legend={kind === "album" ? "ألبومات مختارة يدوياً" : "عناصر مميزة (تظهر أولاً)"}

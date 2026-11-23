@@ -23,7 +23,7 @@ const yesterday = () => {
   d.setUTCDate(d.getUTCDate() - 1);
   return d.toISOString().slice(0, 10);
 };
-/** Public pages are cached ("minutes" profile); admin saves expire tags at once, time-based expiry may take a while. */
+/** Public pages are cached for a day (offers until the next Hebron midnight); admin saves expire the tags at once. */
 async function publicText(page: Page, path: string) {
   await page.goto(`${BASE}${path}`, { waitUntil: "domcontentloaded" });
   return (await page.locator("body").innerText()).replace(/\s+/g, " ");
@@ -118,13 +118,21 @@ test("C3: offer create -> pin -> expire by date disappears from public", async (
   await expect.poll(async () => (await row()).pinned_home).toBe(true);
   await expect.poll(() => publicText(page, "/offers"), { timeout: 20_000 }).toContain(OFFER.title);
 
-  // Expire through the secret-key fixture (no admin action -> no tag update): RLS hides it at once,
-  // the cached page follows within its cache lifetime.
+  // Expire through the secret-key fixture (no admin action -> no tag update): RLS hides it at once and the admin
+  // lists it as ended. The cached public list is rebuilt at the next Hebron midnight (cache-life.ts, unit-tested in
+  // cache-policy.test.ts) — a test cannot wait for midnight, so the rebuild is triggered the other documented way, an
+  // admin save of the offers heading (unchanged), and the rebuilt list must no longer carry the ended offer.
   await db.from("offers").update({ starts_on: null, ends_on: yesterday() }).eq("slug", OFFER.slug);
   expect((await anon().from("offers").select("id").eq("slug", OFFER.slug)).data).toHaveLength(0);
   await page.goto(`${BASE}/admin/content/offers`);
   await expect(page.getByTestId("offer-row").filter({ hasText: OFFER.title }).getByTestId("offer-status")).toContainText("منتهي");
-  await expect.poll(() => publicText(page, "/offers"), { timeout: 180_000, intervals: [5_000] }).not.toContain(OFFER.title);
+  expect(await publicText(page, "/offers")).toContain(OFFER.title); // still the cached list: nothing has refreshed it yet
+  await page.goto(`${BASE}/admin/content/offers`);
+  const heading = page.getByTestId("section-intro-offers");
+  await heading.getByRole("button", { name: "حفظ" }).click();
+  await expect(heading.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+  await expect.poll(() => publicText(page, "/offers"), { timeout: 20_000, intervals: [1_000] }).not.toContain(OFFER.title);
+  expect((await page.request.get(`${BASE}/offers/${OFFER.slug}`)).status()).toBe(404);
   await page.context().close();
 });
 

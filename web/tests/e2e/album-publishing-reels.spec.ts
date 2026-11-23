@@ -30,7 +30,7 @@ const yearAgo = () => {
   return d.toISOString().slice(0, 10);
 };
 /** The hero backdrop on a fresh home load. Retried: expireAgainAfterSettling allows a few seconds when a render was in flight. */
-const HERO = "[data-home-hero-photo] img";
+const HERO = "[data-home-hero-photo] img[data-hero-photo=sharp]";
 const expectHomeHero = (page: Page, id: string) =>
   expect
     .poll(
@@ -225,13 +225,15 @@ test("AP1: a year-old occasion published today comes first; home is strictly by 
   await admin.close();
 
   expect(await firstAlbumOnPhotos(page)).toBe(SLUG);
-  // The latest-albums order is shown on «الصور» (the poster home page lists no albums).
-  await page.goto(`${BASE}/work?tab=photos`);
-  const cards = await page.locator("[data-album-grid] [data-album-card]").evaluateAll((as) => as.map((a) => a.getAttribute("data-album-card")));
+  await page.goto(`${BASE}/`);
+  const cards = await page.locator("[data-home-section=albums] [data-album-card]").evaluateAll((as) => as.map((a) => a.getAttribute("data-album-card")));
   const expected = await expectedHomeAlbums(section.item_limit);
   expect(expected[0]).toBe(SLUG);
-  expect(expected.length).toBeGreaterThan(stored.length + 1);
-  expect(cards.slice(0, expected.length)).toEqual(expected); // strictly newest first, the stored picks not pulled up
+  expect(expected.length).toBeGreaterThan(stored.length + 1); // enough albums that mixing the picks in would change the order
+  expect(cards).toEqual(expected); // the FULL chronological order, not «newest, then the picks»
+  // the picks are the two OLDEST albums: they must not be pulled up into the latest section
+  const pickSlugs = withPhotos.map((a) => a.slug);
+  for (const slug of pickSlugs) if (!expected.includes(slug)) expect(cards).not.toContain(slug);
   expect((await db.from("site_sections").select("featured_ids").eq("key", "albums").single()).data!.featured_ids).toEqual(stored); // publishing never touches the picks
 });
 

@@ -80,18 +80,19 @@ export type SectionConfig = {
 
 export const SECTION_DEFAULTS: Record<SectionKey, { title: string; visible: boolean }> = {
   works: { title: "من أعمالنا", visible: true },
-  services: { title: "الخدمات", visible: true },
-  offers: { title: "العروض", visible: true },
+  services: { title: "كيف نوثّق مناسبتكم", visible: true },
+  offers: { title: "العروض", visible: false },
   promos: { title: "البروموهات", visible: false },
   albums: { title: "ألبومات الصور", visible: false },
-  process: { title: "كيف نشتغل", visible: true },
-  about: { title: "من نحن", visible: false },
-  contact: { title: "تواصل معنا", visible: false },
+  process: { title: "كيف نشتغل", visible: false },
+  about: { title: "من نحن", visible: true },
+  contact: { title: "تواصل معنا", visible: true },
   stats: { title: "فرحة وثّقناها", visible: false },
 };
-/** Home order (owner, 2026-10-20): offers → newest albums → counter → videos → services → process. Offers render only
- *  when at least one offer is active; the counter only when the owner entered a number. */
-const DEFAULT_ORDER: SectionKey[] = ["offers", "albums", "stats", "works", "services", "process", "promos", "about", "contact"];
+/** Used only when a section has NO saved row (the saved order and visibility always win): the poster design's own four
+ *  sections, in its order, then the owner's order of 2026-10-20 for the rest (offers → newest albums → counter →
+ *  process). Offers render only when at least one offer is active; the counter only when the owner entered a number. */
+const DEFAULT_ORDER: SectionKey[] = ["about", "services", "works", "contact", "offers", "albums", "stats", "process", "promos"];
 
 export function resolveSections(rows: z.infer<typeof siteSectionRow>[] | null): SectionConfig[] {
   const byKey = new Map((rows ?? []).map((r) => [r.key, r]));

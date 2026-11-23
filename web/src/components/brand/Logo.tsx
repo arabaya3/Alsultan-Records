@@ -21,12 +21,15 @@ export function Logo({
   asLink = true,
   className = "",
   src = null,
+  sizes,
 }: {
   height?: number;
   priority?: boolean;
   asLink?: boolean;
   className?: string;
   src?: string | null;
+  /** Rendered width per breakpoint when classes change the height (default: the width for `height`). */
+  sizes?: string;
 }) {
   const width = Math.round((height * 900) / 748);
   const img = src ? (
@@ -47,7 +50,7 @@ export function Logo({
       width={900}
       height={748}
       priority={priority}
-      sizes={`${width}px`}
+      sizes={sizes ?? `${width}px`}
       style={{ height, width: "auto" }}
       className={className}
     />

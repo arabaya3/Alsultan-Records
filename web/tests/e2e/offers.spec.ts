@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { anon, BASE, db } from "./qa-helpers";
+import { anon, BASE, db, refreshPublicCache } from "./qa-helpers";
 
 /**
  * Offers: active window by Asia/Hebron calendar day (inclusive), pinned first, price only when shown,
@@ -35,7 +35,7 @@ async function until(p: string, pred: (h: string) => boolean, timeout = 200_000)
   await expect.poll(async () => pred(await html(p)), { timeout, intervals: [3_000, 5_000, 10_000] }).toBe(true);
 }
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser }) => {
   test.setTimeout(300_000);
   await db.from("offers").delete().like("slug", `${P}-%`);
   for (const [k, o] of Object.entries(F)) {
@@ -53,13 +53,17 @@ test.beforeAll(async () => {
   ]);
   offersSectionBefore = (await db.from("site_sections").select("is_visible").eq("key", "offers").single()).data?.is_visible ?? false;
   await db.from("site_sections").update({ is_visible: true }).eq("key", "offers");
+  // Fixtures written with the secret key reach visitors after the next admin save (day-long cache, refreshed by tags).
+  await refreshPublicCache(browser);
   await until("/offers", (h) => h.includes(F.today.slug) && h.includes(F.pinned.slug));
+  await until("/", (h) => h.includes('data-home-section="offers"'));
 });
 
-test.afterAll(async () => {
+test.afterAll(async ({ browser }) => {
   test.setTimeout(300_000);
   await db.from("offers").delete().like("slug", `${P}-%`);
   await db.from("site_sections").update({ is_visible: offersSectionBefore }).eq("key", "offers");
+  await refreshPublicCache(browser);
   await until("/offers", (h) => !h.includes(P));
   await until("/", (h) => !h.includes(P));
 });
@@ -114,9 +118,14 @@ test("expired / future / draft / archived / unknown offers → HTTP 404", async 
   expect((await fetch(new URL(`/offers/${F.today.slug}`, BASE), { redirect: "manual" })).status).toBe(200);
 });
 
-test("the sitemap lists active offers only (the home page is the fixed poster and shows no offers)", async ({ page }) => {
+test("home shows the offers section (pinned first) only while there are active offers", async ({ page }) => {
   await page.goto("/");
-  await expect(page.locator('[data-home-section="offers"]')).toHaveCount(0);
+  const sec = page.locator('[data-home-section="offers"]');
+  await expect(sec).toBeVisible();
+  const slugs = (await sec.locator("[data-offer-card]").evaluateAll((els) => els.map((e) => e.getAttribute("data-offer-card")!))).filter((s) => s.startsWith(P));
+  expect(slugs[0]).toBe(F.pinned.slug);
+  expect(slugs).not.toContain(F.expired.slug);
+  // Sitemap lists active offers only.
   await until("/sitemap.xml", (sm) => sm.includes(`/offers/${F.today.slug}`));
   expect(await html("/sitemap.xml")).not.toContain(`/offers/${F.expired.slug}`);
 });

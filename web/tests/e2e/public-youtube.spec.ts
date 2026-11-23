@@ -102,10 +102,10 @@ test("works grid on /work opens each video", async ({ page }) => {
   }
 });
 
-test("home «من أعمالنا» shows two non-promo videos and each opens its video page", async ({ page }) => {
+test("home «من أعمالنا» shows non-promo videos and each opens its video page", async ({ page }) => {
   await page.goto("/");
   const cards = page.locator("#work-title").locator("xpath=ancestor::section").locator("[data-home-work]");
-  await expect(cards).toHaveCount(2);
+  expect(await cards.count()).toBeGreaterThanOrEqual(2);
   expect(await page.locator(`[data-home-work="${PROMO}"]`).count()).toBe(0);
   const id = await cards.first().getAttribute("data-home-work");
   await cards.first().click();

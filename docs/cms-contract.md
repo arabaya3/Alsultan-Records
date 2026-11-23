@@ -90,3 +90,27 @@ Worker: Next route `POST /api/jobs/process-photos` (secret header `JOBS_SECRET`,
 - WhatsApp: `web/src/lib/whatsapp.ts` (`whatsappHref`, `projectText`); offers use `whatsapp_message` or `«مرحباً، بدي أستفسر عن عرض: <title>»`.
 - YouTube: `web/src/lib/youtube.ts` only (no iframes from admin input).
 - Text is rendered as text; URLs only via allow-list (internal targets) or validated https (social links).
+
+## Home page (poster design): what the admin controls
+
+The home page is drawn in the owner's poster design. Nothing saved in the admin is ignored: a control either changes the page
+or is shown disabled with the reason, and saving a form never changes a disabled control's stored value
+(`SECTION_FIELDS` in `web/src/features/cms-admin/targets.ts`; tests: `home-poster.spec` HA1–HA5).
+
+| Admin | Home page |
+|---|---|
+| «الصفحة الرئيسية»: title, text under it, WhatsApp button label | Hero headline, the line under it, the label of both WhatsApp buttons. Empty = the design's text («وراء كل مناسبة حكاية تستحق أن تُروى», studio name and «ميثلون — جنين», «تواصل عبر واتساب»). |
+| «الصفحة الرئيسية»: hero photo source | Hero photo (a chosen photo, or the newest published album), only through `/p`. |
+| «الصفحة الرئيسية»: second button label, hero video | Disabled: the design's hero has one button and no video. Stored values kept. |
+| «القائمة والأقسام»: show/hide and order | Exactly the sections shown, in that order, under the hero. |
+| Section title and intro | Heading and lead of that section (the contact bar has neither: disabled there). |
+| Number of items, featured picks | Works, offers, promos, process, albums (albums: newest published first, picks stored but not mixed in). Disabled for services (two fixed columns), about and contact. |
+| «الهوية»: WhatsApp, phone, logo | Buttons, phone link, logo. |
+
+The design itself is: «من نحن» → services → «أعمالنا» (2 items) → «تواصل معنا», the other sections hidden. That is also the
+fallback when no section rows exist. The other sections (offers, newest albums, counter, promos, «كيف نشتغل») are drawn in a
+navy band with the same heading style when the owner shows them. The packages preview is no longer on the home page (it had
+no admin control); packages stay on `/packages` and in the header.
+
+Public pages are cached for a day and refreshed by admin saves (cache tags). A row changed outside the admin (SQL) shows
+after the next admin save, or at the timed refresh (a day; the next Hebron midnight for offers and announcements).

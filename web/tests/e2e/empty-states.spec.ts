@@ -34,7 +34,7 @@ async function essentials(page: Page) {
   await expect(page.getByRole("heading", { level: 1 })).toContainText("وراء كل مناسبة حكاية");
   // Booking is via WhatsApp (approved scope); with no number configured the shared fallback is «تواصل معنا» → /contact.
   await expect(page.locator("main a[href^='https://wa.me/'], main a[href='/contact']").first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "كيف نوثّق مناسبتكم" })).toBeVisible();
+  await expect(page.locator("#services-title")).toBeVisible(); // the owner's saved title, or the design's «كيف نوثّق مناسبتكم»
   expect(await page.locator("section[aria-labelledby='services-title'] ul > li").count()).toBe(2);
   // A way to reach the studio: the footer shows WhatsApp/phone when they are set (it falls back to /contact
   // only when they are not), and the header menu always links /contact.

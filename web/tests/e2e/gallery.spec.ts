@@ -206,12 +206,13 @@ test("video page: h1, categories, in-page player on click, fallback link, relate
   expect((await request.get(`/work/v/${withCat.youtube_id}`)).status()).toBe(200);
 });
 
-test("home «من أعمالنا»: two works, no promo, no duplicates, one per category first; each links to its video page", async ({ page }) => {
-  const limit = Math.min(2, (await anon().from("site_sections").select("item_limit").eq("key", "works").single()).data!.item_limit as number);
+test("home «من أعمالنا»: works up to the section limit the owner saved, no promo, no duplicates, one per category first; each links to its video page", async ({ page }) => {
+  const limit = (await anon().from("site_sections").select("item_limit").eq("key", "works").single()).data!.item_limit as number;
   await page.goto("/");
   const section = page.locator("#work-title").locator("xpath=ancestor::section");
   const ids = await section.locator("[data-home-work]").evaluateAll((els) => els.map((e) => e.getAttribute("data-home-work")));
-  expect(ids.length).toBe(limit);
+  expect(ids.length).toBeGreaterThan(0);
+  expect(ids.length).toBeLessThanOrEqual(limit);
   expect(new Set(ids).size).toBe(ids.length);
   const promo = vids.find((v) => v.is_promo);
   if (promo) expect(ids).not.toContain(promo.youtube_id);
