@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { expect, type Browser, type Page } from "@playwright/test";
+import { chromium, expect, type Browser, type Page } from "@playwright/test";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -153,13 +153,30 @@ export async function skipSiteIntro(target: Page | import("@playwright/test").Br
 export async function hideAlbumViaAdmin(browser: Browser, albumId: string) {
   const st = (await db.from("photo_albums").select("is_published").eq("id", albumId).maybeSingle()).data;
   if (!st?.is_published) return;
-  const admin = await newLoggedIn(browser, "owner", `/admin/albums/${albumId}`);
+  await withAdminBrowser(browser, async (b) => {
+    const admin = await newLoggedIn(b, "owner", `/admin/albums/${albumId}`);
+    try {
+      await admin.getByTestId("album-unpublish").getByRole("button", { name: "إخفاء الألبوم" }).click();
+      await admin.locator("dialog[open] [data-testid=confirm-yes]").click();
+      await admin.getByTestId("album-publish").waitFor();
+    } finally {
+      await admin.close();
+    }
+  });
+}
+
+/**
+ * Admin sign-in for fixtures. The app's session cookies are Secure: Chromium accepts them on plain-http localhost,
+ * WebKit does not (docs/production-presentation.md). A public spec running on WebKit still needs the admin for its
+ * setup, so anything other than Chromium gets a short-lived Chromium for that step; the spec itself stays on its browser.
+ */
+async function withAdminBrowser<T>(browser: Browser, fn: (b: Browser) => Promise<T>): Promise<T> {
+  if (browser.browserType().name() === "chromium") return fn(browser);
+  const own = await chromium.launch();
   try {
-    await admin.getByTestId("album-unpublish").getByRole("button", { name: "إخفاء الألبوم" }).click();
-    await admin.locator("dialog[open] [data-testid=confirm-yes]").click();
-    await admin.getByTestId("album-publish").waitFor();
+    return await fn(own);
   } finally {
-    await admin.close();
+    await own.close();
   }
 }
 
@@ -171,16 +188,18 @@ export async function hideAlbumViaAdmin(browser: Browser, albumId: string) {
  * page), which expires nav, sections, offers, announcements, services, business settings and videos.
  */
 export async function refreshPublicCache(browser: Browser) {
-  const page = await newLoggedIn(browser, "owner", "/admin/content/offers");
-  for (const [url, id] of [
-    ["/admin/content/offers", "section-intro-offers"],
-    ["/admin/content/services", "section-intro-services"],
-    ["/admin/content/home", "home-form"],
-  ]) {
-    await page.goto(`${BASE}${url}`);
-    const form = page.getByTestId(id);
-    await form.getByRole("button", { name: "حفظ" }).click();
-    await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
-  }
-  await page.context().close();
+  await withAdminBrowser(browser, async (b) => {
+    const page = await newLoggedIn(b, "owner", "/admin/content/offers");
+    for (const [url, id] of [
+      ["/admin/content/offers", "section-intro-offers"],
+      ["/admin/content/services", "section-intro-services"],
+      ["/admin/content/home", "home-form"],
+    ]) {
+      await page.goto(`${BASE}${url}`);
+      const form = page.getByTestId(id);
+      await form.getByRole("button", { name: "حفظ" }).click();
+      await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
+    }
+    await page.context().close();
+  });
 }
