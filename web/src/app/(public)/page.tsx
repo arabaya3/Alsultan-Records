@@ -1,46 +1,26 @@
-import Link from "next/link";
 import { activeLogoSrc } from "@/components/brand/Logo";
-import { HeroIntro } from "@/components/home/HeroIntro";
+import { PosterAbout, PosterBand, PosterContactBar, PosterHero, PosterServices, PosterWorks, type HeroPhoto, type PosterWork } from "@/components/home/HomePoster";
 import { AlbumCard, coverColumn } from "@/components/media/gallery/AlbumCard";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
-import { FadeRise, Reveal } from "@/components/motion/Reveal";
-import { PackageCard } from "@/components/packages/PackageCard";
 import { OfferCard } from "@/components/offers/OfferCard";
+import { GridIcon, IconLink } from "@/components/ui/IconLink";
 import { JsonLd } from "@/components/ui/JsonLd";
-import { PROMO_CAPTION, promoVideoJsonLd } from "@/components/media/promo/promo-seo";
-import { Section, SectionHeading } from "@/components/ui/Layout";
-import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import type { SectionConfig } from "@/features/public-content/cms-model";
-import { getActiveOffers, getProcessSteps, getPublishedPackages, getSiteSections } from "@/features/public-content/cms-queries";
+import { getActiveOffers, getProcessSteps, getSiteSections } from "@/features/public-content/cms-queries";
 import { bookingHref, telHref } from "@/features/public-content/contact";
-import { FALLBACK_SERVICES, HERO } from "@/features/public-content/home-content";
-import { homeAlbums, homeSelection, latestVideo, photoUrl, promoVideos, toCardVideo } from "@/features/public-content/gallery-model";
+import { homeAlbums, homeSelection, photoUrl, promoVideos, toCardVideo } from "@/features/public-content/gallery-model";
 import { getPublishedAlbums, getSiteHeroPhotoIds, getVideoGallery } from "@/features/public-content/gallery-queries";
-import { durationLabel } from "@/features/public-content/labels";
-import { getBusinessSettings, getPublishedServices } from "@/features/public-content/queries";
-import { CORE_SERVICES, SITE_NAME_AR } from "@/features/public-content/site";
-import { localBusinessJsonLd, pageMetadata, safeHttp, websiteJsonLd } from "@/features/public-content/seo";
-import { ArrowStartIcon, GridIcon, IconLink } from "@/components/ui/IconLink";
-import { YouTubeIcon } from "@/components/ui/SocialIcons";
+import { HOME_POSTER } from "@/features/public-content/home-content";
+import { cleanVideoTitle, durationLabel } from "@/features/public-content/labels";
+import { getBusinessSettings } from "@/features/public-content/queries";
+import { localBusinessJsonLd, pageMetadata, websiteJsonLd } from "@/features/public-content/seo";
 import { SITE_TARGETS } from "@/lib/site-targets";
-import { bidiDir } from "@/lib/bidi";
+import { youTubeThumbUrl } from "@/lib/youtube";
 
 export const metadata = pageMetadata({
   description: "ستوديو وتسجيلات السلطان في ميثلون – جنين. نوثّق أعراسكم ومناسباتكم بالصوت والصورة: تصوير فوتوغرافي، أفلام أعراس وDJ.",
   path: "/",
 });
-
-function ChevronStart() {
-  // "Forward" in RTL points left.
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2">
-      <path d="M15 6l-6 6 6 6" />
-    </svg>
-  );
-}
-
-
-const linkCls = "inline-flex min-h-11 items-center gap-2 underline decoration-1 underline-offset-8 hover:decoration-gold";
 
 /** Owner picks first (in their order), then the rest, capped at the section's limit. */
 function pick<T extends { id: string }>(list: T[], cfg: SectionConfig): T[] {
@@ -52,7 +32,7 @@ function pick<T extends { id: string }>(list: T[], cfg: SectionConfig): T[] {
   return list.slice(0, cfg.limit);
 }
 
-/** Heading ids stay stable for anchors/tests: the 3 historical ones keep their names. */
+/** Heading ids stay stable for anchors/tests. */
 const HEADING_ID: Record<SectionConfig["key"], string> = {
   works: "work-title",
   services: "services-title",
@@ -65,327 +45,222 @@ const HEADING_ID: Record<SectionConfig["key"], string> = {
   stats: "stats-title",
 };
 
+/** Sections drawn in the poster's own ivory style; the others get a navy band with the site's cards. */
+const IVORY = new Set<SectionConfig["key"]>(["about", "services", "works"]);
+
+/**
+ * Homepage in the owner's poster design. What the admin saves decides what is here:
+ *   hero      — title, text under it and WhatsApp button label from «الصفحة الرئيسية» (empty = the poster's text); the hero
+ *               photo follows the saved source (a chosen photo or the newest published album), only through /p;
+ *   sections  — «القائمة والأقسام»: each visible section, in the saved order, with its saved title and intro. The poster's
+ *               own four are «من نحن», the services columns, «من أعمالنا» and the contact bar; offers, newest albums, the
+ *               counter, promos and «كيف نشتغل» keep their content rules (offers only while one is active, albums strictly
+ *               by latest publish, the counter only with the owner's number) in a navy band;
+ *   contact   — WhatsApp, phone and logo from business_settings.
+ */
 export default async function HomePage() {
-  const [settings, gallery, services, sections, offers, steps, albums, packages, heroPhotos] = await Promise.all([
+  const [settings, gallery, sections, offers, steps, albums, heroPhotos] = await Promise.all([
     getBusinessSettings(),
     getVideoGallery(),
-    getPublishedServices(),
     getSiteSections(),
     getActiveOffers(),
     getProcessSteps(),
     getPublishedAlbums(),
-    getPublishedPackages(),
     getSiteHeroPhotoIds(),
   ]);
 
   const s = settings.status === "ok" ? settings.data : null;
   const book = bookingHref(s);
   const g = gallery.status === "ok" ? gallery.data : null;
-  const cfg = (k: SectionConfig["key"]) => sections.find((x) => x.key === k)!;
-  const works = g ? homeSelection(g, cfg("works").limit, cfg("works").featured) : [];
-  const channel = safeHttp(s?.youtube_url ?? null);
-  const serviceList =
-    services.status === "ok" && services.data.length
-      ? pick(services.data, cfg("services")).map((x) => ({ key: x.id, title: x.title, summary: x.summary, href: `/services/${x.slug}` }))
-      : FALLBACK_SERVICES.map((x) => ({ key: x.title, title: x.title, summary: x.summary, href: "/services" }));
-  const offerList = offers.status === "ok" ? pick(offers.data, cfg("offers")) : [];
-  const promoList = g ? pick(promoVideos(g), cfg("promos")) : [];
-  // Strictly by latest publish (homeAlbums); the owner's stored picks are kept but not mixed in.
-  const albumList = albums.status === "ok" ? homeAlbums(albums.data.filter((a) => a.photoCount > 0), cfg("albums").limit) : [];
+  const ctaLabel = s?.hero_primary_label ?? null;
+  const publishedAlbums = albums.status === "ok" ? albums.data.filter((a) => a.photoCount > 0) : [];
 
-  // Hero video: always the newest YouTube video on the site. The self-hosted promo only if there is none.
-  const ytPromo = g ? latestVideo(g) : null;
+  const worksFor = (c: SectionConfig): PosterWork[] => {
+    const list: PosterWork[] = (g ? homeSelection(g, c.limit, c.featured) : []).map((v) => ({
+      key: v.youtube_id,
+      href: `/work/v/${v.youtube_id}`,
+      title: cleanVideoTitle(v.title),
+      // An owner-chosen cover is an album photo (shown whole); otherwise the video's own 16:9 thumbnail.
+      src: v.custom_cover_photo_id ? photoUrl(v.custom_cover_photo_id, "display") : youTubeThumbUrl(v.youtube_id),
+      fit: v.custom_cover_photo_id ? "contain" : "cover",
+    }));
+    // No video published yet: the newest published albums stand in (never a placeholder).
+    if (!list.length) {
+      for (const a of homeAlbums(publishedAlbums.filter((x) => x.coverId), c.limit)) {
+        list.push({
+          key: a.slug,
+          href: `/work/albums/${a.slug}`,
+          title: a.title,
+          src: photoUrl(a.coverId!, "display"),
+          srcSet: `${photoUrl(a.coverId!, "thumb")} 320w, ${photoUrl(a.coverId!, "display")} 1066w`,
+          fit: "contain",
+        });
+      }
+    }
+    return list;
+  };
 
-  const renderSection = (c: SectionConfig, tone: "dark" | "darker") => {
+  const renderSection = (c: SectionConfig, over: "ivory" | "navy") => {
     const hid = HEADING_ID[c.key];
     switch (c.key) {
-      case "works":
-        if (gallery.status === "ok" && works.length === 0) return null;
-        return (
-          <Section key={c.key} tone={tone} labelledBy={hid}>
-            <SectionHeading
-              id={hid}
-              title={c.title}
-              lead={c.intro ?? undefined}
-              action={
-                <div className="flex items-center gap-3">
-                  {channel ? (
-                    <IconLink href={channel} external label="قناتنا على YouTube">
-                      <YouTubeIcon size={18} />
-                    </IconLink>
-                  ) : null}
-                  <IconLink href="/work" label="كل الأعمال" text>
-                    <GridIcon />
-                  </IconLink>
-                </div>
-              }
-            />
-            {gallery.status === "unavailable" ? (
-              <p role="status" className="text-ivory-muted">
-                تعذّر تحميل الفيديوهات الآن. جرّب مرة أخرى بعد قليل.
-              </p>
-            ) : (
-              <ul className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-                {works.map((v, i) => (
-                  <li key={v.id} className="h-full">
-                    <FadeRise delay={(i % 3) * 80} className="h-full">
-                      <YouTubeCard video={{ ...toCardVideo(v, durationLabel(v.duration_seconds)), categories: v.primary ? [v.primary] : [] }} />
-                    </FadeRise>
-                  </li>
-                ))}
-              </ul>
-            )}
-          </Section>
-        );
+      case "about":
+        return <PosterAbout key={c.key} title={c.title} intro={c.intro} />;
       case "services":
+        return <PosterServices key={c.key} title={c.title} intro={c.intro} />;
+      case "works":
+        return <PosterWorks key={c.key} title={c.title} intro={c.intro} works={worksFor(c)} />;
+      case "contact":
         return (
-          <Section key={c.key} tone={tone} labelledBy={hid}>
-            <SectionHeading
-              id={hid}
-              title={c.title}
-              lead={c.intro ?? undefined}
-              action={
-                <IconLink href="/services" label="تفاصيل الخدمات">
-                  <ArrowStartIcon />
-                </IconLink>
-              }
-            />
-            <Reveal onScroll>
-              <ol className="divide-y divide-hairline border-y border-hairline">
-                {serviceList.map((x, i) => (
-                  <li key={x.key} data-reveal>
-                    <Link href={x.href} className="group grid items-baseline gap-2 py-6 md:grid-cols-[4rem_1fr_2fr] md:gap-8 md:py-7">
-                      <span className="font-display text-sm text-ivory-muted" aria-hidden="true">
-                        {String(i + 1).padStart(2, "0")}
-                      </span>
-                      <span className="font-display text-2xl font-semibold transition-colors group-hover:text-gold md:text-3xl">
-                        <bdi dir={bidiDir(x.title)}>{x.title}</bdi>
-                      </span>
-                      {x.summary ? <span className="text-ivory-muted md:text-lg">{x.summary}</span> : null}
-                    </Link>
-                  </li>
-                ))}
-              </ol>
-            </Reveal>
-          </Section>
+          <PosterContactBar
+            key={c.key}
+            whatsappHref={book}
+            phone={(() => {
+              const phone = s?.phone ?? HOME_POSTER.phoneFallback;
+              return { label: phone, href: telHref(phone) };
+            })()}
+            ctaLabel={ctaLabel}
+            over={over}
+          />
         );
-      case "offers":
-        if (!offerList.length) return null;
+      case "offers": {
+        const list = offers.status === "ok" ? pick(offers.data, c) : [];
+        if (!list.length) return null;
         return (
-          <Section key={c.key} tone={tone} labelledBy={hid}>
-            <div data-home-section="offers">
-              <SectionHeading
-                id={hid}
-                title={c.title}
-                lead={c.intro ?? undefined}
-                action={
-                  <IconLink href="/offers" label="كل العروض">
-                    <GridIcon />
-                  </IconLink>
-                }
-              />
-              <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-                {offerList.map((o) => (
-                  <li key={o.id} className="h-full">
-                    <OfferCard offer={o} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Section>
+          <PosterBand
+            key={c.key}
+            id={hid}
+            name="offers"
+            title={c.title}
+            intro={c.intro}
+            action={
+              <IconLink href="/offers" label="كل العروض" text>
+                <GridIcon />
+              </IconLink>
+            }
+          >
+            <ul className="grid gap-x-6 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
+              {list.map((o) => (
+                <li key={o.id} className="h-full">
+                  <OfferCard offer={o} />
+                </li>
+              ))}
+            </ul>
+          </PosterBand>
         );
-      case "promos":
-        if (!promoList.length) return null;
+      }
+      case "promos": {
+        const list = g ? pick(promoVideos(g), c) : [];
+        if (!list.length) return null;
         return (
-          <Section key={c.key} tone={tone} labelledBy={hid}>
-            <div data-home-section="promos">
-              <SectionHeading
-                id={hid}
-                title={c.title}
-                lead={c.intro ?? undefined}
-                action={
-                  <Link href={SITE_TARGETS.promos.path} className={linkCls}>
-                    كل البروموهات
-                    <ChevronStart />
-                  </Link>
-                }
-              />
-              <ul className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
-                {promoList.map((v) => (
-                  <li key={v.id} className="h-full">
-                    <YouTubeCard video={{ ...toCardVideo(v, durationLabel(v.duration_seconds)), categories: [] }} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Section>
+          <PosterBand
+            key={c.key}
+            id={hid}
+            name="promos"
+            title={c.title}
+            intro={c.intro}
+            action={
+              <IconLink href={SITE_TARGETS.promos.path} label="كل البروموهات" text>
+                <GridIcon />
+              </IconLink>
+            }
+          >
+            <ul className="grid gap-x-6 gap-y-8 sm:grid-cols-2 lg:grid-cols-3">
+              {list.map((v) => (
+                <li key={v.id} className="h-full">
+                  <YouTubeCard video={{ ...toCardVideo(v, durationLabel(v.duration_seconds)), categories: [] }} />
+                </li>
+              ))}
+            </ul>
+          </PosterBand>
         );
-      case "albums":
-        if (!albumList.length) return null;
+      }
+      case "albums": {
+        // Strictly by latest publish (homeAlbums); the owner's stored picks are kept but not mixed in.
+        const list = homeAlbums(publishedAlbums, c.limit);
+        if (!list.length) return null;
         return (
-          <Section key={c.key} tone={tone} labelledBy={hid}>
-            <div data-home-section="albums">
-              <SectionHeading
-                id={hid}
-                title={c.title}
-                lead={c.intro ?? undefined}
-                action={
-                  <IconLink href={SITE_TARGETS.albums.path} label="كل الألبومات" text>
-                    <GridIcon />
-                  </IconLink>
-                }
-              />
-              <ul className={`grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-10 ${albumList.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
-                {albumList.map((a) => (
-                  <li key={a.id} className="h-full">
-                    <AlbumCard album={a} sizes={`(max-width: 1023px) 50vw, ${coverColumn(albumList.length === 4 ? 4 : 3)}`} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </Section>
+          <PosterBand
+            key={c.key}
+            id={hid}
+            name="albums"
+            title={c.title}
+            intro={c.intro}
+            action={
+              <IconLink href={SITE_TARGETS.albums.path} label="كل الألبومات" text>
+                <GridIcon />
+              </IconLink>
+            }
+          >
+            <ul className={`grid grid-cols-2 gap-x-3 gap-y-8 sm:gap-x-6 sm:gap-y-10 ${list.length === 4 ? "lg:grid-cols-4" : "lg:grid-cols-3"}`}>
+              {list.map((a) => (
+                <li key={a.id} className="h-full">
+                  <AlbumCard album={a} sizes={`(max-width: 1023px) 50vw, ${coverColumn(list.length === 4 ? 4 : 3)}`} />
+                </li>
+              ))}
+            </ul>
+          </PosterBand>
         );
+      }
       case "process": {
         const list = steps.slice(0, c.limit);
         if (!list.length) return null;
         return (
-          <Section key={c.key} tone={tone} labelledBy={hid}>
-            <SectionHeading id={hid} title={c.title} lead={c.intro ?? undefined} />
-            <Reveal onScroll>
-              <ol className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
-                {list.map((step, i) => (
-                  <li key={step.key} data-reveal className="border-t border-hairline-gold pt-5">
-                    {step.photoId ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={photoUrl(step.photoId, "thumb")} alt="" loading="lazy" decoding="async" className="mb-4 aspect-[4/3] w-full rounded-sm bg-night-deep object-contain" />
-                    ) : null}
-                    <span className="font-display text-sm text-gold">{String(i + 1).padStart(2, "0")}</span>
-                    <h3 className="mt-2 text-xl font-semibold break-words">{step.title}</h3>
-                    {step.body ? <p className="mt-2 text-ivory-muted">{step.body}</p> : null}
-                  </li>
-                ))}
-              </ol>
-            </Reveal>
-          </Section>
+          <PosterBand key={c.key} id={hid} name="process" title={c.title} intro={c.intro}>
+            <ol className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8">
+              {list.map((step, i) => (
+                <li key={step.key} className="border-t border-hairline-gold pt-5">
+                  {step.photoId ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={photoUrl(step.photoId, "thumb")} alt="" loading="lazy" decoding="async" className="mb-4 aspect-[4/3] w-full rounded-sm bg-night-deep object-contain" />
+                  ) : null}
+                  <span className="font-display text-sm text-gold">{String(i + 1).padStart(2, "0")}</span>
+                  <h3 className="mt-2 text-xl font-semibold break-words">{step.title}</h3>
+                  {step.body ? <p className="mt-2 text-ivory-muted">{step.body}</p> : null}
+                </li>
+              ))}
+            </ol>
+          </PosterBand>
         );
       }
-      case "about":
-        return (
-          <Section key={c.key} tone={tone} labelledBy={hid}>
-            <div data-home-section="about" className="max-w-3xl">
-              <h2 id={hid} className="text-h2 font-bold tracking-tight">{c.title}</h2>
-              <span aria-hidden="true" className="gold-rule mt-4" />
-              {c.intro ? <p className="mt-4 text-lg whitespace-pre-line text-ivory-muted">{c.intro}</p> : null}
-              <Link href="/about" className={`${linkCls} mt-4`}>
-                اعرف عنا أكثر
-                <ChevronStart />
-              </Link>
-            </div>
-          </Section>
-        );
       case "stats":
         // Owner-entered number only (admin «عدّاد الحفلات»); never rendered without one.
         if (!c.stat) return null;
         return (
-          <Section key={c.key} tone={tone} labelledBy={hid}>
-            <div data-home-section="stats" className="flex flex-col items-center text-center">
+          <section key={c.key} aria-labelledby={hid} data-home-section="stats" data-tone="navy" className="tone-dark bg-navy py-10 text-center text-ivory sm:py-12">
+            <div className="mx-auto flex w-full max-w-[70rem] flex-col items-center px-[var(--gutter)]">
               <h2 id={hid} className="flex flex-col items-center gap-3">
-                <span data-stat-value className="font-display text-[clamp(3.5rem,11vw,7.5rem)] font-bold leading-none tracking-tight text-gold" dir="ltr">
+                <span data-stat-value className="font-display text-[clamp(3.5rem,11vw,7.5rem)] leading-none font-bold tracking-tight text-gold" dir="ltr">
                   {c.stat.toLocaleString("en-US")}
                 </span>
                 <span className="text-h3 font-bold">{c.title}</span>
               </h2>
               <span aria-hidden="true" className="gold-rule mx-auto mt-5" />
-              {c.intro ? <p className="mt-5 max-w-2xl whitespace-pre-line text-lg text-ivory-muted">{c.intro}</p> : null}
+              {c.intro ? <p className="mt-5 max-w-2xl text-lg whitespace-pre-line text-ivory-muted">{c.intro}</p> : null}
             </div>
-          </Section>
-        );
-      case "contact":
-        return (
-          <Section key={c.key} tone={tone} labelledBy={hid}>
-            <div data-home-section="contact" className="flex flex-col items-start gap-4">
-              <h2 id={hid} className="text-h2 font-bold tracking-tight">{c.title}</h2>
-              <span aria-hidden="true" className="gold-rule mt-4" />
-              {c.intro ? <p className="max-w-3xl text-lg whitespace-pre-line text-ivory-muted">{c.intro}</p> : null}
-              <WhatsAppCta />
-            </div>
-          </Section>
+          </section>
         );
     }
   };
 
-  // Packages preview (not a CMS section key): a few published packages, featured first; only when some exist.
-  const pkgPreview =
-    packages.status === "ok"
-      ? [...packages.data].sort((a, b) => Number(b.featured) - Number(a.featured) || a.sort_order - b.sort_order).slice(0, 3)
-      : [];
-  const renderPackages = (tone: "dark" | "darker") => (
-    <Section key="packages" tone={tone} labelledBy="packages-title">
-      <div data-home-section="packages">
-        <SectionHeading
-          id="packages-title"
-          title="البكجات"
-          lead="من باقات خدماتنا للأعراس والمناسبات، والأسعار بالشيكل."
-          action={
-            <IconLink href="/packages" label="عرض كل البكجات">
-              <GridIcon />
-            </IconLink>
-          }
-        />
-        <ul className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {pkgPreview.map((p, i) => (
-            <FadeRise as="li" key={p.id} delay={(i % 3) * 80} className="h-full">
-              <PackageCard pkg={p} />
-            </FadeRise>
-          ))}
-        </ul>
-      </div>
-    </Section>
-  );
-
-  // Render visible sections in the owner's order (packages preview after services, else after works, else before
-  // contact); tones alternate over what is actually shown.
-  const slots: (SectionConfig | "packages")[] = sections.filter((c) => c.visible);
-  if (pkgPreview.length) {
-    const after = ["services", "works"].map((k) => slots.findIndex((x) => x !== "packages" && x.key === k)).find((i) => i >= 0);
-    const contactAt = slots.findIndex((x) => x !== "packages" && x.key === "contact");
-    slots.splice(after !== undefined ? after + 1 : contactAt >= 0 ? contactAt : slots.length, 0, "packages");
-  }
+  // Visible sections in the owner's order; a section with nothing to show is skipped, never an empty box.
   const rendered: React.ReactNode[] = [];
-  for (const c of slots) {
-    const tone = rendered.length % 2 ? "darker" : "dark";
-    const node = c === "packages" ? renderPackages(tone) : renderSection(c, tone);
-    if (node) rendered.push(node);
+  let over: "ivory" | "navy" = "navy"; // the hero
+  for (const c of sections.filter((x) => x.visible)) {
+    const node = renderSection(c, over);
+    if (!node) continue;
+    rendered.push(node);
+    over = IVORY.has(c.key) ? "ivory" : "navy";
   }
+
+  // The saved hero source first (a chosen photo, or the newest published album), then the next album covers.
+  const hero: HeroPhoto | null = heroPhotos[0] ? { src: photoUrl(heroPhotos[0], "display"), placeholderSrc: photoUrl(heroPhotos[0], "thumb") } : null;
 
   return (
     <>
       <JsonLd data={websiteJsonLd()} />
       {s ? <JsonLd data={localBusinessJsonLd(s)} /> : null}
-      {ytPromo ? null : <JsonLd data={promoVideoJsonLd()} />}
 
-      <HeroIntro
-        brand={SITE_NAME_AR}
-        title={s?.hero_title ?? HERO.title}
-        sub={s?.hero_subtitle ?? HERO.sub}
-        services={CORE_SERVICES}
-        workHref={g && g.videos.length ? "/work" : null}
-        whatsappHref={book}
-        phone={s?.phone ? { label: s.phone, href: telHref(s.phone) } : null}
-        promo={{
-          caption: ytPromo ? ytPromo.title : PROMO_CAPTION,
-          coverSrc: heroPhotos[0] ? photoUrl(heroPhotos[0], "display") : null,
-          coverMobileSrc: heroPhotos[0] ? photoUrl(heroPhotos[0], "thumb") : null,
-          rotation: heroPhotos.map((id) => photoUrl(id, "display")),
-          rotationMobile: heroPhotos.map((id) => photoUrl(id, "thumb")),
-          youtube: ytPromo ? { youtubeId: ytPromo.youtube_id, title: ytPromo.title } : null,
-        }}
-        strip={works.slice(0, 4).map((v) => ({ youtubeId: v.youtube_id, title: v.title }))}
-        logoSrc={activeLogoSrc(s?.active_logo_id)}
-        primaryLabel={s?.hero_primary_label ?? undefined}
-        secondaryLabel={s?.hero_secondary_label ?? undefined}
-      />
-
+      <PosterHero photo={hero} logoSrc={activeLogoSrc(s?.active_logo_id)} whatsappHref={book} title={s?.hero_title ?? null} sub={s?.hero_subtitle ?? null} ctaLabel={ctaLabel} />
       {rendered}
     </>
   );

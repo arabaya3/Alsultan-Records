@@ -102,14 +102,15 @@ test("works grid on /work opens each video", async ({ page }) => {
   }
 });
 
-test("home works grid shows non-promo videos and opens them", async ({ page }) => {
+test("home «من أعمالنا» shows non-promo videos and each opens its video page", async ({ page }) => {
   await page.goto("/");
-  const cards = page.locator("#work-title").locator("xpath=ancestor::section").locator("[data-youtube-card]");
+  const cards = page.locator("#work-title").locator("xpath=ancestor::section").locator("[data-home-work]");
   expect(await cards.count()).toBeGreaterThanOrEqual(2);
-  expect(await page.locator(`section [data-youtube-card="${PROMO}"]`).count()).toBe(0);
+  expect(await page.locator(`[data-home-work="${PROMO}"]`).count()).toBe(0);
+  const id = await cards.first().getAttribute("data-home-work");
   await cards.first().click();
-  await expect(page.locator("[data-youtube-dialog] iframe")).toHaveAttribute("src", /youtube-nocookie\.com\/embed\//);
-  await page.keyboard.press("Escape");
+  await expect(page).toHaveURL(new RegExp(`/work/v/${id}$`));
+  expect(await page.locator("iframe").count()).toBe(0); // the video page loads YouTube on demand too
 });
 
 test("WhatsApp CTAs use wa.me with Arabic prefilled text", async ({ page }) => {
@@ -157,9 +158,10 @@ test("reduced motion: content visible with no transforms; dialog still works", a
   const page = await ctx.newPage();
   await page.goto(process.env.BASE_URL + "/");
   await expect(page.locator("#hero-title")).toBeVisible();
-  const opacity = await page.locator("#hero-title [data-reveal]").first().evaluate((e) => getComputedStyle(e).opacity);
-  expect(opacity).toBe("1");
-  await page.locator("[data-promo-trigger]").click();
+  const style = await page.locator("#hero-title").evaluate((e) => ({ o: getComputedStyle(e).opacity, t: getComputedStyle(e).transform }));
+  expect(style).toEqual({ o: "1", t: "none" });
+  await page.goto(process.env.BASE_URL + "/work");
+  await page.locator("[data-video-grid] [data-youtube-card]").first().click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await page.keyboard.press("Escape");
   await expect(page.getByRole("dialog")).toHaveCount(0);

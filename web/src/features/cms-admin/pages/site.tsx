@@ -177,24 +177,22 @@ type Home = {
 export async function HomeContentPage() {
   if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
   const sb = await cms();
-  const [biz, photos, promos] = await Promise.all([
+  const [biz, photos] = await Promise.all([
     sb
       .from("business_settings")
       .select("hero_title, hero_subtitle, hero_primary_label, hero_secondary_label, booking_message, hero_cover_photo_id, hero_cover_source, hero_promo_source, hero_promo_video_id")
       .eq("id", 1)
       .maybeSingle(),
     pickPhotos(sb),
-    sb.from("showcase_videos").select("id, title, role, is_published").in("role", ["promo", "both"]).order("sort_order"),
   ]);
   if (biz.error || !biz.data) return <CmsLoadError error={biz.error} what="الرئيسية" />;
   const h = biz.data as Home;
-  const vids = (promos.data ?? []) as { id: string; title: string; is_published: boolean }[];
   return (
     <>
       <PageHeader
         title="الصفحة الرئيسية"
         back={{ href: "/admin/content", label: "محتوى الموقع" }}
-        lead="الحقول الفارغة تعني استخدام النص الافتراضي الحالي."
+        lead="الحقول الفارغة تعني استخدام نص التصميم المعتمد للواجهة."
         actions={
           <Link href="/" target="_blank" className={btn("ghost")}>
             معاينة الموقع
@@ -204,23 +202,25 @@ export async function HomeContentPage() {
       <Card title="واجهة الصفحة">
         <CmsForm action={saveHome} testId="home-form">
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="العنوان الرئيسي" hint="حتى 120 حرفاً." className="sm:col-span-2">
+            <Field label="العنوان الرئيسي" hint="حتى 120 حرفاً. فارغ = «وراء كل مناسبة حكاية تستحق أن تُروى»." className="sm:col-span-2">
               <input name="hero_title" maxLength={120} defaultValue={h.hero_title ?? ""} className={inputCls} />
             </Field>
-            <Field label="النص تحت العنوان" hint={LONG_TEXT_HINT} className="sm:col-span-2">
+            <Field label="النص تحت العنوان" hint={`فارغ = اسم الاستوديو و«ميثلون — جنين». ${LONG_TEXT_HINT}`} className="sm:col-span-2">
               <textarea name="hero_subtitle" rows={3} maxLength={LONG_TEXT} defaultValue={h.hero_subtitle ?? ""} className={inputCls} />
             </Field>
-            <Field label="نص الزر الأساسي (واتساب)">
+            <Field label="نص زر واتساب" hint="فارغ = «تواصل عبر واتساب». يظهر في الواجهة وفي شريط التواصل.">
               <input name="hero_primary_label" maxLength={40} defaultValue={h.hero_primary_label ?? ""} className={inputCls} />
             </Field>
-            <Field label="نص الزر الثاني (أعمالنا)">
-              <input name="hero_secondary_label" maxLength={40} defaultValue={h.hero_secondary_label ?? ""} className={inputCls} />
+            {/* The poster hero has one button. The stored label is sent back unchanged. */}
+            <input type="hidden" name="hero_secondary_label" value={h.hero_secondary_label ?? ""} />
+            <Field label="نص الزر الثاني (أعمالنا)" hint="غير مستخدم: واجهة التصميم الحالي فيها زر واتساب فقط. «أعمالنا» في القائمة العلوية.">
+              <input disabled readOnly value={h.hero_secondary_label ?? ""} className={`${inputCls} cursor-not-allowed bg-cream-2 text-on-cream-muted`} data-testid="off-secondary-label" />
             </Field>
             <Field label="رسالة واتساب الافتراضية للحجز" hint="تُكتب تلقائياً عند ضغط زر الحجز." className="sm:col-span-2">
               <textarea name="booking_message" rows={2} maxLength={LONG_TEXT} defaultValue={h.booking_message ?? ""} className={inputCls} />
             </Field>
             <fieldset className="space-y-2 text-sm sm:col-span-2" data-testid="hero-cover-source">
-              <legend className="mb-1 font-medium">مصدر صورة خلفية الواجهة</legend>
+              <legend className="mb-1 font-medium">مصدر صورة الواجهة</legend>
               <label className="flex min-h-10 items-center gap-2">
                 <input type="radio" name="hero_cover_source" value="manual" defaultChecked={(h.hero_cover_source ?? "manual") === "manual"} /> صورة أختارها بنفسي (من القائمة تحت)
               </label>
@@ -229,34 +229,20 @@ export async function HomeContentPage() {
               </label>
               <p className="text-xs text-on-cream-muted">
                 التلقائي: غلاف أحدث ألبوم منشور (أو أول صورة ظاهرة فيه إذا الغلاف مخفي). يتغيّر وحده لما تنشر ألبوماً جديداً أو تغيّر غلافه أو تخفي
-                الصورة. لا يستخدم أبداً صورة من مسودة أو ألبوم مخفي أو سلة المحذوفات. إذا ما في صورة ظاهرة تظهر الخلفية الداكنة بدون صورة. اختيارك
+                الصورة. لا يستخدم أبداً صورة من مسودة أو ألبوم مخفي أو سلة المحذوفات. إذا ما في صورة ظاهرة تظهر أغلفة الألبومات المنشورة الأخرى، وإن لم توجد فلوحة داكنة بدون صورة. اختيارك
                 اليدوي يبقى محفوظاً ويرجع لما تختار «صورة أختارها بنفسي».
               </p>
             </fieldset>
             <div className="sm:col-span-2">
               <PhotoPicker name="hero_cover_photo_id" label="الصورة المختارة يدوياً (اختياري)" photos={photos} defaultValue={h.hero_cover_photo_id} />
             </div>
-            <fieldset className="space-y-2 text-sm sm:col-span-2">
-              <legend className="mb-1 font-medium">الفيديو التعريفي في الواجهة</legend>
-              <label className="flex min-h-10 items-center gap-2">
-                <input type="radio" name="hero_promo_source" value="site" defaultChecked={(h.hero_promo_source ?? "site") === "site"} /> ملف البرومو الخاص بالموقع (الحالي)
-              </label>
-              <label className="flex min-h-10 items-center gap-2">
-                <input type="radio" name="hero_promo_source" value="youtube" defaultChecked={h.hero_promo_source === "youtube"} /> فيديو يوتيوب
-              </label>
-              <Field label="فيديو يوتيوب (من فيديوهات دورها برومو أو كلاهما)">
-                <select name="hero_promo_video_id" defaultValue={h.hero_promo_video_id ?? ""} className={inputCls}>
-                  <option value="">— بدون —</option>
-                  {vids.map((v) => (
-                    <option key={v.id} value={v.id}>
-                      {v.title}
-                      {v.is_published ? "" : " (مخفي)"}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              {!vids.length ? <p className="text-xs text-on-cream-muted">لا توجد فيديوهات بدور «برومو». غيّر دور فيديو من صفحة الفيديوهات.</p> : null}
-            </fieldset>
+            {/* The poster hero has no video. The stored choice is sent back unchanged. */}
+            <input type="hidden" name="hero_promo_source" value={h.hero_promo_source ?? "site"} />
+            <input type="hidden" name="hero_promo_video_id" value={h.hero_promo_video_id ?? ""} />
+            <div className="rounded-md border border-cream-line bg-cream-2 px-3 py-2 text-sm text-on-cream-muted sm:col-span-2" data-testid="off-hero-video">
+              <p className="font-medium text-on-cream">الفيديو التعريفي في الواجهة</p>
+              <p>غير مستخدم: واجهة التصميم الحالي صورة بدون فيديو. اختيارك السابق محفوظ كما هو. الفيديوهات تظهر في «أعمالنا» وفي قسم البرومو إذا أظهرته.</p>
+            </div>
           </div>
         </CmsForm>
       </Card>

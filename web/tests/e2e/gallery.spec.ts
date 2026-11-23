@@ -206,11 +206,11 @@ test("video page: h1, categories, in-page player on click, fallback link, relate
   expect((await request.get(`/work/v/${withCat.youtube_id}`)).status()).toBe(200);
 });
 
-test("home: works ≤ section limit (owner sets it; 3 since 0024), no promo, no duplicates, one per category first; chips link to filtered /work", async ({ page }) => {
+test("home «من أعمالنا»: works up to the section limit the owner saved, no promo, no duplicates, one per category first; each links to its video page", async ({ page }) => {
   const limit = (await anon().from("site_sections").select("item_limit").eq("key", "works").single()).data!.item_limit as number;
   await page.goto("/");
   const section = page.locator("#work-title").locator("xpath=ancestor::section");
-  const ids = await section.locator("[data-youtube-card]").evaluateAll((els) => els.map((e) => e.getAttribute("data-youtube-card")));
+  const ids = await section.locator("[data-home-work]").evaluateAll((els) => els.map((e) => e.getAttribute("data-home-work")));
   expect(ids.length).toBeGreaterThan(0);
   expect(ids.length).toBeLessThanOrEqual(limit);
   expect(new Set(ids).size).toBe(ids.length);
@@ -225,11 +225,8 @@ test("home: works ≤ section limit (owner sets it; 3 since 0024), no promo, no 
   const catsWithPrimary = new Set(links.filter((l) => l.is_primary && vids.some((v) => v.id === l.video_id && !v.is_promo)).map((l) => l.category_id));
   expect(primaries.size).toBe(Math.min(limit, catsWithPrimary.size));
 
-  const chip = section.locator("[data-category-chip]").first();
-  const slug = await chip.getAttribute("data-category-chip");
-  await chip.click();
-  await expect(page).toHaveURL(new RegExp(`/work\\?cat=${slug}$`));
-  await expect(page.locator(`[data-cat-chip='${slug}']:visible`)).toHaveAttribute("aria-current", "page");
+  await section.locator("[data-home-work]").first().click();
+  await expect(page).toHaveURL(new RegExp(`/work/v/${ids[0]}$`));
 });
 
 test("axe: /work (videos + filtered) has no serious/critical issues", async ({ browser }) => {

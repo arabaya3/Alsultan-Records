@@ -30,7 +30,7 @@ const yearAgo = () => {
   return d.toISOString().slice(0, 10);
 };
 /** The hero backdrop on a fresh home load. Retried: expireAgainAfterSettling allows a few seconds when a render was in flight. */
-const HERO = "[data-hero-intro] > img, [data-hero-intro] > picture img";
+const HERO = "[data-home-hero-photo] img[data-hero-photo=sharp]";
 const expectHomeHero = (page: Page, id: string) =>
   expect
     .poll(

@@ -3,7 +3,8 @@ import { BASE, db, newLoggedIn, skipSiteIntro } from "./qa-helpers";
 
 /**
  * Owner requests 2026-10-20 (migration 0024):
- *  - home order after the hero: latest offers → 4 newest albums → counter → 3 videos → services → process;
+ *  - home order after the hero follows the saved section order (seed: latest offers → 4 newest albums → counter → 3 videos →
+ *    services → process), each section in the poster style;
  *  - the counter is OWNER-ENTERED in the admin (never invented) and the section never renders without a number;
  *  - owner-written descriptive texts accept 10,000 characters and the site shows them in full.
  * Restores everything it changes.
@@ -38,7 +39,7 @@ test("HO1: home order — albums (4, newest first) before videos (3); no counter
   const newest = rows.map((a) => a.slug);
   expect(shown).toEqual(newest.filter((s) => shown.includes(s)).slice(0, 4)); // newest first
   expect(newest.slice(0, 4).sort()).toEqual([...shown].sort());
-  await expect(page.locator("section[aria-labelledby=work-title] [data-work-card]")).toHaveCount(3);
+  await expect(page.locator("section[aria-labelledby=work-title] [data-home-work]")).toHaveCount(3);
 });
 
 test("HO2: owner enters the counter in the admin → it shows on the home page; clearing it hides the section", async ({ browser }) => {

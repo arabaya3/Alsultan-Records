@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import { db, newLoggedIn, overflowPx, skipSiteIntro } from "./qa-helpers";
+import { db, newLoggedIn, overflowPx, refreshPublicCache, skipSiteIntro } from "./qa-helpers";
 
 /**
  * OD — offer details page layout (fix/production-presentation). LOCAL STACK ONLY: temporary offers, removed afterwards.
@@ -37,20 +37,23 @@ test.beforeAll(async () => {
     if (error) throw new Error(error.message);
   }
 });
-test.beforeAll(async ({ request }) => {
+test.beforeAll(async ({ request, browser }) => {
+  // Inserted with the secret key: the cached offers list follows the next admin save (day-long cache, tags).
+  await refreshPublicCache(browser);
   await until(request, SILVER.slug);
   await until(request, LONG.slug);
 });
-/** Polls until the cached offers list includes the fixture (stale-while-revalidate brings it in). */
+/** Polls until the offers list, refreshed by an admin save (refreshPublicCache), includes the fixture. */
 async function until(request: import("@playwright/test").APIRequestContext, slug: string) {
   await expect
     .poll(async () => (await (await request.get(`/offers/${slug}`)).text()).includes("data-offer-description"), { timeout: 240_000, intervals: [3_000, 5_000, 10_000] })
     .toBe(true);
 }
 
-test.afterAll(async () => {
+test.afterAll(async ({ browser }) => {
   await db.from("offers").delete().in("id", [SILVER.id, LONG.id]);
   await db.from("offers").delete().eq("slug", ADMIN.slug);
+  await refreshPublicCache(browser); // later specs must not be served the deleted offers from the cache
 });
 
 async function open(page: Page, slug: string, width: number) {
@@ -133,7 +136,7 @@ const CASES = [
 ].map((c) => ({ ...c, id: randomUUID(), slug: `qa-od-${c.key}-${STAMP}` }));
 const CASE_SHOTS = path.resolve(__dirname, "../../../docs/screenshots/production-presentation/cases");
 
-test("OD5 price × image: no empty column, image/text/actions whole on phone and desktop", async ({ page, request }) => {
+test("OD5 price × image: no empty column, image/text/actions whole on phone and desktop", async ({ page, request, browser }) => {
   test.setTimeout(400_000);
   // a photo that is already public (a published album's cover) — the offer only points at it
   const { data: ph } = await db.from("photo_albums").select("cover_photo_id").eq("is_published", true).not("cover_photo_id", "is", null).limit(1);
@@ -144,6 +147,7 @@ test("OD5 price × image: no empty column, image/text/actions whole on phone and
     if (error) throw new Error(error.message);
   }
   try {
+    await refreshPublicCache(browser);
     for (const c of CASES) await until(request, c.slug);
     fs.mkdirSync(CASE_SHOTS, { recursive: true });
     await skipSiteIntro(page);

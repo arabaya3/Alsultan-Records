@@ -2,7 +2,7 @@ import { expect, test, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import fs from "node:fs";
 import path from "node:path";
-import { BASE, db, overflowPx } from "./qa-helpers";
+import { BASE, db, overflowPx, refreshPublicCache } from "./qa-helpers";
 
 /**
  * Public site rendered from the CMS tables (docs/cms-contract.md).
@@ -42,7 +42,7 @@ async function until(p: string, pred: (h: string) => boolean, timeout = 200_000)
   await expect.poll(async () => pred(await html(p)), { timeout, intervals: [3_000, 5_000, 10_000] }).toBe(true);
 }
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser }) => {
   test.setTimeout(300_000);
   navBefore = ((await db.from("nav_items").select("id, label, target, sort_order, is_visible")).data ?? []) as NavRow[];
   sectionsBefore = ((await db.from("site_sections").select("key, is_visible")).data ?? []) as SectionRow[];
@@ -75,16 +75,19 @@ test.beforeAll(async () => {
   svcId = s.data!.id;
   expect((await db.from("services").update({ slug: SVC_NEW }).eq("id", svcId)).error).toBeNull();
 
+  // The fixtures above were written with the secret key: visitors see them after the next admin save (day-long cache).
+  await refreshPublicCache(browser);
   await until("/", (h) => h.includes(NAV_LABEL) && h.includes("إعلان اختبار CMS") && !h.includes('id="steps-title"'));
 });
 
-test.afterAll(async () => {
+test.afterAll(async ({ browser }) => {
   test.setTimeout(300_000);
   for (const n of navBefore) await db.from("nav_items").update({ label: n.label, sort_order: n.sort_order, is_visible: n.is_visible }).eq("id", n.id);
   for (const s of sectionsBefore) await db.from("site_sections").update({ is_visible: s.is_visible }).eq("key", s.key);
   if (annId) await db.from("announcements").delete().eq("id", annId);
   if (svcId) await db.from("services").delete().eq("id", svcId);
   await db.from("slug_redirects").delete().in("from_path", [`/services/${SVC_OLD}`]);
+  await refreshPublicCache(browser);
   await until("/", (h) => !h.includes(NAV_LABEL) && !h.includes("إعلان اختبار CMS") && h.includes('id="steps-title"'));
   // /services is cached separately: wait until it no longer lists the deleted test service, otherwise its link
   // prefetch 404s and fails later console-error checks (public.spec) — the restore must cover every page it touched.
@@ -119,7 +122,7 @@ test("hidden home section is not rendered at all; visible ones keep their order"
   await expect(page.getByRole("heading", { name: "كيف نشتغل" })).toHaveCount(0);
   await expect(page.locator("#services-title")).toBeVisible();
   // Never an empty box: every rendered section has a heading and content.
-  for (const s of await page.locator("main > section[aria-labelledby]").all()) {
+  for (const s of await page.locator("main section[aria-labelledby]").all()) {
     expect(((await s.textContent()) ?? "").trim().length).toBeGreaterThan(10); // textContent: scroll-reveal content counts too
   }
 });
@@ -180,7 +183,7 @@ test("axe: /, /offers, /services (with announcement) have no serious/critical vi
   expect(bad).toEqual([]);
 });
 
-test("active logo: /a/<id> serves only the active logo; header switches; fallback restores the built-in logo", async ({ page }) => {
+test("active logo: /a/<id> serves only the active logo; header switches; fallback restores the built-in logo", async ({ page, browser }) => {
   test.setTimeout(480_000);
   const before = (await db.from("business_settings").select("active_logo_id").eq("id", 1).single()).data?.active_logo_id ?? null;
   const id = crypto.randomUUID();
@@ -201,16 +204,19 @@ test("active logo: /a/<id> serves only the active logo; header switches; fallbac
     expect((await fetch(new URL(`/a/${crypto.randomUUID()}`, BASE))).status).toBe(404);
     expect((await fetch(new URL("/a/not-a-uuid", BASE))).status).toBe(404);
 
+    // Activated with the secret key here (the admin's own «تفعيل» expires the cache itself): one admin save stands in for it.
+    await refreshPublicCache(browser);
     await until("/", (h) => h.includes(`/a/${id}`));
     await page.goto("/");
     await expect(page.locator(`header img[src="/a/${id}"]`)).toBeVisible();
     await expect(page.locator(`footer img[src="/a/${id}"]`)).toBeVisible();
-    await expect(page.locator(`[data-hero-intro] img[src="/a/${id}"]`)).toBeAttached();
+    await expect(page.locator(`[data-home-hero] img[src="/a/${id}"]`)).toBeVisible();
   } finally {
     await db.from("business_settings").update({ active_logo_id: before }).eq("id", 1);
   }
   // Rolled back → the old id stops serving immediately; pages return to the built-in logo.
   expect((await fetch(new URL(`/a/${id}`, BASE))).status).toBe(404);
+  await refreshPublicCache(browser);
   await until("/", (h) => !h.includes(`/a/${id}`));
   await page.goto("/");
   await expect(page.locator('header img[src*="logo-main"], header img[srcset*="logo-main"]').first()).toBeVisible();

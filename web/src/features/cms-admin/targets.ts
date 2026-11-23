@@ -31,3 +31,20 @@ export const SECTION_FEATURE: Record<SectionKey, "video" | "service" | "offer" |
   contact: null,
   stats: null,
 };
+
+/**
+ * Which saved fields the home page really uses for each section (the poster layout). A field that is `false` is shown
+ * disabled in the admin with a reason, and its stored value is sent back unchanged — never an editable field that does
+ * nothing. Visibility and order apply to every section.
+ */
+export const SECTION_FIELDS: Record<SectionKey, { title: boolean; intro: boolean; limit: boolean; featured: boolean; why?: string }> = {
+  works: { title: true, intro: true, limit: true, featured: true },
+  offers: { title: true, intro: true, limit: true, featured: true },
+  promos: { title: true, intro: true, limit: true, featured: true },
+  albums: { title: true, intro: true, limit: true, featured: true }, // picks are stored but never mixed in (owner rule; the card says so)
+  process: { title: true, intro: true, limit: true, featured: false },
+  stats: { title: true, intro: true, limit: false, featured: false },
+  about: { title: true, intro: true, limit: false, featured: false, why: "قسم «من نحن» نص واحد: لا يوجد عدد عناصر." },
+  services: { title: true, intro: true, limit: false, featured: false, why: "تصميم الرئيسية يعرض عمودين ثابتين (تصوير فوتوغرافي وتصوير فيديو)، فلا ينطبق عدد العناصر ولا الخدمات المميزة هنا. صفحة الخدمات تعرض خدماتك كما هي." },
+  contact: { title: false, intro: false, limit: false, featured: false, why: "شريط التواصل يعرض الموقع والهاتف وزر واتساب من إعدادات الهوية بدون عنوان أو نص. يمكنك إظهاره أو إخفاؤه وترتيبه فقط." },
+};

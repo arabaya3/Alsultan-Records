@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { anon, BASE, db } from "./qa-helpers";
+import { anon, BASE, db, refreshPublicCache } from "./qa-helpers";
 
 /**
  * Offers: active window by Asia/Hebron calendar day (inclusive), pinned first, price only when shown,
@@ -35,7 +35,7 @@ async function until(p: string, pred: (h: string) => boolean, timeout = 200_000)
   await expect.poll(async () => pred(await html(p)), { timeout, intervals: [3_000, 5_000, 10_000] }).toBe(true);
 }
 
-test.beforeAll(async () => {
+test.beforeAll(async ({ browser }) => {
   test.setTimeout(300_000);
   await db.from("offers").delete().like("slug", `${P}-%`);
   for (const [k, o] of Object.entries(F)) {
@@ -53,14 +53,17 @@ test.beforeAll(async () => {
   ]);
   offersSectionBefore = (await db.from("site_sections").select("is_visible").eq("key", "offers").single()).data?.is_visible ?? false;
   await db.from("site_sections").update({ is_visible: true }).eq("key", "offers");
+  // Fixtures written with the secret key reach visitors after the next admin save (day-long cache, refreshed by tags).
+  await refreshPublicCache(browser);
   await until("/offers", (h) => h.includes(F.today.slug) && h.includes(F.pinned.slug));
   await until("/", (h) => h.includes('data-home-section="offers"'));
 });
 
-test.afterAll(async () => {
+test.afterAll(async ({ browser }) => {
   test.setTimeout(300_000);
   await db.from("offers").delete().like("slug", `${P}-%`);
   await db.from("site_sections").update({ is_visible: offersSectionBefore }).eq("key", "offers");
+  await refreshPublicCache(browser);
   await until("/offers", (h) => !h.includes(P));
   await until("/", (h) => !h.includes(P));
 });

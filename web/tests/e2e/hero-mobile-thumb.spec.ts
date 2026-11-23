@@ -2,7 +2,8 @@ import { expect, test, type Browser, type Page } from "@playwright/test";
 import { BASE, db, newLoggedIn, skipSiteIntro } from "./qa-helpers";
 
 /**
- * Home hero backdrop: phones load the thumb variant, wider screens the display variant, both through the gated /p route.
+ * Home hero photo (poster design: shown sharp, not as a dimmed backdrop): the small variant paints first and the display
+ * variant covers it, at every width, both only through the gated /p route.
  * Isolated stack only. Sets the hero through the database + an admin save (which expires the cache), then restores it.
  */
 test.describe.configure({ mode: "serial" });
@@ -29,7 +30,8 @@ async function openHome(page: Page) {
   await page.waitForTimeout(1500); // route prefetches run after load
   return asked;
 }
-const hero = (page: Page) => page.locator("[data-hero-intro] > picture img");
+const hero = (page: Page) => page.locator("[data-home-hero-photo] img[data-hero-photo=sharp]");
+const small = (page: Page) => page.locator("[data-home-hero-photo] img[data-hero-photo=placeholder]");
 
 test.beforeAll(async ({ browser }) => {
   const settings = (await db.from("business_settings").select("hero_cover_photo_id").eq("id", 1).single()).data!;
@@ -58,21 +60,21 @@ test.describe("phone", () => {
     await expect(img).toHaveAttribute("fetchpriority", "high");
     expect(await img.evaluate((i: HTMLImageElement) => i.decode().then(() => i.naturalWidth))).toBeGreaterThan(0);
   });
-  test("390px: only the thumb is downloaded, including after route prefetches, and it is the image shown", async ({ page }) => {
+  test("390px: the small variant sits under the sharp display variant; each is downloaded once, including after route prefetches", async ({ page }) => {
   const asked = await openHome(page);
-  await expect.poll(() => hero(page).evaluate((i: HTMLImageElement) => i.currentSrc)).toContain(`/p/${photoId}/thumb`);
-  expect(asked).toEqual(["thumb"]);
+  await expect.poll(() => hero(page).evaluate((i: HTMLImageElement) => i.currentSrc)).toContain(`/p/${photoId}/display`);
+  await expect.poll(() => small(page).evaluate((i: HTMLImageElement) => i.currentSrc)).toContain(`/p/${photoId}/thumb`);
+  expect([...asked].sort()).toEqual(["display", "thumb"]);
+  expect(await small(page).evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
   expect(await hero(page).evaluate((i: HTMLImageElement) => i.naturalWidth)).toBeGreaterThan(0);
 });
 });
 
-test("1440px: the hero stays on the display variant, and the thumb is not downloaded for it", async ({ page }) => {
+test("1440px: the same two layers; the sharp one is the display variant", async ({ page }) => {
   const asked = await openHome(page);
   await expect.poll(() => hero(page).evaluate((i: HTMLImageElement) => i.currentSrc)).toContain(`/p/${photoId}/display`);
-  expect(asked).toContain("display");
-  expect(asked).not.toContain("thumb");
-  await expect(hero(page)).toHaveClass(/opacity-35/);
-  await expect(hero(page)).toHaveClass(/blur-\[2px\]/);
+  expect([...asked].sort()).toEqual(["display", "thumb"]);
+  await expect(hero(page)).toHaveAttribute("fetchpriority", "high");
 });
 
 test("the thumb is never stored by a CDN, and stops loading when the photo is withdrawn", async ({ page }) => {

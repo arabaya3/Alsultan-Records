@@ -284,7 +284,7 @@ test("public mobile menu dialog: role, aria-modal, label, trap, Esc", async ({ b
 
 test("RTL: directional chevrons and bidi isolation of Latin user content", async ({ browser }) => {
   const page = await newPage(browser);
-  await page.goto(`${BASE}/`);
+  await page.goto(`${BASE}/work`);
   // "See all"/details arrows (round IconLink buttons) point left — forward in RTL: shaft 19→5, head opening to the left.
   const arrows = await page.locator('main svg path[d="M19 12H5M11 6l-6 6 6 6"]').count();
   expect(arrows).toBeGreaterThan(0);

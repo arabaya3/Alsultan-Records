@@ -7,7 +7,7 @@ import { expect, test } from "@playwright/test";
  */
 const BASE = process.env.BASE_URL ?? "http://localhost:3400";
 
-test("home on a phone: self-hosted promo plays in-page, WhatsApp booking, menu without portal, no overflow @mobile", async ({ page }) => {
+test("home on a phone: WhatsApp booking, menu without portal, no player, no overflow @mobile", async ({ page }) => {
   const errors: string[] = [];
   page.on("console", (m) => m.type() === "error" && errors.push(m.text()));
   await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
@@ -29,16 +29,8 @@ test("home on a phone: self-hosted promo plays in-page, WhatsApp booking, menu w
   expect(await dialog.locator('a[href^="/login"]').evaluateAll((as) => as.map((a) => a.getAttribute("href")))).toEqual(["/login"]);
   await page.keyboard.press("Escape");
 
-  // Promo (self-hosted, /promo/*.mp4): no <video> before tap; tap opens the dialog with the portrait cut and it plays.
+  // The poster home page has no player: nothing to load, before or after a tap.
   expect(await page.locator("iframe, video").count()).toBe(0);
-  await page.getByRole("button", { name: /شاهد البرومو/ }).first().click();
-  const video = page.locator("[data-promo-dialog] video");
-  await expect(video).toHaveAttribute("src", /^\/promo\/sultan-promo-1080x1920\.[0-9a-f]{8}\.mp4$/);
-  await expect
-    .poll(async () => video.evaluate((v: HTMLVideoElement) => !v.paused && v.currentTime > 0.3).catch(() => false), { timeout: 20_000 })
-    .toBe(true);
-  await page.getByRole("button", { name: "إغلاق الفيديو" }).click();
-  await expect(page.locator("[data-promo-dialog]")).toHaveCount(0);
 
   // Footer: phone readable LTR, no overflow.
   const tel = page.locator('footer a[href^="tel:"]').first();

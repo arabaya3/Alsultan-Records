@@ -47,6 +47,9 @@
   --color-ivory-muted: #b9b1a3;
   /* Light band used sparingly (Section tone="ivory"); text on it = on-cream / on-cream-muted / gold-text */
   --color-ivory-band: #f8f5ee;
+  /* Homepage poster: navy-black hero and contact bar (ivory on navy ~16:1, gold on navy ~9.5:1) */
+  --color-navy: #0e1322;
+  --color-navy-deep: #090d18;
 
   --radius-lg: 10px;
 
@@ -271,6 +274,22 @@ html[data-site-intro="on"] .site-intro {
   .chip-scroller[data-more-start] { --fs: 28px; }
   .chip-scroller[data-more-end] { --fe: 44px; }
 }
+
+/* ---------------------------------------------------------------- homepage poster (components/home/HomePoster.tsx)
+   Hero photo: a gold edge shows where the photo's own clip stops 4-5px short of the panel's clip.
+   Phones: the photo sits above the text and its lower edge is cut on a slant; lg+: the photo is the left half and
+   its inner edge leans (the page is always RTL, so the photo side is physical left). */
+.home-hero-photo { background: var(--color-gold); clip-path: polygon(0 0, 100% 0, 100% 86%, 0 100%); }
+.home-hero-photo > * { clip-path: polygon(0 0, 100% 0, 100% calc(86% - 4px), 0 calc(100% - 4px)); }
+@media (min-width: 1024px) {
+  .home-hero-photo { clip-path: polygon(0 0, 100% 0, 76% 100%, 0 100%); }
+  .home-hero-photo > * { clip-path: polygon(0 0, calc(100% - 5px) 0, calc(76% - 5px) 100%, 0 100%); }
+}
+/* Gold pill CTA of the poster (the shared button stays square everywhere else). */
+.home-pill { border-radius: 9999px; background-image: linear-gradient(to bottom, #f0c865, var(--color-gold) 45%, var(--color-gold-press)); }
+.home-pill:hover { background-image: none; }
+/* Contact bar: rounded shoulders over the ivory band, gold line on top. */
+.home-contact-bar { border-top: 3px solid var(--color-gold-press); border-radius: 1.75rem 1.75rem 0 0; }
 
 /* Hero backdrop change (RotatingBackdrop): the opacity each hero sets is the end state. */
 @keyframes backdrop-in {
