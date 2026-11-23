@@ -270,6 +270,53 @@ test("UA5 admin categories + album: visible labels; slug suggested for a NEW ite
   await page.context().close();
 });
 
+test("UA6a a description typed before the page became interactive is counted and saved", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page = await ctx.newPage();
+  const { uiLogin } = await import("./qa-helpers");
+  await uiLogin(page, "owner", `/admin/albums/${ALBUM.id}`);
+  const before = (await db.from("album_photos").select("alt_text").eq("id", PHOTOS[2].id).single()).data!.alt_text;
+  const EARLY = "كُتب قبل تحميل الصفحة";
+  // The field is in the server HTML before React starts. Put text in it the moment it enters the document — always
+  // earlier than hydration, in every browser — exactly what a fast typist on a slow phone leaves behind: a value in
+  // the field that no onChange ever reported. (Seen for real on WebKit, where UA6's first fill landed in that window.)
+  await page.addInitScript(
+    ([selector, text]) => {
+      let done = false;
+      new MutationObserver(() => {
+        const el = done ? null : document.querySelector<HTMLInputElement>(selector);
+        if (!el) return;
+        done = true;
+        el.value = text;
+      }).observe(document, { childList: true, subtree: true });
+    },
+    [`[data-testid=photo-alt][data-photo-id="${PHOTOS[2].id}"]`, EARLY] as const,
+  );
+  await page.goto(`${BASE}/admin/albums/${ALBUM.id}`);
+  const alt = page.locator(`[data-testid=photo-alt][data-photo-id="${PHOTOS[2].id}"]`);
+  // interactive: the text is still in the field, is counted as unsaved, and is saved as typed
+  await expect(alt).toHaveValue(EARLY);
+  await expect(page.getByTestId("bulk-alt-bar")).toHaveAttribute("data-dirty", "1");
+  await page.getByTestId("bulk-alt-save").click();
+  await expect(page.getByTestId("bulk-alt-msg")).toHaveAttribute("data-ok", "1");
+  expect((await db.from("album_photos").select("alt_text").eq("id", PHOTOS[2].id).single()).data!.alt_text).toBe(EARLY);
+  await expect(page.getByTestId("bulk-alt-bar")).toHaveAttribute("data-dirty", "0");
+  await ctx.close();
+
+  // a field nobody touched is not reported as changed
+  const clean = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const page2 = await clean.newPage();
+  await uiLogin(page2, "owner", `/admin/albums/${ALBUM.id}`);
+  await page2.goto(`${BASE}/admin/albums/${ALBUM.id}`);
+  await expect(page2.locator(`[data-testid=photo-alt][data-photo-id="${PHOTOS[2].id}"]`)).toHaveValue(EARLY);
+  await expect(page2.getByTestId("bulk-alt-save")).toBeVisible();
+  await page2.waitForTimeout(1_000); // past hydration
+  await expect(page2.getByTestId("bulk-alt-bar")).toHaveAttribute("data-dirty", "0");
+  await clean.close();
+  // back to what the following tests expect
+  await db.from("album_photos").update({ alt_text: before }).eq("id", PHOTOS[2].id);
+});
+
 test("UA6 album photos: one list (details / order views), «الغلاف الحالي», bulk alt save with a partial failure keeps input, trash asks first", async ({ browser }) => {
   const ctx = await browser.newContext({ viewport: { width: 1280, height: 900 }, recordVideo: { dir: VIDEO, size: { width: 1280, height: 720 } } });
   const page = await ctx.newPage();
