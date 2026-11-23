@@ -218,3 +218,39 @@ export async function refreshAlbumsCache(browser: Browser, albumId: string) {
     await page.context().close();
   });
 }
+
+/**
+ * Holds ACCESS EXCLUSIVE on one public table in a psql session of the ISOLATED db until release() is called: every
+ * read of that table waits meanwhile. Used to keep a page rebuild in flight while an admin action — one that never
+ * touches that table — runs to completion, so the «rebuild started before the save, finished after it» race can be
+ * staged on purpose instead of hoped for.
+ */
+export async function lockTable(table: string): Promise<{ release: () => Promise<void>; waiting: () => number }> {
+  if (!/^[a-z_]+$/.test(table)) throw new Error("table name");
+  psql("select 1"); // psql's own guard: a named container, never the shared database
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { spawn } = require("node:child_process") as typeof import("node:child_process");
+  const p = spawn("docker", ["exec", "-i", DB_CONTAINER, "psql", "-U", "postgres", "-At", "-v", "ON_ERROR_STOP=1"], { stdio: ["pipe", "pipe", "pipe"] });
+  let out = "";
+  p.stdout.on("data", (d: Buffer) => (out += String(d)));
+  const closed = new Promise<void>((res) => p.on("close", () => res()));
+  p.stdin.write(`begin;\nlock table public.${table} in access exclusive mode;\nselect 'holding';\n`);
+  await expect.poll(() => out.includes("holding"), { timeout: 15_000 }).toBe(true);
+  let released = false;
+  return {
+    release: async () => {
+      if (released) return;
+      released = true;
+      p.stdin.write("commit;\n\\q\n");
+      p.stdin.end();
+      await closed;
+    },
+    /** Queries waiting for this lock right now: the rebuild's read of that table. */
+    waiting: () =>
+      Number(
+        psql(
+          `select count(*) from pg_stat_activity where wait_event_type = 'Lock' and state = 'active' and query ilike '%${table}%' and query not ilike '%pg_stat_activity%' and query not ilike '%lock table%'`,
+        ),
+      ),
+  };
+}

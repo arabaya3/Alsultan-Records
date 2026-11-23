@@ -1,6 +1,5 @@
 import { expect, test, type APIRequestContext, type Browser, type Page } from "@playwright/test";
-import { spawn } from "node:child_process";
-import { BASE, db, DB_CONTAINER, EV, newLoggedIn, psql } from "./qa-helpers";
+import { BASE, db, EV, lockTable, newLoggedIn, psql } from "./qa-helpers";
 
 /**
  * Public pages and a project's published photos (day-long public cache, refreshed by cache tags).
@@ -92,34 +91,6 @@ async function restore(browser: Browser) {
   await expect(item(admin)).toBeVisible();
   if ((await item(admin).getByRole("button", { name: "إلغاء النشر" }).count()) > 0) await unpublishPhoto(admin);
   expect(eventState()).toBe("granted|true");
-}
-
-/** Holds ACCESS EXCLUSIVE on one public table in a psql session of the ISOLATED db until release() is called. */
-async function lockTable(table: "offers" | "media_assets"): Promise<{ release: () => Promise<void>; waiting: () => number }> {
-  psql("select 1"); // the helper's own guard: a named container, never the shared database
-  const p = spawn("docker", ["exec", "-i", DB_CONTAINER, "psql", "-U", "postgres", "-At", "-v", "ON_ERROR_STOP=1"], { stdio: ["pipe", "pipe", "pipe"] });
-  let out = "";
-  p.stdout.on("data", (d) => (out += String(d)));
-  const closed = new Promise<void>((res) => p.on("close", () => res()));
-  p.stdin.write(`begin;\nlock table public.${table} in access exclusive mode;\nselect 'holding';\n`);
-  await expect.poll(() => out.includes("holding"), { timeout: 15_000 }).toBe(true);
-  let released = false;
-  return {
-    release: async () => {
-      if (released) return;
-      released = true;
-      p.stdin.write("commit;\n\\q\n");
-      p.stdin.end();
-      await closed;
-    },
-    /** Queries waiting for this lock right now: the visitor render's read of that table. */
-    waiting: () =>
-      Number(
-        psql(
-          `select count(*) from pg_stat_activity where wait_event_type = 'Lock' and state = 'active' and query ilike '%${table}%' and query not ilike '%pg_stat_activity%' and query not ilike '%lock table%'`,
-        ),
-      ),
-  };
 }
 
 /** An unchanged admin save of the offers heading: the offers read is expired, so the next sitemap build must query it. */
