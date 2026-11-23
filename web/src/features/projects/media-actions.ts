@@ -6,6 +6,7 @@ import sharp from "sharp";
 import { createClient } from "@/lib/supabase/server";
 import { guard, ADMIN_ROLES, ALL_STAFF } from "@/features/admin/guard";
 import { dbMessage, fail, FORBIDDEN, isUuid, ok, str, uuid, type ActionResult } from "@/features/admin/result";
+import { expirePublicProjects } from "@/features/publishing/public-cache";
 import { cleanupPublicMedia, PRIVATE_BUCKET, PUBLIC_BUCKET } from "@/features/publishing/server";
 import { checkFile, MAX_FILES_PER_BATCH, MIME_RULES } from "./media-rules";
 
@@ -172,12 +173,12 @@ export async function publishMediaItem(_p: ActionResult, fd: FormData): Promise<
   const pubThumb = `${base}/thumb.webp`;
   const existing = await sb.from("media_assets").select("id, visibility").eq("bucket", "public-media").eq("path", pubDisplay).maybeSingle();
   if (existing.data?.visibility === "public") return ok("الصورة منشورة مسبقاً.");
-  // A stale (withdrawn/unpublished) copy row still awaiting the cleanup worker: replace it.
+  // No live public row from here on. Whatever still sits at these two paths is a leftover of an earlier publication
+  // that the cleanup worker has not reached yet (its row is either stale — withdrawn/unpublished — or already
+  // deleted when the project was unpublished): clear it, or the copy below fails on the existing object.
   // Inserting the new public row cancels the pending deletion of these paths (migration 0010).
-  if (existing.data) {
-    await sb.storage.from(PUBLIC_BUCKET).remove([pubDisplay, pubThumb]);
-    await sb.from("media_assets").delete().eq("id", existing.data.id);
-  }
+  await sb.storage.from(PUBLIC_BUCKET).remove([pubDisplay, pubThumb]);
+  if (existing.data) await sb.from("media_assets").delete().eq("id", existing.data.id);
 
   const c1 = await sb.storage.from(PRIVATE_BUCKET).copy(v.display, pubDisplay, { destinationBucket: PUBLIC_BUCKET });
   const c2 = typeof v.thumb === "string" ? await sb.storage.from(PRIVATE_BUCKET).copy(v.thumb, pubThumb, { destinationBucket: PUBLIC_BUCKET }) : { error: null };
@@ -202,6 +203,7 @@ export async function publishMediaItem(_p: ActionResult, fd: FormData): Promise<
     await sb.storage.from(PUBLIC_BUCKET).remove([pubDisplay, pubThumb]);
     return fail(dbMessage(ins.error, { "42501": "لا يمكن النشر: المناسبة غير منشورة أو بدون موافقة." }));
   }
+  expirePublicProjects(); // the project page and the /work list show the photo on the next visit, not a day later
   refresh();
   return ok("نُشرت الصورة.");
 }
@@ -213,6 +215,7 @@ export async function unpublishMediaItem(_p: ActionResult, fd: FormData): Promis
   if (!publicId || !eventId) return fail("طلب غير صالح.");
   const sb = await createClient();
   const r = await cleanupPublicMedia(sb, eventId, [publicId]);
+  if (r.removed) expirePublicProjects(); // pages stop listing it now (its bytes are already 404 through /m)
   refresh();
   return r.failed ? fail("تعذّر إزالة النسخة العامة. أعد المحاولة.") : ok("أُزيلت الصورة من النشر وحُذفت نسختها العامة.");
 }
@@ -226,6 +229,7 @@ export async function deleteMediaItems(_p: ActionResult, fd: FormData): Promise<
   const sb = await createClient();
   const { data: rows } = await sb.from("media_assets").select("id, path, variants").in("id", ids).eq("event_id", eventId).eq("bucket", "private-media");
   const results: { id: string; ok: boolean }[] = [];
+  let publicRemoved = 0;
   for (const id of ids) {
     const row = rows?.find((r) => r.id === id);
     if (!row) {
@@ -234,7 +238,7 @@ export async function deleteMediaItems(_p: ActionResult, fd: FormData): Promise<
     }
     // Public copies made from this asset go first.
     const pub = await sb.from("media_assets").select("id").eq("bucket", "public-media").eq("event_id", eventId).like("path", `events/${eventId}/${id}/%`);
-    if (pub.data?.length) await cleanupPublicMedia(sb, eventId, pub.data.map((p) => p.id));
+    if (pub.data?.length) publicRemoved += (await cleanupPublicMedia(sb, eventId, pub.data.map((p) => p.id))).removed;
     const v = (row.variants ?? {}) as Record<string, unknown>;
     const paths = [row.path, v.thumb, v.display].filter((p): p is string => typeof p === "string");
     const rm = await sb.storage.from(PRIVATE_BUCKET).remove(Array.from(new Set(paths)));
@@ -242,6 +246,7 @@ export async function deleteMediaItems(_p: ActionResult, fd: FormData): Promise<
     results.push({ id, ok: !del.error });
   }
   const okCount = results.filter((r) => r.ok).length;
+  if (publicRemoved) expirePublicProjects();
   refresh();
   const msg = `حُذف ${okCount} من ${ids.length}.${okCount < ids.length ? ` تعذّر حذف ${ids.length - okCount}.` : ""}`;
   return okCount === ids.length ? ok(msg, { results }) : fail(msg, { results });

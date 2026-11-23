@@ -1,7 +1,8 @@
 "use server";
 
-import { refresh, updateTag } from "next/cache";
+import { refresh } from "next/cache";
 import { customerForAction, isUuid, MSG, type ActionResult } from "@/features/portal/session";
+import { expirePublicProjects } from "./public-cache";
 
 /**
  * Customer grants or withdraws publication consent for their own event.
@@ -10,7 +11,8 @@ import { customerForAction, isUuid, MSG, type ActionResult } from "@/features/po
  * the event is unpublished, its published media rows stop being public (so /m/... and the
  * storage policy deny the very next request), the published copies are queued for deletion
  * and the storage-cleanup worker is kicked via pg_net. Here we only expire the public page
- * caches so the homepage / work listing re-render without the project on the next request.
+ * caches so the work listing and the project page re-render without the project on the next
+ * request — and once more a few seconds later, for a visitor's render that was already in flight.
  */
 export async function customerSetConsent(eventId: string, status: "granted" | "revoked"): Promise<ActionResult> {
   const ctx = await customerForAction();
@@ -22,8 +24,7 @@ export async function customerSetConsent(eventId: string, status: "granted" | "r
     if (error.code === "42501" || error.code === "P0002") return { ok: false, error: MSG.forbidden, code: "forbidden" };
     return { ok: false, error: MSG.unavailable, code: "unavailable" };
   }
-  updateTag("projects");
-  updateTag("media");
+  expirePublicProjects();
   refresh();
   return { ok: true, data: null };
 }
