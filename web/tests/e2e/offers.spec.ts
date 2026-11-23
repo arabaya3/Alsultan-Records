@@ -54,7 +54,6 @@ test.beforeAll(async () => {
   offersSectionBefore = (await db.from("site_sections").select("is_visible").eq("key", "offers").single()).data?.is_visible ?? false;
   await db.from("site_sections").update({ is_visible: true }).eq("key", "offers");
   await until("/offers", (h) => h.includes(F.today.slug) && h.includes(F.pinned.slug));
-  await until("/", (h) => h.includes('data-home-section="offers"'));
 });
 
 test.afterAll(async () => {
@@ -115,14 +114,9 @@ test("expired / future / draft / archived / unknown offers → HTTP 404", async 
   expect((await fetch(new URL(`/offers/${F.today.slug}`, BASE), { redirect: "manual" })).status).toBe(200);
 });
 
-test("home shows the offers section (pinned first) only while there are active offers", async ({ page }) => {
+test("the sitemap lists active offers only (the home page is the fixed poster and shows no offers)", async ({ page }) => {
   await page.goto("/");
-  const sec = page.locator('[data-home-section="offers"]');
-  await expect(sec).toBeVisible();
-  const slugs = (await sec.locator("[data-offer-card]").evaluateAll((els) => els.map((e) => e.getAttribute("data-offer-card")!))).filter((s) => s.startsWith(P));
-  expect(slugs[0]).toBe(F.pinned.slug);
-  expect(slugs).not.toContain(F.expired.slug);
-  // Sitemap lists active offers only.
+  await expect(page.locator('[data-home-section="offers"]')).toHaveCount(0);
   await until("/sitemap.xml", (sm) => sm.includes(`/offers/${F.today.slug}`));
   expect(await html("/sitemap.xml")).not.toContain(`/offers/${F.expired.slug}`);
 });

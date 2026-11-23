@@ -31,11 +31,11 @@ async function settle(page: Page) {
 async function essentials(page: Page) {
   const header = page.locator("header");
   await expect(header.locator('img[src*="logo-main"], img[srcset*="logo-main"]').first()).toBeVisible();
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("فرحتك إلها حكاية");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("وراء كل مناسبة حكاية");
   // Booking is via WhatsApp (approved scope); with no number configured the shared fallback is «تواصل معنا» → /contact.
   await expect(page.locator("main a[href^='https://wa.me/'], main a[href='/contact']").first()).toBeVisible();
-  await expect(page.getByRole("heading", { name: "الخدمات" })).toBeVisible();
-  expect(await page.locator("#services-title ~ * li, section[aria-labelledby='services-title'] ol > li").count()).toBeGreaterThan(0);
+  await expect(page.getByRole("heading", { name: "كيف نوثّق مناسبتكم" })).toBeVisible();
+  expect(await page.locator("section[aria-labelledby='services-title'] ul > li").count()).toBe(2);
   // A way to reach the studio: the footer shows WhatsApp/phone when they are set (it falls back to /contact
   // only when they are not), and the header menu always links /contact.
   await expect(page.locator("header a[href='/contact'], footer a[href='/contact'], footer a[href^='https://wa.me/'], footer a[href^='tel:']").first()).toBeAttached();
@@ -71,15 +71,18 @@ test.describe("empty production state (stub Supabase)", () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await essentials(page);
-    await expect(page.locator("[data-hero-mark] img")).toBeVisible();
-    await expect(page.locator("#work-title")).toHaveCount(0);
+    await expect(page.locator("[data-home-hero] img").first()).toBeVisible(); // the logo; no photo → the plain panel
+    await expect(page.locator("[data-home-hero-photo] img")).toHaveCount(0);
+    // «من أعمالنا» keeps its place with an honest line, never a made-up work.
+    await expect(page.locator("[data-home-work]")).toHaveCount(0);
+    await expect(page.locator("[data-home-section=works] [role=status]")).toBeVisible();
     await expect(page.locator("#reviews-title")).toHaveCount(0);
     await expect(page.locator("main a[href='/work']")).toHaveCount(0);
     // Since the CMS redesign the process steps come from the admin and the home has no contact band: with no data
     // the steps section is NOT rendered (never an empty box), and the hero itself offers the booking step.
     await expect(page.locator("#steps-title")).toHaveCount(0);
-    await expect(page.locator("[data-hero-cta=contact]")).toBeVisible();
-    for (const s of await page.locator("main > section[aria-labelledby]").all()) {
+    await expect(page.locator("[data-home-hero] a[href='/contact']")).toBeVisible();
+    for (const s of await page.locator("main section[aria-labelledby]").all()) {
       expect(((await s.textContent()) ?? "").trim().length).toBeGreaterThan(10);
     }
     await keyboardReaches(page, ["/contact", "/services"]);
@@ -120,7 +123,7 @@ test.describe("current local DB", () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await essentials(page);
-    await keyboardReaches(page, ["/work", "/services"]); // home CTAs are /work + WhatsApp (no /book link since the redesign)
+    await keyboardReaches(page, ["/work", "/services"]); // header nav; the page's own links are WhatsApp, phone and the two works
     await settle(page);
     await page.screenshot({ path: path.join(SHOTS, "home-1440-v3.png"), fullPage: true });
   });

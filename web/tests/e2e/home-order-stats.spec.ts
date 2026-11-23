@@ -3,73 +3,12 @@ import { BASE, db, newLoggedIn, skipSiteIntro } from "./qa-helpers";
 
 /**
  * Owner requests 2026-10-20 (migration 0024):
- *  - home order after the hero: latest offers → 4 newest albums → counter → 3 videos → services → process;
- *  - the counter is OWNER-ENTERED in the admin (never invented) and the section never renders without a number;
+ *  (the home order and the home counter of that request are gone: the home page is the fixed poster, see home-poster.spec)
  *  - owner-written descriptive texts accept 10,000 characters and the site shows them in full.
  * Restores everything it changes.
  *   BASE_URL=http://localhost:3600 npx playwright test home-order-stats
  */
 test.describe.configure({ mode: "serial" });
-
-// Section order from their stable heading ids (see HEADING_ID in app/(public)/page.tsx).
-const ID_TO_KEY: Record<string, string> = { "offers-title": "offers", "albums-title": "albums", "stats-title": "stats", "work-title": "works", "services-title": "services", "steps-title": "process" };
-const homeOrder = (page: import("@playwright/test").Page) =>
-  page.locator("main section[aria-labelledby]").evaluateAll(
-    (els, map) => els.map((e) => map[e.getAttribute("aria-labelledby") ?? ""]).filter(Boolean),
-    ID_TO_KEY,
-  );
-
-test("HO1: home order — albums (4, newest first) before videos (3); no counter without a number", async ({ page }) => {
-  await skipSiteIntro(page);
-  await page.goto(`${BASE}/`);
-  const order = (await homeOrder(page)).filter((k) => ["offers", "albums", "stats", "works"].includes(k!));
-  // Offers render only when one is active; the counter only with a number.
-  expect(order.filter((k) => k !== "offers" && k !== "stats")).toEqual(["albums", "works"]);
-  expect(order).not.toContain("stats");
-  const albums = page.locator("[data-home-section=albums] [data-album-card]");
-  await expect(albums).toHaveCount(4);
-  const shown = await albums.evaluateAll((as) => as.map((a) => a.getAttribute("data-album-card")));
-  // newest = newest PUBLISHED (migration 0026: listed_at = published_at, or created_at for albums published before
-  // publish times were recorded), id as the tie-break. Never the event date (owner request 2026-10-28).
-  const rows = (
-    await db.from("photo_albums").select("slug").eq("is_published", true).is("archived_at", null).is("deleted_at", null)
-      .order("listed_at", { ascending: false }).order("id", { ascending: false })
-  ).data!;
-  const newest = rows.map((a) => a.slug);
-  expect(shown).toEqual(newest.filter((s) => shown.includes(s)).slice(0, 4)); // newest first
-  expect(newest.slice(0, 4).sort()).toEqual([...shown].sort());
-  await expect(page.locator("section[aria-labelledby=work-title] [data-work-card]")).toHaveCount(3);
-});
-
-test("HO2: owner enters the counter in the admin → it shows on the home page; clearing it hides the section", async ({ browser }) => {
-  const admin = await newLoggedIn(browser, "owner", "/admin/content/nav");
-  const form = admin.getByTestId("section-stats");
-  try {
-    await form.getByTestId("stat-value").fill("1250");
-    await form.locator('input[name="is_visible"]').check();
-    await form.getByRole("button", { name: "حفظ" }).click();
-    await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
-
-    const pub = await admin.context().newPage();
-    await skipSiteIntro(pub);
-    await pub.goto(`${BASE}/`);
-    const stats = pub.locator("[data-home-section=stats]");
-    await expect(stats.locator("[data-stat-value]")).toHaveText("1,250");
-    await expect(stats.getByRole("heading", { level: 2 })).toContainText("فرحة وثّقناها");
-    const order = (await homeOrder(pub)).filter((k) => ["albums", "stats", "works"].includes(k!));
-    expect(order).toEqual(["albums", "stats", "works"]);
-
-    await form.getByTestId("stat-value").fill("");
-    await form.getByRole("button", { name: "حفظ" }).click();
-    // (the success message from the first save is still on screen — wait for the stored value instead)
-    await expect.poll(async () => (await db.from("site_sections").select("stat_value").eq("key", "stats").single()).data!.stat_value).toBeNull();
-    await pub.reload();
-    await expect(pub.locator("[data-home-section=stats]")).toHaveCount(0); // visible but no number → not rendered
-  } finally {
-    await db.from("site_sections").update({ stat_value: null, is_visible: false }).eq("key", "stats");
-    await admin.context().close();
-  }
-});
 
 test("HO3: a 10,000-character package description is saved from the admin and shown in full", async ({ browser }) => {
   const pkg = (await db.from("packages").select("id, slug, description").eq("status", "published").order("sort_order").limit(1).single()).data!;

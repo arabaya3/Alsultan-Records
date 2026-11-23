@@ -75,7 +75,7 @@ test.beforeAll(async () => {
   svcId = s.data!.id;
   expect((await db.from("services").update({ slug: SVC_NEW }).eq("id", svcId)).error).toBeNull();
 
-  await until("/", (h) => h.includes(NAV_LABEL) && h.includes("إعلان اختبار CMS") && !h.includes('id="steps-title"'));
+  await until("/", (h) => h.includes(NAV_LABEL) && h.includes("إعلان اختبار CMS"));
 });
 
 test.afterAll(async () => {
@@ -85,7 +85,7 @@ test.afterAll(async () => {
   if (annId) await db.from("announcements").delete().eq("id", annId);
   if (svcId) await db.from("services").delete().eq("id", svcId);
   await db.from("slug_redirects").delete().in("from_path", [`/services/${SVC_OLD}`]);
-  await until("/", (h) => !h.includes(NAV_LABEL) && !h.includes("إعلان اختبار CMS") && h.includes('id="steps-title"'));
+  await until("/", (h) => !h.includes(NAV_LABEL) && !h.includes("إعلان اختبار CMS"));
   // /services is cached separately: wait until it no longer lists the deleted test service, otherwise its link
   // prefetch 404s and fails later console-error checks (public.spec) — the restore must cover every page it touched.
   await until("/services", (h) => !h.includes(SVC_NEW) && !h.includes(SVC_OLD));
@@ -113,14 +113,13 @@ test("header nav labels and order come from nav_items; footer uses the same; nev
   expect([...new Set(all.filter((h) => /^\/login/.test(h)))]).toEqual(["/login"]);
 });
 
-test("hidden home section is not rendered at all; visible ones keep their order", async ({ page }) => {
+test("home sections are the fixed poster: hiding a CMS section changes nothing there, and none is an empty box", async ({ page }) => {
   await page.goto("/");
   await expect(page.locator("#steps-title")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "كيف نشتغل" })).toHaveCount(0);
   await expect(page.locator("#services-title")).toBeVisible();
-  // Never an empty box: every rendered section has a heading and content.
-  for (const s of await page.locator("main > section[aria-labelledby]").all()) {
-    expect(((await s.textContent()) ?? "").trim().length).toBeGreaterThan(10); // textContent: scroll-reveal content counts too
+  for (const s of await page.locator("main section[aria-labelledby]").all()) {
+    expect(((await s.textContent()) ?? "").trim().length).toBeGreaterThan(10);
   }
 });
 
@@ -205,7 +204,7 @@ test("active logo: /a/<id> serves only the active logo; header switches; fallbac
     await page.goto("/");
     await expect(page.locator(`header img[src="/a/${id}"]`)).toBeVisible();
     await expect(page.locator(`footer img[src="/a/${id}"]`)).toBeVisible();
-    await expect(page.locator(`[data-hero-intro] img[src="/a/${id}"]`)).toBeAttached();
+    await expect(page.locator(`[data-home-hero] img[src="/a/${id}"]`)).toBeVisible();
   } finally {
     await db.from("business_settings").update({ active_logo_id: before }).eq("id", 1);
   }

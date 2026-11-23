@@ -100,9 +100,9 @@ for (const width of [1440, 390]) {
     await page.goto(`${BASE}/book`);
     bad.push(...fmt(await scan(page, `book@${width}`)));
 
-    // YouTube player dialog open.
-    await page.goto(`${BASE}/`);
-    await page.locator("[data-promo-trigger]").click();
+    // YouTube player dialog open (from a work card: the home page has no player since the poster design).
+    await page.goto(`${BASE}/work`);
+    await page.locator("[data-video-grid] [data-youtube-card]").first().click();
     await expect(page.getByRole("dialog")).toBeVisible();
     await page.waitForTimeout(600);
     bad.push(...fmt(await scan(page, `youtube-dialog@${width}`, "[data-youtube-dialog] iframe")));
