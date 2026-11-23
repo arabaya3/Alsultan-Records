@@ -259,6 +259,7 @@ test("PM3: a customer's consent withdrawal while the sitemap is being rebuilt do
   // The scenario really happened: the rebuild that was in flight still listed the project.
   expect(inFlight).toContain(`/work/${SLUG}`);
   await expect(customer.getByTestId("consent-status")).toContainText("سحبت موافقتك على النشر"); // the portal shows the new state
+  await expect(card.getByRole("status")).toHaveText("سُحبت الموافقة. لم تعد مناسبتك معروضة للعامة."); // and confirms the withdrawal
 
   // What that rebuild stored must not stay: within a few seconds the sitemap no longer names the withdrawn project.
   await expect.poll(() => sitemapListsProject(request), { timeout: 20_000, intervals: [1_000] }).toBe(false);

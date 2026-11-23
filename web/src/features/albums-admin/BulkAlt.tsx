@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useId, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useId, useMemo, useRef, useState, type ReactNode } from "react";
 import { inputCls } from "@/features/admin/ui";
 import { bidiDir } from "@/lib/bidi";
 import { setPhotoAlts } from "./actions";
@@ -129,6 +129,18 @@ export function AltField({ photoId, initial, index }: { photoId: string; initial
   const ctx = useContext(BulkAltCtx);
   const id = useId();
   const [value, setValue] = useState(initial);
+  const input = useRef<HTMLInputElement>(null);
+  const register = ctx?.setValue;
+  // The field is in the server HTML, so the admin can type in it before the page's script has started (slow phone,
+  // slow connection). That text stays in the field but never reached onChange: without this it is not counted as a
+  // change and «حفظ الأوصاف» would leave it out. Once, when the field becomes interactive, take what is in it.
+  useEffect(() => {
+    const typed = input.current?.value;
+    if (typed === undefined || typed === initial) return;
+    setValue(typed);
+    register?.(photoId, typed, initial);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once on mount: later edits go through onChange
+  }, []);
   const error = ctx?.error(photoId);
   const conflict = ctx?.conflict(photoId);
   const dirty = value !== (ctx?.baseline(photoId, initial) ?? initial);
@@ -138,6 +150,7 @@ export function AltField({ photoId, initial, index }: { photoId: string; initial
         وصف الصورة {index} (نص بديل){dirty ? <span className="ms-2 text-xs text-gold-press">· غير محفوظ</span> : null}
       </label>
       <input
+        ref={input}
         id={id}
         value={value}
         maxLength={300}

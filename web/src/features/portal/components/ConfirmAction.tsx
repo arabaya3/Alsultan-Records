@@ -18,6 +18,9 @@ export function ConfirmAction({
 }) {
   const [step, setStep] = useState<"idle" | "confirm" | "saving" | "done" | "error">("idle");
   const [msg, setMsg] = useState("");
+  // What was confirmed, fixed at the moment it succeeded. The server refresh that follows can hand this same component
+  // the props of the OPPOSITE action (consent: «withdraw» becomes «grant»); the message must keep saying what was done.
+  const [done, setDone] = useState("");
   // The pressed button is replaced by the next step, so move focus to its replacement.
   const focusNext = useRef(false);
   const focusOnMount = (el: HTMLElement | null) => {
@@ -29,7 +32,7 @@ export function ConfirmAction({
   if (step === "done")
     return (
       <p role="status" tabIndex={-1} ref={focusOnMount} className="text-success">
-        {doneText}
+        {done || doneText}
       </p>
     );
   return (
@@ -46,7 +49,10 @@ export function ConfirmAction({
               setStep("saving");
               const res = await run().catch(() => null);
               focusNext.current = true; // the disabled button lost focus while saving
-              if (res?.ok) return setStep("done");
+              if (res?.ok) {
+                setDone(doneText);
+                return setStep("done");
+              }
               if (res && !res.ok && res.code === "auth")
                 return goToLogin();
               setMsg(res && !res.ok ? res.error : "تعذّر التنفيذ الآن. حاول مرة أخرى.");

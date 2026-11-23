@@ -110,6 +110,10 @@ test("customer withdraws consent in the portal: same URL is 404 immediately", as
   await card.getByRole("button", { name: "تأكيد" }).click();
   await expect(card.getByRole("status")).toContainText("سُحبت الموافقة");
   const t0 = Date.now();
+  // The page then refreshes into the «withdrawn» state (the card now offers to grant again): the confirmation must
+  // keep saying what the customer did, not turn into the grant message.
+  await expect(page.getByTestId("consent-status")).toContainText("سحبت موافقتك على النشر");
+  await expect(card.getByRole("status")).toHaveText("سُحبت الموافقة. لم تعد مناسبتك معروضة للعامة.");
 
   // Same URL, straight to the origin, immediately after the action returned.
   const same = await request.get(url);
@@ -208,6 +212,8 @@ test("private originals stay; owner customer can still download via signed URL; 
   await card.getByRole("button", { name: "الموافقة على النشر" }).click();
   await card.getByRole("button", { name: "تأكيد" }).click();
   await expect(card.getByRole("status")).toContainText("سُجّلت موافقتك");
+  await expect(page.getByTestId("consent-status")).toContainText("وافقت على عرض صور مختارة"); // refreshed into «granted»
+  await expect(card.getByRole("status")).toHaveText("شكراً لك، سُجّلت موافقتك."); // and still the grant message
   expect(psql(`select publication_consent || '|' || (consent_revoked_by_customer_at is null) from public.events where id = '${EV.A2}'`)).toBe("granted|true");
   // …through the admin's own «نشر في صفحة الأعمال» (the action also refreshes the public pages).
   const adminPage = await newLoggedIn(browser, "admin", `/admin/events/${EV.A2}`);
