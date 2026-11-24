@@ -11,7 +11,7 @@ import { publicSlugExists, slugRedirectTarget, type PublicSlugKind } from "@/fea
 export async function proxy(request: NextRequest) {
   // Real 404 for unknown public slugs: with Cache Components the shell streams 200 before notFound().
   const nested = request.nextUrl.pathname.match(/^\/work\/(v|albums)\/([^/]+)\/?$/);
-  const slug = nested ?? request.nextUrl.pathname.match(/^\/(work|services|offers)\/([^/]+)\/?$/);
+  const slug = nested ?? request.nextUrl.pathname.match(/^\/(work|offers)\/([^/]+)\/?$/);
   if (slug) {
     const kind: PublicSlugKind = nested
       ? nested[1] === "v"
@@ -19,7 +19,7 @@ export async function proxy(request: NextRequest) {
         : "album"
       : slug[1] === "offers"
         ? "offer"
-        : (slug[1] as "work" | "services");
+        : "work";
     let value: string;
     try {
       value = decodeURIComponent(slug[2]);
@@ -71,5 +71,5 @@ export async function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/work/:slug", "/work/v/:id", "/work/albums/:slug", "/services/:slug", "/offers/:slug", "/portal/:path*", "/admin/:path*", "/login", "/auth/:path*"],
+  matcher: ["/work/:slug", "/work/v/:id", "/work/albums/:slug", "/offers/:slug", "/portal/:path*", "/admin/:path*", "/login", "/auth/:path*"],
 };

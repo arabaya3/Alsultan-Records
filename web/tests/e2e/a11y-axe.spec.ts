@@ -86,7 +86,7 @@ for (const width of [1440, 390]) {
       ["home", "/"],
       ["work", "/work"],
       ["work-detail", `/work/${slug}`],
-      ["services", "/services"],
+      ["packages", "/packages"],
       ["faq", "/faq"],
       ["contact", "/contact"],
       ["login", "/login"],

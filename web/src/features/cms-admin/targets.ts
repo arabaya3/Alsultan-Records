@@ -10,7 +10,7 @@ export const SECTION_KEYS = ["works", "services", "offers", "promos", "albums", 
 export type SectionKey = (typeof SECTION_KEYS)[number];
 export const SECTION_LABEL: Record<SectionKey, string> = {
   works: "أعمالنا (الفيديوهات)",
-  services: "الخدمات",
+  services: "كيف نوثّق مناسبتكم",
   offers: "العروض",
   promos: "البرومو",
   albums: "ألبومات الصور",
@@ -20,9 +20,9 @@ export const SECTION_LABEL: Record<SectionKey, string> = {
   stats: "عدّاد الحفلات",
 };
 /** Which entity a section's featured_ids point at (null = no featured picker). */
-export const SECTION_FEATURE: Record<SectionKey, "video" | "service" | "offer" | "album" | null> = {
+export const SECTION_FEATURE: Record<SectionKey, "video" | "offer" | "album" | null> = {
   works: "video",
-  services: "service",
+  services: null, // the poster columns are fixed; there is no services table to pick from
   offers: "offer",
   promos: "video",
   albums: "album",
@@ -45,6 +45,6 @@ export const SECTION_FIELDS: Record<SectionKey, { title: boolean; intro: boolean
   process: { title: true, intro: true, limit: true, featured: false },
   stats: { title: true, intro: true, limit: false, featured: false },
   about: { title: true, intro: true, limit: false, featured: false, why: "قسم «من نحن» نص واحد: لا يوجد عدد عناصر." },
-  services: { title: true, intro: true, limit: false, featured: false, why: "تصميم الرئيسية يعرض عمودين ثابتين (تصوير فوتوغرافي وتصوير فيديو)، فلا ينطبق عدد العناصر ولا الخدمات المميزة هنا. صفحة الخدمات تعرض خدماتك كما هي." },
+  services: { title: true, intro: true, limit: false, featured: false, why: "تصميم الرئيسية يعرض عمودين ثابتين (تصوير فوتوغرافي وتصوير فيديو)، فلا ينطبق عدد العناصر ولا العناصر المميزة هنا." },
   contact: { title: false, intro: false, limit: false, featured: false, why: "شريط التواصل يعرض الموقع والهاتف وزر واتساب من إعدادات الهوية بدون عنوان أو نص. يمكنك إظهاره أو إخفاؤه وترتيبه فقط." },
 };

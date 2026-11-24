@@ -19,11 +19,5 @@ export function siteUrl(): string {
 
 export const isProduction = process.env.NODE_ENV === "production";
 
-export const NAV_LINKS = [
-  { href: "/work", label: "أعمالنا" },
-  { href: "/services", label: "الخدمات" },
-  { href: "/about", label: "من نحن" },
-] as const;
-
 /** Core offering shown in the hero service strip. Copy is editable. */
 export const CORE_SERVICES = ["تصوير فوتوغرافي", "أفلام أعراس", "DJ"] as const;

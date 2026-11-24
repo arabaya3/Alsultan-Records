@@ -11,7 +11,6 @@ export const TAGS = {
   siteContent: "site-content",
   nav: "site-nav",
   sections: "site-sections",
-  services: "services",
   process: "process-steps",
   offers: "offers",
   packages: "packages",

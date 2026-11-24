@@ -2,15 +2,15 @@
  * Fast existence check for public slugs, meant for `proxy.ts` (lead-owned).
  *
  * Why: with Cache Components/PPR the static shell is flushed with HTTP 200 before the page
- * can call notFound(), so unknown /work/[slug] and /services/[slug] are soft 404s. Next 16 docs
+ * can call notFound(), so unknown /work/[slug] pages are soft 404s. Next 16 docs
  * (api-reference/file-conventions/loading.md "Status codes") prescribe checking the slug in Proxy
  * and returning a 404 there. See components/layout/security-headers.md for the proxy snippet.
  *
  * Edge-safe: plain fetch to PostgREST with the publishable key; selects only the id;
- * RLS limits rows to published+consented projects / published services.
+ * RLS limits rows to published+consented projects.
  * Returns true on any infrastructure error (fail open → page renders its own states).
  */
-export type PublicSlugKind = "work" | "services" | "video" | "album" | "offer";
+export type PublicSlugKind = "work" | "video" | "album" | "offer";
 
 export async function publicSlugExists(kind: PublicSlugKind, slug: string): Promise<boolean> {
   if (kind === "video") {
@@ -29,8 +29,6 @@ export async function publicSlugExists(kind: PublicSlugKind, slug: string): Prom
   const q =
     kind === "work"
       ? `events?select=id&public_slug=eq.${s}&is_published=eq.true&publication_consent=eq.granted&limit=1`
-      : kind === "services"
-        ? `services?select=id&slug=eq.${s}&is_published=eq.true&limit=1`
         : kind === "video"
           ? `showcase_videos?select=id&youtube_id=eq.${s}&limit=1`
           : kind === "offer"
@@ -49,8 +47,8 @@ export async function publicSlugExists(kind: PublicSlugKind, slug: string): Prom
   }
 }
 
-/** Same shape as the slug_redirects check constraint (docs/cms-contract.md). */
-const REDIRECT_PATH = /^\/(services|offers|work\/albums)\/[a-z0-9-]+$/;
+/** Public subset of the slug_redirects check constraint (docs/cms-contract.md): service pages no longer exist. */
+const REDIRECT_PATH = /^\/(offers|work\/albums)\/[a-z0-9-]+$/;
 
 /**
  * Old URL → new URL after a slug rename (table slug_redirects, written by DB trigger; anon-readable paths).

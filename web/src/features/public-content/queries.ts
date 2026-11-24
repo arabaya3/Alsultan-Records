@@ -4,13 +4,11 @@ import { publicLife } from "./cache-life";
 import type { z } from "zod";
 import { TAGS } from "@/lib/cache-tags";
 import { getPublicClient, publicMediaUrl } from "./client";
-import { photoUrl } from "./gallery-model";
 import {
   businessSettingsRow,
   mediaAssetRow,
   projectRow,
   reviewRow,
-  serviceRow,
   showcaseVideoRow,
   type ShowcaseVideo,
   type BusinessSettings,
@@ -19,15 +17,12 @@ import {
   type Project,
   type PublicMedia,
   type ReviewRow,
-  type Service,
 } from "./schema";
 
 const PROJECT_COLUMNS =
   "id, public_slug, title, event_type, event_date, city, featured, featured_order, seo_title, seo_description, highlight, coverage_notes";
 const MEDIA_COLUMNS =
   "id, event_id, bucket, path, kind, mime, width, height, duration_s, variants, sort_order";
-const SERVICE_COLUMNS_LEGACY = "id, slug, title, summary, body, cover_media_id, sort_order";
-const SERVICE_COLUMNS = `${SERVICE_COLUMNS_LEGACY}, cover_photo_id`;
 
 function toPublicMedia(row: MediaAssetRow): PublicMedia | null {
   if (row.kind === "document") return null;
@@ -183,49 +178,6 @@ export async function getProjectBySlug(slug: string): Promise<Loaded<Project | n
       } catch {
         return { status: "unavailable" };
       }
-    })(),
-  );
-}
-
-export async function getPublishedServices(): Promise<Loaded<Service[]>> {
-  "use cache";
-  cacheTag(TAGS.services, TAGS.albums, TAGS.media); // a service cover can be a published media asset
-  return publicLife(
-    await (async (): Promise<Loaded<Service[]>> => {
-      const sb = getPublicClient();
-      if (!sb) return { status: "unavailable" };
-      try {
-        const read = (cols: string) => sb.from("services").select(cols).eq("is_published", true).order("sort_order", { ascending: true });
-        let { data, error } = await read(SERVICE_COLUMNS);
-        if (error) ({ data, error } = await read(SERVICE_COLUMNS_LEGACY)); // CMS column not migrated yet
-        if (error) throw error;
-        const rows = parseRows(serviceRow, data);
-        const covers = await mediaById(
-          rows.flatMap((r) => (r.cover_media_id ? [r.cover_media_id] : [])),
-        );
-        return {
-          status: "ok",
-          data: rows.map((r) => ({
-            ...r,
-            cover: r.cover_media_id ? (covers.get(r.cover_media_id) ?? null) : null,
-            coverPhotoSrc: r.cover_photo_id ? photoUrl(r.cover_photo_id, "display") : null,
-          })),
-        };
-      } catch {
-        return { status: "unavailable" };
-      }
-    })(),
-  );
-}
-
-export async function getServiceBySlug(slug: string): Promise<Loaded<Service | null>> {
-  "use cache";
-  cacheTag(TAGS.services, `service:${slug}`);
-  return publicLife(
-    await (async (): Promise<Loaded<Service | null>> => {
-      const all = await getPublishedServices();
-      if (all.status !== "ok") return all;
-      return { status: "ok", data: all.data.find((s) => s.slug === slug) ?? null };
     })(),
   );
 }

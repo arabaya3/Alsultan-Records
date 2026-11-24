@@ -151,12 +151,11 @@ test("K4: hiding the package removes it from /packages but keeps the offers", as
   expect(await html("/offers")).toContain(slugOf("sep27"));
 });
 
-test("K5: desktop + mobile nav: أعمالنا | البكجات | العروض | الخدمات | من نحن, each with its own page", async ({ browser }) => {
+test("K5: desktop + mobile nav: أعمالنا | البكجات | العروض | من نحن, each with its own page (no «الخدمات» link)", async ({ browser }) => {
   const want = [
     ["أعمالنا", "/work"],
     ["البكجات", "/packages"],
     ["العروض", "/offers"],
-    ["الخدمات", "/services"],
     ["من نحن", "/about"],
   ];
   const desk = await browser.newPage({ viewport: { width: 1440, height: 900 } });

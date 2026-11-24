@@ -19,7 +19,6 @@ import {
   sortPackages,
   processStepRow,
   resolveSections,
-  serviceLinkRow,
   siteSectionRow,
   sortOffers,
   toNavLinks,
@@ -30,7 +29,6 @@ import {
   type Package,
   type ProcessStep,
   type SectionConfig,
-  type ServiceLink,
 } from "./cms-model";
 import { STEPS } from "./home-content";
 import type { Loaded } from "./schema";
@@ -209,21 +207,6 @@ export async function getActiveAnnouncements(): Promise<Announcement[]> {
       }
       return [{ id: r.id, template: r.template, text: r.text, href, dismissible: r.dismissible }];
     });
-  } catch {
-    return [];
-  }
-}
-
-export async function getServiceLinks(): Promise<ServiceLink[]> {
-  "use cache";
-  cacheLife("days");
-  cacheTag(TAGS.services, TAGS.videos, TAGS.albums);
-  const sb = getPublicClient();
-  if (!sb) return [];
-  try {
-    const { data, error } = await sb.from("service_links").select("service_id, kind, target_id, sort_order").order("sort_order", { ascending: true });
-    if (error) return [];
-    return parseRows(serviceLinkRow, data);
   } catch {
     return [];
   }

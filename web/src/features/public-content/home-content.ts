@@ -10,21 +10,6 @@ export const HERO = {
 };
 
 /** Used only when no services are published yet. */
-export const FALLBACK_SERVICES = [
-  {
-    title: "تصوير فوتوغرافي",
-    summary: "تصوير العرس والخطوبة والمناسبات من التحضيرات حتى آخر السهرة.",
-  },
-  {
-    title: "أفلام أعراس",
-    summary: "فيلم يحكي يومكم بترتيبه، بصوت الحفلة ولحظاتها الحقيقية.",
-  },
-  {
-    title: "DJ وتنسيق الصوت",
-    summary: "صوت وإضاءة للسهرة والزفة، وتنسيق مع برنامج المناسبة.",
-  },
-] as const;
-
 /** Booking happens on WhatsApp only (no forms, no portal). */
 export const STEPS = [
   { title: "راسلنا على واتساب", body: "اكتب نوع المناسبة وتاريخها ومكانها والخدمات اللي بتحتاجها." },

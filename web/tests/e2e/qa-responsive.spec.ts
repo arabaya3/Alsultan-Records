@@ -183,7 +183,7 @@ test("a11y: dialogs trap focus and restore it (mobile menu, gallery lightbox)", 
 test("a11y: text contrast estimate (WCAG AA) on public pages", async ({ page }) => {
   await skipSiteIntro(page);
   const report: string[] = [];
-  for (const url of ["/", "/work", "/services", "/book", "/track", "/faq", "/about", "/contact"]) {
+  for (const url of ["/", "/work", "/packages", "/book", "/track", "/faq", "/about", "/contact"]) {
     await page.goto(`${BASE}${url}`, { waitUntil: "networkidle" });
     await page.waitForTimeout(900);
     const bad = await page.evaluate(() => {

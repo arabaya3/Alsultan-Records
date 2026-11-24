@@ -352,7 +352,7 @@ test("200% zoom (half-width viewport, DPR 2): no horizontal scroll or clipped te
 
 test("reduced motion: no transform animations or transitions run", async ({ browser }) => {
   const page = await newPage(browser, 1440, { reducedMotion: "reduce" });
-  for (const url of ["/", "/work", "/services", "/book"]) {
+  for (const url of ["/", "/work", "/packages", "/book"]) {
     await page.goto(`${BASE}${url}`, { waitUntil: "load" });
     const h = await page.evaluate(() => document.body.scrollHeight);
     for (let y = 0; y < h; y += 400) await page.mouse.wheel(0, 400);

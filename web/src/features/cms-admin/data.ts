@@ -24,10 +24,6 @@ export async function pickAlbums(sb: SupabaseClient): Promise<Opt[]> {
   const { data } = await sb.from("photo_albums").select("id, title, is_published").order("listed_at", { ascending: false }).order("id", { ascending: false });
   return ((data ?? []) as { id: string; title: string; is_published: boolean }[]).map((v) => ({ id: v.id, title: v.title, hidden: !v.is_published }));
 }
-export async function pickServices(sb: SupabaseClient): Promise<Opt[]> {
-  const { data } = await sb.from("services").select("id, title, is_published").order("sort_order");
-  return ((data ?? []) as { id: string; title: string; is_published: boolean }[]).map((v) => ({ id: v.id, title: v.title, hidden: !v.is_published }));
-}
 export async function pickOffers(sb: SupabaseClient): Promise<Opt[]> {
   const { data } = await sb.from("offers").select("id, title, status").neq("status", "archived").order("sort_order");
   return ((data ?? []) as { id: string; title: string; status: string }[]).map((v) => ({ id: v.id, title: v.title, hidden: v.status !== "published" }));

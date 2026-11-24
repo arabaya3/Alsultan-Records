@@ -68,7 +68,7 @@ export const NAV: NavGroup[] = [
     title: "صفحات الموقع",
     items: [
       { href: "/admin/content/home", label: "الرئيسية", roles: A },
-      { href: "/admin/content/services", label: "الخدمات وطريقة الشغل", roles: A },
+      { href: "/admin/content/process", label: "طريقة الشغل", roles: A },
     ],
   },
   { title: "شغل المناسبات", collapsible: true, items: OPS },

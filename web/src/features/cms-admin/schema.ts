@@ -145,17 +145,6 @@ export const sectionIntroSchema = z.object({
   intro: optText(LONG_TEXT, "المقدمة"),
 });
 
-export const serviceSchema = z.object({
-  title: reqText(120, "عنوان الخدمة", 2),
-  slug,
-  summary: optText(LONG_TEXT, "الملخص"),
-  body: optText(LONG_TEXT, "التفاصيل"),
-  cover_photo_id: optUuid,
-  is_published: z.boolean(),
-  video_ids: uuidList,
-  album_ids: uuidList,
-});
-
 export const stepSchema = z.object({
   title: reqText(80, "عنوان الخطوة", 2),
   description: optText(LONG_TEXT, "الوصف"),

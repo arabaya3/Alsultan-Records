@@ -56,7 +56,8 @@ test("footer content: groups, ltr phone, no duplicates, no portal/track", async 
   for (const h of ["/privacy", "/terms"]) expect(hrefs).toContain(h);
   for (const h of ["/work", "/services", "/about", "/packages", "/offers"]) expect(hrefs).not.toContain(h);
   const header = await page.locator("header nav[aria-label='القائمة الرئيسية'] a").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
-  for (const h of ["/work", "/services", "/about"]) expect(header).toContain(h);
+  for (const h of ["/work", "/packages", "/about"]) expect(header).toContain(h);
+  expect(header).not.toContain("/services"); // the services page was removed
   expect(hrefs.some((h) => h?.startsWith("/portal") || h?.startsWith("/track"))).toBe(false);
 });
 

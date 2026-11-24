@@ -9,7 +9,7 @@ import { isKnownLocalHttpsArtifact } from "./qa-helpers";
 const BASE = process.env.BASE_URL ?? "http://localhost:3100";
 const SHOTS = path.resolve(__dirname, "../../../docs/screenshots");
 const WIDTHS = [320, 360, 390, 430, 768, 1024, 1440];
-const PAGES = ["/", "/work", "/services", "/about", "/contact", "/book", "/faq", "/privacy", "/terms"];
+const PAGES = ["/", "/work", "/packages", "/about", "/contact", "/book", "/faq", "/privacy", "/terms"];
 
 async function scrollThrough(page: import("@playwright/test").Page) {
   const h = await page.evaluate(() => document.body.scrollHeight);

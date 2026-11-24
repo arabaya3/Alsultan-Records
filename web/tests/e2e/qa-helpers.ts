@@ -184,15 +184,15 @@ async function withAdminBrowser<T>(browser: Browser, fn: (b: Browser) => Promise
  * Public pages are cached for a day and refreshed by the admin's own saves (cache tags, src/lib/cache-tags.ts); the
  * timed refresh is only a safety net (the next Hebron midnight for offers and announcements). A fixture written
  * straight to the database therefore stays invisible to visitors until an admin save expires the tags. This does what
- * the owner's next save would do: it re-saves three admin forms UNCHANGED (offers heading, services heading, home
- * page), which expires nav, sections, offers, announcements, services, business settings and videos.
+ * the owner's next save would do: it re-saves three admin forms UNCHANGED (offers heading, process heading, home
+ * page), which expires nav, sections, offers, announcements, process steps, business settings and videos.
  */
 export async function refreshPublicCache(browser: Browser) {
   await withAdminBrowser(browser, async (b) => {
     const page = await newLoggedIn(b, "owner", "/admin/content/offers");
     for (const [url, id] of [
       ["/admin/content/offers", "section-intro-offers"],
-      ["/admin/content/services", "section-intro-services"],
+      ["/admin/content/process", "section-intro-process"],
       ["/admin/content/home", "home-form"],
     ]) {
       await page.goto(`${BASE}${url}`);

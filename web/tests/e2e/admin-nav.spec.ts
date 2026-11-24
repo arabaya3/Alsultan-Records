@@ -22,9 +22,9 @@ test("N1: admin sees the new groups; sub-pages moved to in-page tabs", async ({ 
   for (const g of ["اليوم", "الأعمال", "البيع", "صفحات الموقع", "الإعدادات"]) await expect(nav.getByText(g, { exact: true })).toBeVisible();
   // Collapsible group: its <summary> also holds the ▾ marker, so match the summary, not exact text.
   await expect(nav.getByTestId("nav-group-collapsible").locator("summary")).toContainText("شغل المناسبات");
-  for (const l of ["الفيديوهات", "ألبومات الصور", "البكجات", "العروض والإعلانات", "الرئيسية", "الخدمات وطريقة الشغل", "الهوية ومعلومات النشاط", "القائمة والأقسام", "إعدادات اللوحة"])
+  for (const l of ["الفيديوهات", "ألبومات الصور", "البكجات", "العروض والإعلانات", "الرئيسية", "طريقة الشغل", "الهوية ومعلومات النشاط", "القائمة والأقسام", "إعدادات اللوحة"])
     await expect(nav.getByRole("link", { name: l, exact: true })).toHaveCount(1);
-  for (const gone of ["كل المحتوى", "تصنيفات الفيديو", "طريقة شغلنا", "الإعلانات", "النسخ الاحتياطي", "المستخدمون والصلاحيات"])
+  for (const gone of ["الخدمات وطريقة الشغل", "كل المحتوى", "تصنيفات الفيديو", "طريقة شغلنا", "الإعلانات", "النسخ الاحتياطي", "المستخدمون والصلاحيات"])
     await expect(nav.getByRole("link", { name: gone, exact: true })).toHaveCount(0);
   // Default modules: customers/events/calendar only.
   const ops = page.getByTestId("nav-group-collapsible");
@@ -35,7 +35,6 @@ test("N1: admin sees the new groups; sub-pages moved to in-page tabs", async ({ 
   // In-page tabs: both directions, aria-current on the active one.
   for (const [parent, child, childLabel] of [
     ["/admin/videos", "/admin/videos/categories", "التصنيفات"],
-    ["/admin/content/services", "/admin/content/process", "طريقة شغلنا"],
     ["/admin/content/offers", "/admin/content/announcements", "الإعلانات"],
   ] as const) {
     await page.goto(`${BASE}${parent}`);
@@ -44,6 +43,13 @@ test("N1: admin sees the new groups; sub-pages moved to in-page tabs", async ({ 
     await tabs.getByRole("link", { name: childLabel, exact: true }).click();
     await page.waitForURL((u) => u.pathname === child);
     await expect(page.getByTestId("page-tabs").locator('[aria-current="page"]')).toHaveAttribute("href", child);
+  }
+  // The services admin screens were removed: old URLs land on the process page, which has no tabs any more.
+  for (const old of ["/admin/content/services", "/admin/content/services/new"]) {
+    await page.goto(`${BASE}${old}`);
+    await expect(page).toHaveURL(/\/admin\/content\/process$/);
+    await expect(page.getByRole("heading", { level: 1, name: "طريقة شغلنا" })).toBeVisible();
+    await expect(page.getByTestId("page-tabs")).toHaveCount(0);
   }
   // Hidden module stays reachable by URL (no route blocking).
   const res = await page.goto(`${BASE}/admin/finance`);

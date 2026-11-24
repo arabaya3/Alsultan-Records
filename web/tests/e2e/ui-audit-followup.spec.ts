@@ -397,7 +397,7 @@ test("UA6 album photos: one list (details / order views), «الغلاف الح�
 test("UA7 mobile + tablet widths: no horizontal overflow on the changed pages", async ({ browser }) => {
   for (const width of [320, 390, 768, 1024]) {
     const page = await browser.newPage({ viewport: { width, height: 900 } });
-    for (const url of ["/offers", `/offers/${OFFER.slug}`, "/work?tab=photos", `/work/albums/${ALBUM.slug}`, "/services", "/privacy", "/contact"]) {
+    for (const url of ["/offers", `/offers/${OFFER.slug}`, "/work?tab=photos", `/work/albums/${ALBUM.slug}`, "/packages", "/privacy", "/contact"]) {
       await page.goto(url);
       const over = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
       expect(over, `${url} @${width}`).toBeLessThanOrEqual(0);

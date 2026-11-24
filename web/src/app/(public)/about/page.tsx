@@ -48,8 +48,8 @@ export default async function AboutPage() {
             <ServiceStrip className="mt-5" />
             <div className="mt-8 flex flex-wrap items-center gap-3">
               <ButtonLink href="/work">شاهد أعمالنا</ButtonLink>
-              <ButtonLink href="/services" variant="outline">
-                الخدمات
+              <ButtonLink href="/packages" variant="outline">
+                البكجات
               </ButtonLink>
             </div>
           </aside>
