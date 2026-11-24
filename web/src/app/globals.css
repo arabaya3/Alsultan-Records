@@ -29,18 +29,18 @@
 }
 
 /*
- * PUBLIC THEME — black cinematic. NEW tokens only: the admin keeps ink/cream/on-cream untouched.
+ * PUBLIC THEME — the poster's navy, ivory and gold (no warm black). NEW tokens only: the admin keeps ink/cream/on-cream untouched.
  * Contrast (WCAG): ivory on night ~17:1 · ivory-muted on night ~9:1, on surface ~8:1 ·
  * gold on night ~10:1 · ink on gold ~11:1. Gold is for buttons, rules, active states and small details.
  */
 @theme {
   /* Surfaces, darkest → lightest */
-  --color-night-deep: #070706; /* darker band (Section tone="darker", footer) */
-  --color-night: #0d0c0b; /* default public page background */
-  --color-surface: #161513; /* cards, panels */
-  --color-surface-2: #1f1d1a; /* raised / hover / skeleton */
+  --color-night-deep: #090d18; /* darker band (Section tone="darker", header, footer): the poster's deep navy */
+  --color-night: #0e1322; /* default public page background: the poster's navy */
+  --color-surface: #151c2f; /* cards, panels (navy, one step lighter) */
+  --color-surface-2: #1d2540; /* raised / hover / skeleton */
   /* Hairline borders */
-  --color-hairline: #2c2925; /* neutral 1px rule on dark */
+  --color-hairline: #283048; /* neutral 1px rule on navy */
   --color-hairline-gold: rgb(233 185 73 / 0.38); /* gold hairline (cards, media frames) */
   /* Text on dark */
   --color-ivory: #f5f1e8;
@@ -201,7 +201,7 @@ html[data-site-intro="on"] .site-intro {
 /* Aperture: a circular HOLE grows from the centre outwards (the page shows through it), not a shrinking cover. */
 @property --site-intro-hole { syntax: "<length>"; inherits: false; initial-value: 0px; }
 .site-intro__aperture {
-  position: absolute; inset: 0; background: #070809;
+  position: absolute; inset: 0; background: var(--color-night-deep);
   --site-intro-hole: 0px;
   -webkit-mask-image: radial-gradient(circle at 50% 50%, transparent var(--site-intro-hole), #000 calc(var(--site-intro-hole) + 1.5px));
   mask-image: radial-gradient(circle at 50% 50%, transparent var(--site-intro-hole), #000 calc(var(--site-intro-hole) + 1.5px));
