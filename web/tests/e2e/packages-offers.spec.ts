@@ -72,9 +72,11 @@ test("K1: admin creates a package (services, price, featured) → /packages, Wha
 
   await expect.poll(async () => (await html("/packages")).includes(PKG.title), { timeout: 15_000 }).toBe(true);
   const pub = await browser.newPage();
-  await pub.goto(`${BASE}/packages`);
+  // A package without a group sits in the «بكجات أخرى» tab: its own link (/packages#<slug>) opens that tab.
+  await pub.goto(`${BASE}/packages#${PKG.slug}`);
   const card = pub.locator(`[data-package-card="${PKG.slug}"]`);
   await expect(card).toBeVisible();
+  await expect(pub.getByRole("tab", { selected: true })).toHaveAttribute("data-package-tab", "بكجات أخرى");
   await expect(card.locator("[data-package-items] li")).toHaveText(["تصوير فوتوغرافي", "فيلم العرس"]);
   await expect(card.locator("[data-package-price]")).toBeVisible();
   await expect(card.locator("[data-package-featured]")).toHaveText("مميّز");
