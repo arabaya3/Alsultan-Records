@@ -19,7 +19,7 @@ const PAGES = [
   ["work-promos", "/work?tab=promos"],
   ["video", "/work/v/y0-ajKb7Umw"],
   ["album", "/work/albums/wedding-yousef-farah-2026"],
-  ["services", "/services"],
+  ["packages", "/packages"],
   ["contact", "/contact"],
 ];
 const WIDTHS = [390, 1440];

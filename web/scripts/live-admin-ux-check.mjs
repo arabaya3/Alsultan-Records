@@ -68,7 +68,7 @@ try {
     ["الأعمال", "البيع", "صفحات الموقع", "شغل المناسبات", "الإعدادات"].every((g) => nav.includes(g)) && !nav.includes("كل المحتوى") && !nav.includes("تصنيفات الفيديو"),
     nav.slice(0, 170),
   );
-  for (const [path, tab] of [["/admin/videos", "التصنيفات"], ["/admin/content/services", "طريقة شغلنا"], ["/admin/content/offers", "الإعلانات"]]) {
+  for (const [path, tab] of [["/admin/videos", "التصنيفات"], ["/admin/content/offers", "الإعلانات"]]) {
     await page.goto(BASE + path);
     await page.getByTestId("page-tabs").waitFor();
     check(`tabs on ${path} reach «${tab}»`, (await page.getByTestId("page-tabs").getByRole("link", { name: tab }).count()) === 1);

@@ -23,7 +23,7 @@ function totp(s) { const b = Buffer.alloc(8); b.writeBigUInt64BE(BigInt(Math.flo
 const RUN = randomBytes(4).toString("hex"), PW = `Tmp-${randomBytes(12).toString("base64url")}`, EMAIL = `staging-test-shots-${RUN}@example.com`;
 const PAGES = [
   ["content", "/admin/content"], ["identity", "/admin/content/identity"], ["home", "/admin/content/home"],
-  ["services", "/admin/content/services"], ["service-new", "/admin/content/services/new"],
+  ["process", "/admin/content/process"], ["packages", "/admin/content/packages"],
   ["offers", "/admin/content/offers"], ["offer-new", "/admin/content/offers/new"],
   ["announcements", "/admin/content/announcements"], ["announcement-new", "/admin/content/announcements/new"],
   ["albums", "/admin/albums"], ["nav", "/admin/content/nav"], ["videos", "/admin/videos"],

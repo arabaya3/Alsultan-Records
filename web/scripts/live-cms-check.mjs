@@ -66,21 +66,12 @@ try {
   await form.locator('input[name="tagline"]').fill(restore.tagline ?? ""); await form.getByRole("button", { name: "حفظ" }).click();
   check("original tagline restored", await msgOk(form)); restore.tagline = undefined;
 
-  // 2. Service create → publish → visible → hide → gone
-  const svcSlug = `staging-test-${RUN}`;
-  await page.goto(`${BASE}/admin/content/services/new`);
-  form = page.getByTestId("service-form");
-  await form.locator('input[name="title"]').fill(`${TAG} خدمة`); await page.getByTestId("slug-hint").fill(svcSlug.replace(/-/g, " "));
-  await form.locator('textarea[name="summary"]').fill("خدمة فحص مؤقتة"); await form.getByRole("button", { name: "نشر" }).click();
-  await page.waitForURL(/\/admin\/content\/services\/[0-9a-f-]{36}/);
-  p = await pollPublic("/services", (x) => x.html.includes(`${TAG} خدمة`));
-  check("published service visible on /services", p.ok, `${p.ms} ms`);
-  p = await pollPublic(`/services/${svcSlug}`, (x) => x.status === 200);
-  check("service page live", p.ok);
-  await page.goto(`${BASE}/admin/content/services`);
-  await page.getByTestId("sort-row").filter({ has: page.locator(`[data-slug="${svcSlug}"]`) }).getByRole("button", { name: "إخفاء" }).click();
-  p = await pollPublic("/services", (x) => !x.html.includes(`${TAG} خدمة`));
-  check("hidden service gone from /services", p.ok, `${p.ms} ms`);
+  // 2. Removed services pages: public and admin URLs redirect (read-only, nothing is written)
+  for (const [from, to] of [["/services", "/packages"], ["/services/any-old-service", "/packages"], ["/admin/content/services", "/admin/content/process"]]) {
+    const r = await fetch(`${BASE}${from}`, { redirect: "manual" });
+    const loc = r.headers.get("location");
+    check(`${from} redirects to ${to}`, [307, 308].includes(r.status) && !!loc && new URL(loc, BASE).pathname === to, `${r.status} ${loc ?? ""}`);
+  }
 
   // 3. Offer: publish → visible; expire via admin edit → disappears; announcement linked
   const offSlug = `staging-test-offer-${RUN}`;
@@ -113,15 +104,15 @@ try {
   check("expired offer page returns 404", p.ok);
 
   // 4. Nav rename keeps URL, then restore
-  const nav = (await db.from("nav_items").select("id, label").eq("target", "services").single()).data;
+  const nav = (await db.from("nav_items").select("id, label").eq("target", "packages").single()).data;
   restore.navId = nav.id; restore.navLabel = nav.label;
   await page.goto(`${BASE}/admin/content/nav`);
-  form = page.getByTestId("nav-services");
-  await form.locator('input[name="label"]').fill(`خدماتنا ${RUN.slice(-3)}`); await form.getByRole("button", { name: "حفظ" }).click();
+  form = page.getByTestId("nav-packages");
+  await form.locator('input[name="label"]').fill(`بكجاتنا ${RUN.slice(-3)}`); await form.getByRole("button", { name: "حفظ" }).click();
   check("nav label saved", await msgOk(form));
-  p = await pollPublic("/", (x) => new RegExp(`href="/services"[^>]*>[^<]*خدماتنا ${RUN.slice(-3)}`).test(x.html) || x.html.includes(`خدماتنا ${RUN.slice(-3)}`));
-  check("renamed nav item visible, URL unchanged (/services)", p.ok, `${p.ms} ms`);
-  await page.goto(`${BASE}/admin/content/nav`); form = page.getByTestId("nav-services");
+  p = await pollPublic("/", (x) => new RegExp(`href="/packages"[^>]*>[^<]*بكجاتنا ${RUN.slice(-3)}`).test(x.html) || x.html.includes(`بكجاتنا ${RUN.slice(-3)}`));
+  check("renamed nav item visible, URL unchanged (/packages)", p.ok, `${p.ms} ms`);
+  await page.goto(`${BASE}/admin/content/nav`); form = page.getByTestId("nav-packages");
   await form.locator('input[name="label"]').fill(restore.navLabel); await form.getByRole("button", { name: "حفظ" }).click();
   check("original nav label restored", await msgOk(form)); restore.navLabel = undefined;
 
@@ -146,12 +137,10 @@ try {
   // test data cleanup
   try { await db.from("announcements").delete().like("text", "[STAGING-TEST]%"); } catch {}
   try { await db.from("offers").delete().like("slug", "staging-test-offer-%"); } catch {}
-  try { await db.from("services").delete().like("slug", "staging-test-%"); } catch {}
   try { await db.from("slug_redirects").delete().like("from_path", "%staging-test-%"); } catch {}
   try { if (albumId) { const { data: ph } = await db.from("album_photos").select("storage_path_original, variants").eq("album_id", albumId); const paths = (ph ?? []).flatMap((r) => [r.storage_path_original, r.variants?.thumb, r.variants?.display].filter(Boolean)); if (paths.length) await db.storage.from("album-media").remove(paths); await db.from("album_photos").delete().eq("album_id", albumId); await db.from("photo_albums").delete().eq("id", albumId); } } catch {}
   try { if (userId) await db.auth.admin.deleteUser(userId); } catch {}
   const left = {
-    services: (await db.from("services").select("id", { count: "exact", head: true }).like("slug", "staging-test-%")).count,
     offers: (await db.from("offers").select("id", { count: "exact", head: true }).like("slug", "staging-test-%")).count,
     announcements: (await db.from("announcements").select("id", { count: "exact", head: true }).like("text", "[STAGING-TEST]%")).count,
     albums: (await db.from("photo_albums").select("id", { count: "exact", head: true }).like("slug", "staging-test-%")).count,

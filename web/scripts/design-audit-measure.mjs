@@ -7,7 +7,7 @@ import { chromium } from "@playwright/test";
 import fs from "node:fs";
 const [label = "run", BASE = "http://localhost:3600"] = process.argv.slice(2);
 const OUT = "../docs/screenshots/design-audit/fixes";
-const PAGES = { home: "/", work: "/work", album: "/work/albums/wedding-dawood-nairat-2026", packages: "/packages", offers: "/offers", services: "/services", about: "/about" };
+const PAGES = { home: "/", work: "/work", album: "/work/albums/wedding-dawood-nairat-2026", packages: "/packages", offers: "/offers", about: "/about" };
 const WIDTHS = [320, 390, 768, 1440, 1920];
 const b = await chromium.launch();
 const res = {};

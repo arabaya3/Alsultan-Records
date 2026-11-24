@@ -131,7 +131,7 @@ try {
   await page.screenshot({ path: `${SHOTS}/admin-offers-1440.png`, fullPage: true });
   await page.goto(`${BASE}/admin/content/offers/${ids.oct}`);
   await page.screenshot({ path: `${SHOTS}/admin-offer-edit-1440.png`, fullPage: true });
-  const NAV = ["/work", "/packages", "/offers", "/services", "/about"];
+  const NAV = ["/work", "/packages", "/offers", "/about"];
   for (const [w, h, d] of [[1440, 1000, "1440"], [390, 844, "390"]]) {
     const pc = await browser.newContext({ locale: "ar", viewport: { width: w, height: h } });
     const pp = await pc.newPage();
@@ -147,10 +147,10 @@ try {
       await pp.screenshot({ path: `${SHOTS}/mobile-menu-390.png` });
       const items = await pp.getByRole("dialog", { name: "القائمة" }).locator("a[href^='/']").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
       const idx = NAV.map((x) => items.indexOf(x));
-      check("live mobile menu: أعمالنا | البكجات | العروض | الخدمات | من نحن", idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1])), items.join(" "));
+      check("live mobile menu: أعمالنا | البكجات | العروض | من نحن", idx.every((v, i) => v >= 0 && (i === 0 || v > idx[i - 1])), items.join(" "));
     } else {
       const items = await pp.locator("header nav[aria-label='القائمة الرئيسية']").first().locator("a").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
-      check("live desktop nav: أعمالنا | البكجات | العروض | الخدمات | من نحن", JSON.stringify(items) === JSON.stringify(NAV), items.join(" "));
+      check("live desktop nav: أعمالنا | البكجات | العروض | من نحن", JSON.stringify(items) === JSON.stringify(NAV), items.join(" "));
       await pp.screenshot({ path: `${SHOTS}/desktop-nav-1440.png` });
     }
     await pc.close();
