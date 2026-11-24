@@ -58,18 +58,58 @@ function OliveSprig({ className = "" }: { className?: string }) {
   );
 }
 
-/** Centred section title between two gold rules. */
-export function PosterHeading({ id, title, wide = false }: { id: string; title: string; wide?: boolean }) {
-  const rule = `h-px min-w-6 flex-1 bg-gold-press ${wide ? "sm:max-w-56" : "sm:max-w-40"}`;
+/** Centred section title between two gold rules; `pill` sets it on a soft beige pill (ivory sections). */
+export function PosterHeading({ id, title, wide = false, pill = false }: { id: string; title: string; wide?: boolean; pill?: boolean }) {
+  const rule = `h-px min-w-6 flex-1 bg-gold-press ${wide ? "sm:max-w-56" : "sm:max-w-40"} ${pill ? "max-sm:min-w-3" : ""}`;
   return (
     <div className="flex items-center justify-center gap-4 sm:gap-8">
       <span aria-hidden="true" className={rule} />
       {/* The owner's title can be long: it wraps between the rules instead of pushing them off the screen. */}
-      <h2 id={id} className="min-w-0 text-center text-[clamp(1.625rem,1.3rem+1.6vw,2.5rem)] font-bold tracking-tight break-words">
+      <h2
+        id={id}
+        className={`min-w-0 text-center font-bold tracking-tight break-words ${
+          pill ? "rounded-full bg-cream-2 px-6 py-2 text-[clamp(1.25rem,1.05rem+1.2vw,2.125rem)] text-balance sm:px-10 sm:py-2.5" : "text-[clamp(1.625rem,1.3rem+1.6vw,2.5rem)]"
+        }`}
+      >
         {title}
       </h2>
       <span aria-hidden="true" className={rule} />
     </div>
+  );
+}
+
+/** Soft card on the ivory bands (about, services). */
+const card = "rounded-3xl bg-white/75 shadow-[0_14px_34px_-18px_rgb(60_45_20/0.35)] ring-1 ring-cream-line";
+
+function WomanIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 32 32" width={30} height={30} {...stroke} strokeWidth={1.8}>
+      <path d="M8.5 15.5C8.5 9.5 11.5 5 16 5s7.5 4.5 7.5 10.5c0 3-.8 5-2 6.5" />
+      <path d="M10.5 22c-1.2-1.5-2-3.5-2-6.5" />
+      <circle cx="16" cy="14" r="4.2" />
+      <path d="M7 28c1.2-4 4.8-6.5 9-6.5s7.8 2.5 9 6.5" />
+    </svg>
+  );
+}
+
+function ManIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 32 32" width={30} height={30} {...stroke} strokeWidth={1.8}>
+      <circle cx="16" cy="11" r="5" />
+      <path d="M7 28c1.2-5 4.8-8 9-8s7.8 3 9 8" />
+    </svg>
+  );
+}
+
+function PlayBadge() {
+  return (
+    <span aria-hidden="true" className="absolute inset-0 grid place-items-center">
+      <span className="grid size-16 place-items-center rounded-full bg-navy/70 text-ivory ring-2 ring-gold backdrop-blur-[2px] transition-transform duration-200 group-hover:scale-110 sm:size-[4.5rem]">
+        <svg viewBox="0 0 24 24" width={26} height={26} fill="currentColor" className="translate-x-[2px]">
+          <path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5Z" />
+        </svg>
+      </span>
+    </span>
   );
 }
 
@@ -175,22 +215,44 @@ export function PosterHero({
 const ivory = "tone-ivory bg-ivory-band text-on-cream";
 const pad = "py-7 sm:py-8";
 
-export function PosterAbout({ title, intro }: { title: string; intro: string | null }) {
+/** `photo` is the owner's own hero photo (through /p), shown beside the team lines; without one the card is text only. */
+export function PosterAbout({ title, intro, photo = null }: { title: string; intro: string | null; photo?: HeroPhoto | null }) {
+  const team = [
+    { label: HOME_POSTER.about.team[0], icon: <WomanIcon /> },
+    { label: HOME_POSTER.about.team[1], icon: <ManIcon /> },
+  ];
   return (
     <section aria-labelledby="about-title" data-home-section="about" data-tone="ivory" className={`relative ${ivory} ${pad}`}>
       <OliveSprig className="pointer-events-none absolute end-0 top-2 w-44 text-cream-line max-sm:hidden" />
       <div className={`${column} relative`}>
         <PosterHeading id="about-title" title={title} />
-        <p data-section-intro className="mx-auto mt-5 max-w-3xl text-center text-lg break-words whitespace-pre-line text-on-cream sm:text-xl">
+        <p data-section-intro className="mx-auto mt-5 max-w-3xl text-center text-lg break-words whitespace-pre-line text-on-cream-muted sm:text-xl">
           {intro ?? HOME_POSTER.about.body}
         </p>
-        <p className="mx-auto mt-7 flex max-w-[57rem] flex-col items-center justify-center gap-x-6 gap-y-1 rounded-2xl bg-cream-2 px-6 py-5 text-center font-display text-[clamp(1.25rem,1rem+1.3vw,2rem)] font-bold sm:flex-row">
-          <span>{HOME_POSTER.about.team[0]}</span>
-          <span aria-hidden="true" className="font-normal max-sm:hidden">
-            —
-          </span>
-          <span>{HOME_POSTER.about.team[1]}</span>
-        </p>
+        <div data-about-card className={`mx-auto mt-8 grid max-w-[46rem] overflow-hidden ${card} ${photo ? "grid-cols-[1.6fr_1fr] sm:grid-cols-[1.25fr_1fr]" : ""}`}>
+          <ul className="flex flex-col justify-center gap-4 p-4 sm:gap-6 sm:p-8">
+            {team.map((t) => (
+              <li key={t.label} className="flex items-center gap-2.5 sm:gap-4">
+                <span className="grid size-11 shrink-0 place-items-center rounded-full bg-cream-2 text-gold-press sm:size-14">{t.icon}</span>
+                <span className="text-base font-bold sm:text-xl">{t.label}</span>
+              </li>
+            ))}
+          </ul>
+          {photo ? (
+            <div className="relative min-h-40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={photo.placeholderSrc}
+                srcSet={`${photo.placeholderSrc} 320w, ${photo.src} 1066w`}
+                sizes="(min-width: 768px) 368px, 50vw"
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="absolute inset-0 size-full object-cover object-[50%_20%] [mask-image:linear-gradient(to_right,#000_55%,transparent)]"
+              />
+            </div>
+          ) : null}
+        </div>
       </div>
     </section>
   );
@@ -201,17 +263,17 @@ export function PosterServices({ title, intro }: { title: string; intro: string 
   return (
     <section aria-labelledby="services-title" data-home-section="services" data-tone="ivory" className={`${ivory} ${pad}`}>
       <div className={column}>
-        <PosterHeading id="services-title" title={title} wide />
+        <PosterHeading id="services-title" title={title} wide pill />
         <Lead text={intro} />
-        <ul className="mt-8 grid gap-8 sm:grid-cols-2 sm:gap-0 sm:divide-x sm:divide-gold-press/60">
+        <ul className="mx-auto mt-8 grid max-w-[57rem] gap-4 sm:grid-cols-2 sm:gap-6">
           {HOME_POSTER.services.items.map((x, i) => (
-            <li key={x.title} className="flex justify-center sm:px-6">
-              <div className="flex max-w-md items-start gap-4">
-                <span className="mt-1 shrink-0 text-gold-press">{icons[i]}</span>
-                <div>
-                  <h3 className="text-[clamp(1.375rem,1.1rem+1vw,1.875rem)] font-bold">{x.title}</h3>
-                  <p className="mt-2 text-lg text-on-cream-muted">{x.body}</p>
-                </div>
+            <li key={x.title} className={`flex items-center gap-5 p-5 sm:p-6 ${card}`}>
+              <span className={`grid size-[4.5rem] shrink-0 place-items-center rounded-[42%_58%_55%_45%/50%_45%_55%_50%] text-gold-press sm:size-20 ${i ? "bg-gold/15" : "bg-cream-2"}`}>
+                {icons[i]}
+              </span>
+              <div className="min-w-0">
+                <h3 className="text-[clamp(1.25rem,1.1rem+0.8vw,1.625rem)] font-bold">{x.title}</h3>
+                <p className="mt-1.5 text-base text-on-cream-muted sm:text-lg">{x.body}</p>
               </div>
             </li>
           ))}
@@ -228,6 +290,8 @@ export type PosterWork = {
   title: string;
   src: string;
   srcSet?: string;
+  /** A video opens a player: the card shows a play badge so it does not read as a photo. */
+  video?: boolean;
   /** Album photos are shown whole; a 16:9 video thumbnail fills its 16:9 frame. */
   fit: "contain" | "cover";
 };
@@ -238,7 +302,7 @@ export function PosterWorks({ title, intro, works }: { title: string; intro: str
   return (
     <section aria-labelledby="work-title" data-home-section="works" data-tone="ivory" className={`${ivory} ${pad} pb-12 sm:pb-14`}>
       <div className={column}>
-        <PosterHeading id="work-title" title={title} />
+        <PosterHeading id="work-title" title={title} pill />
         <Lead text={intro} />
         {works.length ? (
           <ul className={`mx-auto mt-8 grid gap-3 ${grid}`}>
@@ -247,7 +311,7 @@ export function PosterWorks({ title, intro, works }: { title: string; intro: str
                 <Link
                   href={w.href}
                   data-home-work={w.key}
-                  className="group relative block aspect-video overflow-hidden bg-night-deep outline-offset-4 transition-shadow duration-200 hover:shadow-[0_0_0_3px_var(--color-gold-press)]"
+                  className="group relative block aspect-video overflow-hidden rounded-2xl bg-night-deep outline-offset-4 transition-shadow duration-200 hover:shadow-[0_0_0_3px_var(--color-gold-press)]"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
@@ -259,7 +323,8 @@ export function PosterWorks({ title, intro, works }: { title: string; intro: str
                     decoding="async"
                     className={`absolute inset-0 size-full ${w.fit === "contain" ? "object-contain" : "object-cover"}`}
                   />
-                  <span className="sr-only">{w.title}</span>
+                  {w.video ? <PlayBadge /> : null}
+                  <span className="sr-only">{w.video ? `فيديو: ${w.title}` : w.title}</span>
                 </Link>
               </li>
             ))}
