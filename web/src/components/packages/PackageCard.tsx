@@ -1,5 +1,6 @@
+import Link from "next/link";
 import { ExpandableText } from "@/components/ui/ExpandableText";
-import { offerPriceLabel, packageWhatsappText, type Package } from "@/features/public-content/cms-model";
+import { formatDayAr, offerPriceLabel, packageWhatsappText, type Package } from "@/features/public-content/cms-model";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { bidiDir } from "@/lib/bidi";
 
@@ -21,11 +22,23 @@ function GiftIcon() {
   );
 }
 
+/** An active offer linked to this package (offers.package_id): named on the card, linking to the offer. */
+export type PackageOffer = { title: string; href: string; endsOn: string | null };
+
+function TagIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 shrink-0 text-gold">
+      <path d="M20.6 13.4l-7.2 7.2a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z" />
+      <circle cx="7.5" cy="7.5" r="1.2" />
+    </svg>
+  );
+}
+
 /**
  * Package card (no image — packages are text + price): title, «N شيكل», items with gold checks, gift row,
  * WhatsApp naming the package. The first <p> in the card is the description (verify-packages relies on it).
  */
-export function PackageCard({ pkg }: { pkg: Package }) {
+export function PackageCard({ pkg, offer = null }: { pkg: Package; offer?: PackageOffer | null }) {
   const price = offerPriceLabel(pkg);
   return (
     <article
@@ -44,6 +57,22 @@ export function PackageCard({ pkg }: { pkg: Package }) {
         <span data-package-price className="mt-2 block text-2xl font-bold text-gold">
           {price}
         </span>
+      ) : null}
+      {offer ? (
+        <Link
+          href={offer.href}
+          data-package-offer
+          className="mt-3 flex items-start gap-2.5 rounded-sm border border-gold/70 px-3 py-2.5 text-sm transition-colors hover:bg-surface-2"
+        >
+          <TagIcon />
+          <span className="min-w-0 break-words [overflow-wrap:anywhere]">
+            <span className="font-semibold text-gold">عليه عرض: </span>
+            <bdi dir={bidiDir(offer.title)} className="underline decoration-1 underline-offset-4">
+              {offer.title}
+            </bdi>
+            {offer.endsOn ? <span className="text-ivory-muted"> · ينتهي {formatDayAr(offer.endsOn)}</span> : null}
+          </span>
+        </Link>
       ) : null}
       {pkg.description ? <ExpandableText text={pkg.description} className="mt-3 text-ivory-muted" /> : null}
       {pkg.items.length ? (
