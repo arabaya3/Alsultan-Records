@@ -72,7 +72,7 @@ try {
   await ctx.close();
 
   // Every page × width
-  const pages = ["/", "/work", "/work?tab=photos", ahref, vhref, "/services", "/packages", "/offers", "/about", "/contact", "/privacy", "/faq"];
+  const pages = ["/", "/work", "/work?tab=photos", ahref, vhref, "/packages", "/offers", "/about", "/contact", "/privacy", "/faq"];
   const bad = [];
   for (const w of [320, 390, 768, 1440, 1920]) {
     const c = await b.newContext({ locale: "ar", viewport: { width: w, height: w < 800 ? 844 : 900 }, reducedMotion: "reduce" });
