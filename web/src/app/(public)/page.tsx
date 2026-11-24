@@ -74,6 +74,8 @@ export default async function HomePage() {
   const g = gallery.status === "ok" ? gallery.data : null;
   const ctaLabel = s?.hero_primary_label ?? null;
   const publishedAlbums = albums.status === "ok" ? albums.data.filter((a) => a.photoCount > 0) : [];
+  // The saved hero source first (a chosen photo, or the newest published album); also shown in «من نحن».
+  const hero: HeroPhoto | null = heroPhotos[0] ? { src: photoUrl(heroPhotos[0], "display"), placeholderSrc: photoUrl(heroPhotos[0], "thumb") } : null;
 
   const worksFor = (c: SectionConfig): PosterWork[] => {
     const list: PosterWork[] = (g ? homeSelection(g, c.limit, c.featured) : []).map((v) => ({
@@ -83,6 +85,7 @@ export default async function HomePage() {
       // An owner-chosen cover is an album photo (shown whole); otherwise the video's own 16:9 thumbnail.
       src: v.custom_cover_photo_id ? photoUrl(v.custom_cover_photo_id, "display") : youTubeThumbUrl(v.youtube_id),
       fit: v.custom_cover_photo_id ? "contain" : "cover",
+      video: true,
     }));
     // No video published yet: the newest published albums stand in (never a placeholder).
     if (!list.length) {
@@ -104,7 +107,7 @@ export default async function HomePage() {
     const hid = HEADING_ID[c.key];
     switch (c.key) {
       case "about":
-        return <PosterAbout key={c.key} title={c.title} intro={c.intro} />;
+        return <PosterAbout key={c.key} title={c.title} intro={c.intro} photo={hero} />;
       case "services":
         return <PosterServices key={c.key} title={c.title} intro={c.intro} />;
       case "works":
@@ -252,8 +255,6 @@ export default async function HomePage() {
     over = IVORY.has(c.key) ? "ivory" : "navy";
   }
 
-  // The saved hero source first (a chosen photo, or the newest published album), then the next album covers.
-  const hero: HeroPhoto | null = heroPhotos[0] ? { src: photoUrl(heroPhotos[0], "display"), placeholderSrc: photoUrl(heroPhotos[0], "thumb") } : null;
 
   return (
     <>
