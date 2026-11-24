@@ -24,6 +24,13 @@ const B = { slug: `${P}-second`, title: "عرض الشريط الثاني", stat
 let groups: string[] = [];
 
 const bar = (p: Page) => p.locator("[data-offer-bar]");
+const headerOffers = (p: Page) => p.locator("header nav[aria-label='القائمة الرئيسية'] a[href='/offers']");
+async function mobileMenuHrefs(p: Page) {
+  await p.getByRole("button", { name: "فتح القائمة" }).click();
+  const hrefs = await p.getByRole("dialog", { name: "القائمة" }).locator("a[href^='/']").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+  await p.keyboard.press("Escape");
+  return hrefs;
+}
 
 test.beforeAll(async ({ browser }) => {
   await db.from("offers").delete().like("slug", `${P}-%`);
@@ -58,6 +65,18 @@ test("offer bar: under the header on every public page, names the first offer an
   await first.click();
   await expect(page).toHaveURL(new RegExp(`/offers/${A.slug}$`));
   await expect(page.getByRole("heading", { level: 1 })).toContainText(A.title);
+});
+
+test("header «العروض» link is shown while an offer is active (desktop and mobile menu)", async ({ page, browser }) => {
+  await skipSiteIntro(page);
+  await page.goto(`${BASE}/`);
+  await expect(headerOffers(page).first()).toBeVisible(); // desktop nav (the mobile menu holds its own copy)
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const m = await ctx.newPage();
+  await skipSiteIntro(m);
+  await m.goto(`${BASE}/`);
+  expect(await mobileMenuHrefs(m)).toContain("/offers");
+  await ctx.close();
 });
 
 test("packages: one tab per group, the first open; clicking and the keyboard switch groups; panels not shown are hidden", async ({ page }) => {
@@ -133,7 +152,7 @@ test("@mobile offer bar and tabs fit from 360 px: no horizontal page scroll, tar
   }
 });
 
-test("when the offers end, the bar and the card's offer line leave the site", async ({ page, browser }) => {
+test("when the offers end, the bar, the card's offer line and the header «العروض» link leave the site", async ({ page, browser }) => {
   expect((await db.from("offers").update({ ends_on: day(-1) }).like("slug", `${P}-%`)).error).toBeNull();
   await refreshPublicCache(browser);
   await skipSiteIntro(page);
@@ -143,4 +162,16 @@ test("when the offers end, the bar and the card's offer line leave the site", as
   }
   await expect(page.locator("[data-package-offer]")).toHaveCount(0);
   expect((await fetch(new URL(`/offers/${A.slug}`, BASE), { redirect: "manual" })).status).toBe(404);
+  // No active offer: the header link would lead to an empty page, so it is not shown (the saved menu row is never written).
+  await page.goto(`${BASE}/`);
+  await expect(headerOffers(page)).toHaveCount(0);
+  await expect(page.locator("header nav[aria-label='القائمة الرئيسية'] a[href='/packages']").first()).toBeVisible();
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 } });
+  const m = await ctx.newPage();
+  await skipSiteIntro(m);
+  await m.goto(`${BASE}/`);
+  expect(await mobileMenuHrefs(m)).not.toContain("/offers");
+  await ctx.close();
+  // The page itself still answers (old links), with its empty state.
+  expect((await fetch(new URL("/offers", BASE))).status).toBe(200);
 });

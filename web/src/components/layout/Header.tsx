@@ -5,7 +5,7 @@ import { WhatsAppLink } from "@/components/ui/WhatsAppCta";
 import { buttonClasses } from "@/components/ui/Button";
 import { bookingHref } from "@/features/public-content/contact";
 import { getBusinessSettings } from "@/features/public-content/queries";
-import { getSiteNav } from "@/features/public-content/cms-queries";
+import { getActiveOffers, getSiteNav } from "@/features/public-content/cms-queries";
 import { activeLogoSrc } from "@/components/brand/Logo";
 import { HeaderNav } from "./HeaderNav";
 import { MobileMenu } from "./MobileMenu";
@@ -17,12 +17,17 @@ const UserIcon = () => (
   </svg>
 );
 
-/** Logo (start/right) · CMS nav (center) · «تسجيل الدخول» + gold WhatsApp booking button (end/left). */
+/**
+ * Logo (start/right) · CMS nav (center) · «تسجيل الدخول» + gold WhatsApp booking button (end/left).
+ * The «العروض» link shows only while an offer is active (same rule and cache as the offer bar), so it never leads to an
+ * empty page; if the offers cannot be read the link stays.
+ */
 export async function Header() {
-  const [settings, nav] = await Promise.all([getBusinessSettings(), getSiteNav()]);
+  const [settings, nav, offers] = await Promise.all([getBusinessSettings(), getSiteNav(), getActiveOffers()]);
   const s = settings.status === "ok" ? settings.data : null;
   const book = bookingHref(s);
-  const links = nav.header.map((l) => ({ href: l.href, label: l.label }));
+  const noOffers = offers.status === "ok" && offers.data.length === 0;
+  const links = nav.header.filter((l) => !(noOffers && l.target === "offers")).map((l) => ({ href: l.href, label: l.label }));
   return (
     <header className="site-header-flow relative z-40 bg-night-deep/95 text-ivory">
       <a
