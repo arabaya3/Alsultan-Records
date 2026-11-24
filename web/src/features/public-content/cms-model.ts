@@ -294,15 +294,6 @@ export type Announcement = {
   dismissible: boolean;
 };
 
-/* ---------------- services ---------------- */
-export const serviceLinkRow = z.object({
-  service_id: z.string(),
-  kind: z.enum(["video", "album"]),
-  target_id: z.string(),
-  sort_order: num(0),
-});
-export type ServiceLink = z.infer<typeof serviceLinkRow>;
-
 /* ---------------- albums ---------------- */
 export const albumCategoryRow = z.object({
   id: z.string(),

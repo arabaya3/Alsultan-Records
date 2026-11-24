@@ -14,7 +14,6 @@ import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 export const CONTENT_LINKS = [
   { href: "/admin/content/identity", label: "الهوية ومعلومات النشاط", lead: "الاسم، الأرقام، الروابط والشعار." },
   { href: "/admin/content/home", label: "الرئيسية", lead: "عنوان الواجهة، الأزرار، صورة الغلاف والفيديو التعريفي." },
-  { href: "/admin/content/services", label: "الخدمات", lead: "إضافة وترتيب وإخفاء الخدمات." },
   { href: "/admin/content/process", label: "طريقة شغلنا", lead: "خطوات العمل مع العميل." },
   { href: "/admin/content/packages", label: "البكجات", lead: "باقات خدمات ثابتة: الخدمات المشمولة، السعر الاختياري، التمييز." },
   { href: "/admin/content/offers", label: "العروض", lead: "عروض مؤقتة بتواريخ بداية ونهاية وشهر مستهدف." },

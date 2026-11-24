@@ -36,6 +36,7 @@ async function essentials(page: Page) {
   await expect(page.locator("main a[href^='https://wa.me/'], main a[href='/contact']").first()).toBeVisible();
   await expect(page.locator("#services-title")).toBeVisible(); // the owner's saved title, or the design's «كيف نوثّق مناسبتكم»
   expect(await page.locator("section[aria-labelledby='services-title'] ul > li").count()).toBe(2);
+  await expect(page.locator("main a[href^='/services']")).toHaveCount(0); // the services pages were removed
   // A way to reach the studio: the footer shows WhatsApp/phone when they are set (it falls back to /contact
   // only when they are not), and the header menu always links /contact.
   await expect(page.locator("header a[href='/contact'], footer a[href='/contact'], footer a[href^='https://wa.me/'], footer a[href^='tel:']").first()).toBeAttached();
@@ -85,7 +86,7 @@ test.describe("empty production state (stub Supabase)", () => {
     for (const s of await page.locator("main section[aria-labelledby]").all()) {
       expect(((await s.textContent()) ?? "").trim().length).toBeGreaterThan(10);
     }
-    await keyboardReaches(page, ["/contact", "/services"]);
+    await keyboardReaches(page, ["/contact", "/packages"]);
     await settle(page);
     await page.screenshot({ path: path.join(SHOTS, "empty-home-1440.png"), fullPage: true });
 
@@ -123,7 +124,7 @@ test.describe("current local DB", () => {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.goto(`${BASE}/`, { waitUntil: "networkidle" });
     await essentials(page);
-    await keyboardReaches(page, ["/work", "/services"]); // header nav; the page's own links are WhatsApp, phone and the two works
+    await keyboardReaches(page, ["/work", "/packages"]); // header nav; the page's own links are WhatsApp, phone and the two works
     await settle(page);
     await page.screenshot({ path: path.join(SHOTS, "home-1440-v3.png"), fullPage: true });
   });

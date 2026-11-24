@@ -5,7 +5,7 @@ import { isSiteTarget } from "@/lib/site-targets";
 import { cms } from "../db";
 import { CmsForm } from "../CmsForm";
 import { SortableList } from "../SortableList";
-import { pickAlbums, pickOffers, pickServices, pickVideos, type Opt, type SectionRow } from "../data";
+import { pickAlbums, pickOffers, pickVideos, type Opt, type SectionRow } from "../data";
 import { PAGE_TARGET_LABEL, PAGE_TARGET_PATH, SECTION_FEATURE, SECTION_FIELDS, SECTION_KEYS, SECTION_LABEL, type SectionKey } from "../targets";
 import { saveNavItem, saveOrder, saveSection, saveSectionOrder, setSectionVisible } from "../actions";
 import { CheckList, CmsLoadError } from "./shared";
@@ -16,11 +16,10 @@ type Nav = { id: string; label: string; target: string; sort_order: number; is_v
 export async function NavSectionsPage() {
   if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
   const sb = await cms();
-  const [nav, sec, videos, services, offers, albums] = await Promise.all([
+  const [nav, sec, videos, offers, albums] = await Promise.all([
     sb.from("nav_items").select("id, label, target, sort_order, is_visible").order("sort_order"),
     sb.from("site_sections").select("key, title, intro, is_visible, sort_order, item_limit, featured_ids, stat_value").order("sort_order"),
     pickVideos(sb),
-    pickServices(sb),
     pickOffers(sb),
     pickAlbums(sb),
   ]);
@@ -28,7 +27,7 @@ export async function NavSectionsPage() {
   if (sec.error) return <CmsLoadError error={sec.error} what="الأقسام" />;
   const items = (nav.data ?? []) as Nav[];
   const sections = ((sec.data ?? []) as SectionRow[]).filter((s): s is SectionRow & { key: SectionKey } => (SECTION_KEYS as readonly string[]).includes(s.key));
-  const opts: Record<NonNullable<(typeof SECTION_FEATURE)[SectionKey]>, Opt[]> = { video: videos, service: services, offer: offers, album: albums };
+  const opts: Record<NonNullable<(typeof SECTION_FEATURE)[SectionKey]>, Opt[]> = { video: videos, offer: offers, album: albums };
 
   return (
     <>
@@ -44,11 +43,15 @@ export async function NavSectionsPage() {
               testId="nav-list"
               items={items.map((n) => ({
                 id: n.id,
-                content: (
+                content: !isSiteTarget(n.target) ? (
+                  <p data-testid={`nav-retired-${n.target}`} className="text-sm text-on-cream-muted">
+                    <span className="font-medium text-on-cream">{n.label}</span>: هذه الصفحة أزيلت من الموقع، فالرابط لا يظهر للزوار ولا يمكن تعديله.
+                  </p>
+                ) : (
                   <CmsForm action={saveNavItem} testId={`nav-${n.target}`} intents={[{ intent: "save", label: "حفظ", kind: "secondary" }]}>
                     <input type="hidden" name="id" value={n.id} />
                     <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-                      <Field label={`الاسم — يفتح ${isSiteTarget(n.target) ? PAGE_TARGET_LABEL[n.target] : n.target}`} hint={isSiteTarget(n.target) ? PAGE_TARGET_PATH(n.target) : undefined}>
+                      <Field label={`الاسم — يفتح ${PAGE_TARGET_LABEL[n.target]}`} hint={PAGE_TARGET_PATH(n.target)}>
                         <input name="label" required maxLength={30} defaultValue={n.label} className={inputCls} />
                       </Field>
                       <label className="flex min-h-10 items-center gap-2 text-sm">

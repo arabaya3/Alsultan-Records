@@ -9,7 +9,7 @@ import { expect, test, type Page } from "@playwright/test";
  */
 const PROMO = "y0-ajKb7Umw";
 const WA = /^https:\/\/wa\.me\/970598677477\?text=/;
-const PUBLIC = ["/", "/work", "/services", "/about", "/contact", "/book", "/faq", "/privacy", "/terms"];
+const PUBLIC = ["/", "/work", "/packages", "/about", "/contact", "/book", "/faq", "/privacy", "/terms"];
 
 test.use({ launchOptions: { args: ["--autoplay-policy=no-user-gesture-required"], headless: !process.env.YT_HEADED } });
 
@@ -114,7 +114,7 @@ test("home «من أعمالنا» shows non-promo videos and each opens its vid
 });
 
 test("WhatsApp CTAs use wa.me with Arabic prefilled text", async ({ page }) => {
-  for (const route of ["/", "/book", "/contact", "/work", "/services", "/about", "/faq"]) {
+  for (const route of ["/", "/book", "/contact", "/work", "/packages", "/about", "/faq"]) {
     await page.goto(route);
     const ctas = page.locator("a[data-whatsapp-cta]");
     expect(await ctas.count(), `${route} has a WhatsApp CTA`).toBeGreaterThan(0);

@@ -17,7 +17,7 @@ export function CmsLoadError({ error, what }: { error?: { code?: string } | null
   return <LoadError what={what} />;
 }
 
-/** Multi-select as checkboxes (videos / albums / services / offers). */
+/** Multi-select as checkboxes (videos / albums / offers). */
 export function CheckList({ name, legend, options, selected, max }: { name: string; legend: string; options: Opt[]; selected: string[]; max?: number }) {
   const set = new Set(selected);
   return (
@@ -93,10 +93,6 @@ export function PageTabs({ label, tabs, current }: { label: string; tabs: { href
   );
 }
 
-export const SERVICES_TABS = [
-  { href: "/admin/content/services", label: "الخدمات" },
-  { href: "/admin/content/process", label: "طريقة شغلنا" },
-];
 export const OFFERS_TABS = [
   { href: "/admin/content/offers", label: "العروض" },
   { href: "/admin/content/announcements", label: "الإعلانات" },

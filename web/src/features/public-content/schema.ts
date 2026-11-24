@@ -70,18 +70,6 @@ export const projectRow = z.object({
 });
 export type ProjectRow = z.infer<typeof projectRow>;
 
-export const serviceRow = z.object({
-  id: z.string(),
-  slug: z.string(),
-  title: z.string(),
-  summary: nullableText,
-  body: nullableText,
-  cover_media_id: nullableText,
-  cover_photo_id: nullableText,
-  sort_order: z.number().nullable().optional(),
-});
-export type ServiceRow = z.infer<typeof serviceRow>;
-
 export const reviewRow = z.object({
   id: z.string(),
   rating: z.number().int().min(1).max(5),
@@ -101,7 +89,6 @@ export type PublicMedia = {
 };
 
 export type Project = ProjectRow & { cover: PublicMedia | null; media: PublicMedia[] };
-export type Service = ServiceRow & { cover: PublicMedia | null; coverPhotoSrc: string | null };
 
 /** Distinguishes "the service failed" from "there is nothing yet". */
 export type Loaded<T> = { status: "ok"; data: T } | { status: "unavailable" };

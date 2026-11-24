@@ -20,18 +20,17 @@ import {
   orderSchema,
   sectionIntroSchema,
   sectionSchema,
-  serviceSchema,
   stepSchema,
 } from "./schema";
 import { SECTION_FEATURE } from "./targets";
 import { expireAgainAfterSettling } from "@/lib/expire-after-settling";
 
 type SB = Awaited<ReturnType<typeof cms>>;
-const FEATURE_TABLE = { video: "showcase_videos", service: "services", offer: "offers", album: "photo_albums" } as const;
+const FEATURE_TABLE = { video: "showcase_videos", offer: "offers", album: "photo_albums" } as const;
 
 /**
  * Expire every affected public cache tag and refresh the admin view. Call it after the last successful write.
- * The tags are expired now and once more a few seconds later: /packages, /offers, /services and the home page are
+ * The tags are expired now and once more a few seconds later: /packages, /offers and the home page are
  * statically cached, and a rebuild that read the old rows before this save and finishes after it would otherwise be
  * stored as fresh and stay until the timed refresh. Such a rebuild is common, not rare: the admin forms link to the
  * public page they edit («عرض في الموقع»), and that link prefetches it.
@@ -45,7 +44,6 @@ function publish(...tags: CacheTag[]) {
 const T = {
   identity: [TAGS.business, TAGS.siteContent, TAGS.nav],
   home: [TAGS.business, TAGS.siteContent, TAGS.sections],
-  services: [TAGS.services, TAGS.sections],
   process: [TAGS.process, TAGS.sections],
   offers: [TAGS.offers, TAGS.announcements, TAGS.sections],
   // Offers show the linked package's title; a package change never writes to offers.
@@ -60,9 +58,8 @@ const bool = (fd: FormData, k: string) => fd.get(k) === "on" || fd.get(k) === "1
 const all = (fd: FormData, k: string) => Array.from(new Set(fd.getAll(k).map(String).filter(Boolean)));
 
 // Ordered tables an action may renumber (never user-controlled).
-type OrderedTable = "services" | "process_steps" | "offers" | "packages" | "announcements" | "nav_items";
+type OrderedTable = "process_steps" | "offers" | "packages" | "announcements" | "nav_items";
 const ORDER_TAGS: Record<OrderedTable, CacheTag[]> = {
-  services: T.services,
   process_steps: T.process,
   offers: T.offers,
   packages: T.packages,
@@ -102,7 +99,6 @@ export async function saveOrder(_p: ActionResult, fd: FormData): Promise<ActionR
 
 /** Publish/hide toggles for tables with a boolean visibility column. */
 const TOGGLES = {
-  services: { col: "is_published", tags: T.services },
   process_steps: { col: "is_published", tags: T.process },
   announcements: { col: "is_visible", tags: T.announcements },
   nav_items: { col: "is_visible", tags: T.nav },
@@ -121,9 +117,8 @@ export async function setVisible(_p: ActionResult, fd: FormData): Promise<Action
   return ok(on ? "أصبح ظاهراً في الموقع." : "أُخفي من الموقع.");
 }
 
-const DELETABLE = { services: T.services, process_steps: T.process, offers: T.offers, packages: T.packages, announcements: T.announcements } as const;
+const DELETABLE = { process_steps: T.process, offers: T.offers, packages: T.packages, announcements: T.announcements } as const;
 const BACK: Record<keyof typeof DELETABLE, string> = {
-  services: "/admin/content/services",
   process_steps: "/admin/content/process",
   offers: "/admin/content/offers",
   packages: "/admin/content/packages",
@@ -170,7 +165,7 @@ export async function saveHome(_p: ActionResult, fd: FormData): Promise<ActionRe
   return ok("حُفظت الصفحة الرئيسية.");
 }
 
-/** Section title/intro only (services / process pages). */
+/** Section title/intro only (process / offers pages). */
 export async function saveSectionIntro(_p: ActionResult, fd: FormData): Promise<ActionResult> {
   if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
   const parsed = sectionIntroSchema.safeParse({ key: str(fd, "key"), title: str(fd, "title"), intro: str(fd, "intro") });
@@ -180,7 +175,7 @@ export async function saveSectionIntro(_p: ActionResult, fd: FormData): Promise<
   const { data, error } = await sb.from("site_sections").update(patch).eq("key", key).select("key");
   if (error) return fail(dbMessage(error));
   if (!data?.length) return fail("القسم غير موجود.");
-  publish(...T.sections, ...(key === "services" ? T.services : key === "process" ? T.process : key === "offers" ? T.offers : []));
+  publish(...T.sections, ...(key === "process" ? T.process : key === "offers" ? T.offers : []));
   return ok("حُفظ عنوان القسم ومقدمته.");
 }
 
@@ -259,60 +254,6 @@ export async function activateLogo(_p: ActionResult, fd: FormData): Promise<Acti
   if (!data?.length) return fail("تعذّر التفعيل.");
   publish(...T.identity);
   return ok(id ? "فُعّل الشعار الجديد." : "عاد الموقع للشعار الأصلي.");
-}
-
-// ------------------------------------------------------------------ services
-async function syncServiceLinks(sb: SB, serviceId: string, videos: string[], albums: string[]) {
-  const d = await sb.from("service_links").delete().eq("service_id", serviceId);
-  if (d.error) return d.error;
-  const rows = [
-    ...videos.map((target_id, i) => ({ service_id: serviceId, kind: "video", target_id, sort_order: (i + 1) * 10 })),
-    ...albums.map((target_id, i) => ({ service_id: serviceId, kind: "album", target_id, sort_order: (i + 1) * 10 })),
-  ];
-  if (!rows.length) return null;
-  const i = await sb.from("service_links").insert(rows);
-  return i.error;
-}
-
-function readService(fd: FormData) {
-  return serviceSchema.safeParse({
-    title: str(fd, "title"),
-    slug: str(fd, "slug"),
-    summary: str(fd, "summary"),
-    body: str(fd, "body"),
-    cover_photo_id: str(fd, "cover_photo_id"),
-    is_published: fd.get("intent") === "publish" ? true : fd.get("intent") === "draft" ? false : bool(fd, "is_published"),
-    video_ids: all(fd, "video_ids"),
-    album_ids: all(fd, "album_ids"),
-  });
-}
-
-export async function saveService(_p: ActionResult, fd: FormData): Promise<ActionResult> {
-  if (!(await guard(ADMIN_ROLES))) return FORBIDDEN;
-  const raw = str(fd, "id");
-  const id = raw ? uuid(fd, "id") : null;
-  if (raw && !id) return fail("سجل غير صالح.");
-  const parsed = readService(fd);
-  if (!parsed.success) return fail(firstIssue(parsed.error));
-  const { video_ids, album_ids, ...row } = parsed.data;
-  const sb = await cms();
-  let sid = id;
-  if (sid) {
-    const { data, error } = await sb.from("services").update(row).eq("id", sid).select("id");
-    if (error) return fail(dbMessage(error, SLUG_DUP));
-    if (!data?.length) return fail("السجل غير موجود.");
-  } else {
-    const { data: last } = await sb.from("services").select("sort_order").order("sort_order", { ascending: false }).limit(1);
-    const sort_order = ((last?.[0] as { sort_order?: number } | undefined)?.sort_order ?? 0) + 10;
-    const { data, error } = await sb.from("services").insert({ ...row, sort_order }).select("id").single();
-    if (error || !data) return fail(dbMessage(error, SLUG_DUP));
-    sid = (data as { id: string }).id;
-  }
-  const le = await syncServiceLinks(sb, sid, video_ids, album_ids);
-  publish(...T.services);
-  if (le) return fail("حُفظت الخدمة، لكن تعذّر حفظ الروابط بالفيديوهات/الألبومات. أعد المحاولة.");
-  if (!id) redirect(`/admin/content/services/${sid}?saved=1`);
-  return ok(row.is_published ? "حُفظت الخدمة وهي منشورة." : "حُفظت الخدمة كمسودة (مخفية).");
 }
 
 // ------------------------------------------------------------------ process steps

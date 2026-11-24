@@ -8,7 +8,7 @@ import { BASE, db, E, psql, watchErrors } from "./qa-helpers";
 test.describe.configure({ mode: "serial" });
 
 const SITE = E.NEXT_PUBLIC_SITE_URL;
-const PUBLIC = ["/", "/work", "/services", "/about", "/contact", "/book", "/track", "/faq", "/privacy", "/terms", "/work/dev-sample-published-project"];
+const PUBLIC = ["/", "/work", "/packages", "/about", "/contact", "/book", "/track", "/faq", "/privacy", "/terms", "/work/dev-sample-published-project"];
 const PHONE = "0591234567";
 let trackingCode = "";
 
@@ -45,7 +45,7 @@ test("P3/P6: unknown slugs render the not-found page (status documented)", async
   const r1 = await page.goto(`${BASE}/totally-unknown-page`);
   expect(r1!.status()).toBe(404);
   await expect(page.getByRole("heading", { name: /الصفحة مش موجودة/ })).toBeVisible();
-  for (const p of ["/work/no-such-project", "/services/no-such-service"]) {
+  for (const p of ["/work/no-such-project"]) {
     const r = await page.goto(`${BASE}${p}`);
     // Not-found UI + noindex must render. HTTP status is recorded (streamed PPR routes return 200).
     test.info().annotations.push({ type: `status ${p}`, description: String(r!.status()) });

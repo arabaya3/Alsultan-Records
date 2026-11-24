@@ -97,7 +97,7 @@ test("public pages at six widths: screenshots, no clipping, no horizontal scroll
       ["offer-detail", `/offers/${OFFER.slug}`, "[data-offer-description]"],
       ["work-photos", "/work?tab=photos", `[data-album-card='${ALBUM.slug}']`],
       ["album", `/work/albums/${ALBUM.slug}`, `[data-album-photo='${PHOTOS[0]}']`],
-      ["services", "/services", "main"],
+      ["packages", "/packages", "main"],
       ["privacy", "/privacy", "main"],
       ["contact", "/contact", "main"],
     ];

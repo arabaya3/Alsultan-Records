@@ -2,7 +2,7 @@ import { OfferCard } from "@/components/offers/OfferCard";
 import { FadeRise } from "@/components/motion/Reveal";
 import { ButtonLink } from "@/components/ui/Button";
 import { PageHero } from "@/components/ui/PageHero";
-import { Section, SectionHeading } from "@/components/ui/Layout";
+import { Section } from "@/components/ui/Layout";
 import { ErrorState } from "@/components/ui/States";
 import { WhatsAppCta } from "@/components/ui/WhatsAppCta";
 import { getActiveOffers, getPublishedPackages } from "@/features/public-content/cms-queries";
@@ -22,13 +22,6 @@ function CalendarIcon() {
     </svg>
   );
 }
-
-/** Generic, truthful planning steps (booking happens on WhatsApp only). */
-const PLAN = [
-  { title: "اختر نوع المناسبة", body: "عرس، خطوبة، سهرة أو أي مناسبة عندك." },
-  { title: "حدّد الموعد", body: "خبّرنا بالتاريخ والمكان لنتأكد من التوفر." },
-  { title: "تواصل معنا", body: "راسلنا على واتساب ونحكي معك بالتفاصيل." },
-] as const;
 
 export default async function OffersPage() {
   const [res, pk] = await Promise.all([getActiveOffers(), getPublishedPackages()]);
@@ -79,20 +72,6 @@ export default async function OffersPage() {
             </div>
           </>
         )}
-      </Section>
-      <Section tone="ivory" labelledBy="plan-title">
-        <SectionHeading id="plan-title" title="خطّط لمناسبتك" align="center" />
-        <ol className="grid gap-10 text-center md:grid-cols-3 md:gap-0 md:divide-x md:divide-x-reverse md:divide-tone-line">
-          {PLAN.map((s, i) => (
-            <li key={s.title} className="px-6">
-              <span className="mx-auto grid size-14 place-items-center rounded-full bg-gold/15 font-display text-lg font-bold text-tone-accent">
-                {String(i + 1).padStart(2, "0")}
-              </span>
-              <h3 className="mt-4 text-h3 font-bold">{s.title}</h3>
-              <p className="mt-2 text-tone-muted">{s.body}</p>
-            </li>
-          ))}
-        </ol>
       </Section>
     </>
   );

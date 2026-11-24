@@ -3,7 +3,7 @@ import { BASE, EV, uiLogin, watchErrors, type Who } from "./qa-helpers";
 
 /** Console errors, CSP violations, failed requests and 5xx on key pages (production build). */
 const SETS: { who?: Who; pages: string[] }[] = [
-  { pages: ["/", "/work", "/work/dev-sample-published-project", "/services", "/about", "/contact", "/book", "/track", "/faq", "/privacy", "/terms", "/login"] },
+  { pages: ["/", "/work", "/work/dev-sample-published-project", "/packages", "/about", "/contact", "/book", "/track", "/faq", "/privacy", "/terms", "/login"] },
   {
     who: "a",
     pages: ["/portal", ...["", "/gallery", "/selection", "/videos", "/files", "/quotes", "/contracts", "/payments"].map((s) => `/portal/events/${EV.A1}${s}`)],

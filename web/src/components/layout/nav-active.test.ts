@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { activeHref } from "./nav-active";
 
 // The live CMS header nav.
-const NAV = ["/work", "/work?tab=photos", "/work?tab=promos", "/services", "/packages", "/offers", "/about", "/contact"];
+const NAV = ["/work", "/work?tab=photos", "/work?tab=promos", "/packages", "/offers", "/about", "/contact"];
 const at = (path: string, q = "") => activeHref(path, new URLSearchParams(q), NAV);
 
 describe("activeHref", () => {

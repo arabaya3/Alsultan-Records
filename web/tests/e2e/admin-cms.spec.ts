@@ -9,13 +9,13 @@ import { anon, BASE, db, newLoggedIn } from "./qa-helpers";
 test.describe.configure({ mode: "serial" });
 
 const STAMP = Date.now().toString(36);
-const SVC = { slug: `e2e-svc-${STAMP}`, title: `خدمة اختبار ${STAMP}` };
 const OFFER = { slug: `e2e-offer-${STAMP}`, title: `عرض اختبار ${STAMP}` };
 const ANN_TEXT = `إعلان اختبار ${STAMP}`;
 const YT_ID = "e2eCmsVid01"; // 11 chars, like a real YouTube id
 
 let prevTagline: string | null = null;
 let navBefore: { id: string; label: string } | null = null;
+let navRetired: { id: string; label: string } | null = null;
 
 const msg = (p: Page, testId: string) => p.getByTestId(testId).getByTestId("action-msg");
 const yesterday = () => {
@@ -31,7 +31,9 @@ async function publicText(page: Page, path: string) {
 
 test.beforeAll(async () => {
   prevTagline = (await db.from("business_settings").select("tagline").eq("id", 1).single()).data?.tagline ?? null;
-  navBefore = (await db.from("nav_items").select("id, label").eq("target", "services").maybeSingle()).data ?? null;
+  navBefore = (await db.from("nav_items").select("id, label").eq("target", "packages").maybeSingle()).data ?? null;
+  // Stored link to the removed services page (seeded by the CMS migration): kept in the table, retired in the UI.
+  navRetired = (await db.from("nav_items").select("id, label").eq("target", "services").maybeSingle()).data ?? null;
   await db.from("showcase_videos").delete().eq("youtube_id", YT_ID);
 });
 
@@ -40,7 +42,6 @@ test.afterAll(async () => {
   if (navBefore) await db.from("nav_items").update({ label: navBefore.label }).eq("id", navBefore.id);
   await db.from("announcements").delete().like("text", `%${STAMP}%`);
   await db.from("offers").delete().eq("slug", OFFER.slug);
-  await db.from("services").delete().eq("slug", SVC.slug);
   await db.from("showcase_videos").delete().eq("youtube_id", YT_ID);
 });
 
@@ -61,40 +62,8 @@ test("C1: identity edit appears on the public site without a deploy", async ({ b
   await page.context().close();
 });
 
-test("C2: service create -> reorder -> hide", async ({ browser }) => {
-  const page = await newLoggedIn(browser, "admin", "/admin/content/services/new");
-  const form = page.getByTestId("service-form");
-  await form.locator('input[name="title"]').fill(SVC.title);
-  await page.getByTestId("slug-hint").fill(SVC.slug.replace(/-/g, " "));
-  await expect(form.locator('input[name="slug"]')).toHaveValue(SVC.slug);
-  await form.locator('textarea[name="summary"]').fill("ملخص قصير للاختبار");
-  await form.getByRole("button", { name: "نشر" }).click();
-  await page.waitForURL(/\/admin\/content\/services\/[0-9a-f-]{36}/);
-  const row = async () => (await db.from("services").select("id, is_published, sort_order").eq("slug", SVC.slug).single()).data!;
-  expect((await row()).is_published).toBe(true);
-  await expect.poll(() => publicText(page, "/services"), { timeout: 20_000 }).toContain(SVC.title);
-
-  // Reorder with the ↑ button (new services go last). On a fresh DB ours may be the only service, so put a
-  // hidden fixture above it; it is removed right after.
-  const before = (await row()).sort_order;
-  const aboveSlug = `${SVC.slug}-above`;
-  await db.from("services").insert({ slug: aboveSlug, title: "[E2E] خدمة سابقة", sort_order: before - 1, is_published: false });
-  await page.goto(`${BASE}/admin/content/services`);
-  const item = page.getByTestId("sort-row").filter({ has: page.locator(`[data-slug="${SVC.slug}"]`) });
-  await item.getByRole("button", { name: "نقل للأعلى" }).click();
-  await expect(page.getByTestId("order-msg")).toHaveAttribute("data-ok", "1");
-  // The admin renumbers the whole list on reorder, so compare relative order, not absolute numbers.
-  const above = (await db.from("services").select("sort_order").eq("slug", aboveSlug).single()).data!;
-  expect((await row()).sort_order).toBeLessThan(above.sort_order);
-  await db.from("services").delete().eq("slug", aboveSlug);
-
-  // Hide.
-  await item.getByRole("button", { name: "إخفاء" }).click();
-  await expect.poll(async () => (await row()).is_published).toBe(false);
-  expect((await anon().from("services").select("id").eq("slug", SVC.slug)).data).toHaveLength(0);
-  await expect.poll(() => publicText(page, "/services"), { timeout: 20_000 }).not.toContain(SVC.title);
-  await page.context().close();
-});
+// C2 (service create -> reorder -> hide) was removed with the services screens; see C5b and admin-nav N1 for the
+// new contract (old admin URLs redirect, the stored nav link is retired, the public pages redirect to /packages).
 
 test("C3: offer create -> pin -> expire by date disappears from public", async ({ browser }) => {
   const page = await newLoggedIn(browser, "admin", "/admin/content/offers/new");
@@ -181,10 +150,10 @@ test("C4: announcement linked to an offer", async ({ browser }) => {
 });
 
 test("C5: renaming a nav item keeps its URL", async ({ browser }) => {
-  test.skip(!navBefore, "no nav_items row for services");
+  test.skip(!navBefore, "no nav_items row for packages");
   const page = await newLoggedIn(browser, "admin", "/admin/content/nav");
-  const label = `خدماتنا ${STAMP.slice(-3)}`;
-  const form = page.getByTestId("nav-services");
+  const label = `بكجاتنا ${STAMP.slice(-3)}`;
+  const form = page.getByTestId("nav-packages");
   await form.locator('input[name="label"]').fill(label);
   await form.locator('input[name="is_visible"]').check();
   await form.getByRole("button", { name: "حفظ" }).click();
@@ -197,7 +166,22 @@ test("C5: renaming a nav item keeps its URL", async ({ browser }) => {
       },
       { timeout: 20_000 },
     )
-    .toBe("/services");
+    .toBe("/packages");
+  await page.context().close();
+});
+
+test("C5b: the stored «الخدمات» nav link is retired: listed without a form, unchanged in the DB, absent from the public header", async ({ browser }) => {
+  test.skip(!navRetired, "no nav_items row for services");
+  const page = await newLoggedIn(browser, "admin", "/admin/content/nav");
+  const row = page.getByTestId("nav-retired-services");
+  await expect(row).toContainText(navRetired!.label);
+  await expect(row).toContainText("أزيلت من الموقع");
+  await expect(page.getByTestId("nav-services")).toHaveCount(0); // no editable-but-inert form
+  await expect(row.locator("input, button")).toHaveCount(0);
+  expect((await db.from("nav_items").select("label").eq("id", navRetired!.id).single()).data?.label).toBe(navRetired!.label);
+  await page.goto(`${BASE}/`);
+  const hrefs = await page.getByRole("banner").locator("a").evaluateAll((as) => as.map((a) => a.getAttribute("href")));
+  expect(hrefs.filter((h) => h?.startsWith("/services"))).toEqual([]);
   await page.context().close();
 });
 

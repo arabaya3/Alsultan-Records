@@ -1,6 +1,6 @@
 import { Suspense } from "react";
 import { PageSkeleton } from "@/features/admin/ui";
-import { ProcessPage } from "@/features/cms-admin/pages/services";
+import { ProcessPage } from "@/features/cms-admin/pages/process";
 
 
 export const metadata = { title: "طريقة شغلنا" };

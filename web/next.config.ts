@@ -46,8 +46,15 @@ const OLD_HOST = "sultan-records.vercel.app";
 
 const nextConfig: NextConfig = {
   async redirects() {
-    if (!siteOrigin || new URL(siteOrigin).host === OLD_HOST) return [];
-    return [{ source: "/:path((?!api/|_next/).*)", has: [{ type: "host", value: OLD_HOST }], destination: `${siteOrigin}/:path`, permanent: true }];
+    // The services pages were removed (the packages page covers them): old links and search results land there.
+    const removed = [
+      { source: "/services", destination: "/packages", permanent: true },
+      { source: "/services/:slug", destination: "/packages", permanent: true },
+      { source: "/admin/content/services", destination: "/admin/content/process", permanent: false },
+      { source: "/admin/content/services/:id", destination: "/admin/content/process", permanent: false },
+    ];
+    if (!siteOrigin || new URL(siteOrigin).host === OLD_HOST) return removed;
+    return [{ source: "/:path((?!api/|_next/).*)", has: [{ type: "host", value: OLD_HOST }], destination: `${siteOrigin}/:path`, permanent: true }, ...removed];
   },
   // RAW decoding (src/features/photo-processing/raw.ts): LibRaw as WebAssembly, loaded at runtime from
   // node_modules; its .wasm must ship with every function that runs the photo worker.

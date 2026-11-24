@@ -17,10 +17,10 @@ import { BASE, db, overflowPx, refreshPublicCache } from "./qa-helpers";
  */
 test.describe.configure({ mode: "serial", timeout: 300_000 });
 
-const NAV_LABEL = "خدماتنا اختبار";
+const NAV_LABEL = "بكجاتنا اختبار";
 const ANN_TEXT = "إعلان اختبار CMS — اطّلع على الأسئلة الشائعة";
-const SVC_OLD = "cms-test-svc";
-const SVC_NEW = "cms-test-svc-renamed";
+const OFR_OLD = "cms-test-offer";
+const OFR_NEW = "cms-test-offer-renamed";
 const TAGS = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"];
 
 type NavRow = { id: string; label: string; target: string; sort_order: number; is_visible: boolean };
@@ -28,7 +28,7 @@ type SectionRow = { key: string; is_visible: boolean };
 let navBefore: NavRow[] = [];
 let sectionsBefore: SectionRow[] = [];
 let annId: string | null = null;
-let svcId: string | null = null;
+let offerId: string | null = null;
 
 const hebronToday = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Hebron", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
@@ -48,8 +48,8 @@ test.beforeAll(async ({ browser }) => {
   sectionsBefore = ((await db.from("site_sections").select("key, is_visible")).data ?? []) as SectionRow[];
   expect(navBefore.length, "nav_items seeded").toBeGreaterThan(0);
 
-  // Nav: services renamed and moved first, about hidden.
-  const svc = navBefore.find((n) => n.target === "services")!;
+  // Nav: packages renamed and moved first, about hidden.
+  const svc = navBefore.find((n) => n.target === "packages")!;
   const about = navBefore.find((n) => n.target === "about")!;
   expect((await db.from("nav_items").update({ label: NAV_LABEL, sort_order: 1 }).eq("id", svc.id)).error).toBeNull();
   expect((await db.from("nav_items").update({ is_visible: false }).eq("id", about.id)).error).toBeNull();
@@ -63,17 +63,13 @@ test.beforeAll(async ({ browser }) => {
     .single();
   expect(ann.error).toBeNull();
   annId = ann.data!.id;
-  // Service whose slug gets renamed → slug_redirects row by trigger.
-  await db.from("services").delete().in("slug", [SVC_OLD, SVC_NEW]);
-  await db.from("slug_redirects").delete().in("from_path", [`/services/${SVC_OLD}`, `/services/${SVC_NEW}`]);
-  const s = await db
-    .from("services")
-    .insert({ slug: SVC_OLD, title: "خدمة اختبار CMS", summary: "ملخّص اختبار.", body: "تفاصيل اختبار.", is_published: true, sort_order: 999 })
-    .select("id")
-    .single();
-  expect(s.error).toBeNull();
-  svcId = s.data!.id;
-  expect((await db.from("services").update({ slug: SVC_NEW }).eq("id", svcId)).error).toBeNull();
+  // Offer whose slug gets renamed → slug_redirects row by trigger (service pages no longer exist).
+  await db.from("offers").delete().in("slug", [OFR_OLD, OFR_NEW]);
+  await db.from("slug_redirects").delete().in("from_path", [`/offers/${OFR_OLD}`, `/offers/${OFR_NEW}`]);
+  const o = await db.from("offers").insert({ slug: OFR_OLD, title: "[E2E] عرض اختبار CMS", status: "published", sort_order: 999 }).select("id").single();
+  expect(o.error).toBeNull();
+  offerId = o.data!.id;
+  expect((await db.from("offers").update({ slug: OFR_NEW }).eq("id", offerId)).error).toBeNull();
 
   // The fixtures above were written with the secret key: visitors see them after the next admin save (day-long cache).
   await refreshPublicCache(browser);
@@ -85,13 +81,13 @@ test.afterAll(async ({ browser }) => {
   for (const n of navBefore) await db.from("nav_items").update({ label: n.label, sort_order: n.sort_order, is_visible: n.is_visible }).eq("id", n.id);
   for (const s of sectionsBefore) await db.from("site_sections").update({ is_visible: s.is_visible }).eq("key", s.key);
   if (annId) await db.from("announcements").delete().eq("id", annId);
-  if (svcId) await db.from("services").delete().eq("id", svcId);
-  await db.from("slug_redirects").delete().in("from_path", [`/services/${SVC_OLD}`]);
+  if (offerId) await db.from("offers").delete().eq("id", offerId);
+  await db.from("slug_redirects").delete().in("from_path", [`/offers/${OFR_OLD}`]);
   await refreshPublicCache(browser);
   await until("/", (h) => !h.includes(NAV_LABEL) && !h.includes("إعلان اختبار CMS") && h.includes('id="steps-title"'));
-  // /services is cached separately: wait until it no longer lists the deleted test service, otherwise its link
+  // /offers is cached separately: wait until it no longer lists the deleted test offer, otherwise its link
   // prefetch 404s and fails later console-error checks (public.spec) — the restore must cover every page it touched.
-  await until("/services", (h) => !h.includes(SVC_NEW) && !h.includes(SVC_OLD));
+  await until("/offers", (h) => !h.includes(OFR_NEW) && !h.includes(OFR_OLD));
 });
 
 test("header nav labels and order come from nav_items; footer uses the same; never admin; login only as the plain /login entry", async ({ page }) => {
@@ -99,11 +95,12 @@ test("header nav labels and order come from nav_items; footer uses the same; nev
   const header = page.locator("header nav[aria-label='القائمة الرئيسية']").first().locator("a");
   const items = await header.evaluateAll((as) => as.map((a) => ({ text: a.textContent?.trim(), href: a.getAttribute("href") })));
   const expected = navBefore
-    .filter((n) => n.is_visible && n.target !== "about")
-    .map((n) => (n.target === "services" ? { ...n, label: NAV_LABEL, sort_order: 1 } : n))
+    .filter((n) => n.is_visible && n.target !== "about" && n.target !== "services") // «الخدمات» is retired: stored, never rendered
+    .map((n) => (n.target === "packages" ? { ...n, label: NAV_LABEL, sort_order: 1 } : n))
     .sort((a, b) => a.sort_order - b.sort_order);
   expect(items.map((i) => i.text)).toEqual(expected.map((n) => n.label));
-  expect(items[0]).toEqual({ text: NAV_LABEL, href: "/services" });
+  expect(items[0]).toEqual({ text: NAV_LABEL, href: "/packages" });
+  expect(items.some((i) => i.href?.startsWith("/services"))).toBe(false);
   expect(items.some((i) => i.href === "/about")).toBe(false);
 
   // The footer does not repeat the site nav (it lives in the header): only «تواصل معنا» (always one click away,
@@ -121,6 +118,7 @@ test("hidden home section is not rendered at all; visible ones keep their order"
   await expect(page.locator("#steps-title")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "كيف نشتغل" })).toHaveCount(0);
   await expect(page.locator("#services-title")).toBeVisible();
+  await expect(page.locator("main a[href^='/services']")).toHaveCount(0); // the services pages were removed
   // Never an empty box: every rendered section has a heading and content.
   for (const s of await page.locator("main section[aria-labelledby]").all()) {
     expect(((await s.textContent()) ?? "").trim().length).toBeGreaterThan(10); // textContent: scroll-reveal content counts too
@@ -144,15 +142,25 @@ test("announcement link works and dismissal persists per announcement", async ({
   await expect(page.locator(`[data-announcement="${annId}"]`)).toBeHidden();
 });
 
-test("renamed service slug: old URL 308 → new URL, new URL 200, unknown still 404", async () => {
-  const red = (await db.from("slug_redirects").select("to_path").eq("from_path", `/services/${SVC_OLD}`).single()).data;
-  expect(red?.to_path).toBe(`/services/${SVC_NEW}`);
-  const old = await fetch(new URL(`/services/${SVC_OLD}`, BASE), { redirect: "manual" });
+test("renamed offer slug: old URL 308 → new URL, new URL 200, unknown still 404", async () => {
+  const red = (await db.from("slug_redirects").select("to_path").eq("from_path", `/offers/${OFR_OLD}`).single()).data;
+  expect(red?.to_path).toBe(`/offers/${OFR_NEW}`);
+  const old = await fetch(new URL(`/offers/${OFR_OLD}`, BASE), { redirect: "manual" });
   expect(old.status).toBe(308);
-  expect(new URL(old.headers.get("location")!, BASE).pathname).toBe(`/services/${SVC_NEW}`);
-  const fresh = await fetch(new URL(`/services/${SVC_NEW}`, BASE), { redirect: "manual" });
+  expect(new URL(old.headers.get("location")!, BASE).pathname).toBe(`/offers/${OFR_NEW}`);
+  const fresh = await fetch(new URL(`/offers/${OFR_NEW}`, BASE), { redirect: "manual" });
   expect(fresh.status).toBe(200);
-  expect((await fetch(new URL("/services/no-such-service-xyz", BASE), { redirect: "manual" })).status).toBe(404);
+  expect((await fetch(new URL("/offers/no-such-offer-xyz", BASE), { redirect: "manual" })).status).toBe(404);
+});
+
+test("removed services pages: /services and /services/<slug> redirect permanently to /packages; not in the sitemap", async () => {
+  for (const p of ["/services", "/services/any-old-service"]) {
+    const r = await fetch(new URL(p, BASE), { redirect: "manual" });
+    expect(r.status, p).toBe(308);
+    expect(new URL(r.headers.get("location")!, BASE).pathname, p).toBe("/packages");
+  }
+  expect((await fetch(new URL("/packages", BASE))).status).toBe(200);
+  expect(await (await fetch(new URL("/sitemap.xml", BASE))).text()).not.toContain("/services");
 });
 
 test("no horizontal overflow 360–1920 on CMS-driven pages", async ({ browser }) => {
@@ -160,7 +168,7 @@ test("no horizontal overflow 360–1920 on CMS-driven pages", async ({ browser }
   for (const w of [360, 390, 768, 1024, 1440, 1920]) {
     const ctx = await browser.newContext({ viewport: { width: w, height: 900 } });
     const page = await ctx.newPage();
-    for (const p of ["/", "/offers", "/services", "/work?tab=promos", "/work?tab=photos", "/faq"]) {
+    for (const p of ["/", "/offers", "/packages", "/work?tab=promos", "/work?tab=photos", "/faq"]) {
       await page.goto(p);
       res[`${p}@${w}`] = await overflowPx(page);
     }
@@ -178,8 +186,8 @@ async function axe(page: Page, p: string) {
   return r.violations.filter((v) => v.impact === "serious" || v.impact === "critical").map((v) => `${p}: ${v.id} (${v.nodes.length})`);
 }
 
-test("axe: /, /offers, /services (with announcement) have no serious/critical violations", async ({ page }) => {
-  const bad = [...(await axe(page, "/")), ...(await axe(page, "/offers")), ...(await axe(page, "/services"))];
+test("axe: /, /offers, /packages (with announcement) have no serious/critical violations", async ({ page }) => {
+  const bad = [...(await axe(page, "/")), ...(await axe(page, "/offers")), ...(await axe(page, "/packages"))];
   expect(bad).toEqual([]);
 });
 
