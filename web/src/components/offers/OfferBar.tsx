@@ -27,50 +27,50 @@ function ChevronStart() {
  * active (published, today within its dates, Asia/Hebron): the offers cache lasts until the next Hebron midnight and every
  * admin save expires it, so an offer leaves the site on its own when its end date passes. The first offer (owner's order:
  * pinned first) is named with its end date; with more than one, a second link opens the full list.
- * Look: the poster's deep navy with a gold rule and a gold «عرض لفترة محدودة» pill, so it reads as part of the header.
+ * The content sits in a quiet navy panel below the header: a small label, the offer name and end date,
+ * and a clear action. The full-list link remains separate when more offers are active.
  */
 export async function OfferBar() {
   const res = await getActiveOffers();
   if (res.status !== "ok" || !res.data.length) return null;
   const [first, ...rest] = res.data;
   return (
-    <aside aria-label="عروض لفترة محدودة" data-offer-bar className="relative border-b border-hairline-gold bg-navy-deep text-ivory">
-      <span aria-hidden="true" className="absolute inset-x-0 top-0 h-px bg-gradient-to-l from-transparent via-gold to-transparent" />
-      <div className="mx-auto flex w-full max-w-[var(--content-max)] flex-wrap items-center justify-center gap-x-4 gap-y-1 px-[var(--gutter)] py-1.5">
-        <Link href={offerPath(first.slug)} data-offer-bar-link={first.slug} className="group inline-flex min-h-11 min-w-0 items-center gap-3 py-1">
-          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-gold px-3 py-1 text-xs font-bold text-ink sm:text-sm">
-            <TagIcon />
-            عرض لفترة محدودة
-          </span>
-          <span className="min-w-0 break-words [overflow-wrap:anywhere]">
-            <bdi dir={bidiDir(first.title)} className="font-semibold transition-colors group-hover:text-gold">
+    <aside aria-label="عروض لفترة محدودة" data-offer-bar className="border-b border-hairline-gold bg-navy-deep text-ivory">
+      <div className="mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-3 px-[var(--gutter)] py-4 sm:flex-row sm:items-center sm:gap-5 sm:py-3">
+        <span className="inline-flex w-fit shrink-0 items-center gap-2 text-xs font-bold text-gold">
+          <TagIcon />
+          عرض لفترة محدودة
+        </span>
+        <span aria-hidden="true" className="hidden h-9 w-px bg-hairline-gold sm:block" />
+        <Link
+          href={offerPath(first.slug)}
+          data-offer-bar-link={first.slug}
+          className="group flex min-h-11 min-w-0 flex-1 flex-col items-start justify-between gap-3 rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-gold sm:flex-row sm:items-center"
+        >
+          <span className="min-w-0">
+            <bdi dir={bidiDir(first.title)} className="block break-words font-display text-base font-bold leading-snug text-ivory transition-colors group-hover:text-gold sm:text-lg">
               {first.title}
             </bdi>
             {first.ends_on ? (
-              <span data-offer-bar-ends className="text-sm whitespace-nowrap text-ivory-muted">
-                {" "}
-                · ينتهي {formatDayAr(first.ends_on)}
+              <span data-offer-bar-ends className="block text-xs text-ivory-muted sm:text-sm">
+                ينتهي {formatDayAr(first.ends_on)}
               </span>
             ) : null}
           </span>
-          {rest.length ? null : (
-            <span className="text-gold">
-              <ChevronStart />
-            </span>
-          )}
+          <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-hairline-gold px-3 py-2 text-xs font-bold text-gold transition-colors group-hover:border-gold group-hover:bg-gold group-hover:text-ink sm:px-4 sm:text-sm">
+            شاهد العرض
+            <ChevronStart />
+          </span>
         </Link>
         {rest.length ? (
-          <>
-            <span aria-hidden="true" className="h-5 w-px bg-hairline-gold max-sm:hidden" />
-            <Link
-              href="/offers"
-              data-offer-bar-all
-              className="inline-flex min-h-11 shrink-0 items-center gap-1.5 text-sm font-semibold text-gold transition-colors hover:text-ivory"
-            >
-              كل العروض ({(rest.length + 1).toLocaleString("ar-PS")})
-              <ChevronStart />
-            </Link>
-          </>
+          <Link
+            href="/offers"
+            data-offer-bar-all
+            className="inline-flex min-h-11 w-fit shrink-0 items-center gap-1 text-sm font-semibold text-gold underline decoration-hairline-gold underline-offset-4 transition-colors hover:text-ivory sm:ms-2"
+          >
+            كل العروض ({(rest.length + 1).toLocaleString("ar-PS")})
+            <ChevronStart />
+          </Link>
         ) : null}
       </div>
     </aside>
