@@ -51,7 +51,7 @@ export async function NavSectionsPage() {
                   <CmsForm action={saveNavItem} testId={`nav-${n.target}`} intents={[{ intent: "save", label: "حفظ", kind: "secondary" }]}>
                     <input type="hidden" name="id" value={n.id} />
                     <div className="grid gap-2 sm:grid-cols-[1fr_auto] sm:items-end">
-                      <Field label={`الاسم — يفتح ${PAGE_TARGET_LABEL[n.target]}`} hint={PAGE_TARGET_PATH(n.target)}>
+                      <Field label={`الاسم — يفتح ${PAGE_TARGET_LABEL[n.target]}`} hint={n.target === "offers" ? `${PAGE_TARGET_PATH(n.target)} · يظهر للزوار فقط عند وجود عرض ساري` : PAGE_TARGET_PATH(n.target)}>
                         <input name="label" required maxLength={30} defaultValue={n.label} className={inputCls} />
                       </Field>
                       <label className="flex min-h-10 items-center gap-2 text-sm">
