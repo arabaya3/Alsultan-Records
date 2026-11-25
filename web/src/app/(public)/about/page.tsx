@@ -42,7 +42,7 @@ export default async function AboutPage() {
               <p key={p}>{p}</p>
             ))}
           </div>
-          <aside className="self-start rounded-lg border border-hairline-gold bg-surface p-6 md:p-8">
+          <aside className="self-start rounded-2xl border border-hairline-gold bg-surface p-6 md:p-8">
             <h2 className="text-xl font-semibold">ما نقدّمه</h2>
             <span aria-hidden="true" className="gold-rule mt-3" />
             <ServiceStrip className="mt-5" />

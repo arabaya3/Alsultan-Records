@@ -51,7 +51,7 @@ export default async function ContactPage() {
           <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {rows.map((r) => (
               // dl > div > (dt, dd) only (axe definition-list/dlitem): the icon lives inside the dt.
-              <div key={r.key} className="relative min-w-0 rounded-lg border border-hairline-gold bg-surface p-5 ps-[5.25rem]">
+              <div key={r.key} className="relative min-w-0 rounded-2xl border border-hairline-gold bg-surface p-5 ps-[5.25rem]">
                   <dt className="text-sm text-ivory-muted">
                     <span aria-hidden="true" className="absolute start-5 top-1/2 grid size-12 -translate-y-1/2 place-items-center rounded-full border border-gold/60 text-gold">
                       <RowIcon k={r.key} />

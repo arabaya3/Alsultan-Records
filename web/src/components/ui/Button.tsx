@@ -33,14 +33,14 @@ export function buttonClasses({
   let v: string;
   switch (variant) {
     case "outline":
-      v = `rounded-sm border ${box} ${
+      v = `rounded-full border ${box} ${
         dark
           ? "border-ivory/55 text-ivory hover:border-gold hover:text-gold"
           : "border-on-cream/50 text-on-cream hover:border-gold-text hover:text-gold-text"
       }`;
       break;
     case "ghost":
-      v = `rounded-sm ${box} ${dark ? "text-ivory hover:bg-surface-2 hover:text-gold" : "text-on-cream hover:bg-cream-2"}`;
+      v = `rounded-full ${box} ${dark ? "text-ivory hover:bg-surface-2 hover:text-gold" : "text-on-cream hover:bg-cream-2"}`;
       break;
     case "link":
       v = `min-h-11 underline decoration-1 underline-offset-[10px] hover:decoration-gold ${
@@ -48,7 +48,7 @@ export function buttonClasses({
       }`;
       break;
     default:
-      v = `rounded-sm bg-gold text-ink hover:bg-gold-press active:bg-gold-press ${box}`;
+      v = `home-pill rounded-full bg-gold text-ink hover:bg-gold-press active:bg-gold-press ${box}`;
   }
   return [base, v, className].filter(Boolean).join(" ");
 }

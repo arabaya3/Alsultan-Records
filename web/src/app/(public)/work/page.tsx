@@ -39,11 +39,11 @@ const LEAD_GENERIC = "فيديوهات وصور من أعراس ومناسبات
 
 /* Segmented tabs (gold = active) and category chips. Each is a real, shareable URL (server-rendered). */
 const tabCls = (active: boolean) =>
-  `flex min-h-12 items-center justify-center gap-1.5 whitespace-nowrap rounded-sm px-2 text-sm font-semibold transition-colors duration-200 sm:gap-2 sm:px-7 sm:text-base ${
+  `flex min-h-12 items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-2 text-sm font-semibold transition-colors duration-200 sm:gap-2 sm:px-7 sm:text-base ${
     active ? "bg-gold text-ink" : "text-ivory-muted hover:bg-surface-2 hover:text-ivory"
   }`;
 const chipCls = (active: boolean) =>
-  `inline-flex min-h-11 items-center gap-2 rounded-sm border px-4 text-base transition-colors duration-200 ${
+  `inline-flex min-h-11 items-center gap-2 rounded-full border px-4 text-base transition-colors duration-200 ${
     active ? "border-gold bg-gold text-ink" : "border-hairline bg-surface text-ivory hover:border-gold/70 hover:text-gold"
   }`;
 const linkCls = buttonClasses({ variant: "link" });
@@ -72,7 +72,7 @@ function PhotoIcon() {
 function Tabs({ tab, promos }: { tab: WorkQuery["tab"]; promos: boolean }) {
   return (
     <nav aria-label="نوع الأعمال" className="mb-8 flex justify-center">
-      <ul className="grid w-full max-w-xl auto-cols-fr grid-flow-col gap-1 rounded-md border border-hairline bg-surface p-1 sm:inline-flex sm:w-auto sm:max-w-none">
+      <ul className="grid w-full max-w-xl auto-cols-fr grid-flow-col gap-1 rounded-full border border-hairline bg-surface p-1 sm:inline-flex sm:w-auto sm:max-w-none">
         <li>
           <Link href={workHref({ tab: "videos" })} aria-current={tab === "videos" ? "page" : undefined} data-work-tab="videos" className={tabCls(tab === "videos")}>
             <span className="hidden sm:inline"><VideoIcon /></span>

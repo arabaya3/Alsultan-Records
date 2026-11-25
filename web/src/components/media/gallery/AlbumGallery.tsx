@@ -67,7 +67,7 @@ function Thumb({ p, index, onOpen }: { p: AlbumGalleryPhoto; index: number; onOp
 }
 
 const actionCls =
-  "inline-flex min-h-11 items-center gap-2 rounded-sm border px-5 text-base font-medium transition-colors";
+  "inline-flex min-h-11 items-center gap-2 rounded-full border px-5 text-base font-medium transition-colors";
 
 function ShareButton({ title }: { title: string }) {
   const [msg, setMsg] = useState<string | null>(null);

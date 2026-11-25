@@ -74,7 +74,7 @@ export function PackageTabs({ tabs }: { tabs: PackageTab[] }) {
                   data-package-tab={t.label}
                   onClick={() => select(i, false)}
                   onKeyDown={onKey}
-                  className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-sm border px-5 text-sm font-medium whitespace-nowrap transition-colors ${
+                  className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-5 text-sm font-medium whitespace-nowrap transition-colors ${
                     on ? "border-gold bg-gold text-ink" : "border-hairline-gold text-ivory hover:border-gold"
                   }`}
                 >

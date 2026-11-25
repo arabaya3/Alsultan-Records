@@ -11,7 +11,7 @@ function SectionCard({ s }: { s: DetailSection }) {
     <section
       data-offer-section={s.title ?? ""}
       data-accent={s.accent ? "1" : undefined}
-      className={`min-w-0 rounded-lg border p-5 md:p-6 ${wide ? "sm:col-span-2" : ""} ${
+      className={`min-w-0 rounded-2xl border p-5 md:p-6 ${wide ? "sm:col-span-2" : ""} ${
         s.accent ? "border-gold/70 bg-gold/[0.06]" : s.title ? "border-hairline-gold bg-surface" : "border-transparent px-0 md:px-0"
       }`}
     >
