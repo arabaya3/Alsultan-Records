@@ -60,8 +60,7 @@ test("offer bar: under the header on every public page, names the first offer an
   const first = bar(page).locator(`[data-offer-bar-link="${A.slug}"]`);
   await expect(first).toContainText(A.title);
   await expect(first.locator("[data-offer-bar-ends]")).toContainText("ينتهي");
-  await expect(bar(page).locator("[data-offer-bar-all]")).toHaveAttribute("href", "/offers");
-  await expect(bar(page).locator("[data-offer-bar-all]")).toContainText("٢");
+  await expect(bar(page).locator("a[href='/offers']")).toHaveCount(0); // no «كل العروض» link in the bar (owner request); the header link lists them
   await first.click();
   await expect(page).toHaveURL(new RegExp(`/offers/${A.slug}$`));
   await expect(page.getByRole("heading", { level: 1 })).toContainText(A.title);
