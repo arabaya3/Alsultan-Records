@@ -138,7 +138,7 @@ export function HeroIntro(p: HeroIntroProps) {
             <img src={p.promo.coverSrc} alt="" aria-hidden="true" decoding="async" className="absolute inset-0 -z-20 size-full object-cover opacity-35 blur-[2px]" />
           </picture>
           <RotatingBackdrop srcs={p.promo.rotation ?? []} mobileSrcs={p.promo.rotationMobile} className="absolute inset-0 -z-20 size-full object-cover opacity-35 blur-[2px]" />
-          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(to_left,rgb(13_12_11/0.92)_0%,rgb(13_12_11/0.78)_45%,rgb(13_12_11/0.6)_100%)]" />
+          <div aria-hidden="true" className="absolute inset-0 -z-10 bg-[linear-gradient(to_left,rgb(14_19_34/0.92)_0%,rgb(14_19_34/0.78)_45%,rgb(14_19_34/0.6)_100%)]" />
         </>
       ) : null}
       <div className="mx-auto grid w-full max-w-[var(--content-max)] items-center gap-8 px-[var(--gutter)] py-10 md:py-12 lg:grid-cols-[1fr_1.05fr] lg:gap-14 lg:py-14">

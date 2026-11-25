@@ -47,7 +47,7 @@ export function YouTubeCard({
       {reelHref ? (
         // tabIndex: Safari only focuses a link that has one, and closing reels mode returns focus here.
         <Link href={reelHref} scroll={false} tabIndex={0} data-reel-card={video.youtubeId} data-youtube-card={video.youtubeId} className="group block w-full text-start">
-        <span className="relative block aspect-video overflow-hidden rounded-lg border border-hairline-gold bg-night-deep transition-[border-color,box-shadow] duration-300 group-hover:border-gold group-hover:shadow-[0_10px_30px_-14px_rgb(233_185_73/0.5)]">
+        <span className="relative block aspect-video overflow-hidden rounded-2xl border border-hairline-gold bg-night-deep transition-[border-color,box-shadow] duration-300 group-hover:border-gold group-hover:shadow-[0_10px_30px_-14px_rgb(233_185_73/0.5)]">
           <Image
             src={video.coverSrc ?? youTubeThumbUrl(video.youtubeId)}
             alt=""
@@ -85,7 +85,7 @@ export function YouTubeCard({
           data-youtube-card={video.youtubeId}
           className="group block w-full text-start"
         >
-        <span className="relative block aspect-video overflow-hidden rounded-lg border border-hairline-gold bg-night-deep transition-[border-color,box-shadow] duration-300 group-hover:border-gold group-hover:shadow-[0_10px_30px_-14px_rgb(233_185_73/0.5)]">
+        <span className="relative block aspect-video overflow-hidden rounded-2xl border border-hairline-gold bg-night-deep transition-[border-color,box-shadow] duration-300 group-hover:border-gold group-hover:shadow-[0_10px_30px_-14px_rgb(233_185_73/0.5)]">
           <Image
             src={video.coverSrc ?? youTubeThumbUrl(video.youtubeId)}
             alt=""

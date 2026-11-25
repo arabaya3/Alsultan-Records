@@ -88,12 +88,25 @@ export function SectionHeading({
     <div
       className={`mb-stack flex gap-x-8 gap-y-4 ${center ? "flex-col items-center text-center" : "flex-wrap items-end justify-between"} ${className}`}
     >
-      <div className={`max-w-2xl ${center ? "mx-auto" : ""}`}>
+      <div className={center ? "mx-auto w-full max-w-4xl" : "max-w-2xl"}>
         {eyebrow ? <p className="mb-2 text-sm font-medium tracking-wide text-tone-accent">{eyebrow}</p> : null}
-        <Tag id={id} className={`${size} font-bold tracking-tight`}>
-          {title}
-        </Tag>
-        <span aria-hidden="true" className={`gold-rule mt-4 ${center ? "mx-auto" : ""}`} />
+        {center ? (
+          // The home poster's heading: the title between two gold rules.
+          <div className="flex items-center justify-center gap-4 sm:gap-8">
+            <span aria-hidden="true" className="h-px min-w-6 flex-1 bg-gold-press sm:max-w-40" />
+            <Tag id={id} className={`${size} min-w-0 font-bold tracking-tight break-words`}>
+              {title}
+            </Tag>
+            <span aria-hidden="true" className="h-px min-w-6 flex-1 bg-gold-press sm:max-w-40" />
+          </div>
+        ) : (
+          <>
+            <Tag id={id} className={`${size} font-bold tracking-tight`}>
+              {title}
+            </Tag>
+            <span aria-hidden="true" className="gold-rule mt-4" />
+          </>
+        )}
         {lead ? <p className="mt-4 text-lead text-tone-muted">{lead}</p> : null}
       </div>
       {action}

@@ -57,7 +57,7 @@ export async function PageHero({
           <RotatingBackdrop srcs={rotation} className="absolute inset-0 -z-20 size-full object-cover opacity-60" />
           <div
             aria-hidden="true"
-            className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,var(--color-night)_0%,rgb(13_12_11/0.82)_45%,rgb(13_12_11/0.55)_100%)]"
+            className="absolute inset-0 -z-10 bg-[linear-gradient(to_top,var(--color-night)_0%,rgb(14_19_34/0.84)_45%,rgb(14_19_34/0.58)_100%)]"
           />
         </>
       ) : null}
@@ -90,7 +90,10 @@ export async function PageHero({
         ) : (
           <p className="max-w-4xl text-h1 font-bold tracking-tight">{title}</p>
         )}
-        <span aria-hidden="true" className={`gold-rule mt-5 ${center ? "mx-auto" : ""}`} />
+        {/* The home poster's gold brush stroke under the title, so every page opens like the home page. */}
+        <svg aria-hidden="true" viewBox="0 0 280 16" className={`mt-2 h-3 w-48 text-gold sm:w-64 ${center ? "mx-auto" : ""}`} fill="none">
+          <path d="M2 12C70 4 170 1 278 5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" />
+        </svg>
         {lead ? <p className="mt-5 max-w-2xl text-lead text-ivory-muted">{lead}</p> : null}
         {children ? (
           <div className={`mt-6 flex flex-wrap items-center gap-4 md:mt-8 ${center ? "justify-center" : ""}`}>{children}</div>

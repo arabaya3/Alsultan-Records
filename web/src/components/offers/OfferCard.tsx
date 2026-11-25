@@ -21,7 +21,7 @@ export function OfferCard({ offer, packageTitle }: { offer: Offer; tone?: "light
     <Link
       href={offerPath(offer.slug)}
       data-offer-card={offer.slug}
-      className="group flex h-full flex-col overflow-hidden rounded-lg border border-hairline-gold bg-surface text-ivory transition-colors duration-200 hover:border-gold/80 hover:bg-surface-2"
+      className="group flex h-full flex-col overflow-hidden rounded-2xl border border-hairline-gold bg-surface text-ivory transition-colors duration-200 hover:border-gold/80 hover:bg-surface-2"
     >
       {offer.image_photo_id ? (
         <span className="relative block aspect-[4/3] bg-night-deep">

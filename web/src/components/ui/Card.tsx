@@ -34,7 +34,7 @@ export function Card({
   return (
     <Tag
       {...data}
-      className={`flex flex-col overflow-hidden rounded-lg border bg-surface text-ivory ${
+      className={`flex flex-col overflow-hidden rounded-2xl border bg-surface text-ivory ${
         border === "gold" ? "border-hairline-gold" : "border-hairline"
       } ${interactive ? "transition-colors duration-200 hover:border-gold/70 hover:bg-surface-2 focus-within:border-gold/70" : ""} ${className}`}
     >

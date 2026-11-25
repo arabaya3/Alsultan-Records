@@ -17,8 +17,8 @@ const COVER_SIZES = `(max-width: 767px) 50vw, (max-width: 1023px) 33vw, ${coverC
 export function AlbumCard({ album, priority = false, sizes = COVER_SIZES }: { album: PhotoAlbum; priority?: boolean; sizes?: string }) {
   const meta = [formatDateAr(album.event_date ?? album.published_at?.slice(0, 10) ?? album.created_at?.slice(0, 10) ?? null), photoCountLabel(album.photoCount)].filter(Boolean).join(" · ");
   return (
-    <Link href={`/work/albums/${album.slug}`} data-album-card={album.slug} className="group flex h-full flex-col rounded-lg">
-      <span className="relative block aspect-[2/3] overflow-hidden rounded-lg border border-hairline-gold bg-night-deep transition-[border-color,box-shadow,transform] duration-300 group-hover:-translate-y-0.5 group-hover:border-gold group-hover:shadow-[0_10px_30px_-14px_rgb(233_185_73/0.5)] motion-reduce:group-hover:translate-y-0">
+    <Link href={`/work/albums/${album.slug}`} data-album-card={album.slug} className="group flex h-full flex-col rounded-2xl">
+      <span className="relative block aspect-[2/3] overflow-hidden rounded-2xl border border-hairline-gold bg-night-deep transition-[border-color,box-shadow,transform] duration-300 group-hover:-translate-y-0.5 group-hover:border-gold group-hover:shadow-[0_10px_30px_-14px_rgb(233_185_73/0.5)] motion-reduce:group-hover:translate-y-0">
         {album.coverId ? (
           // Gated, short-lived same-origin bytes: plain <img> (no optimizer cache in the withdrawal path).
           // eslint-disable-next-line @next/next/no-img-element

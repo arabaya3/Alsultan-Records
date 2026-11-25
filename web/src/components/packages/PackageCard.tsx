@@ -45,7 +45,7 @@ export function PackageCard({ pkg, offer = null }: { pkg: Package; offer?: Packa
       id={pkg.slug}
       data-package-card={pkg.slug}
       data-featured={pkg.featured ? "1" : undefined}
-      className={`flex h-full min-w-0 scroll-mt-24 flex-col rounded-lg border bg-surface p-5 text-ivory transition-colors duration-200 md:p-6 ${
+      className={`flex h-full min-w-0 scroll-mt-24 flex-col rounded-2xl border bg-surface p-5 text-ivory transition-colors duration-200 md:p-6 ${
         pkg.featured ? "border-gold/80 shadow-[0_0_0_1px_rgb(233_185_73/0.25)]" : "border-hairline-gold hover:border-gold/70"
       }`}
     >
