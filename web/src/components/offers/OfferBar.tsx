@@ -26,14 +26,14 @@ function ChevronStart() {
  * Time-limited offers as a thin bar under the header, on every public page. It exists only while at least one offer is
  * active (published, today within its dates, Asia/Hebron): the offers cache lasts until the next Hebron midnight and every
  * admin save expires it, so an offer leaves the site on its own when its end date passes. The first offer (owner's order:
- * pinned first) is named with its end date; with more than one, a second link opens the full list.
+ * pinned first) is named with its end date. No «كل العروض» link here (owner asked); the header «العروض» link lists them all.
  * The content sits in a quiet navy panel below the header: a small label, the offer name and end date,
- * and a clear action. The full-list link remains separate when more offers are active.
+ * and a clear action.
  */
 export async function OfferBar() {
   const res = await getActiveOffers();
   if (res.status !== "ok" || !res.data.length) return null;
-  const [first, ...rest] = res.data;
+  const [first] = res.data;
   return (
     <aside aria-label="عروض لفترة محدودة" data-offer-bar className="border-b border-hairline-gold bg-navy-deep text-ivory">
       <div className="mx-auto flex w-full max-w-[var(--content-max)] flex-col gap-3 px-[var(--gutter)] py-4 sm:flex-row sm:items-center sm:gap-5 sm:py-3">
@@ -62,16 +62,6 @@ export async function OfferBar() {
             <ChevronStart />
           </span>
         </Link>
-        {rest.length ? (
-          <Link
-            href="/offers"
-            data-offer-bar-all
-            className="inline-flex min-h-11 w-fit shrink-0 items-center gap-1 text-sm font-semibold text-gold underline decoration-hairline-gold underline-offset-4 transition-colors hover:text-ivory sm:ms-2"
-          >
-            كل العروض ({(rest.length + 1).toLocaleString("ar-PS")})
-            <ChevronStart />
-          </Link>
-        ) : null}
       </div>
     </aside>
   );
