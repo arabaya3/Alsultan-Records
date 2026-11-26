@@ -73,16 +73,17 @@ function Tabs({ tab, promos }: { tab: WorkQuery["tab"]; promos: boolean }) {
   return (
     <nav aria-label="نوع الأعمال" className="mb-8 flex justify-center">
       <ul className="grid w-full max-w-xl auto-cols-fr grid-flow-col gap-1 rounded-full border border-hairline bg-surface p-1 sm:inline-flex sm:w-auto sm:max-w-none">
-        <li>
-          <Link href={workHref({ tab: "videos" })} aria-current={tab === "videos" ? "page" : undefined} data-work-tab="videos" className={tabCls(tab === "videos")}>
-            <span className="hidden sm:inline"><VideoIcon /></span>
-            الفيديوهات
-          </Link>
-        </li>
+        {/* Owner order: photo albums, then videos, then promos. */}
         <li>
           <Link href={workHref({ tab: "photos" })} aria-current={tab === "photos" ? "page" : undefined} data-work-tab="photos" className={tabCls(tab === "photos")}>
             <span className="hidden sm:inline"><PhotoIcon /></span>
             ألبومات الصور
+          </Link>
+        </li>
+        <li>
+          <Link href={workHref({ tab: "videos" })} aria-current={tab === "videos" ? "page" : undefined} data-work-tab="videos" className={tabCls(tab === "videos")}>
+            <span className="hidden sm:inline"><VideoIcon /></span>
+            الفيديوهات
           </Link>
         </li>
         {promos || tab === "promos" ? (
