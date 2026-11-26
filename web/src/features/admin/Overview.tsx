@@ -96,7 +96,17 @@ export async function Overview() {
 
   return (
     <>
-      <PageHeader title="نظرة عامة" lead={`أهلاً ${session.fullName ?? ""} — من هون بتوصل لكل شي بسرعة.`} />
+      <PageHeader
+        title="نظرة عامة"
+        lead="موقعك وأعمالك في مكان واحد"
+        actions={
+          <a href="/" target="_blank" rel="noopener noreferrer" className="inline-flex min-h-11 items-center gap-2 border-b-2 border-gold pb-1 text-lg font-medium hover:text-gold-text">
+            فتح الموقع
+            <span aria-hidden="true">↗</span>
+            <span className="sr-only">(تفتح في نافذة جديدة)</span>
+          </a>
+        }
+      />
       {stuckFiles > 0 ? (
         <div
           role="status"
@@ -110,26 +120,14 @@ export async function Overview() {
         </div>
       ) : null}
       <QuickActions />
-      <SiteStatus />
-      <section aria-labelledby="attention-h" className="mb-6">
-        <h2 id="attention-h" className="mb-3 font-display text-lg font-bold">يحتاج انتباهك</h2>
-        {active.length === 0 && outstanding <= 0 ? (
-          <p className="rounded-md border border-cream-line bg-[#fffdf8] p-4 text-sm" data-testid="all-clear">
-            كل شي تمام — ما في شي مستعجل.
-          </p>
-        ) : (
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5" data-testid="alerts">
-            {active.map((a) => (
-              <Stat key={a.href} label={a.label} value={a.n} href={a.href} tone="gold" />
-            ))}
-            {outstanding > 0 ? (
-              <Stat label="أرصدة غير مدفوعة على العقود المعتمدة" value={formatMinor(outstanding)} href="/admin/finance" tone="danger" />
-            ) : null}
-          </div>
-        )}
-      </section>
+      <SiteStatus
+        alerts={[
+          ...active.map((x) => ({ label: `${x.label}: ${x.n.toLocaleString("ar-PS")}`, href: x.href, tone: "gold" as const })),
+          ...(outstanding > 0 ? [{ label: `أرصدة غير مدفوعة على العقود المعتمدة: ${formatMinor(outstanding)}`, href: "/admin/finance", tone: "danger" as const }] : []),
+        ]}
+      />
       {upcoming.data?.length ? (
-        <Card title="تسليمات قريبة">
+        <Card title="تسليمات قريبة" className="mt-6">
           <ul className="divide-y divide-cream-line text-sm">
             {upcoming.data.map((d) => (
               <li key={d.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
