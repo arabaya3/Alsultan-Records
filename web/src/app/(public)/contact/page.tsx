@@ -1,4 +1,3 @@
-import { ContactBand } from "@/components/home/ContactBand";
 import { FacebookIcon, PhoneIcon, YouTubeIcon } from "@/components/ui/SocialIcons";
 import { Section } from "@/components/ui/Layout";
 import { PageHero } from "@/components/ui/PageHero";
@@ -79,7 +78,6 @@ export default async function ContactPage() {
           <p className="text-lg text-ivory-muted">بيانات التواصل غير متوفرة حالياً.</p>
         )}
       </Section>
-      <ContactBand settings={s} lead="اكتب لنا نوع المناسبة وتاريخها ومكانها، ونرجع لك." />
     </>
   );
 }
