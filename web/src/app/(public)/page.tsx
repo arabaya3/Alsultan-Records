@@ -1,4 +1,5 @@
 import { activeLogoSrc } from "@/components/brand/Logo";
+import { HeroSlideshow } from "@/components/home/HeroSlideshow";
 import { PosterAbout, PosterBand, PosterContactBar, PosterHero, PosterServices, PosterWorks, type HeroPhoto, type PosterWork } from "@/components/home/HomePoster";
 import { AlbumCard, coverColumn } from "@/components/media/gallery/AlbumCard";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
@@ -80,6 +81,8 @@ export default async function HomePage() {
   // The saved hero source first (a chosen photo, or the newest published album); also shown in «من نحن».
   const hero: HeroPhoto | null = heroPhotos[0] ? { src: photoUrl(heroPhotos[0], "display"), placeholderSrc: photoUrl(heroPhotos[0], "thumb") } : null;
 
+  const carouselShown = offers.status === "ok" && offers.data.length > 0;
+
   const worksFor = (c: SectionConfig): PosterWork[] => {
     const list: PosterWork[] = (g ? homeSelection(g, c.limit, c.featured) : []).map((v) => ({
       key: v.youtube_id,
@@ -129,6 +132,8 @@ export default async function HomePage() {
           />
         );
       case "offers": {
+        // Active offers are in the strip under the hero; the page never shows them twice.
+        if (carouselShown) return null;
         const list = offers.status === "ok" ? pick(offers.data, c) : [];
         if (!list.length) return null;
         return (
@@ -259,6 +264,11 @@ export default async function HomePage() {
   }
 
 
+  // Hero slideshow: published albums with photos, newest published first (the order getPublishedAlbums returns). The
+  // opening photo is the saved hero photo; its album is named when it is that album's cover.
+  const slideAlbums = publishedAlbums.map((a) => ({ slug: a.slug, title: a.title }));
+  const heroAlbum = heroPhotos[0] ? (publishedAlbums.find((a) => a.coverId === heroPhotos[0]) ?? null) : null;
+
   // Home offer carousel: every active offer (owner order), its own first line and its own image only.
   const firstLine = (t: string | null | undefined) =>
     listPreview(t, 1)?.items[0] ??
@@ -276,11 +286,22 @@ export default async function HomePage() {
       <JsonLd data={websiteJsonLd()} />
       {s ? <JsonLd data={localBusinessJsonLd(s)} /> : null}
 
-      <PosterHero photo={hero} logoSrc={activeLogoSrc(s?.active_logo_id)} whatsappHref={book} title={s?.hero_title ?? null} sub={s?.hero_subtitle ?? null} ctaLabel={ctaLabel} />
+      <PosterHero
+        photo={hero}
+        photoSlot={
+          hero ? (
+            <HeroSlideshow
+              albums={slideAlbums}
+              first={{ id: heroPhotos[0], album: heroAlbum ? { slug: heroAlbum.slug, title: heroAlbum.title } : null, n: null, total: null }}
+              fallback={null}
+            />
+          ) : undefined
+        }
+        logoSrc={activeLogoSrc(s?.active_logo_id)} whatsappHref={book} title={s?.hero_title ?? null} sub={s?.hero_subtitle ?? null} ctaLabel={ctaLabel} />
       {carousel.length ? (
         // Active offers between the hero and the first section (owner design); the top offer bar is hidden on this page.
-        <div className="bg-ivory-band px-[var(--gutter)] pt-8 pb-2 sm:pt-10">
-          <div className="mx-auto w-full max-w-[70rem]">
+        <div className="bg-navy px-[var(--gutter)] pt-5 pb-6 sm:pt-6 sm:pb-8">
+          <div className="mx-auto w-full max-w-[var(--content-max)]">
             <OfferCarousel offers={carousel} />
           </div>
         </div>

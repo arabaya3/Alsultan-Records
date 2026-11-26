@@ -226,6 +226,9 @@ export async function HomeContentPage() {
             </Field>
             <fieldset className="space-y-2 text-sm sm:col-span-2" data-testid="hero-cover-source">
               <legend className="mb-1 font-medium">مصدر صورة الواجهة</legend>
+              <p className="text-xs text-on-cream-muted" data-testid="hero-slideshow-note">
+                هاي الصورة بتظهر أول ما تفتح الرئيسية، وبعدها الواجهة بتتنقل لحالها بين صور الألبومات المنشورة، من الأحدث للأقدم.
+              </p>
               <label className="flex min-h-10 items-center gap-2">
                 <input type="radio" name="hero_cover_source" value="manual" defaultChecked={(h.hero_cover_source ?? "manual") === "manual"} /> صورة أختارها بنفسي (من القائمة تحت)
               </label>

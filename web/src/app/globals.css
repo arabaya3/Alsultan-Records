@@ -297,3 +297,26 @@ html[data-site-intro="on"] .site-intro {
     opacity: 0;
   }
 }
+
+/* Home offer strip (OfferCarousel): 600 ms sideways slide, title and icon a beat later; reduced motion = short fade. */
+@keyframes offer-in-left { from { transform: translateX(-100%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes offer-in-right { from { transform: translateX(100%); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes offer-out-right { from { transform: none; opacity: 1; } to { transform: translateX(100%); opacity: 0; } }
+@keyframes offer-out-left { from { transform: none; opacity: 1; } to { transform: translateX(-100%); opacity: 0; } }
+@keyframes offer-rise { from { transform: translateY(6px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes offer-fade { from { opacity: 0; } to { opacity: 1; } }
+.offer-in-from-left { animation: offer-in-left 600ms cubic-bezier(.22,.8,.3,1) both; }
+.offer-in-from-right { animation: offer-in-right 600ms cubic-bezier(.22,.8,.3,1) both; }
+.offer-out-to-right { animation: offer-out-right 600ms cubic-bezier(.5,0,.75,0) both; }
+.offer-out-to-left { animation: offer-out-left 600ms cubic-bezier(.5,0,.75,0) both; }
+.offer-rise-1 { animation: offer-rise 450ms ease-out 120ms both; }
+.offer-rise-2 { animation: offer-rise 450ms ease-out 220ms both; }
+.offer-fade-in { animation: offer-fade 250ms ease-out both; }
+.offer-fade-out { animation: offer-fade 250ms ease-in reverse both; }
+
+/* Home hero slideshow (HeroSlideshow): cross-fade with a very slight zoom. */
+.hero-slide { opacity: 0; transition: opacity 1200ms ease-in-out; }
+.hero-slide[data-on="1"] { opacity: 1; }
+.hero-slide img { transform: scale(1); transition: transform 7000ms linear; }
+.hero-slide[data-on="1"] img { transform: scale(1.04); }
+@media (prefers-reduced-motion: reduce) { .hero-slide, .hero-slide img { transition: none; transform: none !important; } }

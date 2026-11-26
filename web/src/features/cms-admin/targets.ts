@@ -39,7 +39,8 @@ export const SECTION_FEATURE: Record<SectionKey, "video" | "offer" | "album" | n
  */
 export const SECTION_FIELDS: Record<SectionKey, { title: boolean; intro: boolean; limit: boolean; featured: boolean; why?: string }> = {
   works: { title: true, intro: true, limit: true, featured: true },
-  offers: { title: true, intro: true, limit: true, featured: true },
+  // Active offers show in the strip right under the hero (never twice on the page), so this section has nothing to set.
+  offers: { title: false, intro: false, limit: false, featured: false, why: "العروض الفعّالة بتظهر بشريط تحت الواجهة مباشرة (بترتيب العروض: المثبّت أولاً)، فهذا القسم ما بيظهر بالرئيسية حتى لو كان ظاهر. العروض نفسها بتتعدل من صفحة «العروض»." },
   promos: { title: true, intro: true, limit: true, featured: true },
   albums: { title: true, intro: true, limit: true, featured: true }, // picks are stored but never mixed in (owner rule; the card says so)
   process: { title: true, intro: true, limit: true, featured: false },
