@@ -1,3 +1,4 @@
+import { SettingsTabs } from "@/features/admin/SettingsTabs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { Forbidden, guard, OWNER_ONLY } from "@/features/admin/guard";
@@ -37,6 +38,7 @@ export async function FacebookSettingsPage({ result }: { result?: string } = {})
   return (
     <>
       <PageHeader title="صفحة فيسبوك" back={{ href: "/admin/settings", label: "الإعدادات" }} lead="نشر مقاطع الريلز على صفحة السلطان في فيسبوك — اختياري لكل مقطع، ومش مفعّل افتراضياً." />
+      <SettingsTabs current="/admin/settings/facebook" />
       <Card title="حالة الربط">
         <div data-testid="facebook-connection" data-status={c?.status ?? "none"} className="space-y-2 text-sm">
           {connected ? (

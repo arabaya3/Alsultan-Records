@@ -1,7 +1,7 @@
+import { SettingsTabs } from "@/features/admin/SettingsTabs";
 import { createClient } from "@/lib/supabase/server";
 import { ADMIN_ROLES, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import Link from "next/link";
 import { Card, LoadError, PageHeader } from "@/features/admin/ui";
 import { MODULE_LABEL, MODULES } from "@/features/admin/nav";
 import { saveAppSettings, saveEnabledModules } from "./actions";
@@ -11,52 +11,21 @@ export async function SettingsPage() {
   if (!session) return <Forbidden />;
   const isOwner = session.role === "owner";
   const sb = await createClient();
-  const [biz, app] = await Promise.all([
-    sb.from("business_settings").select("name, phone, whatsapp, email, address").eq("id", 1).maybeSingle(),
-    isOwner ? sb.from("app_settings").select("require_staff_mfa, turnstile_enabled, enabled_modules").eq("id", 1).maybeSingle() : Promise.resolve({ data: null, error: null }),
-  ]);
-  if (biz.error || !biz.data) return <LoadError what="الإعدادات" />;
-  const b = biz.data;
-  const summary: [string, string | null, boolean][] = [
-    ["اسم النشاط", b.name, false],
-    ["الهاتف", b.phone, true],
-    ["واتساب", b.whatsapp, true],
-    ["البريد", b.email, true],
-    ["العنوان", b.address, false],
-  ];
+  // Studio details live in their own tab («بيانات النشاط والشعار»); this page holds the panel settings only.
+  const app = isOwner
+    ? await sb.from("app_settings").select("require_staff_mfa, turnstile_enabled, enabled_modules").eq("id", 1).maybeSingle()
+    : { data: null, error: null };
+  if (app.error) return <LoadError what="الإعدادات" />;
   return (
     <>
-      <PageHeader title="إعدادات اللوحة" lead="أمان الدخول والأقسام اللي بتظهر بالقائمة. بيانات النشاط تُعدَّل من «الهوية ومعلومات النشاط»." />
+      <PageHeader title="الإعدادات" lead="أمان الدخول والأقسام اللي بتظهر بالقائمة. بيانات النشاط والشعار في تبويبها." />
+      <SettingsTabs current="/admin/settings" />
       <div className="grid gap-4 lg:grid-cols-2">
-        {isOwner ? (
-          <Card title="صفحة فيسبوك">
-            <p className="text-sm">ربط صفحة السلطان لنشر مقاطع الريلز عليها (اختياري لكل مقطع).</p>
-            <Link href="/admin/settings/facebook" className="mt-2 inline-flex min-h-11 items-center underline underline-offset-4" data-testid="settings-facebook-link">
-              حالة الربط وطلبات النشر
-            </Link>
+        {!isOwner ? (
+          <Card title="إعدادات النظام">
+            <p className="text-sm text-on-cream-muted">أمان الدخول والأقسام المفعّلة وفيسبوك والنسخ الاحتياطي يعدّلها المالك فقط. بيانات النشاط والشعار وحسابك في التبويبات فوق.</p>
           </Card>
         ) : null}
-        {/* One place to edit the studio's details (same columns, same validation): «الهوية ومعلومات النشاط». */}
-        <Card title="بيانات النشاط (تظهر في الموقع العام)">
-          <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[auto_1fr]" data-testid="settings-business-summary">
-            {summary.map(([label, value, ltr]) => (
-              <div key={label} className="contents">
-                <dt className="font-medium text-on-cream-muted">{label}</dt>
-                <dd dir={ltr && value ? "ltr" : undefined} className="min-w-0 break-words sm:text-start">
-                  {value || "—"}
-                </dd>
-              </div>
-            ))}
-          </dl>
-          <Link
-            href="/admin/content/identity"
-            data-testid="settings-edit-identity"
-            className="mt-4 inline-flex min-h-11 items-center rounded-sm border border-gold px-4 text-sm font-medium hover:bg-gold/15"
-          >
-            تعديل بيانات النشاط في «الهوية ومعلومات النشاط»
-          </Link>
-          <p className="mt-2 text-xs text-on-cream-muted">عنوان الموقع في الروابط والبحث يأتي من إعداد الاستضافة (NEXT_PUBLIC_SITE_URL)، لا من هنا.</p>
-        </Card>
         {isOwner && app.data ? (
           <Card title="إعدادات النظام (المالك فقط)">
             <ActionForm action={saveAppSettings} submitLabel="حفظ الإعدادات" confirm={{ title: "حفظ إعدادات النظام؟", body: "تؤثر على أمان الدخول ونماذج الحجز لكل المستخدمين." }}>

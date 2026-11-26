@@ -221,7 +221,7 @@ export async function AlbumsPage({ searchParams }: { searchParams: SP }) {
   }
   return (
     <>
-      <PageHeader title="الألبومات" lead="ألبومات صور تُعرض في الموقع العام بعد النشر. الأصول في تخزين خاص ولا يرى الزائر إلا نسخ العرض." />
+      <PageHeader title="ألبومات الموقع" lead="ألبومات صور تُعرض في الموقع العام بعد النشر. الأصول في تخزين خاص ولا يرى الزائر إلا نسخ العرض." />
       <nav className="mb-3 flex flex-wrap gap-2" aria-label="عرض">
         {VIEWS.map((v) => (
           <Link

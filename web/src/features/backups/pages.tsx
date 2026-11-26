@@ -1,3 +1,4 @@
+import { SettingsTabs } from "@/features/admin/SettingsTabs";
 import { createClient } from "@/lib/supabase/server";
 import { Forbidden, guard, OWNER_ONLY } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
@@ -17,6 +18,7 @@ export async function BackupsPage() {
   return (
     <>
       <PageHeader title="النسخ الاحتياطي" lead="نسخة من كل الجداول + قائمة بملفات التخزين. الملفات نفسها (الصور والفيديو) تُنسخ بشكل منفصل — راجع دليل الاسترجاع." />
+      <SettingsTabs current="/admin/backups" />
       <Card title="نسخة جديدة" className="mb-4">
         <ActionForm action={runBackup} submitLabel="بدء النسخ الآن" kind="primary" testId="backup-form">
           <p className="text-sm text-on-cream-muted">قد تستغرق دقيقة. تُحفظ في مكان خاص لا يصل إليه العامة.</p>

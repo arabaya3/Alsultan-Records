@@ -219,7 +219,7 @@ for (const who of ["staff", "a"] as const) {
     if (who !== "staff") await page.goto(`${BASE}/admin/content/identity`);
     if (who === "staff") {
       await expect(page.getByTestId("forbidden")).toBeVisible();
-      await expect(page.getByRole("link", { name: "الهوية ومعلومات النشاط" })).toHaveCount(0);
+      await expect(page.getByRole("link", { name: "بيانات النشاط والشعار" })).toHaveCount(0);
     } else {
       // Customers get the forbidden page (no admin sidebar, no form, no data).
       await expect(page.getByTestId("forbidden")).toBeVisible();

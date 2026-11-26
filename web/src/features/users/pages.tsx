@@ -1,3 +1,4 @@
+import { SettingsTabs } from "@/features/admin/SettingsTabs";
 import { createClient } from "@/lib/supabase/server";
 import { Forbidden, guard, OWNER_ONLY } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
@@ -24,6 +25,7 @@ export async function UsersPage({ searchParams }: { searchParams: SP }) {
   return (
     <>
       <PageHeader title="المستخدمون والصلاحيات" lead="أي تغيير هنا يسري فوراً ويُسجّل في سجل التدقيق." />
+      <SettingsTabs current="/admin/users" />
       <Card title="إنشاء حساب جديد" className="mb-6">
         <ActionForm action={createUserAccount} submitLabel="إنشاء الحساب" kind="primary" resetOnSuccess testId="create-account-form">
           <div className="grid gap-3 sm:grid-cols-2">

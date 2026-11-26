@@ -47,7 +47,6 @@ export async function PackagesPage({ searchParams }: { searchParams: SP }) {
     <>
       <PageHeader
         title="البكجات"
-        back={{ href: "/admin/content", label: "محتوى الموقع" }}
         lead="باقات خدمات ثابتة (بدون تاريخ انتهاء). العروض المؤقتة لها صفحتها الخاصة."
         actions={
           <Link href="/admin/content/packages/new" className={btn("primary")}>

@@ -55,7 +55,6 @@ export async function OffersPage({ searchParams }: { searchParams: SP }) {
     <>
       <PageHeader
         title="العروض"
-        back={{ href: "/admin/content", label: "محتوى الموقع" }}
         lead={`هون بتضيف عروض مؤقتة بتاريخ بداية ونهاية. ${todayLine(today)}`}
         actions={
           <Link href="/admin/content/offers/new" className={btn("primary")}>
@@ -370,7 +369,6 @@ export async function AnnouncementsPage() {
     <>
       <PageHeader
         title="الإعلانات"
-        back={{ href: "/admin/content", label: "محتوى الموقع" }}
         lead={`تظهر أعلى كل صفحات الموقع. ${todayLine(today)}`}
         actions={
           <Link href="/admin/content/announcements/new" className={btn("primary")}>
