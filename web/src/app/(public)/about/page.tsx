@@ -1,9 +1,7 @@
-import { ContactBand } from "@/components/home/ContactBand";
 import { ButtonLink } from "@/components/ui/Button";
 import { Section } from "@/components/ui/Layout";
 import { PageHero } from "@/components/ui/PageHero";
 import { ServiceStrip } from "@/components/ui/ServiceStrip";
-import { getBusinessSettings } from "@/features/public-content/queries";
 import { pageMetadata } from "@/features/public-content/seo";
 import { SITE_NAME_AR } from "@/features/public-content/site";
 
@@ -20,9 +18,7 @@ const ABOUT = [
   "نخدم العرسان والعائلات وكل من عنده مناسبة، ومن خدماتنا أيضاً جلسات تصوير مخصصة للنساء بطاقم مناسب لذلك عند الطلب.",
 ] as const;
 
-export default async function AboutPage() {
-  const settings = await getBusinessSettings();
-  const s = settings.status === "ok" ? settings.data : null;
+export default function AboutPage() {
   return (
     <>
       <PageHero
@@ -55,7 +51,6 @@ export default async function AboutPage() {
           </aside>
         </div>
       </Section>
-      <ContactBand settings={s} />
     </>
   );
 }
