@@ -146,8 +146,11 @@ export function PosterHero({
   title,
   sub,
   ctaLabel,
+  photoSlot,
 }: {
   photo: HeroPhoto | null;
+  /** Replaces the single photo (the home slideshow); `photo` is then only its fallback. */
+  photoSlot?: React.ReactNode;
   logoSrc: string | null;
   whatsappHref: string | null;
   title: string | null;
@@ -156,11 +159,11 @@ export function PosterHero({
 }) {
   return (
     <section aria-labelledby="hero-title" data-home-hero className="relative isolate overflow-hidden bg-navy text-ivory">
-      <div className="flex flex-col lg:grid lg:min-h-[clamp(30rem,40vw,40rem)] lg:grid-cols-2">
+      <div className="flex flex-col lg:grid lg:min-h-[clamp(26.875rem,31vw,28.75rem)] lg:grid-cols-2">
         {/* First in the DOM = right-hand column in RTL; on phones the photo is shown above it. */}
-        <div className="order-2 flex min-w-0 flex-col items-center justify-center px-[var(--gutter)] pt-6 pb-10 text-center lg:order-1 lg:py-12">
-          <Logo height={132} asLink={false} priority src={logoSrc} className="max-lg:!h-24" sizes="(min-width: 1024px) 159px, 116px" />
-          <h1 id="hero-title" className="relative mt-5 max-w-full text-[clamp(1.875rem,1.2rem+3.4vw,3.5rem)] leading-[1.3] font-bold tracking-tight break-words lg:text-[clamp(2.5rem,3.5vw,3.5rem)]">
+        <div className="order-2 flex min-w-0 flex-col items-center justify-center px-[var(--gutter)] pt-6 pb-10 text-center lg:order-1 lg:py-7">
+          <Logo height={132} asLink={false} priority src={logoSrc} className="!h-24 lg:!h-[5.5rem]" sizes="116px" />
+          <h1 id="hero-title" className="relative mt-5 max-w-full text-[clamp(1.875rem,1.2rem+3.4vw,3.5rem)] leading-[1.3] font-bold tracking-tight break-words lg:mt-4 lg:text-[clamp(2.25rem,2.9vw,3rem)] lg:leading-[1.25]">
             <span aria-hidden="true" className="absolute -top-5 -right-6 font-display text-[1.4em] leading-none text-gold max-sm:-top-4 max-sm:-right-2">
               ”
             </span>
@@ -183,17 +186,17 @@ export function PosterHero({
               {sub}
             </p>
           ) : (
-            <p data-hero-sub="default" className="mt-4 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-lg text-ivory/90 sm:text-xl">
+            <p data-hero-sub="default" className="mt-4 lg:mt-3 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-lg text-ivory/90 sm:text-xl">
               <span>{SITE_NAME_AR}</span>
               <span aria-hidden="true" className="h-5 w-px bg-gold max-sm:hidden" />
               <span>{HOME_POSTER.location}</span>
             </p>
           )}
-          <ContactCta href={whatsappHref} label={ctaLabel ?? HOME_POSTER.cta} className="mt-6 min-w-64 sm:min-w-80" />
+          <ContactCta href={whatsappHref} label={ctaLabel ?? HOME_POSTER.cta} className="mt-6 min-w-64 sm:min-w-80 lg:mt-5" />
         </div>
 
         <div data-home-hero-photo className="home-hero-photo relative order-1 aspect-[4/3] bg-navy-deep sm:aspect-[16/9] lg:order-2 lg:aspect-auto">
-          {photo ? (
+          {photoSlot ?? (photo ? (
             // Decorative studio photo (the owner's hero photo, through /p), cropped to the panel. Two layers of the same
             // photo: the 15 KB variant paints within the first seconds on a slow phone, the sharp one covers it as soon
             // as it arrives (measured: the sharp file is ~10× heavier and no stored variant sits between them).
@@ -205,7 +208,7 @@ export function PosterHero({
             </>
           ) : (
             <div className="ink-texture absolute inset-0" />
-          )}
+          ))}
         </div>
       </div>
     </section>

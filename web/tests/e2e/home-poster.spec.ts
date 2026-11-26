@@ -312,7 +312,7 @@ test("HP6: 390px — hero stacked (photo, then text), text legible, touch target
   expect(small).toEqual([]);
 
   const targets = await page.locator("main a").evaluateAll((els) => els.map((e) => ({ t: (e.textContent ?? "").trim().slice(0, 30), h: e.getBoundingClientRect().height, w: e.getBoundingClientRect().width })));
-  expect(targets.length).toBe(5); // 2 WhatsApp, phone, 2 works
+  expect(targets.length).toBe(6); // 2 WhatsApp, phone, 2 works, the hero slideshow's album name
   for (const t of targets) {
     expect(t.h, t.t).toBeGreaterThanOrEqual(44);
     expect(t.w, t.t).toBeGreaterThanOrEqual(44);
@@ -333,7 +333,9 @@ test("HP7: axe clean at 390 and 1440; one h1; headings in order", async ({ page 
   expect(levels).toEqual([1, 2, 2, 3, 3, 2, 2]);
 });
 
-test("HP8: keyboard order follows the page; reduced motion and normal motion both leave the page still (no carousel, no 3D)", async ({ browser }) => {
+// Owner change (2026-11): the hero photo is now an album slideshow (soft cross-fade, its album named as a link); the rest
+// of the page stays still: no 3D, nothing waiting on an animation, keyboard order as the page reads.
+test("HP8: keyboard order follows the page; reduced motion and normal motion leave the page still at load (no 3D)", async ({ browser }) => {
   for (const reducedMotion of ["reduce", "no-preference"] as const) {
     const ctx = await browser.newContext({ reducedMotion, viewport: { width: 1440, height: 1000 } });
     const page = await ctx.newPage();
@@ -349,9 +351,13 @@ test("HP8: keyboard order follows the page; reduced motion and normal motion bot
     expect(faded).toBe(0);
     if (reducedMotion === "no-preference") {
       const main = page.locator("main");
-      const order = await main.locator("a").evaluateAll((els) => els.map((e) => (e.getAttribute("data-home-work") ? "work" : e.hasAttribute("data-home-phone") ? "phone" : "wa")));
-      expect(order).toEqual(["wa", "work", "work", "phone", "wa"]);
+      const order = await main.locator("a").evaluateAll((els) =>
+        els.map((e) => (e.closest("[data-hero-album]") ? "album" : e.getAttribute("data-home-work") ? "work" : e.hasAttribute("data-home-phone") ? "phone" : "wa")),
+      );
+      expect(order).toEqual(["wa", "album", "work", "work", "phone", "wa"]);
       await main.locator("a").first().focus();
+      await page.keyboard.press("Tab");
+      await expect(page.locator("[data-hero-album] a")).toBeFocused();
       await page.keyboard.press("Tab");
       await expect(page.locator("[data-home-work]").first()).toBeFocused();
     }
@@ -531,8 +537,14 @@ test("HA4: controls the design cannot use are disabled with a reason, and saving
   await expect(contact.locator('input[name="is_visible"]')).toBeEnabled();
   // about: no number of items
   await expect(admin.getByTestId("section-about").locator('input[name="item_limit"]')).toHaveAttribute("type", "hidden");
+  // offers: shown in the strip under the hero instead (owner change), so the card explains why and offers nothing to set
+  const offersCard = admin.getByTestId("section-offers");
+  await expect(offersCard.getByTestId("section-why")).toContainText("بشريط تحت الواجهة");
+  await expect(offersCard.getByTestId("off-title")).toBeDisabled();
+  await expect(offersCard.getByTestId("off-intro")).toBeDisabled();
+  await expect(offersCard.locator('input[name="item_limit"]')).toHaveAttribute("type", "hidden");
   // sections that use every control still offer it
-  for (const k of ["works", "offers", "albums", "process"]) await expect(admin.getByTestId(`section-${k}`).locator('input[name="item_limit"]')).toHaveAttribute("type", "number");
+  for (const k of ["works", "albums", "process"]) await expect(admin.getByTestId(`section-${k}`).locator('input[name="item_limit"]')).toHaveAttribute("type", "number");
 
   await saveSectionCard("services", async (f) => f.locator('input[name="title"]').fill(SERVICES_TITLE));
   await saveSectionCard("contact", async () => {});

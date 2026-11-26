@@ -183,6 +183,51 @@ test("@mobile offer bar and tabs fit from 360 px: no horizontal page scroll, tar
   }
 });
 
+test("home strip with one active offer: no arrows, dots, progress or motion; the offer stays put", async ({ page, browser }) => {
+  expect((await db.from("offers").update({ ends_on: day(-1) }).eq("slug", B.slug)).error).toBeNull();
+  try {
+    await refreshPublicCache(browser);
+    await skipSiteIntro(page);
+    await page.goto(`${BASE}/`);
+    const c = page.locator("[data-offer-carousel]");
+    await expect(c.locator(`[data-offer-slide="${A.slug}"]`)).toBeVisible();
+    await expect(c.getByRole("button")).toHaveCount(0);
+    await expect(c.locator("[data-offer-progress]")).toHaveCount(0);
+    await page.waitForTimeout(7_000);
+    await expect(c.locator(`[data-offer-slide="${A.slug}"]`)).toBeVisible();
+  } finally {
+    await db.from("offers").update({ ends_on: B.ends_on }).eq("slug", B.slug);
+    await refreshPublicCache(browser);
+  }
+});
+
+test("home strip: a touch swipe changes the offer; hovering pauses the timer", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true });
+  const page = await ctx.newPage();
+  await skipSiteIntro(page);
+  await page.goto(`${BASE}/`);
+  const c = page.locator("[data-offer-carousel]");
+  await expect(c.locator(`[data-offer-slide="${A.slug}"]`)).toBeVisible();
+  const box = (await c.boundingBox())!;
+  const y = box.y + box.height / 2;
+  // Swipe to the right (RTL: next).
+  await c.dispatchEvent("pointerdown", { pointerType: "touch", clientX: box.x + 60, clientY: y, isPrimary: true });
+  await c.dispatchEvent("pointerup", { pointerType: "touch", clientX: box.x + 200, clientY: y, isPrimary: true });
+  await expect(c.locator(`[data-offer-slide="${B.slug}"]`)).toBeVisible();
+  await ctx.close();
+
+  const desk = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await skipSiteIntro(desk);
+  await desk.goto(`${BASE}/`);
+  const d = desk.locator("[data-offer-carousel]");
+  await d.hover();
+  await desk.waitForTimeout(7_500);
+  await expect(d.locator(`[data-offer-slide="${A.slug}"]`)).toBeVisible(); // paused: still the first offer
+  await desk.mouse.move(5, 5);
+  await expect(d.locator(`[data-offer-slide="${B.slug}"]`)).toBeVisible({ timeout: 9_000 }); // resumes
+  await desk.close();
+});
+
 test("when the offers end, the bar, the card's offer line and the header «العروض» link leave the site", async ({ page, browser }) => {
   expect((await db.from("offers").update({ ends_on: day(-1) }).like("slug", `${P}-%`)).error).toBeNull();
   await refreshPublicCache(browser);

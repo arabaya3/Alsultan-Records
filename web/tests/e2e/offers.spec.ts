@@ -56,7 +56,7 @@ test.beforeAll(async ({ browser }) => {
   // Fixtures written with the secret key reach visitors after the next admin save (day-long cache, refreshed by tags).
   await refreshPublicCache(browser);
   await until("/offers", (h) => h.includes(F.today.slug) && h.includes(F.pinned.slug));
-  await until("/", (h) => h.includes('data-home-section="offers"'));
+  await until("/", (h) => h.includes("data-offer-carousel") && h.includes(F.pinned.slug)); // home: the strip under the hero
 });
 
 test.afterAll(async ({ browser }) => {
@@ -118,13 +118,13 @@ test("expired / future / draft / archived / unknown offers → HTTP 404", async 
   expect((await fetch(new URL(`/offers/${F.today.slug}`, BASE), { redirect: "manual" })).status).toBe(200);
 });
 
-test("home shows the offers section (pinned first) only while there are active offers", async ({ page }) => {
+test("home shows the active offers once, in the strip under the hero (pinned first), never the expired one", async ({ page }) => {
   await page.goto("/");
-  const sec = page.locator('[data-home-section="offers"]');
-  await expect(sec).toBeVisible();
-  const slugs = (await sec.locator("[data-offer-card]").evaluateAll((els) => els.map((e) => e.getAttribute("data-offer-card")!))).filter((s) => s.startsWith(P));
-  expect(slugs[0]).toBe(F.pinned.slug);
-  expect(slugs).not.toContain(F.expired.slug);
+  const strip = page.locator("[data-offer-carousel]");
+  await expect(strip).toBeVisible();
+  await expect(page.locator('[data-home-section="offers"]')).toHaveCount(0); // not repeated as a section
+  await expect(strip.locator("[data-offer-slide]")).toHaveAttribute("data-offer-slide", F.pinned.slug);
+  expect(await page.content()).not.toContain(`/offers/${F.expired.slug}`);
   // Sitemap lists active offers only.
   await until("/sitemap.xml", (sm) => sm.includes(`/offers/${F.today.slug}`));
   expect(await html("/sitemap.xml")).not.toContain(`/offers/${F.expired.slug}`);
