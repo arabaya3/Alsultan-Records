@@ -49,9 +49,9 @@ test.afterAll(async ({ browser }) => {
   await refreshPublicCache(browser); // later specs must not see the bar
 });
 
-test("offer bar: under the header on every public page, names the first offer and its end date, links to it and to the list", async ({ page }) => {
+test("offer bar: under the header on the public pages (the home page shows the carousel instead), names the first offer and its end date, links to it", async ({ page }) => {
   await skipSiteIntro(page);
-  for (const path of ["/", "/packages", "/work", "/about"]) {
+  for (const path of ["/packages", "/work", "/about"]) {
     await page.goto(`${BASE}${path}`);
     await expect(bar(page), path).toBeVisible();
     // Directly after the site header, never inside it.
@@ -64,6 +64,31 @@ test("offer bar: under the header on every public page, names the first offer an
   await first.click();
   await expect(page).toHaveURL(new RegExp(`/offers/${A.slug}$`));
   await expect(page.getByRole("heading", { level: 1 })).toContainText(A.title);
+});
+
+test("home: active offers as a carousel under the hero (no top bar there): name, link, arrows and dots switch offers", async ({ page }) => {
+  await skipSiteIntro(page);
+  await page.goto(`${BASE}/`);
+  await expect(bar(page)).toHaveCount(0);
+  const c = page.locator("[data-offer-carousel]");
+  await expect(c).toBeVisible();
+  // Right after the hero, before the first section.
+  expect(
+    await c.evaluate((el) => {
+      const hero = document.querySelector("[data-home-hero]");
+      return !!hero && (hero.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) > 0;
+    }),
+  ).toBe(true);
+  await expect(c).toContainText("عرض لفترة محدودة");
+  await expect(c.locator(`[data-offer-slide="${A.slug}"]`)).toContainText(A.title);
+  await expect(c.locator(`[data-offer-carousel-link="${A.slug}"]`)).toHaveAttribute("href", `/offers/${A.slug}`);
+  await expect(c.getByRole("button", { name: /^العرض [١٢]$/ })).toHaveCount(2);
+  await c.getByRole("button", { name: "العرض التالي" }).click();
+  await expect(c.locator(`[data-offer-slide="${B.slug}"]`)).toContainText(B.title);
+  await c.getByRole("button", { name: "العرض ١" }).click();
+  await expect(c.locator(`[data-offer-slide="${A.slug}"]`)).toBeVisible();
+  await c.locator(`[data-offer-carousel-link="${A.slug}"]`).click();
+  await expect(page).toHaveURL(new RegExp(`/offers/${A.slug}$`));
 });
 
 test("header «العروض» link is shown while an offer is active (desktop and mobile menu)", async ({ page, browser }) => {
@@ -139,11 +164,18 @@ test("@mobile offer bar and tabs fit from 360 px: no horizontal page scroll, tar
     const ctx = await browser.newContext({ viewport: { width, height: 800 } });
     const page = await ctx.newPage();
     await skipSiteIntro(page);
-    for (const path of ["/", "/packages"]) {
-      await page.goto(`${BASE}${path}`);
-      await expect(bar(page)).toBeVisible();
-      expect(await overflowPx(page), `${path}@${width}`).toBe(0);
+    // Home: the carousel (no bar there); its link, arrows and dots are full-size touch targets.
+    await page.goto(`${BASE}/`);
+    await expect(page.locator("[data-offer-carousel]")).toBeVisible();
+    expect(await overflowPx(page), `/@${width}`).toBe(0);
+    const homeTargets = page.locator("[data-offer-carousel] a, [data-offer-carousel] button:visible");
+    for (const box of await homeTargets.evaluateAll((els) => els.map((e) => e.getBoundingClientRect()).map((r) => ({ h: r.height, w: r.width })))) {
+      expect(box.h).toBeGreaterThanOrEqual(44);
+      expect(box.w).toBeGreaterThanOrEqual(44);
     }
+    await page.goto(`${BASE}/packages`);
+    await expect(bar(page)).toBeVisible();
+    expect(await overflowPx(page), `/packages@${width}`).toBe(0);
     for (const box of await page.locator("[data-offer-bar] a, [role=tab]").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height))) {
       expect(box).toBeGreaterThanOrEqual(44);
     }
@@ -158,6 +190,7 @@ test("when the offers end, the bar, the card's offer line and the header «ال�
   for (const path of ["/", "/packages"]) {
     await page.goto(`${BASE}${path}`);
     await expect(bar(page), path).toHaveCount(0);
+    await expect(page.locator("[data-offer-carousel]"), path).toHaveCount(0);
   }
   await expect(page.locator("[data-package-offer]")).toHaveCount(0);
   expect((await fetch(new URL(`/offers/${A.slug}`, BASE), { redirect: "manual" })).status).toBe(404);

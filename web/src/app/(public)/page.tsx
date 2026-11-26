@@ -3,6 +3,9 @@ import { PosterAbout, PosterBand, PosterContactBar, PosterHero, PosterServices, 
 import { AlbumCard, coverColumn } from "@/components/media/gallery/AlbumCard";
 import { YouTubeCard } from "@/components/media/youtube/YouTubeCard";
 import { OfferCard } from "@/components/offers/OfferCard";
+import { OfferCarousel, type CarouselOffer } from "@/components/offers/OfferCarousel";
+import { listPreview } from "@/lib/text-blocks";
+import { offerPath } from "@/lib/site-targets";
 import { GridIcon, IconLink } from "@/components/ui/IconLink";
 import { JsonLd } from "@/components/ui/JsonLd";
 import type { SectionConfig } from "@/features/public-content/cms-model";
@@ -256,12 +259,32 @@ export default async function HomePage() {
   }
 
 
+  // Home offer carousel: every active offer (owner order), its own first line and its own image only.
+  const firstLine = (t: string | null | undefined) =>
+    listPreview(t, 1)?.items[0] ??
+    (t ?? "")
+      .split("\n")
+      .map((x) => x.replace(/^\s*(\d+[.)]|[-•])\s*/, "").trim())
+      .find(Boolean) ??
+    null;
+  const carousel: CarouselOffer[] = offers.status === "ok"
+    ? offers.data.map((o) => ({ slug: o.slug, href: offerPath(o.slug), title: o.title, sub: firstLine(o.description), image: o.image_photo_id ? photoUrl(o.image_photo_id, "display") : null }))
+    : [];
+
   return (
     <>
       <JsonLd data={websiteJsonLd()} />
       {s ? <JsonLd data={localBusinessJsonLd(s)} /> : null}
 
       <PosterHero photo={hero} logoSrc={activeLogoSrc(s?.active_logo_id)} whatsappHref={book} title={s?.hero_title ?? null} sub={s?.hero_subtitle ?? null} ctaLabel={ctaLabel} />
+      {carousel.length ? (
+        // Active offers between the hero and the first section (owner design); the top offer bar is hidden on this page.
+        <div className="bg-ivory-band px-[var(--gutter)] pt-8 pb-2 sm:pt-10">
+          <div className="mx-auto w-full max-w-[70rem]">
+            <OfferCarousel offers={carousel} />
+          </div>
+        </div>
+      ) : null}
       {rendered}
     </>
   );
