@@ -109,6 +109,8 @@ test.describe("with a temporary published album", () => {
   test("photos tab: album card with whole cover (display variant, contain, 2:3), date, count; tab state in URL", async ({ page }) => {
     await gotoAlbumList(page);
     await expect(page.locator("[data-work-tab='photos']")).toHaveAttribute("aria-current", "page");
+    // Owner order: photo albums first, then videos (then promos when there are any).
+    expect((await page.locator("[data-work-tab]").evaluateAll((els) => els.map((e) => e.getAttribute("data-work-tab")))).slice(0, 2)).toEqual(["photos", "videos"]);
     const card = page.locator(`[data-album-card='${ALBUM.slug}']`);
     await expect(card).toContainText(ALBUM.title);
     await expect(card).toContainText("٣ صور");
