@@ -73,7 +73,8 @@ export const NAV: NavGroup[] = [
       { href: "/admin/content/nav", label: "القائمة العلوية", roles: A },
     ],
   },
-  { title: "الزبائن والمناسبات", collapsible: true, items: OPS },
+  // Shown open like the other groups (owner design); each entry still follows its module switch.
+  { title: "الزبائن والمناسبات", items: OPS },
   {
     title: "الإعدادات",
     items: [

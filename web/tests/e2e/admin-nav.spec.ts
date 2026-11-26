@@ -19,17 +19,15 @@ test.afterAll(() => setModules(DEFAULTS));
 test("N1: admin sees four groups (home, site, customers & events, settings); sub-pages are in-page tabs", async ({ browser }) => {
   const page = await newLoggedIn(browser, "admin", "/admin");
   const nav = page.getByRole("navigation", { name: NAV });
-  for (const g of ["الرئيسية", "الموقع", "الإعدادات"]) await expect(nav.getByText(g, { exact: true })).toBeVisible();
-  // Collapsible group: its <summary> also holds the ▾ marker, so match the summary, not exact text.
-  await expect(nav.getByTestId("nav-group-collapsible").locator("summary")).toContainText("الزبائن والمناسبات");
+  for (const g of ["الرئيسية", "الموقع", "الزبائن والمناسبات"]) await expect(nav.getByText(g, { exact: true })).toBeVisible();
+  // «الزبائن والمناسبات» is shown open like the other groups (owner design), no disclosure to click.
+  await expect(nav.getByTestId("nav-group-collapsible")).toHaveCount(0);
   for (const l of ["نظرة عامة", "الصفحة الرئيسية", "الفيديوهات", "ألبومات الموقع", "البكجات", "العروض", "الإعلانات", "القائمة العلوية", "الإعدادات"])
     await expect(nav.getByRole("link", { name: l, exact: true })).toHaveCount(1);
   // Moved inside a page: process steps (from «الصفحة الرئيسية»), studio details, account, users, backups (settings tabs).
   for (const gone of ["الخدمات وطريقة الشغل", "كل المحتوى", "تصنيفات الفيديو", "طريقة شغلنا", "طريقة الشغل", "الهوية ومعلومات النشاط", "القائمة والأقسام", "إعدادات اللوحة", "حسابي وكلمة السر", "النسخ الاحتياطي", "المستخدمون والصلاحيات", "العروض والإعلانات", "ألبومات الصور"])
     await expect(nav.getByRole("link", { name: gone, exact: true })).toHaveCount(0);
   // Default modules: customers/events/calendar only.
-  const ops = page.getByTestId("nav-group-collapsible");
-  await ops.locator("summary").click();
   for (const l of ["العملاء", "المناسبات", "التقويم"]) await expect(nav.getByRole("link", { name: l, exact: true })).toBeVisible();
   for (const l of ["المالية", "طلبات الحجز", "العقود"]) await expect(nav.getByRole("link", { name: l, exact: true })).toHaveCount(0);
 
@@ -77,13 +75,11 @@ test("N2: owner enables finance; admin and staff menus follow the flags", async 
 
   const admin = await newLoggedIn(browser, "admin", "/admin/settings");
   await expect(admin.getByTestId("enabled-modules")).toHaveCount(0); // owner-only card
-  await admin.getByTestId("nav-group-collapsible").locator("summary").click();
   await expect(admin.getByRole("link", { name: "المالية", exact: true })).toBeVisible();
   await admin.context().close();
 
   const staff = await newLoggedIn(browser, "staff", "/admin");
   const nav = staff.getByRole("navigation", { name: NAV });
-  await staff.getByTestId("nav-group-collapsible").locator("summary").click();
   await expect(nav.getByRole("link", { name: "الوسائط", exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "المناسبات", exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "الإنتاج والتسليم", exact: true })).toHaveCount(0);
@@ -130,4 +126,28 @@ test("N3: settings are one entry with role-filtered tabs; the studio details car
   await expect(staff.getByRole("navigation", { name: NAV }).getByRole("link", { name: "الإعدادات", exact: true })).toHaveCount(0);
   await expect(staff.getByTestId("page-tabs")).toHaveCount(0);
   await staff.context().close();
+});
+
+test("N4: overview in the owner's design: open-site link, navy shortcuts with «تعديل الموقع» menu, three live numbers, follow-up and latest", async ({ browser }) => {
+  const page = await newLoggedIn(browser, "admin", "/admin");
+  await expect(page.getByRole("heading", { level: 1, name: "نظرة عامة" })).toBeVisible();
+  await expect(page.getByRole("link", { name: /فتح الموقع/ })).toHaveAttribute("href", "/");
+  const qa = page.getByTestId("quick-actions");
+  for (const [label, href] of [["أضف ألبوم", "/admin/albums"], ["أضف فيديو", "/admin/videos"], ["أضف عرض", "/admin/content/offers/new"]] as const)
+    await expect(qa.getByRole("link", { name: label, exact: true })).toHaveAttribute("href", href);
+  const menu = page.getByTestId("edit-site-menu");
+  await menu.locator("summary").click();
+  await expect(menu.getByRole("link", { name: "تعديل الرئيسية" })).toHaveAttribute("href", "/admin/content/home");
+  await expect(menu.getByRole("link", { name: "تعديل البكجات" })).toHaveAttribute("href", "/admin/content/packages");
+  const stats = page.getByTestId("site-status").getByRole("link");
+  await expect(stats).toHaveCount(3);
+  await expect(stats.nth(0)).toContainText("عروض فعّالة");
+  await expect(stats.nth(1)).toContainText("ألبومات منشورة");
+  await expect(stats.nth(2)).toContainText("فيديو منشور");
+  await expect(page.getByRole("heading", { level: 2, name: "يحتاج متابعة" })).toBeVisible();
+  await expect(page.getByRole("heading", { level: 2, name: "آخر ما نُشر" })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBe(0);
+  await page.context().close();
 });

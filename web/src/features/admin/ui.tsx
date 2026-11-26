@@ -16,15 +16,16 @@ export function PageHeader({
   back?: { href: string; label: string };
 }) {
   return (
-    <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-cream-line pb-4">
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
       <div className="min-w-0">
         {back ? (
           <Link href={back.href} className="mb-1 inline-block text-sm text-on-cream-muted hover:text-on-cream">
             → {back.label}
           </Link>
         ) : null}
-        <h1 className="text-2xl font-bold tracking-tight md:text-[1.75rem]">{title}</h1>
-        {lead ? <div className="mt-1 text-sm text-on-cream-muted">{lead}</div> : null}
+        <h1 className="font-display text-3xl leading-tight font-bold tracking-tight md:text-[2.75rem]">{title}</h1>
+        {lead ? <div className="mt-2 text-base text-on-cream-muted md:text-lg">{lead}</div> : null}
+        <span aria-hidden="true" className="mt-4 block h-0.5 w-20 rounded-full bg-gold" />
       </div>
       {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
@@ -45,14 +46,17 @@ export function Card({
   id?: string;
 }) {
   return (
-    <section id={id} className={`rounded-md border border-cream-line bg-[#fffdf8] ${className}`}>
+    <section id={id} className={`rounded-xl border border-cream-line bg-[#fffdf8] shadow-[0_8px_24px_-20px_rgb(60_45_20/0.4)] ${className}`}>
       {title ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-cream-line px-4 py-3">
-          <h2 className="text-base font-semibold">{title}</h2>
+        <div className="flex flex-wrap items-start justify-between gap-2 px-5 pt-5">
+          <div>
+            <h2 className="font-display text-xl font-bold">{title}</h2>
+            <span aria-hidden="true" className="mt-2 block h-0.5 w-12 rounded-full bg-gold" />
+          </div>
           {actions}
         </div>
       ) : null}
-      <div className="p-4">{children}</div>
+      <div className="p-5">{children}</div>
     </section>
   );
 }

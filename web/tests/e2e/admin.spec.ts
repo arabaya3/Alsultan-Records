@@ -53,9 +53,7 @@ test("admin logs in and lands on the overview", async ({ browser }) => {
   await expect(page.getByRole("heading", { name: "نظرة عامة" })).toBeVisible({ timeout: 60_000 });
   await expect(page.getByRole("navigation", { name: "أقسام لوحة الإدارة" })).toBeVisible();
   // admin sees enabled operational modules (default: customers/events/calendar) but not users/backups (owner only).
-  // Operational links sit in the collapsed «شغل المناسبات» group; finance is hidden until the owner enables it.
-  const ops = page.getByTestId("nav-group-collapsible").first();
-  if (!(await ops.evaluate((d) => (d as HTMLDetailsElement).open))) await ops.locator("summary").click();
+  // Operational links sit in the open «الزبائن والمناسبات» group; finance is hidden until the owner enables it.
   await expect(page.getByRole("link", { name: "العملاء" })).toBeVisible();
   await expect(page.getByRole("link", { name: "المستخدمون والصلاحيات" })).toHaveCount(0);
   fs.mkdirSync(SHOTS, { recursive: true });

@@ -43,7 +43,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
       >
         تخطَّ إلى المحتوى
       </a>
-      <Suspense fallback={<div className="h-14 bg-ink lg:h-dvh lg:w-60" aria-hidden="true" />}>
+      <Suspense fallback={<div className="h-14 bg-navy lg:h-dvh lg:w-64" aria-hidden="true" />}>
         <AdminSidebar />
       </Suspense>
       <main id="main" tabIndex={-1} className="min-w-0 flex-1 px-4 py-6 md:px-8">

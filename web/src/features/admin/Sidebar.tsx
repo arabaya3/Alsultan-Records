@@ -28,56 +28,62 @@ export function Sidebar({
     .sort((a, b) => b.len - a.len)[0]?.href;
   const isActive = (href: string) => href === activeHref;
 
+  const brand = (
+    <span className="flex flex-col items-start">
+      <span className="font-display text-2xl leading-tight font-bold">لوحة السلطان</span>
+      <span dir="ltr" className="mt-1 text-[0.65rem] tracking-[0.35em] text-gold">SULTAN RECORDS</span>
+      <span aria-hidden="true" className="mt-2 h-px w-14 bg-gold" />
+    </span>
+  );
+  const link = (i: NavGroup["items"][number]) => (
+    <li key={i.href}>
+      <Link
+        href={i.href}
+        onClick={() => setOpen(false)}
+        aria-current={isActive(i.href) ? "page" : undefined}
+        className={`flex min-h-11 items-center rounded-lg px-3 py-2 text-base transition-colors ${
+          isActive(i.href)
+            ? "border-s-[3px] border-gold bg-gradient-to-l from-gold/35 to-gold/10 font-semibold text-gold"
+            : "text-ivory hover:bg-white/5 hover:text-gold"
+        }`}
+      >
+        {i.label}
+      </Link>
+    </li>
+  );
+
   return (
     <>
-      <div className="flex items-center justify-between border-b border-ink-line bg-ink px-4 py-3 text-on-dark lg:hidden">
-        <span className="font-display font-bold">
-          لوحة السلطان<span className="text-gold">.</span>
-        </span>
+      <div className="flex items-center justify-between border-b border-hairline bg-navy px-4 py-3 text-ivory lg:hidden">
+        <span className="font-display text-lg font-bold">لوحة السلطان</span>
         <button
           type="button"
           aria-expanded={open}
           aria-controls="admin-nav"
           onClick={() => setOpen((v) => !v)}
-          className="min-h-10 rounded-sm border border-ink-line px-3 text-sm"
+          className="min-h-11 rounded-lg border border-hairline-gold px-3 text-sm"
         >
           {open ? "إغلاق القائمة" : "القائمة"}
         </button>
       </div>
       <aside
         id="admin-nav"
-        className={`${open ? "block" : "hidden"} border-ink-line bg-ink text-on-dark lg:sticky lg:top-0 lg:block lg:h-dvh lg:w-60 lg:shrink-0 lg:overflow-y-auto lg:border-e`}
+        className={`${open ? "block" : "hidden"} bg-navy text-ivory lg:sticky lg:top-0 lg:block lg:h-dvh lg:w-64 lg:shrink-0 lg:overflow-y-auto`}
       >
-        <div className="hidden px-5 pb-2 pt-6 lg:block">
-          <Link href="/admin" className="font-display text-lg font-bold">
-            لوحة السلطان<span className="text-gold">.</span>
+        <div className="hidden px-6 pt-8 pb-4 lg:block">
+          <Link href="/admin">
+            {brand}
           </Link>
         </div>
-        <nav aria-label="أقسام لوحة الإدارة" className="px-3 py-3">
-          {groups.map((g) => {
-            const list = (
-              <ul>
-                {g.items.map((i) => (
-                  <li key={i.href}>
-                    <Link
-                      href={i.href}
-                      onClick={() => setOpen(false)}
-                      aria-current={isActive(i.href) ? "page" : undefined}
-                      className={`flex min-h-10 items-center rounded-sm px-2 py-1.5 text-sm transition-colors lg:min-h-0 ${
-                        isActive(i.href) ? "bg-ink-2 text-gold" : "hover:bg-ink-2"
-                      }`}
-                    >
-                      {i.label}
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            );
+        <nav aria-label="أقسام لوحة الإدارة" className="px-3 pb-3 lg:pt-2">
+          {groups.map((g, gi) => {
+            const list = <ul className="space-y-0.5">{g.items.map(link)}</ul>;
+            const divider = gi > 0 ? "mt-4 border-t border-hairline pt-4" : "";
             if (g.collapsible) {
               const holdsActive = g.items.some((i) => i.href === activeHref);
               return (
-                <details key={g.title} open={holdsActive || undefined} className="group mb-4" data-testid="nav-group-collapsible">
-                  <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between rounded-sm px-2 text-xs text-muted hover:bg-ink-2 [&::-webkit-details-marker]:hidden">
+                <details key={g.title} open={holdsActive || undefined} className={`group ${divider}`} data-testid="nav-group-collapsible">
+                  <summary className="flex min-h-10 cursor-pointer list-none items-center justify-between rounded-lg px-3 text-sm text-ivory-muted hover:bg-white/5 [&::-webkit-details-marker]:hidden">
                     {g.title}
                     <span aria-hidden="true" className="transition-transform group-open:rotate-180">▾</span>
                   </summary>
@@ -86,19 +92,19 @@ export function Sidebar({
               );
             }
             return (
-              <div key={g.title} className="mb-4">
+              <div key={g.title} className={divider}>
                 {/* A one-entry group named like its entry (e.g. «الإعدادات») shows the link only, not the same word twice. */}
-                {g.items.length === 1 && g.items[0].label === g.title ? null : <p className="px-2 pb-1 text-xs text-muted">{g.title}</p>}
+                {g.items.length === 1 && g.items[0].label === g.title ? null : <p className="px-3 pb-1.5 text-sm text-ivory-muted">{g.title}</p>}
                 {list}
               </div>
             );
           })}
         </nav>
-        <div className="border-t border-ink-line px-5 py-4 text-sm">
+        <div className="mx-3 mt-2 border-t border-hairline px-3 py-4 text-sm">
           <p className="truncate">{name}</p>
-          <p className="text-xs text-muted">{roleLabel}</p>
+          <p className="text-xs text-ivory-muted">{roleLabel}</p>
           <form action={signOut} className="mt-2">
-            <button type="submit" className="text-xs text-muted underline underline-offset-4 hover:text-on-dark">
+            <button type="submit" className="inline-flex min-h-11 items-center text-xs text-ivory-muted underline underline-offset-4 hover:text-gold">
               تسجيل الخروج
             </button>
           </form>
