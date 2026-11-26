@@ -1,3 +1,5 @@
+import { HomeSections } from "./nav";
+import { SettingsTabs } from "@/features/admin/SettingsTabs";
 import Link from "next/link";
 import { ADMIN_ROLES, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
@@ -12,15 +14,14 @@ import { CmsLoadError } from "./shared";
 import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 
 export const CONTENT_LINKS = [
-  { href: "/admin/content/identity", label: "الهوية ومعلومات النشاط", lead: "الاسم، الأرقام، الروابط والشعار." },
-  { href: "/admin/content/home", label: "الرئيسية", lead: "عنوان الواجهة، الأزرار، صورة الغلاف والفيديو التعريفي." },
-  { href: "/admin/content/process", label: "طريقة شغلنا", lead: "خطوات العمل مع العميل." },
+  { href: "/admin/content/home", label: "الصفحة الرئيسية", lead: "الواجهة وصورتها، وترتيب الأقسام وإظهارها وعناوينها." },
+  { href: "/admin/videos", label: "الفيديوهات", lead: "أعمال وبرومو من يوتيوب." },
+  { href: "/admin/albums", label: "ألبومات الموقع", lead: "ألبومات الصور المنشورة على الموقع." },
   { href: "/admin/content/packages", label: "البكجات", lead: "باقات خدمات ثابتة: الخدمات المشمولة، السعر الاختياري، التمييز." },
   { href: "/admin/content/offers", label: "العروض", lead: "عروض مؤقتة بتواريخ بداية ونهاية وشهر مستهدف." },
   { href: "/admin/content/announcements", label: "الإعلانات", lead: "شريط أو لافتة أعلى الموقع." },
-  { href: "/admin/videos", label: "الفيديوهات", lead: "أعمال وبرومو من يوتيوب." },
-  { href: "/admin/albums", label: "ألبومات الصور", lead: "الألبومات والصور." },
-  { href: "/admin/content/nav", label: "القائمة والأقسام", lead: "أسماء روابط القائمة وترتيب أقسام الرئيسية." },
+  { href: "/admin/content/nav", label: "القائمة العلوية", lead: "أسماء روابط القائمة وترتيبها." },
+  { href: "/admin/content/identity", label: "بيانات النشاط والشعار", lead: "الاسم، الأرقام، الروابط والشعار (من الإعدادات)." },
 ];
 
 export async function ContentIndexPage() {
@@ -89,7 +90,8 @@ export async function IdentityPage() {
 
   return (
     <>
-      <PageHeader title="الهوية ومعلومات النشاط" back={{ href: "/admin/content", label: "محتوى الموقع" }} lead="تظهر في رأس الموقع وتذييله وأزرار التواصل." />
+      <PageHeader title="الإعدادات" lead="بيانات النشاط والشعار: تظهر في رأس الموقع وتذييله وأزرار التواصل." />
+      <SettingsTabs current="/admin/content/identity" />
       <div className="grid gap-4 lg:grid-cols-[3fr_2fr]">
         <Card title="معلومات النشاط">
           <CmsForm action={saveIdentity} testId="identity-form">
@@ -190,12 +192,16 @@ export async function HomeContentPage() {
     <>
       <PageHeader
         title="الصفحة الرئيسية"
-        back={{ href: "/admin/content", label: "محتوى الموقع" }}
-        lead="الحقول الفارغة تعني استخدام نص التصميم المعتمد للواجهة."
+        lead="الواجهة فوق، وتحتها أقسام الصفحة: ترتيبها وإظهارها وعناوينها. الحقول الفارغة تعني نص التصميم المعتمد."
         actions={
-          <Link href="/" target="_blank" className={btn("ghost")}>
-            معاينة الموقع
-          </Link>
+          <>
+            <a href="#home-sections" className={btn("ghost")} data-testid="home-sections-jump">
+              أقسام الصفحة ↓
+            </a>
+            <Link href="/" target="_blank" className={btn("ghost")}>
+              معاينة الموقع
+            </Link>
+          </>
         }
       />
       <Card title="واجهة الصفحة">
@@ -244,6 +250,14 @@ export async function HomeContentPage() {
             </div>
           </div>
         </CmsForm>
+      </Card>
+      <h2 className="mt-8 mb-3 scroll-mt-6 font-display text-xl font-bold" id="home-sections">أقسام الصفحة</h2>
+      <HomeSections />
+      <Card title="«كيف نشتغل» (خطوات الحجز)" id="home-process">
+        <p className="text-sm text-on-cream-muted">خطوات «كيف نشتغل» تظهر في الرئيسية لما تُظهر قسمها فوق. تعديل الخطوات نفسها في صفحتها.</p>
+        <Link href="/admin/content/process" className="mt-3 inline-flex min-h-11 items-center underline underline-offset-4" data-testid="home-process-link">
+          تعديل خطوات «كيف نشتغل»
+        </Link>
       </Card>
     </>
   );

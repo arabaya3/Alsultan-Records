@@ -5,7 +5,7 @@ import { BASE, db, newLoggedIn, overflowPx, refreshPublicCache, SHOTS, skipSiteI
 
 /**
  * Home page in the owner's poster design, and the admin → home contract behind it:
- *   - «القائمة والأقسام» decides which sections are on the home page, in which order and under which titles;
+ *   - «الصفحة الرئيسية» (sections part) decides which sections are on the home page, in which order and under which titles;
  *   - «الصفحة الرئيسية» decides the hero title, the text under it and the WhatsApp button label (empty = the design's text);
  *   - a control the design cannot use is shown disabled, and saving never changes its stored value.
  * The suite first puts the design's own configuration in place THROUGH THE ADMIN (about → services → works → contact,
@@ -68,7 +68,7 @@ async function homeShows<T>(browser: Browser, read: (page: Page) => Promise<T>, 
 }
 
 // ---- the admin, driven like the owner drives it
-const NAV = "/admin/content/nav";
+const NAV = "/admin/content/home"; // home sections are edited on «الصفحة الرئيسية» (moved from the nav page)
 const adminOrder = () => admin.locator("[data-testid=sections-order] [data-testid=section-row]").evaluateAll((els) => els.map((e) => e.getAttribute("data-key")!));
 
 async function setVisible(key: string, visible: boolean) {

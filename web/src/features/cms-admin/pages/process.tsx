@@ -43,7 +43,7 @@ export async function ProcessPage() {
   const steps = (data ?? []) as Step[];
   return (
     <>
-      <PageHeader title="طريقة شغلنا" back={{ href: "/admin/content", label: "محتوى الموقع" }} lead="هون بتكتب خطوات الشغل مع العميل؛ بتظهر بالترتيب في الرئيسية." />
+      <PageHeader title="طريقة شغلنا" back={{ href: "/admin/content/home", label: "الصفحة الرئيسية" }} lead="هون بتكتب خطوات الشغل مع العميل؛ بتظهر بالترتيب في الرئيسية." />
       <div className="space-y-4">
         {steps.length ? (
           <SortableList

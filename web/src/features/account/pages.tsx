@@ -1,3 +1,4 @@
+import { SettingsTabs } from "@/features/admin/SettingsTabs";
 import { ALL_STAFF, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
 import { Card, DL, Field, inputCls, PageHeader } from "@/features/admin/ui";
@@ -10,6 +11,7 @@ export async function AccountPage() {
   return (
     <>
       <PageHeader title="حسابي" lead="بياناتك وكلمة السر." />
+      <SettingsTabs current="/admin/account" />
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="بيانات الحساب">
           <DL

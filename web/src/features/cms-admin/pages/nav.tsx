@@ -13,25 +13,20 @@ import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 
 type Nav = { id: string; label: string; target: string; sort_order: number; is_visible: boolean };
 
+/** «القائمة العلوية»: names, order and visibility of the public header links. */
 export async function NavSectionsPage() {
   if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
   const sb = await cms();
-  const [nav, sec, videos, offers, albums] = await Promise.all([
-    sb.from("nav_items").select("id, label, target, sort_order, is_visible").order("sort_order"),
-    sb.from("site_sections").select("key, title, intro, is_visible, sort_order, item_limit, featured_ids, stat_value").order("sort_order"),
-    pickVideos(sb),
-    pickOffers(sb),
-    pickAlbums(sb),
-  ]);
+  const nav = await sb.from("nav_items").select("id, label, target, sort_order, is_visible").order("sort_order");
   if (nav.error) return <CmsLoadError error={nav.error} what="القائمة" />;
-  if (sec.error) return <CmsLoadError error={sec.error} what="الأقسام" />;
   const items = (nav.data ?? []) as Nav[];
-  const sections = ((sec.data ?? []) as SectionRow[]).filter((s): s is SectionRow & { key: SectionKey } => (SECTION_KEYS as readonly string[]).includes(s.key));
-  const opts: Record<NonNullable<(typeof SECTION_FEATURE)[SectionKey]>, Opt[]> = { video: videos, offer: offers, album: albums };
 
   return (
     <>
-      <PageHeader title="القائمة والأقسام" back={{ href: "/admin/content", label: "محتوى الموقع" }} lead="غيّر أسماء روابط القائمة وترتيبها وإظهارها. عنوان كل صفحة (URL) ثابت ولا يتغير بتغيير الاسم." />
+      <PageHeader
+        title="القائمة العلوية"
+        lead="غيّر أسماء روابط القائمة وترتيبها وإظهارها. عنوان كل صفحة (URL) ثابت ولا يتغير بتغيير الاسم. أقسام الصفحة الرئيسية صارت في «الصفحة الرئيسية»."
+      />
       <div className="space-y-6">
         <Card title="روابط القائمة العلوية">
           <p className="mb-3 text-sm text-on-cream-muted">صفحات الإدارة وتسجيل الدخول ليست ضمن القائمة ولا يمكن إضافتها هنا.</p>
@@ -66,7 +61,29 @@ export async function NavSectionsPage() {
             <Notice>لا توجد روابط. يعرض الموقع القائمة الافتراضية.</Notice>
           )}
         </Card>
+      </div>
+    </>
+  );
+}
 
+/**
+ * Home page sections (order, visibility, titles, intros, limits, picks), shown on «الصفحة الرئيسية» under the hero
+ * settings, so everything about the home page is edited in one place. Same forms and actions as before.
+ */
+export async function HomeSections() {
+  const sb = await cms();
+  const [sec, videos, offers, albums] = await Promise.all([
+    sb.from("site_sections").select("key, title, intro, is_visible, sort_order, item_limit, featured_ids, stat_value").order("sort_order"),
+    pickVideos(sb),
+    pickOffers(sb),
+    pickAlbums(sb),
+  ]);
+  if (sec.error) return <CmsLoadError error={sec.error} what="الأقسام" />;
+  const sections = ((sec.data ?? []) as SectionRow[]).filter((s): s is SectionRow & { key: SectionKey } => (SECTION_KEYS as readonly string[]).includes(s.key));
+  const opts: Record<NonNullable<(typeof SECTION_FEATURE)[SectionKey]>, Opt[]> = { video: videos, offer: offers, album: albums };
+
+  return (
+    <div className="space-y-6">
         <Card title="أقسام الصفحة الرئيسية">
           <p className="mb-3 text-sm text-on-cream-muted">
             رتّب الأقسام وأظهرها أو أخفها: الصفحة الرئيسية تعرض الأقسام الظاهرة بهذا الترتيب تحت الواجهة. القسم بلا محتوى منشور لا يظهر حتى لو كان
@@ -74,7 +91,7 @@ export async function NavSectionsPage() {
           </p>
           <div className="mb-3" data-testid="poster-note">
             <Notice>
-              التصميم المعتمد للرئيسية هو: «من نحن» ثم «الخدمات» ثم «أعمالنا» ثم «تواصل معنا». باقي الأقسام (العروض، الألبومات، العدّاد، البرومو، طريقة
+              التصميم المعتمد للرئيسية هو: «من نحن» ثم «كيف نوثّق مناسبتكم» ثم «من أعمالنا» ثم «تواصل معنا». باقي الأقسام (العروض، الألبومات، العدّاد، البرومو، طريقة
               شغلنا) تظهر بنفس الأسلوب إذا أظهرتها.
             </Notice>
           </div>
@@ -179,7 +196,6 @@ export async function NavSectionsPage() {
             );
           })}
         </div>
-      </div>
-    </>
+    </div>
   );
 }

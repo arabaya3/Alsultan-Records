@@ -18,12 +18,14 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  // Only the most specific matching entry is current (e.g. /admin/videos/categories ≠ /admin/videos).
-  const matches = (href: string) => pathname === href || (href !== "/admin" && pathname.startsWith(`${href}/`));
+  // Only the most specific matching entry is current (e.g. /admin/videos/categories ≠ /admin/videos). An entry also
+  // matches its extra prefixes (`match`), e.g. «الإعدادات» on its tab pages.
+  const hit = (href: string) => (pathname === href || (href !== "/admin" && pathname.startsWith(`${href}/`)) ? href.length : 0);
   const activeHref = groups
-    .flatMap((g) => g.items.map((i) => i.href))
-    .filter(matches)
-    .sort((a, b) => b.length - a.length)[0];
+    .flatMap((g) => g.items)
+    .map((i) => ({ href: i.href, len: Math.max(hit(i.href), ...(i.match ?? []).map(hit)) }))
+    .filter((x) => x.len > 0)
+    .sort((a, b) => b.len - a.len)[0]?.href;
   const isActive = (href: string) => href === activeHref;
 
   return (
@@ -85,7 +87,8 @@ export function Sidebar({
             }
             return (
               <div key={g.title} className="mb-4">
-                <p className="px-2 pb-1 text-xs text-muted">{g.title}</p>
+                {/* A one-entry group named like its entry (e.g. «الإعدادات») shows the link only, not the same word twice. */}
+                {g.items.length === 1 && g.items[0].label === g.title ? null : <p className="px-2 pb-1 text-xs text-muted">{g.title}</p>}
                 {list}
               </div>
             );

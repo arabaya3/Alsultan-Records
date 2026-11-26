@@ -16,15 +16,16 @@ async function setModules(mods: string[]) {
 test.beforeAll(() => setModules(DEFAULTS));
 test.afterAll(() => setModules(DEFAULTS));
 
-test("N1: admin sees the new groups; sub-pages moved to in-page tabs", async ({ browser }) => {
+test("N1: admin sees four groups (home, site, customers & events, settings); sub-pages are in-page tabs", async ({ browser }) => {
   const page = await newLoggedIn(browser, "admin", "/admin");
   const nav = page.getByRole("navigation", { name: NAV });
-  for (const g of ["اليوم", "الأعمال", "البيع", "صفحات الموقع", "الإعدادات"]) await expect(nav.getByText(g, { exact: true })).toBeVisible();
+  for (const g of ["الرئيسية", "الموقع", "الإعدادات"]) await expect(nav.getByText(g, { exact: true })).toBeVisible();
   // Collapsible group: its <summary> also holds the ▾ marker, so match the summary, not exact text.
-  await expect(nav.getByTestId("nav-group-collapsible").locator("summary")).toContainText("شغل المناسبات");
-  for (const l of ["الفيديوهات", "ألبومات الصور", "البكجات", "العروض والإعلانات", "الرئيسية", "طريقة الشغل", "الهوية ومعلومات النشاط", "القائمة والأقسام", "إعدادات اللوحة"])
+  await expect(nav.getByTestId("nav-group-collapsible").locator("summary")).toContainText("الزبائن والمناسبات");
+  for (const l of ["نظرة عامة", "الصفحة الرئيسية", "الفيديوهات", "ألبومات الموقع", "البكجات", "العروض", "الإعلانات", "القائمة العلوية", "الإعدادات"])
     await expect(nav.getByRole("link", { name: l, exact: true })).toHaveCount(1);
-  for (const gone of ["الخدمات وطريقة الشغل", "كل المحتوى", "تصنيفات الفيديو", "طريقة شغلنا", "الإعلانات", "النسخ الاحتياطي", "المستخدمون والصلاحيات"])
+  // Moved inside a page: process steps (from «الصفحة الرئيسية»), studio details, account, users, backups (settings tabs).
+  for (const gone of ["الخدمات وطريقة الشغل", "كل المحتوى", "تصنيفات الفيديو", "طريقة شغلنا", "طريقة الشغل", "الهوية ومعلومات النشاط", "القائمة والأقسام", "إعدادات اللوحة", "حسابي وكلمة السر", "النسخ الاحتياطي", "المستخدمون والصلاحيات", "العروض والإعلانات", "ألبومات الصور"])
     await expect(nav.getByRole("link", { name: gone, exact: true })).toHaveCount(0);
   // Default modules: customers/events/calendar only.
   const ops = page.getByTestId("nav-group-collapsible");
@@ -68,8 +69,10 @@ test("N2: owner enables finance; admin and staff menus follow the flags", async 
   await expect(owner.getByText("حُفظت الأقسام المفعّلة")).toBeVisible();
   const { data } = await db.from("app_settings").select("enabled_modules").eq("id", 1).single();
   expect([...(data?.enabled_modules ?? [])].sort()).toEqual(["calendar", "customers", "events", "finance", "media"]);
+  // Users & permissions is an owner-only settings tab now (not a sidebar entry).
   await owner.goto(`${BASE}/admin/users`);
-  await expect(owner.getByRole("navigation", { name: NAV }).getByRole("link", { name: "المستخدمون والصلاحيات" })).toBeVisible();
+  await expect(owner.getByTestId("page-tabs").getByRole("link", { name: "المستخدمون والصلاحيات" })).toHaveAttribute("aria-current", "page");
+  await expect(owner.getByRole("navigation", { name: NAV }).getByRole("link", { name: "الإعدادات", exact: true })).toHaveAttribute("aria-current", "page");
   await owner.context().close();
 
   const admin = await newLoggedIn(browser, "admin", "/admin/settings");
@@ -85,5 +88,46 @@ test("N2: owner enables finance; admin and staff menus follow the flags", async 
   await expect(nav.getByRole("link", { name: "المناسبات", exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "الإنتاج والتسليم", exact: true })).toHaveCount(0);
   await expect(nav.getByRole("link", { name: "المالية", exact: true })).toHaveCount(0);
+  await staff.context().close();
+});
+
+test("N3: settings are one entry with role-filtered tabs; the studio details card is not repeated; home sections live on «الصفحة الرئيسية»", async ({ browser }) => {
+  const TABS_ALL = ["عام", "بيانات النشاط والشعار", "حسابي وكلمة السر", "المستخدمون والصلاحيات", "فيسبوك", "النسخ الاحتياطي"];
+  const owner = await newLoggedIn(browser, "owner", "/admin/settings");
+  await expect(owner.getByTestId("page-tabs").getByRole("link")).toHaveText(TABS_ALL);
+  await expect(owner.getByTestId("settings-business-summary")).toHaveCount(0); // edited only in «بيانات النشاط والشعار»
+  for (const [href, label] of [["/admin/content/identity", "بيانات النشاط والشعار"], ["/admin/account", "حسابي وكلمة السر"], ["/admin/backups", "النسخ الاحتياطي"], ["/admin/settings/facebook", "فيسبوك"]] as const) {
+    await owner.goto(`${BASE}${href}`);
+    await expect(owner.getByTestId("page-tabs").getByRole("link", { name: label, exact: true })).toHaveAttribute("aria-current", "page");
+    await expect(owner.getByRole("navigation", { name: NAV }).getByRole("link", { name: "الإعدادات", exact: true })).toHaveAttribute("aria-current", "page");
+  }
+  // The identity form still works from its tab.
+  await owner.goto(`${BASE}/admin/content/identity`);
+  await expect(owner.getByTestId("identity-form")).toBeVisible();
+  await owner.context().close();
+
+  const admin = await newLoggedIn(browser, "admin", "/admin/settings");
+  await expect(admin.getByTestId("page-tabs").getByRole("link")).toHaveText(["عام", "بيانات النشاط والشعار", "حسابي وكلمة السر"]);
+  // Home: hero form, the sections list and every section card on one page; the nav page keeps the header links only.
+  await admin.goto(`${BASE}/admin/content/home`);
+  await expect(admin.getByTestId("home-form")).toBeVisible();
+  await expect(admin.getByTestId("sections-order")).toBeVisible();
+  await expect(admin.getByTestId("section-about")).toBeVisible();
+  await expect(admin.getByTestId("home-process-link")).toHaveAttribute("href", "/admin/content/process");
+  await expect(admin.getByTestId("home-sections-jump")).toHaveAttribute("href", "#home-sections");
+  await admin.goto(`${BASE}/admin/content/nav`);
+  await expect(admin.getByTestId("nav-list")).toBeVisible();
+  await expect(admin.getByTestId("sections-order")).toHaveCount(0);
+  await expect(admin.getByTestId("section-about")).toHaveCount(0);
+  // Process page: «الصفحة الرئيسية» is current in the sidebar.
+  await admin.goto(`${BASE}/admin/content/process`);
+  await expect(admin.getByRole("navigation", { name: NAV }).getByRole("link", { name: "الصفحة الرئيسية", exact: true })).toHaveAttribute("aria-current", "page");
+  await admin.context().close();
+
+  // Staff: no settings page; their account is their only setting (no tabs, sidebar entry «حسابي وكلمة السر»).
+  const staff = await newLoggedIn(browser, "staff", "/admin/account");
+  await expect(staff.getByRole("navigation", { name: NAV }).getByRole("link", { name: "حسابي وكلمة السر", exact: true })).toHaveAttribute("aria-current", "page");
+  await expect(staff.getByRole("navigation", { name: NAV }).getByRole("link", { name: "الإعدادات", exact: true })).toHaveCount(0);
+  await expect(staff.getByTestId("page-tabs")).toHaveCount(0);
   await staff.context().close();
 });

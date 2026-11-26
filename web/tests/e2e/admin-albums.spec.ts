@@ -40,8 +40,8 @@ async function anonObject(path: string) {
 
 test("A1: nav entry, create album (hidden by default)", async ({ browser }) => {
   const page = await newLoggedIn(browser, "admin", "/admin/albums");
-  await expect(page.getByRole("heading", { level: 1, name: "الألبومات" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "ألبومات الصور" }).first()).toBeVisible();
+  await expect(page.getByRole("heading", { level: 1, name: "ألبومات الموقع" })).toBeVisible();
+  await expect(page.getByRole("link", { name: "ألبومات الموقع" }).first()).toBeVisible();
   const form = page.getByTestId("album-create");
   await form.locator('input[name="title"]').fill("ألبوم اختبار");
   await form.locator('input[name="slug"]').fill(SLUG);
@@ -183,7 +183,7 @@ test("A3: staff and customers are denied (UI + API + storage)", async ({ browser
   const staff = await newLoggedIn(browser, "staff", "/admin");
   await staff.goto("/admin/albums");
   await expect(staff.getByTestId("forbidden")).toBeVisible();
-  await expect(staff.getByRole("link", { name: "ألبومات الصور" })).toHaveCount(0);
+  await expect(staff.getByRole("link", { name: "ألبومات الموقع" })).toHaveCount(0);
   await staff.context().close();
   for (const who of ["staff", "a"] as const) {
     const c = await as(who);

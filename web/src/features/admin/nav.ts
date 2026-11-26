@@ -19,8 +19,9 @@ export const MODULES = [
 export type ModuleKey = (typeof MODULES)[number];
 export const DEFAULT_MODULES: ModuleKey[] = ["customers", "events", "calendar"];
 
-/** module: shown only while that module is enabled (UX only — routes stay reachable). */
-export type NavItem = { href: string; label: string; roles: AppRole[]; module?: ModuleKey };
+/** module: shown only while that module is enabled (UX only — routes stay reachable).
+ *  match: other path prefixes that mark this entry current (e.g. «الإعدادات» on its tab pages). */
+export type NavItem = { href: string; label: string; roles: AppRole[]; module?: ModuleKey; match?: string[] };
 /** collapsible: rendered as a closed disclosure unless it holds the current page. */
 export type NavGroup = { title: string; items: NavItem[]; collapsible?: boolean };
 
@@ -42,44 +43,43 @@ const OPS: NavItem[] = [
   { href: "/admin/staff", label: "الطاقم", roles: A, module: "staff" },
   { href: "/admin/equipment", label: "المعدات", roles: A, module: "equipment" },
   { href: "/admin/support", label: "الدعم", roles: A, module: "support" },
-  { href: "/admin/users", label: "المستخدمون والصلاحيات", roles: O },
 ];
 
 /** Labels for the «الأقسام المفعّلة» settings card. */
 export const MODULE_LABEL = Object.fromEntries(OPS.filter((i) => i.module).map((i) => [i.module, i.label])) as Record<ModuleKey, string>;
 
+/** Settings: one sidebar entry; its pages are tabs inside (SettingsTabs), filtered by role like the menu. */
+export const SETTINGS_TABS: NavItem[] = [
+  { href: "/admin/settings", label: "عام", roles: A },
+  { href: "/admin/content/identity", label: "بيانات النشاط والشعار", roles: A },
+  { href: "/admin/account", label: "حسابي وكلمة السر", roles: S },
+  { href: "/admin/users", label: "المستخدمون والصلاحيات", roles: O },
+  { href: "/admin/settings/facebook", label: "فيسبوك", roles: O },
+  { href: "/admin/backups", label: "النسخ الاحتياطي", roles: O },
+];
+const SETTINGS_PATHS = SETTINGS_TABS.map((t) => t.href).filter((h) => h !== "/admin/settings");
+
 export const NAV: NavGroup[] = [
-  { title: "اليوم", items: [{ href: "/admin", label: "نظرة عامة", roles: S }] },
+  { title: "الرئيسية", items: [{ href: "/admin", label: "نظرة عامة", roles: S }] },
   {
-    title: "الأعمال",
+    title: "الموقع",
     items: [
+      { href: "/admin/content/home", label: "الصفحة الرئيسية", roles: A, match: ["/admin/content/process"] },
       { href: "/admin/videos", label: "الفيديوهات", roles: A },
-      { href: "/admin/albums", label: "ألبومات الصور", roles: A },
-    ],
-  },
-  {
-    title: "البيع",
-    items: [
+      { href: "/admin/albums", label: "ألبومات الموقع", roles: A },
       { href: "/admin/content/packages", label: "البكجات", roles: A },
-      { href: "/admin/content/offers", label: "العروض والإعلانات", roles: A },
+      { href: "/admin/content/offers", label: "العروض", roles: A },
+      { href: "/admin/content/announcements", label: "الإعلانات", roles: A },
+      { href: "/admin/content/nav", label: "القائمة العلوية", roles: A },
     ],
   },
-  {
-    title: "صفحات الموقع",
-    items: [
-      { href: "/admin/content/home", label: "الرئيسية", roles: A },
-      { href: "/admin/content/process", label: "طريقة الشغل", roles: A },
-    ],
-  },
-  { title: "شغل المناسبات", collapsible: true, items: OPS },
+  { title: "الزبائن والمناسبات", collapsible: true, items: OPS },
   {
     title: "الإعدادات",
     items: [
-      { href: "/admin/content/identity", label: "الهوية ومعلومات النشاط", roles: A },
-      { href: "/admin/content/nav", label: "القائمة والأقسام", roles: A },
-      { href: "/admin/account", label: "حسابي وكلمة السر", roles: S },
-      { href: "/admin/settings", label: "إعدادات اللوحة", roles: A },
-      { href: "/admin/backups", label: "النسخ الاحتياطي", roles: O },
+      { href: "/admin/settings", label: "الإعدادات", roles: A, match: SETTINGS_PATHS },
+      // Staff have no settings page: their own account is their only setting.
+      { href: "/admin/account", label: "حسابي وكلمة السر", roles: ["staff"] },
     ],
   },
 ];

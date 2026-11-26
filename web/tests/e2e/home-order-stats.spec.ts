@@ -43,7 +43,7 @@ test("HO1: home order — albums (4, newest first) before videos (3); no counter
 });
 
 test("HO2: owner enters the counter in the admin → it shows on the home page; clearing it hides the section", async ({ browser }) => {
-  const admin = await newLoggedIn(browser, "owner", "/admin/content/nav");
+  const admin = await newLoggedIn(browser, "owner", "/admin/content/home");
   const form = admin.getByTestId("section-stats");
   try {
     await form.getByTestId("stat-value").fill("1250");
