@@ -139,7 +139,6 @@ export async function CalendarView({ searchParams }: { searchParams: SP }) {
                   href={dayHref(d)}
                   scroll={false}
                   aria-current={isSel ? "date" : undefined}
-                  aria-label={`${d} ${MONTHS[m - 1]}${items.length ? `، ${items.length} مناسبة` : ""}`}
                   data-testid="calendar-day"
                   data-day={d}
                   className={`relative flex min-h-14 flex-col items-end gap-1 border-e border-b border-cream-line p-1.5 transition-colors hover:bg-gold/10 sm:min-h-20 sm:p-2 ${isSel ? "bg-gold/10" : ""}`}
@@ -151,6 +150,7 @@ export async function CalendarView({ searchParams }: { searchParams: SP }) {
                   >
                     {d}
                   </span>
+                  <span className="sr-only">{` ${MONTHS[m - 1]}${items.length ? `، ${items.length} مناسبة` : ""}`}</span>
                   {items.length ? (
                     <span className="flex flex-wrap justify-end gap-1" aria-hidden="true">
                       {items.slice(0, 3).map((it) => (

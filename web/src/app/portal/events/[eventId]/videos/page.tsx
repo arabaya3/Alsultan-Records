@@ -19,7 +19,7 @@ async function Videos({ params }: { params: Promise<{ eventId: string }> }) {
   return (
     <ul className="grid gap-4 md:grid-cols-2">
       {list.map((d) => (
-        <li key={d.id}>
+        <li key={d.id} className="min-w-0">
           <Link
             href={`/portal/events/${eventId}/videos/${d.id}`}
             className="flex items-center gap-4 rounded-md border border-cream-line bg-[#fffdf8] p-5 transition-colors hover:border-gold"
@@ -29,7 +29,7 @@ async function Videos({ params }: { params: Promise<{ eventId: string }> }) {
               <PlayBadge size={32} />
             </span>
             <span className="min-w-0 flex-1">
-              <span className="block truncate font-display text-lg font-semibold"><bdi dir={bidiDir(d.title)}>{d.title}</bdi></span>
+              <span dir={bidiDir(d.title)} className="block truncate text-start font-display text-lg font-semibold">{d.title}</span>
               <span className="mt-1 flex flex-wrap items-center gap-2 text-sm text-on-cream-muted">
                 <StatusPill status={d.status} />
                 {d.revisions.length ? `${d.revisions.length} نسخ · آخرها ${dateAr(d.revisions[0].createdAt)}` : "لا توجد نسخ بعد"}

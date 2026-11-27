@@ -46,7 +46,7 @@ export function Card({
   id?: string;
 }) {
   return (
-    <section id={id} className={`rounded-xl border border-cream-line bg-[#fffdf8] shadow-[0_8px_24px_-20px_rgb(60_45_20/0.4)] ${className}`}>
+    <section id={id} className={`min-w-0 rounded-xl border border-cream-line bg-[#fffdf8] shadow-[0_8px_24px_-20px_rgb(60_45_20/0.4)] ${className}`}>
       {title ? (
         <div className="flex flex-wrap items-start justify-between gap-2 px-5 pt-5">
           <div>

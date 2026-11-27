@@ -100,7 +100,7 @@ export function PackageCard({ pkg, offer = null }: { pkg: Package; offer?: Packa
           <div className="mb-4 flex items-center gap-2.5 rounded-lg bg-cream-2 px-3 py-2.5 text-sm">
             <GiftIcon />
             <p data-package-gift className="min-w-0 break-words [overflow-wrap:anywhere]">
-              <span className="font-semibold text-gold-text">الهدية:</span> {pkg.gift}
+              <span className="font-semibold text-on-cream">الهدية:</span> {pkg.gift}
             </p>
           </div>
         ) : null}

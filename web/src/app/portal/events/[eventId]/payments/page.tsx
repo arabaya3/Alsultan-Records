@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { paymentMethodLabel } from "@/features/finance/method-label";
 import { Suspense } from "react";
 import { getPayments } from "@/features/portal/commercial";
 import { PanelSkeleton, Unavailable } from "@/features/portal/components/PortalUi";
@@ -40,7 +41,7 @@ async function Payments({ params }: { params: Promise<{ eventId: string }> }) {
             {res.payments.map((p) => (
               <li key={p.id} className="flex flex-wrap items-center justify-between gap-3 p-4">
                 <div>
-                  <p className="font-medium">{p.kind === "refund" ? "استرداد" : "دفعة"} · {p.method}</p>
+                  <p className="font-medium">{p.kind === "refund" ? "استرداد" : "دفعة"}{p.method ? ` · ${paymentMethodLabel(p.method)}` : ""}</p>
                   <p className="text-sm text-on-cream-muted">{dateAr(p.received_at)}{p.reference ? ` · ${p.reference}` : ""}</p>
                 </div>
                 <p className={`font-semibold ${p.kind === "refund" ? "text-danger" : ""}`}>
