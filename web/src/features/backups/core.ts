@@ -44,10 +44,20 @@ export type BackupResult = {
   tablesTotal: number;
 };
 
+/** Stable page order = the primary key. Every table has `id` except these (keys checked against the schema). */
+export const ORDER_KEYS: Record<string, readonly string[]> = {
+  service_links: ["service_id", "kind", "target_id"],
+  showcase_video_categories: ["video_id", "category_id"],
+  site_sections: ["key"],
+  slug_redirects: ["from_path"],
+};
+
 async function exportTable(admin: Client, table: string): Promise<unknown[]> {
   const rows: unknown[] = [];
   for (let from = 0; ; from += PAGE) {
-    const { data, error } = await admin.from(table).select("*").order("id").range(from, from + PAGE - 1);
+    let q = admin.from(table).select("*");
+    for (const k of ORDER_KEYS[table] ?? ["id"]) q = q.order(k);
+    const { data, error } = await q.range(from, from + PAGE - 1);
     if (error) throw new Error(error.message);
     rows.push(...(data ?? []));
     if (!data || data.length < PAGE) break;

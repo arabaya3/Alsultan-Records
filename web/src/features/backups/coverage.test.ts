@@ -51,3 +51,31 @@ describe("backup coverage", () => {
     for (const b of ["public-media", "private-media", "album-media", "site-media", "reel-media"]) expect(BACKUP_BUCKETS as readonly string[]).toContain(b);
   });
 });
+
+describe("backup page order", () => {
+  /** Primary key columns per table, read from the migrations ("primary key (a, b)" or "<col> … primary key"). */
+  function primaryKeys(): Map<string, string[]> {
+    const keys = new Map<string, string[]>();
+    for (const f of readdirSync("supabase/migrations").filter((n) => n.endsWith(".sql")).sort()) {
+      const sql = readFileSync(`supabase/migrations/${f}`, "utf8");
+      for (const m of sql.matchAll(/create table (?:if not exists )?public\.([a-z_]+) \(([\s\S]*?)\n\);/gi)) {
+        const body = m[2];
+        const composite = /primary key \(([^)]+)\)/i.exec(body);
+        const single = /^\s*([a-z_]+)\s[^,\n]*\bprimary key\b/im.exec(body);
+        keys.set(m[1], composite ? composite[1].split(",").map((s) => s.trim()) : single ? [single[1]] : []);
+      }
+    }
+    return keys;
+  }
+
+  it("every exported table pages by its primary key (id, or the ORDER_KEYS entry)", async () => {
+    const { ORDER_KEYS } = await import("./core");
+    const pk = primaryKeys();
+    const wrong = (BACKUP_TABLES as readonly string[]).filter((t) => {
+      const want = pk.get(t) ?? [];
+      const used = ORDER_KEYS[t] ?? ["id"];
+      return want.join(",") !== used.join(",");
+    });
+    expect(wrong).toEqual([]);
+  });
+});
