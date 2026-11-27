@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
-import { BASE, EV, newLoggedIn } from "./qa-helpers";
+import { BASE, db, EV, newLoggedIn } from "./qa-helpers";
 
 /**
  * Regressions for docs/frontend-ux-audit.md (UX1–UX4). Local isolated stack + production build, seed data only.
@@ -54,5 +54,26 @@ test("UX4 native checkboxes and radios are at least 20px (WCAG 2.5.8 target size
   const sizes = await page.locator("input[type=checkbox]:visible").evaluateAll((els) => els.map((e) => e.getBoundingClientRect().height));
   expect(sizes.length).toBeGreaterThan(0);
   for (const h of sizes) expect(h).toBeGreaterThanOrEqual(20);
+  await page.context().close();
+});
+
+test("UX8 success badges and notices meet AA contrast on admin detail pages (axe color-contrast)", async ({ browser }) => {
+  const contract = (await db.from("contracts").select("id").limit(1)).data?.[0]?.id as string;
+  const album = (await db.from("photo_albums").select("id").limit(1)).data?.[0]?.id as string;
+  const page = await newLoggedIn(browser, "owner", "/admin", 390);
+  for (const url of [`/admin/contracts/${contract}`, `/admin/albums/${album}`, "/admin/content/services"]) {
+    await page.goto(`${BASE}${url}`, { waitUntil: "networkidle" });
+    const r = await new AxeBuilder({ page }).withRules(["color-contrast"]).analyze();
+    expect(r.violations, url).toEqual([]);
+  }
+  await page.context().close();
+});
+
+test("UX9 the reel file input on the admin video page has an accessible name (axe label)", async ({ browser }) => {
+  const video = (await db.from("showcase_videos").select("id").limit(1)).data?.[0]?.id as string;
+  const page = await newLoggedIn(browser, "owner", "/admin", 1440);
+  await page.goto(`${BASE}/admin/videos/${video}`, { waitUntil: "networkidle" });
+  const r = await new AxeBuilder({ page }).withRules(["label"]).analyze();
+  expect(r.violations).toEqual([]);
   await page.context().close();
 });
