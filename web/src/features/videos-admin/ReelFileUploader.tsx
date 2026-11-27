@@ -78,6 +78,7 @@ export function ReelFileUploader({ videoId, current }: { videoId: string; curren
       <input
         type="file"
         accept="video/mp4,video/quicktime"
+        aria-label="ملف الفيديو (MP4 أو MOV)"
         data-testid="reel-file-input"
         disabled={state === "uploading"}
         onChange={(e) => {

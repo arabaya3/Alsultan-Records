@@ -18,7 +18,7 @@
   --color-on-cream: #141210;
   --color-on-cream-muted: #5c554b;
   --color-danger: #b4432f;
-  --color-success: #3f7a4f;
+  --color-success: #33663f; /* was #3f7a4f: 4.1–4.4:1 as text on success/10 badges; now ≥5:1 (AA) */
 
   --radius-sm: 4px;
   --radius-md: 6px;
