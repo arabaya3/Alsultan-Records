@@ -20,33 +20,40 @@ select throws_ok($$insert into public.media_assets (event_id, bucket, path, kind
   '23514', null, 'a path in another event is refused');
 
 -- ------------------------------------------------------------------ 2. reserved prefixes
--- Through PostgREST: the customer (session authenticator, role authenticated) cannot adopt the prefix…
-set local session authorization authenticator;
+-- An API request (request.jwt.claims set, as PostgREST always does): the customer cannot adopt the prefix…
 set local role authenticated;
 select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000b1","role":"authenticated","aal":"aal1"}', true);
 select throws_ok($$update public.customers set full_name = '[STAGING-TEST] me' where user_id = '00000000-0000-4000-8000-0000000000b1'$$,
   '22023', null, 'a customer cannot give themselves a fixture prefix');
 select lives_ok($$update public.customers set full_name = 'Customer A renamed' where user_id = '00000000-0000-4000-8000-0000000000b1'$$,
   'an ordinary rename still works');
+reset role;
+-- …an admin cannot set it on someone else either…
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000a1","role":"authenticated","aal":"aal2"}', true);
+select throws_ok($$update public.customers set full_name = '[RESTORE-TEST] x' where user_id = '00000000-0000-4000-8000-0000000000b2'$$,
+  '22023', null, 'an admin request cannot set the prefix');
+reset role;
 -- …the service role (fixture scripts) can.
 set local role service_role;
 select set_config('request.jwt.claims', '{"role":"service_role"}', true);
 select lives_ok($$update public.customers set full_name = '[STAGING-TEST] fixture' where user_id = '00000000-0000-4000-8000-0000000000b2'$$,
   'the service role may write the prefix');
-select set_config('request.jwt.claims', '', true);
 reset role;
-reset session authorization;
-
--- Sign-up (GoTrue = supabase_auth_admin): the name comes from user metadata.
-set local session authorization supabase_auth_admin;
-select throws_ok($$insert into auth.users (id, email, raw_user_meta_data) values
-  ('00000000-0000-4000-8000-00000000ee11', 'pgtap-prefix@example.test', '{"full_name":"[RESTORE-TEST] me"}')$$,
-  '22023', null, 'a sign-up cannot take a fixture prefix through its metadata');
-select lives_ok($$insert into auth.users (id, email, raw_user_meta_data, raw_app_meta_data) values
-  ('00000000-0000-4000-8000-00000000ee12', 'pgtap-fixture@example.test', '{"full_name":"[STAGING-TEST] fixture"}', '{"test_fixture":true}')$$,
-  'an admin-API fixture account (app_metadata.test_fixture) may');
-reset session authorization;
-select is((select full_name from public.customers where user_id = '00000000-0000-4000-8000-00000000ee12'), '[STAGING-TEST] fixture', 'its customer row carries the prefix');
+-- A direct database session with no request (migrations, maintenance) may.
+select set_config('request.jwt.claims', '', true);
+select lives_ok($$update public.customers set full_name = '[STAGING-TEST] maintenance' where user_id = '00000000-0000-4000-8000-0000000000b2'$$,
+  'a direct session without a request may');
+-- An account created by the admin API with app_metadata.test_fixture may carry it even inside a request context.
+insert into auth.users (id, email, raw_user_meta_data, raw_app_meta_data) values
+  ('00000000-0000-4000-8000-00000000ee12', 'pgtap-fixture@example.test', '{"full_name":"Fixture"}', '{"test_fixture":true}');
+set local role authenticated;
+select set_config('request.jwt.claims', '{"sub":"00000000-0000-4000-8000-0000000000a1","role":"authenticated","aal":"aal2"}', true);
+select lives_ok($$update public.customers set full_name = '[STAGING-TEST] fixture 2' where user_id = '00000000-0000-4000-8000-00000000ee12'$$,
+  'a fixture account (app_metadata.test_fixture) may carry the prefix');
+reset role;
+select set_config('request.jwt.claims', '', true);
+-- (The GoTrue sign-up path, session supabase_auth_admin, is covered by e2e fixture-prefix.spec.ts on a real sign-up.)
 
 select * from finish();
 rollback;

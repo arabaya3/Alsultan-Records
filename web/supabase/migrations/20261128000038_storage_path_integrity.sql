@@ -14,10 +14,11 @@
 --    as a test fixture and deletes their payments, quotes and contracts. A customer can edit their own name, and a
 --    self sign-up takes its name from user metadata, so a real customer could get their records deleted by the next
 --    staging run on the shared ("staging" = production) project. Those two prefixes are now reserved: a customer row
---    may carry one only when written with the service role (fixture scripts), from a direct database session
---    (session_user postgres: migrations, pgTAP, maintenance), or when its account was created by the admin API with
---    app_metadata.test_fixture = true (user-editable metadata cannot set app_metadata). API requests (PostgREST's
---    authenticator as anon/authenticated) and sign-ups (supabase_auth_admin) without that flag are refused.
+--    may carry one only when written with the service role (fixture scripts), from a direct database session that is
+--    not an API request (session_user postgres and no request.jwt.claims: migrations, maintenance), or when its
+--    account was created by the admin API with app_metadata.test_fixture = true (user-editable metadata cannot set
+--    app_metadata). API requests (PostgREST always sets request.jwt.claims, even for anon) and sign-ups (GoTrue
+--    connects as supabase_auth_admin) without that flag are refused.
 --    Existing rows are untouched; only an insert, or a change of the name, is checked.
 
 -- ---------------------------------------------------------------- 1. media paths stay in their event
@@ -47,7 +48,7 @@ begin
   if left(coalesce(new.full_name, ''), 14) in ('[STAGING-TEST]', '[RESTORE-TEST]')
      and (tg_op = 'INSERT' or old.full_name is distinct from new.full_name)
      and coalesce(auth.role(), '') <> 'service_role'
-     and session_user <> 'postgres'
+     and not (session_user = 'postgres' and coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}') = '{}')
      and not exists (
        select 1 from auth.users u
        where u.id = new.user_id and coalesce(u.raw_app_meta_data ->> 'test_fixture', '') = 'true'
