@@ -86,6 +86,26 @@ test("/offers lists active offers only, pinned first", async ({ page }) => {
   for (const k of ["expired", "future", "draft", "archived"] as const) await expect(page.getByText(F[k].title)).toHaveCount(0);
 });
 
+test("/offers design: ivory band, «العروض المتاحة», light cards with a working details link, no extra buttons below", async ({ page }) => {
+  await page.goto("/offers");
+  const band = page.locator("section[aria-labelledby='offers-available']");
+  await expect(band).toHaveAttribute("data-tone", "ivory");
+  await expect(band.getByRole("heading", { level: 2, name: "العروض المتاحة" })).toBeVisible();
+  const card = page.locator(`[data-offer-card='${F.pinned.slug}']`);
+  await expect(card.locator("[data-offer-badge]")).toHaveText("عرض مميز");
+  await expect(page.locator(`[data-offer-card='${F.today.slug}'] [data-offer-badge]`)).toHaveText("عرض محدود");
+  await expect(card).toContainText("عرض التفاصيل");
+  // Owner request: the «استعرض البكجات» and «احجز عبر واتساب» buttons under the cards are gone (footer links stay).
+  await expect(page.locator("main a[href='/packages']")).toHaveCount(0);
+  await expect(page.locator("main a[data-whatsapp-cta]")).toHaveCount(0);
+  for (const w of [390, 1440]) {
+    await page.setViewportSize({ width: w, height: 900 });
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth), `@${w}`).toBe(0);
+  }
+  await card.click();
+  await expect(page).toHaveURL(new RegExp(`/offers/${F.pinned.slug}$`));
+});
+
 test("offer page: Arabic dates, items, terms, price only when shown, JSON-LD Offer, WhatsApp message", async ({ page }) => {
   await page.goto(`/offers/${F.today.slug}`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(F.today.title);
