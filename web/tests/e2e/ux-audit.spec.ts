@@ -116,10 +116,54 @@ test("UX sweep: public, admin, portal × 4 widths", async ({ browser }) => {
     ["portal-quotes", `/portal/events/${EV.A1}/quotes`], ["portal-payments", `/portal/events/${EV.A1}/payments`],
     ["portal-contracts", `/portal/events/${EV.A1}/contracts`], ["portal-selection", `/portal/events/${EV.A1}/selection`],
   ];
+  // Detail / edit pages: first seed row of each table (view only — the sweep never submits a form).
+  const first = async (table: string, col = "id") => (await db.from(table).select(col).limit(1)).data?.[0]?.[col as never] as string | undefined;
+  const detailAdmin: [string, string][] = [];
+  const addA = (name: string, id: string | undefined, url: (id: string) => string) => { if (id) detailAdmin.push([name, url(id)]); };
+  addA("admin-quote", await first("quotes"), (id) => `/admin/quotes/${id}`);
+  addA("admin-quote-new", "x", () => "/admin/quotes/new");
+  addA("admin-contract", await first("contracts"), (id) => `/admin/contracts/${id}`);
+  addA("admin-customer", await first("customers"), (id) => `/admin/customers/${id}`);
+  addA("admin-customer-new", "x", () => "/admin/customers/new");
+  addA("admin-event-new", "x", () => "/admin/events/new");
+  addA("admin-event-media", EV.A1, (id) => `/admin/events/${id}/media`);
+  addA("admin-booking", await first("booking_requests"), (id) => `/admin/bookings/${id}`);
+  addA("admin-video", await first("showcase_videos"), (id) => `/admin/videos/${id}`);
+  addA("admin-video-categories", "x", () => "/admin/videos/categories");
+  addA("admin-album", await first("photo_albums"), (id) => `/admin/albums/${id}`);
+  addA("admin-album-preview", await first("photo_albums"), (id) => `/admin/albums/${id}/preview`);
+  addA("admin-package", await first("packages"), (id) => `/admin/content/packages/${id}`);
+  addA("admin-offer", await first("offers"), (id) => `/admin/content/offers/${id}`);
+  addA("admin-announcement", await first("announcements"), (id) => `/admin/content/announcements/${id}`);
+  addA("admin-announcements", "x", () => "/admin/content/announcements");
+  addA("admin-service", await first("services"), (id) => `/admin/content/services/${id}`);
+  addA("admin-services", "x", () => "/admin/content/services");
+  addA("admin-identity", "x", () => "/admin/content/identity");
+  addA("admin-nav", "x", () => "/admin/content/nav");
+  addA("admin-process", "x", () => "/admin/content/process");
+  addA("admin-support-item", await first("support_requests"), (id) => `/admin/support/${id}`);
+  addA("admin-deliverable", await first("deliverables"), (id) => `/admin/production/${id}`);
+  addA("admin-production-albums", "x", () => "/admin/production/albums");
+  addA("admin-snapshot", await first("album_selection_snapshots"), (id) => `/admin/production/albums/${id}`);
+  const deliv = (await db.from("deliverables").select("id").eq("event_id", EV.A1).limit(1)).data?.[0]?.id as string | undefined;
+  const yt = await first("showcase_videos", "youtube_id");
+  const detailPortal: [string, string][] = [];
+  if (deliv) detailPortal.push(["portal-film", `/portal/events/${EV.A1}/videos/${deliv}`]);
+  const detailPub: [string, string][] = [["services", "/services"]];
+  const svc = await first("services", "slug");
+  if (svc) detailPub.push(["service-detail", `/services/${svc}`]);
+  if (yt) detailPub.push(["video-page", `/work/v/${yt}`]);
+  detailPub.push(["auth-reset", "/auth/reset"]);
+
   const only = process.env.AUDIT_ONLY;
+  const groups = [
+    ["pub", pub, undefined, "/"], ["admin", admin, "owner", "/admin"], ["portal", portal, "a", "/portal"],
+    ["detail-pub", detailPub, undefined, "/"], ["detail-admin", detailAdmin, "owner", "/admin"], ["detail-portal", detailPortal, "a", "/portal"],
+  ] as const;
   for (const width of WIDTHS) {
-    for (const [group, list, who, next] of [["pub", pub, undefined, "/"], ["admin", admin, "owner", "/admin"], ["portal", portal, "a", "/portal"]] as const) {
-      if (only && only !== group) continue;
+    for (const [group, list, who, next] of groups) {
+      if (!only && group.startsWith("detail")) continue; // detail pages run only when asked: AUDIT_ONLY=detail
+      if (only && !group.startsWith(only)) continue;
       const { c, page } = await ctx(browser, width, who as Who | undefined, next);
       for (const [name, url] of list) {
         try { await audit(page, name, url, width); } catch (e) { rows.push({ name, url, width, console: [`AUDIT FAILED: ${(e as Error).message.slice(0, 200)}`], failed: [], overflow: 0, offenders: [], images: { broken: [], noAlt: 0, notLazyBelowFold: 0, total: 0 }, axe: [], smallTargets: 0 }); }
