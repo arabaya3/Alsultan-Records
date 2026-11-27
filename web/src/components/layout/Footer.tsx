@@ -59,6 +59,8 @@ export async function Footer() {
                   href={c.href!}
                   className={linkCls}
                   {...(c.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                  // With the header button gone, this is the WhatsApp booking link on every page.
+                  {...(c.key === "whatsapp" ? { "data-whatsapp-cta": "" } : {})}
                 >
                   {SOCIAL[c.key].icon}
                   {c.key === "phone" ? (

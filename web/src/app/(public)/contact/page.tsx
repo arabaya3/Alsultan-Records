@@ -64,6 +64,7 @@ export default async function ContactPage() {
                         dir={r.ltr ? "ltr" : undefined}
                         className="inline-flex min-h-11 max-w-full min-w-0 items-center underline decoration-1 underline-offset-4 [overflow-wrap:anywhere] hover:decoration-gold"
                         {...(r.external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+                        {...(r.key === "whatsapp" ? { "data-whatsapp-cta": "" } : {})}
                       >
                         {r.label}
                       </a>

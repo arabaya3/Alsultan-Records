@@ -113,7 +113,7 @@ export default async function HomePage() {
     const hid = HEADING_ID[c.key];
     switch (c.key) {
       case "about":
-        return <PosterAbout key={c.key} title={c.title} intro={c.intro} photo={hero} />;
+        return <PosterAbout key={c.key} title={c.title} intro={c.intro} />;
       case "services":
         return <PosterServices key={c.key} title={c.title} intro={c.intro} />;
       case "works":

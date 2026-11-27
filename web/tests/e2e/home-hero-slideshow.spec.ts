@@ -46,7 +46,7 @@ test("HS2: an album's photos come in album order; a hidden photo leaves the list
   }
 });
 
-test("HS3: the hero opens on the saved photo, then moves on to the newest album from its first photo, named and counted", async ({ page }) => {
+test("HS3: the hero opens on the saved photo, then moves on to the newest album from its first photo; no album label on the photo", async ({ page }) => {
   await skipSiteIntro(page);
   await page.setViewportSize({ width: 1440, height: 900 });
   const { albums } = await api<{ albums: Album[] }>();
@@ -56,10 +56,7 @@ test("HS3: the hero opens on the saved photo, then moves on to the newest album 
   const opening = await sharp(page).getAttribute("src");
   const expected = ids.find((id) => `/p/${id}/display` !== opening)!;
   await expect.poll(async () => onLayer(page).getAttribute("src"), { timeout: 15_000 }).toBe(`/p/${expected}/display`);
-  const chip = page.locator("[data-hero-album]");
-  await expect(chip.getByRole("link")).toHaveAttribute("href", `/work/albums/${albums[0].slug}`);
-  await expect(chip).toContainText(albums[0].title);
-  await expect(chip).toContainText(`/${ids.length}`);
+  await expect(page.locator("[data-home-hero-photo] a")).toHaveCount(0); // owner request: no album name on the photo
   // The hero keeps its size while photos change.
   const h1 = (await page.locator("[data-home-hero]").boundingBox())!.height;
   await page.waitForTimeout(1500);

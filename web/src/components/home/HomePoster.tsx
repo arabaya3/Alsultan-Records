@@ -218,8 +218,24 @@ export function PosterHero({
 const ivory = "tone-ivory bg-ivory-band text-on-cream";
 const pad = "py-7 sm:py-8";
 
-/** `photo` is the owner's own hero photo (through /p), shown beside the team lines; without one the card is text only. */
-export function PosterAbout({ title, intro, photo = null }: { title: string; intro: string | null; photo?: HeroPhoto | null }) {
+/** The two teams as one drawing: a woman (head covered) and a man side by side, in the poster's gold line. */
+function TeamIcon({ className = "" }: { className?: string }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 120 90" className={className} fill="none" stroke="currentColor" strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round">
+      {/* woman */}
+      <path d="M22 44c0-14 7-24 18-24s18 10 18 24c0 6-2 10-5 13" />
+      <path d="M27 57c-3-3-5-7-5-13" />
+      <circle cx="40" cy="38" r="8.5" />
+      <path d="M14 84c2-12 12-20 26-20s24 8 26 20" />
+      {/* man */}
+      <circle cx="82" cy="34" r="10" />
+      <path d="M58 84c2-14 11-23 24-23s22 9 24 23" />
+      <path d="M78 61l4 7 4-7" />
+    </svg>
+  );
+}
+
+export function PosterAbout({ title, intro }: { title: string; intro: string | null }) {
   const team = [
     { label: HOME_POSTER.about.team[0], icon: <WomanIcon /> },
     { label: HOME_POSTER.about.team[1], icon: <ManIcon /> },
@@ -232,7 +248,7 @@ export function PosterAbout({ title, intro, photo = null }: { title: string; int
         <p data-section-intro className="mx-auto mt-5 max-w-3xl text-center text-lg break-words whitespace-pre-line text-on-cream-muted sm:text-xl">
           {intro ?? HOME_POSTER.about.body}
         </p>
-        <div data-about-card className={`mx-auto mt-8 grid max-w-[46rem] overflow-hidden ${card} ${photo ? "grid-cols-[1.6fr_1fr] sm:grid-cols-[1.25fr_1fr]" : ""}`}>
+        <div data-about-card className={`mx-auto mt-8 grid max-w-[46rem] overflow-hidden ${card} grid-cols-[1.6fr_1fr] sm:grid-cols-[1.25fr_1fr]`}>
           <ul className="flex flex-col justify-center gap-4 p-4 sm:gap-6 sm:p-8">
             {team.map((t) => (
               <li key={t.label} className="flex items-center gap-2.5 sm:gap-4">
@@ -241,20 +257,9 @@ export function PosterAbout({ title, intro, photo = null }: { title: string; int
               </li>
             ))}
           </ul>
-          {photo ? (
-            <div className="relative min-h-40">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={photo.placeholderSrc}
-                srcSet={`${photo.placeholderSrc} 320w, ${photo.src} 1066w`}
-                sizes="(min-width: 768px) 368px, 50vw"
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="absolute inset-0 size-full object-cover object-[50%_20%] [mask-image:linear-gradient(to_right,#000_55%,transparent)]"
-              />
-            </div>
-          ) : null}
+          <div data-about-team-icon className="grid min-h-40 place-items-center border-s border-cream-line bg-cream-2/60 p-4">
+            <TeamIcon className="h-24 w-32 text-gold-press sm:h-28 sm:w-40" />
+          </div>
         </div>
       </div>
     </section>
