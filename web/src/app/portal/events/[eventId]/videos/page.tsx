@@ -19,7 +19,7 @@ async function Videos({ params }: { params: Promise<{ eventId: string }> }) {
   return (
     <ul className="grid gap-4 md:grid-cols-2">
       {list.map((d) => (
-        <li key={d.id}>
+        <li key={d.id} className="min-w-0">
           <Link
             href={`/portal/events/${eventId}/videos/${d.id}`}
             className="flex items-center gap-4 rounded-md border border-cream-line bg-[#fffdf8] p-5 transition-colors hover:border-gold"

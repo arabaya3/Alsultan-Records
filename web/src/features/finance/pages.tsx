@@ -8,6 +8,7 @@ import { formatMinor } from "@/features/admin/money";
 import { DATE_RE } from "@/features/admin/result";
 import { addExpense, deleteExpense } from "./actions";
 import { PaymentForm } from "./PaymentForm";
+import { paymentMethodLabel } from "./method-label";
 
 const SIZE = 20;
 
@@ -98,7 +99,7 @@ export async function FinancePage({ searchParams }: { searchParams: SP }) {
                     <td>{p.customers?.full_name ?? "—"}{p.events ? <span className="block text-xs text-on-cream-muted">{p.events.title}</span> : null}</td>
                     <td>{p.kind === "refund" ? <Badge tone="danger">استرداد</Badge> : <Badge tone="success">دفعة</Badge>}</td>
                     <td dir="ltr" className="text-end">{formatMinor(p.amount, p.currency)}</td>
-                    <td>{p.method}{p.reference ? <span className="block text-xs text-on-cream-muted">{p.reference}</span> : null}</td>
+                    <td>{paymentMethodLabel(p.method)}{p.reference ? <span className="block text-xs text-on-cream-muted">{p.reference}</span> : null}</td>
                   </tr>
                 ))}
               </Table>
