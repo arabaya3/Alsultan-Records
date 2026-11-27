@@ -1,6 +1,6 @@
 -- 0039 A revoked token is signed out at once (not when it expires); a fresh sign-in works; disabling revokes too;
 -- the service role cannot clear the customer's "withdrawn" flag.
--- Seed: owner a1, customer b1 (customer A: events e1, e2), staff a3 (assigned to e1).
+-- Seed: owner a1, customer b1 (customer A: private event e1; e2 is the PUBLISHED sample, readable by anyone), staff a3.
 begin;
 select plan(12);
 
@@ -12,7 +12,7 @@ $$;
 -- before: the customer's token (issued a minute ago) sees their events
 set local role authenticated;
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b1', -60);
-select ok((select count(*) from public.events where id in ('00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000e2')) > 0, 'before: the customer sees their events');
+select ok((select count(*) from public.events where id = '00000000-0000-4000-8000-0000000000e1') > 0, 'before: the customer sees their private event (e1)');
 reset role;
 
 -- the owner revokes the customer's sessions
@@ -24,13 +24,13 @@ reset role;
 -- the SAME token, straight after: signed out everywhere
 set local role authenticated;
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b1', -60);
-select is((select count(*)::int from public.events where id in ('00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000e2')), 0, 'revoked token: no events');
+select is((select count(*)::int from public.events where id = '00000000-0000-4000-8000-0000000000e1'), 0, 'revoked token: not even their own private event');
 select is((select count(*)::int from public.profiles where id = '00000000-0000-4000-8000-0000000000b1'), 0, 'revoked token: no own profile (the app treats it as signed out)');
 select is(app.customer_id(), null, 'revoked token: no customer identity');
 select ok(not app.is_active(), 'revoked token: not active');
 -- a token from a new sign-in (issued after the revocation) works
 select pg_temp.as_user('00000000-0000-4000-8000-0000000000b1', 5);
-select ok((select count(*) from public.events where id in ('00000000-0000-4000-8000-0000000000e1', '00000000-0000-4000-8000-0000000000e2')) > 0, 'a fresh sign-in sees their events again');
+select ok((select count(*) from public.events where id = '00000000-0000-4000-8000-0000000000e1') > 0, 'a fresh sign-in sees it again');
 reset role;
 
 -- disabling revokes too: the staff member's old token loses staff rights at once, also after re-enabling
