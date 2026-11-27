@@ -169,7 +169,7 @@ export function FilterChips({
   params: Record<string, string>;
 }) {
   return (
-    <div className="mb-3 flex flex-wrap gap-2" role="group" aria-label="تصفية">
+    <div className="flex flex-wrap gap-2" role="group" aria-label="تصفية">
       {[{ value: "", label: "الكل" }, ...options].map((o) => {
         const active = current === o.value;
         return (
@@ -177,8 +177,8 @@ export function FilterChips({
             key={o.value || "all"}
             href={buildHref(base, params, { [param]: o.value || null, page: null })}
             aria-current={active ? "true" : undefined}
-            className={`rounded-sm border px-3 py-1 text-sm ${
-              active ? "border-ink bg-ink text-on-dark" : "border-cream-line bg-[#fffdf8] hover:border-on-cream-muted"
+            className={`inline-flex min-h-10 items-center rounded-full border px-4 text-sm font-medium transition-colors ${
+              active ? "border-navy bg-navy text-ivory" : "border-cream-line bg-[#fffdf8] hover:border-on-cream-muted"
             }`}
           >
             {o.label}
@@ -202,7 +202,7 @@ export function SearchBox({
   placeholder?: string;
 }) {
   return (
-    <form action={base} method="get" role="search" className="mb-3 flex max-w-xl gap-2">
+    <form action={base} method="get" role="search" className="relative flex w-full max-w-md items-center">
       {Object.entries(params)
         .filter(([k, v]) => k !== "q" && k !== "page" && v)
         .map(([k, v]) => (
@@ -211,20 +211,91 @@ export function SearchBox({
       <label className="sr-only" htmlFor="admin-q">
         بحث
       </label>
-      <input id="admin-q" name="q" defaultValue={q} placeholder={placeholder} className="field !min-h-11 flex-1" />
-      <button type="submit" className={btn("secondary")}>
-        بحث
+      <input id="admin-q" name="q" type="search" defaultValue={q} placeholder={placeholder} className="field !min-h-11 !rounded-xl !ps-11" />
+      <button type="submit" aria-label="بحث" className="absolute start-1 inline-flex size-10 items-center justify-center rounded-lg text-on-cream-muted hover:text-on-cream">
+        <SearchIcon />
       </button>
     </form>
   );
 }
 
+export function SearchIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 24 24" width={size} height={size} fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+      <circle cx="11" cy="11" r="7" />
+      <path d="m20 20-3.5-3.5" />
+    </svg>
+  );
+}
+
+/**
+ * Section tabs (links): «الألبومات · التصنيفات · الأرشيف · سلة المحذوفات». The current one is the navy pill.
+ * Icons optional. Server-safe.
+ */
+export function Segmented({
+  label,
+  tabs,
+  current,
+  testId = "page-tabs",
+}: {
+  label: string;
+  tabs: { href: string; label: ReactNode; icon?: ReactNode; key?: string }[];
+  current: string;
+  testId?: string;
+}) {
+  return (
+    <nav aria-label={label} className="mb-6 flex flex-wrap gap-2 border-b border-cream-line pb-4" data-testid={testId}>
+      {tabs.map((t) => {
+        const on = (t.key ?? t.href) === current;
+        return (
+          <a
+            key={t.key ?? t.href}
+            href={t.href}
+            aria-current={on ? "page" : undefined}
+            className={`inline-flex min-h-11 items-center gap-2 rounded-xl border px-5 text-sm font-semibold transition-colors ${
+              on ? "border-navy bg-navy text-ivory shadow-[inset_0_-2px_0_var(--color-gold)]" : "border-cream-line bg-[#fffdf8] text-on-cream hover:border-on-cream-muted"
+            }`}
+          >
+            {t.icon ? <span aria-hidden="true" className={on ? "text-gold" : "text-on-cream-muted"}>{t.icon}</span> : null}
+            {t.label}
+          </a>
+        );
+      })}
+    </nav>
+  );
+}
+
+/** A compact list: one bordered rounded block, rows separated by hairlines (the designs' list cards). */
+export function ListCard({ children, label, testId }: { children: ReactNode; label?: string; testId?: string }) {
+  return (
+    <ul aria-label={label} data-testid={testId} className="divide-y divide-cream-line overflow-visible rounded-2xl border border-cream-line bg-[#fffdf8] shadow-[0_8px_24px_-20px_rgb(60_45_20/0.4)]">
+      {children}
+    </ul>
+  );
+}
+
+/** Empty list / day: an icon in a soft circle, a title and one line of help. */
+export function EmptyState({ title, body, icon, action }: { title: string; body?: ReactNode; icon?: ReactNode; action?: ReactNode }) {
+  return (
+    <div className="flex flex-col items-center px-6 py-10 text-center" role="status">
+      {icon ? (
+        <span aria-hidden="true" className="mb-4 inline-flex size-24 items-center justify-center rounded-full bg-gold/15 text-gold-press">
+          {icon}
+        </span>
+      ) : null}
+      <p className="font-display text-xl font-bold text-on-cream">{title}</p>
+      {body ? <p className="mt-2 max-w-sm text-on-cream-muted">{body}</p> : null}
+      {action ? <div className="mt-4">{action}</div> : null}
+    </div>
+  );
+}
+
 export function btn(kind: "primary" | "secondary" | "ghost" | "danger" = "secondary", extra = "") {
   const base =
-    "inline-flex min-h-11 items-center justify-center gap-2 rounded-sm px-4 text-sm font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50";
+    "inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 text-sm font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50";
   const k =
     kind === "primary"
-      ? "bg-gold text-ink hover:bg-gold-press"
+      ? "bg-gradient-to-b from-[#f0c865] to-gold text-ink shadow-[0_6px_16px_-10px_rgb(150_110_20/0.8)] hover:from-gold hover:to-gold-press"
       : kind === "danger"
         ? "border border-danger/50 text-danger hover:bg-danger/10"
         : kind === "ghost"

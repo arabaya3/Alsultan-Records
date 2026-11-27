@@ -1,8 +1,8 @@
-import { SettingsTabs } from "@/features/admin/SettingsTabs";
+import { SettingsFrame } from "@/features/admin/SettingsTabs";
 import { createClient } from "@/lib/supabase/server";
 import { ADMIN_ROLES, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import { Card, LoadError, PageHeader } from "@/features/admin/ui";
+import { Card, LoadError } from "@/features/admin/ui";
 import { MODULE_LABEL, MODULES } from "@/features/admin/nav";
 import { saveAppSettings, saveEnabledModules } from "./actions";
 
@@ -18,8 +18,7 @@ export async function SettingsPage() {
   if (app.error) return <LoadError what="الإعدادات" />;
   return (
     <>
-      <PageHeader title="الإعدادات" lead="أمان الدخول والأقسام اللي بتظهر بالقائمة. بيانات النشاط والشعار في تبويبها." />
-      <SettingsTabs current="/admin/settings" />
+      <SettingsFrame current="/admin/settings" title="القائمة والأقسام" lead="أمان الدخول والأقسام التي تظهر في قائمة لوحة التحكم.">
       <div className="grid gap-4 lg:grid-cols-2">
         {!isOwner ? (
           <Card title="إعدادات النظام">
@@ -54,6 +53,7 @@ export async function SettingsPage() {
           </Card>
         ) : null}
       </div>
+      </SettingsFrame>
     </>
   );
 }

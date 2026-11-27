@@ -72,20 +72,20 @@ const NAV = "/admin/content/home"; // home sections are edited on «الصفحة
 const adminOrder = () => admin.locator("[data-testid=sections-order] [data-testid=section-row]").evaluateAll((els) => els.map((e) => e.getAttribute("data-key")!));
 
 async function setVisible(key: string, visible: boolean) {
-  await admin.goto(`${BASE}${NAV}`);
+  await admin.goto(`${BASE}${NAV}?tab=sections`);
   const row = admin.locator(`[data-testid=section-row][data-key=${key}]`);
   await expect(row).toBeVisible();
-  const on = row.getByRole("button", { name: "إخفاء", exact: true }); // offered while the section is shown
-  const off = row.getByRole("button", { name: "إظهار", exact: true });
-  if ((await (visible ? on : off).count()) === 0) {
-    await (visible ? off : on).click();
-    await expect(visible ? on : off).toBeVisible();
+  // the section's switch (role="switch", aria-checked = shown)
+  const sw = admin.getByTestId(`section-toggle-${key}`).getByRole("switch");
+  if ((await sw.getAttribute("aria-checked")) !== String(visible)) {
+    await sw.click();
+    await expect(sw).toHaveAttribute("aria-checked", String(visible));
   }
   expect((await section(key)).is_visible).toBe(visible);
 }
 /** Moves sections with the list's own ↑ buttons until `keys` lead the list in this order. */
 async function setOrder(keys: string[]) {
-  await admin.goto(`${BASE}${NAV}`);
+  await admin.goto(`${BASE}${NAV}?tab=sections`);
   await expect(admin.locator("[data-testid=sections-order] [data-testid=section-row]").first()).toBeVisible();
   for (let i = 0; i < keys.length; i++) {
     for (let guard = 0; guard < 12; guard++) {
@@ -93,7 +93,7 @@ async function setOrder(keys: string[]) {
       const at = order.indexOf(keys[i]);
       if (at === i) break;
       expect(at).toBeGreaterThan(i);
-      await admin.locator("[data-testid=sections-order] [data-testid=sort-row]").nth(at).getByRole("button", { name: "نقل للأعلى" }).click();
+      await admin.locator("[data-testid=sections-order] [data-testid=sort-row]").nth(at).getByRole("button", { name: "نقل للأعلى" }).press("Enter"); // keyboard/screen-reader control (mouse users drag the handle)
       await expect.poll(async () => (await adminOrder()).indexOf(keys[i])).toBe(at - 1);
       await expect(admin.locator("[data-testid=sections-order] [data-testid=order-msg]")).toHaveAttribute("data-ok", "1");
     }
@@ -103,7 +103,9 @@ async function setOrder(keys: string[]) {
   expect(saved.slice(0, keys.length)).toEqual(keys);
 }
 async function saveSectionCard(key: string, fill: (form: ReturnType<Page["getByTestId"]>) => Promise<void>) {
-  await admin.goto(`${BASE}${NAV}`); // fresh page: no earlier «saved» message on the form
+  // fresh page: no earlier «saved» message on the form. networkidle = hydrated: a textarea filled before hydration
+  // can be put back to its server value (seen clearing an intro), so the save would store the old text.
+  await admin.goto(`${BASE}${NAV}?tab=content&s=${key}`, { waitUntil: "networkidle" });
   const form = admin.getByTestId(`section-${key}`);
   await fill(form);
   await form.getByRole("button", { name: "حفظ" }).click();
@@ -519,30 +521,37 @@ test("HA4: controls the design cannot use are disabled with a reason, and saving
   await db.from("business_settings").update({ hero_secondary_label: "زر قديم محفوظ" }).eq("id", 1);
   const promoBefore = (await db.from("business_settings").select("hero_promo_source, hero_promo_video_id").eq("id", 1).single()).data!;
 
-  await admin.goto(`${BASE}${NAV}`);
+  await admin.goto(`${BASE}${NAV}?tab=sections`);
   await expect(admin.getByTestId("poster-note")).toBeVisible();
+  // «محتوى الأقسام»: one section's form at a time (?s=key)
+  const card = async (key: string) => {
+    await admin.goto(`${BASE}${NAV}?tab=content&s=${key}`);
+    const form = admin.getByTestId(`section-${key}`);
+    await expect(form).toBeVisible();
+    return form;
+  };
   // services: title and intro editable; number of items and featured services are not offered
-  const services = admin.getByTestId("section-services");
+  const services = await card("services");
   await expect(services.getByTestId("section-why")).toContainText("عمودين ثابتين");
   await expect(services.locator('input[name="title"]')).toBeEditable();
   await expect(services.locator('input[name="item_limit"]')).toHaveAttribute("type", "hidden");
   await expect(services.locator('input[type="checkbox"][name="featured_ids"]')).toHaveCount(0);
   // contact: only show/hide
-  const contact = admin.getByTestId("section-contact");
+  const contact = await card("contact");
   await expect(contact.getByTestId("off-title")).toBeDisabled();
   await expect(contact.getByTestId("off-title")).toHaveValue("عنوان محفوظ");
   await expect(contact.getByTestId("off-intro")).toBeDisabled();
   await expect(contact.locator('input[name="is_visible"]')).toBeEnabled();
   // about: no number of items
-  await expect(admin.getByTestId("section-about").locator('input[name="item_limit"]')).toHaveAttribute("type", "hidden");
+  await expect((await card("about")).locator('input[name="item_limit"]')).toHaveAttribute("type", "hidden");
   // offers: shown in the strip under the hero instead (owner change), so the card explains why and offers nothing to set
-  const offersCard = admin.getByTestId("section-offers");
+  const offersCard = await card("offers");
   await expect(offersCard.getByTestId("section-why")).toContainText("بشريط تحت الواجهة");
   await expect(offersCard.getByTestId("off-title")).toBeDisabled();
   await expect(offersCard.getByTestId("off-intro")).toBeDisabled();
   await expect(offersCard.locator('input[name="item_limit"]')).toHaveAttribute("type", "hidden");
   // sections that use every control still offer it
-  for (const k of ["works", "albums", "process"]) await expect(admin.getByTestId(`section-${k}`).locator('input[name="item_limit"]')).toHaveAttribute("type", "number");
+  for (const k of ["works", "albums", "process"]) await expect((await card(k)).locator('input[name="item_limit"]')).toHaveAttribute("type", "number");
 
   await saveSectionCard("services", async (f) => f.locator('input[name="title"]').fill(SERVICES_TITLE));
   await saveSectionCard("contact", async () => {});

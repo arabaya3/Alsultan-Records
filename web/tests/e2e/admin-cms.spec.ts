@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { anon, BASE, db, newLoggedIn } from "./qa-helpers";
+import { anon, BASE, db, newLoggedIn, openRowMenu, reveal } from "./qa-helpers";
 
 /**
  * Owner content area («محتوى الموقع»). Runs against a PRODUCTION build (cache components + updateTag), e.g.
@@ -50,7 +50,8 @@ test("C1: identity edit appears on the public site without a deploy", async ({ b
   const tagline = `شعار اختبار ${STAMP}`;
   const form = page.getByTestId("identity-form");
   await form.locator('input[name="tagline"]').fill(tagline);
-  // https-only social links: http is refused with a clear message.
+  // https-only social links: http is refused with a clear message. (The links sit in «روابط إضافية», closed by default.)
+  await form.getByTestId("identity-more-links").locator("summary").click();
   await form.locator('input[name="facebook"]').fill("http://facebook.com/x");
   await form.getByRole("button", { name: "حفظ" }).click();
   await expect(msg(page, "identity-form")).toHaveAttribute("data-ok", "0");
@@ -83,7 +84,10 @@ test("C3: offer create -> pin -> expire by date disappears from public", async (
   await page.goto(`${BASE}/admin/content/offers`);
   const r = page.getByTestId("offer-row").filter({ hasText: OFFER.title });
   await expect(r.getByTestId("offer-status")).toContainText("ساري");
-  await r.getByRole("button", { name: "تثبيت", exact: true }).click();
+  // the row actions are in its «⋯» menu, beside the row text (admin redesign)
+  const item = page.getByTestId("offers-list").locator("li").filter({ has: r });
+  await openRowMenu(item);
+  await item.getByRole("button", { name: "تثبيت", exact: true }).click();
   await expect.poll(async () => (await row()).pinned_home).toBe(true);
   await expect.poll(() => publicText(page, "/offers"), { timeout: 20_000 }).toContain(OFFER.title);
 
@@ -97,7 +101,7 @@ test("C3: offer create -> pin -> expire by date disappears from public", async (
   await expect(page.getByTestId("offer-row").filter({ hasText: OFFER.title }).getByTestId("offer-status")).toContainText("منتهي");
   expect(await publicText(page, "/offers")).toContain(OFFER.title); // still the cached list: nothing has refreshed it yet
   await page.goto(`${BASE}/admin/content/offers`);
-  const heading = page.getByTestId("section-intro-offers");
+  const heading = await reveal(page, "section-intro-offers"); // in the «عنوان قسم العروض» dialog
   await heading.getByRole("button", { name: "حفظ" }).click();
   await expect(heading.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
   await expect.poll(() => publicText(page, "/offers"), { timeout: 20_000, intervals: [1_000] }).not.toContain(OFFER.title);
@@ -153,7 +157,7 @@ test("C5: renaming a nav item keeps its URL", async ({ browser }) => {
   test.skip(!navBefore, "no nav_items row for packages");
   const page = await newLoggedIn(browser, "admin", "/admin/content/nav");
   const label = `بكجاتنا ${STAMP.slice(-3)}`;
-  const form = page.getByTestId("nav-packages");
+  const form = await reveal(page, "nav-packages"); // «تعديل» opens the link's dialog
   await form.locator('input[name="label"]').fill(label);
   await form.locator('input[name="is_visible"]').check();
   await form.getByRole("button", { name: "حفظ" }).click();
@@ -187,7 +191,7 @@ test("C5b: the stored «الخدمات» nav link is retired: listed without a f
 
 test("C6: YouTube add + role promo + pin", async ({ browser }) => {
   const page = await newLoggedIn(browser, "admin", "/admin/videos");
-  const form = page.getByTestId("video-create");
+  const form = await reveal(page, "video-create"); // «إضافة فيديو» opens the dialog
   await form.locator('input[name="youtube"]').fill(`https://youtu.be/${YT_ID}`);
   await form.locator('input[name="title"]').fill("برومو اختبار");
   await form.locator('input[name="role"][value="promo"]').check();
@@ -197,14 +201,14 @@ test("C6: YouTube add + role promo + pin", async ({ browser }) => {
   const row = async () => (await db.from("showcase_videos").select("role, pinned").eq("youtube_id", YT_ID).single()).data!;
   expect(await row()).toMatchObject({ role: "promo", pinned: false });
   await page.reload();
-  await page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`).getByTestId("video-more").locator("summary").click();
+  await openRowMenu(page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`));
   await page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`).getByRole("button", { name: "تثبيت" }).click();
   await expect.poll(async () => (await row()).pinned).toBe(true);
   expect((await anon().from("showcase_videos").select("role, pinned").eq("youtube_id", YT_ID).single()).data).toMatchObject({ role: "promo", pinned: true });
   // Clean up THROUGH THE ADMIN (it invalidates the public cache). A direct DB delete in afterAll left the
   // fake video in cached public pages for minutes; its YouTube thumbnail 404 then failed public.spec.
   await page.reload();
-  await page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`).getByTestId("video-more").locator("summary").click();
+  await openRowMenu(page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`));
   await page.locator(`[data-testid=video-row][data-youtube-id="${YT_ID}"]`).getByRole("button", { name: "حذف" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "حذف" }).click();
   await expect.poll(async () => (await db.from("showcase_videos").select("id").eq("youtube_id", YT_ID)).data?.length).toBe(0);

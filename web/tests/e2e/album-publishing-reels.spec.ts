@@ -154,7 +154,7 @@ test.afterAll(async ({ browser }) => {
 
 /** Re-save the home «albums» section as the owner would: keeps the stored picks, expires the sections cache. */
 async function saveAlbumsSection(browser: import("@playwright/test").Browser) {
-  const o = await newLoggedIn(browser, "owner", "/admin/content/home");
+  const o = await newLoggedIn(browser, "owner", "/admin/content/home?tab=content&s=albums"); // the albums section's form
   const form = o.getByTestId("section-albums");
   await form.getByRole("button", { name: /حفظ/ }).click();
   await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");

@@ -50,14 +50,21 @@ export const MODULE_LABEL = Object.fromEntries(OPS.filter((i) => i.module).map((
 
 /** Settings: one sidebar entry; its pages are tabs inside (SettingsTabs), filtered by role like the menu. */
 export const SETTINGS_TABS: NavItem[] = [
-  { href: "/admin/settings", label: "عام", roles: A },
-  { href: "/admin/content/identity", label: "بيانات النشاط والشعار", roles: A },
-  { href: "/admin/account", label: "حسابي وكلمة السر", roles: S },
+  { href: "/admin/content/identity", label: "هوية النشاط", roles: A },
+  { href: "/admin/settings", label: "القائمة والأقسام", roles: A },
+  { href: "/admin/account", label: "حسابي", roles: S },
   { href: "/admin/users", label: "المستخدمون والصلاحيات", roles: O },
   { href: "/admin/settings/facebook", label: "فيسبوك", roles: O },
   { href: "/admin/backups", label: "النسخ الاحتياطي", roles: O },
 ];
 const SETTINGS_PATHS = SETTINGS_TABS.map((t) => t.href).filter((h) => h !== "/admin/settings");
+
+/** The settings inner menu, in groups (the designs). Entries are filtered by SETTINGS_TABS roles. */
+export const SETTINGS_GROUPS: { title: string; items: string[] }[] = [
+  { title: "الموقع", items: ["/admin/content/identity", "/admin/settings"] },
+  { title: "الحساب والأمان", items: ["/admin/account", "/admin/users"] },
+  { title: "التكامل والبيانات", items: ["/admin/settings/facebook", "/admin/backups"] },
+];
 
 export const NAV: NavGroup[] = [
   { title: "الرئيسية", items: [{ href: "/admin", label: "نظرة عامة", roles: S }] },

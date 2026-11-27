@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { anon, as, db, newLoggedIn } from "./qa-helpers";
+import { anon, as, db, newLoggedIn, openRowMenu, reveal } from "./qa-helpers";
 
 /**
  * Admin showcase videos (local stack, seed users, after `node scripts/import-content.mjs --target local --apply`
@@ -33,7 +33,7 @@ test("V1: nav entry is visible to admin and the page lists videos", async ({ bro
 
 test("V2: rejects HTML/iframe and non-YouTube input, stores nothing", async ({ browser }) => {
   const page = await newLoggedIn(browser, "admin", "/admin/videos");
-  const form = page.getByTestId("video-create");
+  const form = await reveal(page, "video-create");
   for (const bad of [`<iframe src="https://www.youtube.com/embed/${TEST_ID}"></iframe>`, `https://evil.example/watch?v=${TEST_ID}`]) {
     await form.locator('input[name="youtube"]').fill(bad);
     await form.locator('input[name="title"]').fill("فيديو اختبار");
@@ -47,7 +47,7 @@ test("V2: rejects HTML/iframe and non-YouTube input, stores nothing", async ({ b
 
 test("V3: create from URL, toggle publish, make promo, edit, delete", async ({ browser }) => {
   const page = await newLoggedIn(browser, "admin", "/admin/videos");
-  const form = page.getByTestId("video-create");
+  const form = await reveal(page, "video-create");
   await form.locator('input[name="youtube"]').fill(`https://youtu.be/${TEST_ID}`);
   await form.locator('input[name="title"]').fill("فيديو اختبار");
   const cat = (await db.from("video_categories").select("id").order("sort_order").limit(2)).data ?? [];
@@ -68,12 +68,13 @@ test("V3: create from URL, toggle publish, make promo, edit, delete", async ({ b
 
   const tr = page.locator(`[data-testid=video-row][data-youtube-id="${TEST_ID}"]`);
   await page.reload();
+  await openRowMenu(tr);
   await tr.getByRole("button", { name: "إخفاء" }).click();
   await expect.poll(async () => (await row()).data!.is_published).toBe(false);
   expect((await anon().from("showcase_videos").select("id").eq("youtube_id", TEST_ID)).data).toHaveLength(0);
 
   await page.reload();
-  await tr.getByTestId("video-more").locator("summary").click();
+  await openRowMenu(tr);
   await tr.getByRole("button", { name: "اجعله تعريفياً" }).click();
   await expect.poll(async () => (await row()).data!.is_promo).toBe(true);
   const promos = (await db.from("showcase_videos").select("id").eq("is_promo", true)).data!;
@@ -96,6 +97,7 @@ test("V3: create from URL, toggle publish, make promo, edit, delete", async ({ b
   await expect.poll(async () => (await db.from("showcase_videos").select("needs_review").eq("id", created.id).single()).data!.needs_review).toBe(true);
   await page.goto("/admin/videos?filter=review");
   await expect(page.locator(`[data-testid=video-row][data-youtube-id="${TEST_ID}"]`)).toBeVisible();
+  await openRowMenu(page.locator(`[data-testid=video-row][data-youtube-id="${TEST_ID}"]`));
   await page.locator(`[data-testid=video-row][data-youtube-id="${TEST_ID}"]`).getByRole("button", { name: "تمت المراجعة" }).click();
   await expect
     .poll(async () => (await db.from("showcase_videos").select("needs_review, reviewed_at").eq("id", created.id).single()).data)

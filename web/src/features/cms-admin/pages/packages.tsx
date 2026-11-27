@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { ADMIN_ROLES, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import { Badge, btn, Card, Field, FilterChips, inputCls, Notice, PageHeader } from "@/features/admin/ui";
+import { Badge, btn, Card, EmptyState, Field, FilterChips, inputCls, Notice, PageHeader, SearchBox } from "@/features/admin/ui";
+import { MenuLink, RowMenu } from "@/features/admin/RowMenu";
+import { StatusPill } from "@/features/admin/StatusPill";
+import { IconDiamond, IconEdit, IconEye, IconEyeOff, IconNote, IconPlus, IconStar } from "@/features/admin/icons";
 import { isUuid } from "@/features/admin/result";
 import { one, type IdParams, type SP } from "@/features/admin/query";
 import { cms } from "../db";
@@ -37,84 +40,149 @@ const PACKAGE_COLS =
 
 export async function PackagesPage({ searchParams }: { searchParams: SP }) {
   if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
-  const filter = one((await searchParams).filter);
+  const sp = await searchParams;
+  const filter = one(sp.filter);
+  const q = one(sp.q).trim();
   const sb = await cms();
   const { data, error } = await sb.from("packages").select(PACKAGE_COLS).order("sort_order").order("created_at");
   if (error) return <CmsLoadError error={error} what="البكجات" />;
   const all = (data ?? []) as PackageDb[];
-  const rows = filter ? all.filter((p) => p.status === filter) : all;
+  const needle = q.toLocaleLowerCase("ar");
+  const rows = all.filter((p) => (!filter || p.status === filter) && (!needle || `${p.title} ${p.group_label ?? ""}`.toLocaleLowerCase("ar").includes(needle)));
+  // Reordering is only offered on the full, unfiltered list (the order is global).
+  const sortable = !filter && !q;
+  const params = { ...(filter ? { filter } : {}), ...(q ? { q } : {}) };
   return (
     <>
       <PageHeader
         title="البكجات"
-        lead="باقات خدمات ثابتة (بدون تاريخ انتهاء). العروض المؤقتة لها صفحتها الخاصة."
+        lead="باقات خدمات ثابتة لتنظيم عروض الموقع وإدارتها بسهولة."
         actions={
-          <Link href="/admin/content/packages/new" className={btn("primary")}>
-            + بكج جديد
+          <Link href="/admin/content/packages/new" className={btn("primary", "px-6 text-base")}>
+            <IconPlus /> بكج جديد
           </Link>
         }
       />
-      <FilterChips
-        base="/admin/content/packages"
-        param="filter"
-        current={filter}
-        params={filter ? { filter } : {}}
-        options={[
-          { value: "published", label: "منشور" },
-          { value: "draft", label: "مسودة" },
-          { value: "hidden", label: "مخفي" },
-        ]}
-      />
-      <div className="space-y-4">
-        {rows.length ? (
-          filter ? (
-            <ul className="space-y-2">
+      <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+        <FilterChips
+          base="/admin/content/packages"
+          param="filter"
+          current={filter}
+          params={params}
+          options={[
+            { value: "published", label: "منشور" },
+            { value: "draft", label: "مسودة" },
+            { value: "hidden", label: "مخفي" },
+          ]}
+        />
+        <SearchBox base="/admin/content/packages" q={q} params={params} placeholder="ابحث عن بكج" />
+      </div>
+      {rows.length ? (
+        <>
+          <div aria-hidden="true" className="mb-2 hidden items-center gap-3 rounded-xl bg-cream-2 px-4 py-3 text-sm font-semibold text-on-cream-muted md:flex">
+            <span className="w-10 shrink-0" />
+            <span className="grid flex-1 grid-cols-[minmax(0,1fr)_7rem_9rem] gap-x-3">
+              <span>عنوان البكج</span>
+              <span>الحالة</span>
+              <span>ملاحظة</span>
+            </span>
+            <span className="w-11 shrink-0" />
+          </div>
+          {sortable ? (
+            <SortableList
+              label="ترتيب البكجات"
+              table="packages"
+              action={saveOrder}
+              testId="packages-list"
+              items={rows.map((p) => ({ id: p.id, content: <PackageRowView p={p} />, menu: <PackageMenu p={p} />, menuLabel: p.title }))}
+            />
+          ) : (
+            <ul className="space-y-2" data-testid="packages-list">
               {rows.map((p) => (
-                <li key={p.id} className="rounded-md border border-cream-line bg-[#fffdf8] p-2">
-                  <PackageRowView p={p} />
+                <li key={p.id} className="flex items-center gap-3 rounded-xl border border-cream-line bg-[#fffdf8] px-3 py-3 md:px-4">
+                  <span className="w-10 shrink-0" />
+                  <div className="min-w-0 flex-1">
+                    <PackageRowView p={p} />
+                  </div>
+                  <RowMenu label={`إجراءات: ${p.title}`}>
+                    <PackageMenu p={p} />
+                  </RowMenu>
                 </li>
               ))}
             </ul>
-          ) : (
-            <SortableList label="ترتيب البكجات" table="packages" action={saveOrder} testId="packages-list" items={rows.map((p) => ({ id: p.id, content: <PackageRowView p={p} /> }))} />
-          )
-        ) : (
-          <Notice>لا توجد بكجات{filter ? " بهذه الحالة" : " بعد. أضف أول بكج بالأسماء والخدمات والأسعار الحقيقية"}.</Notice>
-        )}
-      </div>
+          )}
+        </>
+      ) : (
+        <div className="rounded-2xl border border-cream-line bg-[#fffdf8]">
+          <EmptyState
+            icon={<IconDiamond size={40} />}
+            title={filter || q ? "لا توجد بكجات مطابقة" : "لا توجد بكجات بعد"}
+            body={filter || q ? "جرّب حالة أخرى أو كلمة بحث مختلفة." : "أضف أول بكج بالأسماء والخدمات والأسعار الحقيقية."}
+          />
+        </div>
+      )}
     </>
   );
 }
 
+/** One row: title and group, status, internal note. The actions are in the row's «⋯» menu. */
 function PackageRowView({ p }: { p: PackageDb }) {
   const b = packageBadge(p);
   return (
-    <div className="flex flex-wrap items-center gap-2" data-testid="package-row" data-slug={p.slug}>
-      <Link href={`/admin/content/packages/${p.id}`} className="min-w-0 flex-1 break-words font-medium underline-offset-4 hover:underline">
-        {p.title}
-      </Link>
+    <div className="grid items-center gap-x-3 gap-y-1 md:grid-cols-[minmax(0,1fr)_7rem_9rem]" data-testid="package-row" data-slug={p.slug}>
+      <div className="min-w-0">
+        <Link href={`/admin/content/packages/${p.id}`} className="font-display text-base font-bold break-words underline-offset-4 hover:underline md:text-lg">
+          {p.title}
+        </Link>
+        {p.featured ? (
+          <span className="ms-2 align-middle">
+            <Badge tone="gold">مميّز</Badge>
+          </span>
+        ) : null}
+        {p.group_label ? (
+          <p className="text-sm text-on-cream-muted" data-testid="package-group">
+            {p.group_label}
+          </p>
+        ) : null}
+      </div>
       <span data-testid="package-status">
-        <Badge tone={b.tone}>{b.label}</Badge>
+        <StatusPill tone={b.tone} label={b.label} />
       </span>
-      {p.featured ? <Badge tone="gold">مميّز</Badge> : null}
-      {p.group_label ? <span className="text-xs text-on-cream-muted" data-testid="package-group">{p.group_label}</span> : null}
-      {p.internal_note ? <span title={p.internal_note}><Badge tone="gold">ملاحظة داخلية</Badge></span> : null}
-      <ActionForm action={setPackageFeatured} submitLabel={p.featured ? "إلغاء التمييز" : "تمييز"} kind="ghost" inline>
+      <span>
+        {p.internal_note ? (
+          <span title={p.internal_note} className="inline-flex items-center gap-1.5 rounded-lg border border-gold/50 bg-gold/15 px-2.5 py-1 text-xs font-medium">
+            <IconNote size={15} /> ملاحظة داخلية
+          </span>
+        ) : (
+          <span className="text-on-cream-muted">—</span>
+        )}
+      </span>
+    </div>
+  );
+}
+
+function PackageMenu({ p }: { p: PackageDb }) {
+  return (
+    <>
+      <MenuLink href={`/admin/content/packages/${p.id}`} icon={<IconEdit />}>
+        تعديل
+      </MenuLink>
+      <ActionForm action={setPackageFeatured} submitLabel={p.featured ? "إلغاء التمييز" : "تمييز"} variant="menu" icon={<IconStar />}>
         <input type="hidden" name="id" value={p.id} />
         <input type="hidden" name="value" value={p.featured ? "0" : "1"} />
       </ActionForm>
       {p.status === "published" ? (
-        <ActionForm action={setPackageStatus} submitLabel="إخفاء" kind="ghost" inline>
+        <ActionForm action={setPackageStatus} submitLabel="إخفاء" variant="menu" icon={<IconEyeOff />}>
           <input type="hidden" name="id" value={p.id} />
           <input type="hidden" name="status" value="hidden" />
         </ActionForm>
       ) : (
-        <ActionForm action={setPackageStatus} submitLabel="نشر" kind="ghost" inline>
+        <ActionForm action={setPackageStatus} submitLabel="نشر" variant="menu" icon={<IconEye />}>
           <input type="hidden" name="id" value={p.id} />
           <input type="hidden" name="status" value="published" />
         </ActionForm>
       )}
-    </div>
+    </>
   );
 }
 

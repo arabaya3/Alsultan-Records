@@ -1,8 +1,8 @@
-import { SettingsTabs } from "@/features/admin/SettingsTabs";
+import { SettingsFrame } from "@/features/admin/SettingsTabs";
 import { createClient } from "@/lib/supabase/server";
 import { Forbidden, guard, OWNER_ONLY } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import { Badge, btn, Card, Field, FilterChips, inputCls, LoadError, PageHeader, Pagination, SearchBox, Table } from "@/features/admin/ui";
+import { Badge, btn, Card, Field, FilterChips, inputCls, LoadError, Pagination, SearchBox, Table } from "@/features/admin/ui";
 import { cleanSearch, one, pageOf, PAGE_SIZE, pick, rangeOf, type SP } from "@/features/admin/query";
 import { fmtDate } from "@/features/admin/format";
 import { ROLE_LABEL } from "@/features/admin/labels";
@@ -24,8 +24,7 @@ export async function UsersPage({ searchParams }: { searchParams: SP }) {
   const params = { role: role ?? "", q };
   return (
     <>
-      <PageHeader title="المستخدمون والصلاحيات" lead="أي تغيير هنا يسري فوراً ويُسجّل في سجل التدقيق." />
-      <SettingsTabs current="/admin/users" />
+      <SettingsFrame current="/admin/users" title="المستخدمون والصلاحيات" lead="أي تغيير هنا يسري فوراً ويُسجّل في سجل التدقيق.">
       <Card title="إنشاء حساب جديد" className="mb-6">
         <ActionForm action={createUserAccount} submitLabel="إنشاء الحساب" kind="primary" resetOnSuccess testId="create-account-form">
           <div className="grid gap-3 sm:grid-cols-2">
@@ -114,6 +113,7 @@ export async function UsersPage({ searchParams }: { searchParams: SP }) {
           <Pagination base="/admin/users" page={page} total={count ?? 0} size={PAGE_SIZE} params={params} />
         </>
       )}
+      </SettingsFrame>
     </>
   );
 }

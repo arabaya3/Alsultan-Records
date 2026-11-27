@@ -1,8 +1,8 @@
-import { SettingsTabs } from "@/features/admin/SettingsTabs";
+import { SettingsFrame } from "@/features/admin/SettingsTabs";
 import { createClient } from "@/lib/supabase/server";
 import { Forbidden, guard, OWNER_ONLY } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import { Badge, Card, LoadError, PageHeader } from "@/features/admin/ui";
+import { Badge, Card, LoadError } from "@/features/admin/ui";
 import { fmtDateTime } from "@/features/admin/format";
 import { BACKUP_STATUS } from "@/features/admin/labels";
 import { runBackup } from "./actions";
@@ -17,8 +17,7 @@ export async function BackupsPage() {
     .limit(30);
   return (
     <>
-      <PageHeader title="النسخ الاحتياطي" lead="نسخة من كل الجداول + قائمة بملفات التخزين. الملفات نفسها (الصور والفيديو) تُنسخ بشكل منفصل — راجع دليل الاسترجاع." />
-      <SettingsTabs current="/admin/backups" />
+      <SettingsFrame current="/admin/backups" title="النسخ الاحتياطي" lead="نسخة من كل الجداول + قائمة بملفات التخزين. الملفات نفسها (الصور والفيديو) تُنسخ بشكل منفصل — راجع دليل الاسترجاع.">
       <Card title="نسخة جديدة" className="mb-4">
         <ActionForm action={runBackup} submitLabel="بدء النسخ الآن" kind="primary" testId="backup-form">
           <p className="text-sm text-on-cream-muted">قد تستغرق دقيقة. تُحفظ في مكان خاص لا يصل إليه العامة.</p>
@@ -58,6 +57,7 @@ export async function BackupsPage() {
           {!data?.length ? <li className="text-sm text-on-cream-muted">لا توجد نسخ بعد.</li> : null}
         </ul>
       )}
+      </SettingsFrame>
     </>
   );
 }

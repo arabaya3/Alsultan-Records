@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext, type Browser, type Page } from "@playwright/test";
-import { BASE, db, EV, lockTable, newLoggedIn, psql } from "./qa-helpers";
+import { BASE, db, EV, lockTable, newLoggedIn, psql, reveal } from "./qa-helpers";
 
 /**
  * Public pages and a project's published photos (day-long public cache, refreshed by cache tags).
@@ -96,7 +96,7 @@ async function restore(browser: Browser) {
 /** An unchanged admin save of the offers heading: the offers read is expired, so the next sitemap build must query it. */
 async function expireOffersRead(browser: Browser) {
   const p = await newLoggedIn(browser, "owner", "/admin/content/offers");
-  const form = p.getByTestId("section-intro-offers");
+  const form = await reveal(p, "section-intro-offers");
   await form.getByRole("button", { name: "حفظ" }).click();
   await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
   await p.context().close();

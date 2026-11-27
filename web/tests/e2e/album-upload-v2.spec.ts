@@ -67,7 +67,7 @@ test.beforeAll(async () => {
 test("V1: «ألبوم جديد» → details + photos → «إنشاء ورفع»: draft created, upload starts on the same flow, JPEG 25.8 MB + RAW ready, originals byte-identical, web copies whole", async ({ browser }) => {
   // ARW from a Sony ILCE-7M3 (standard compressed). The ILCE-7M5 «compressed HQ» sample is covered in V2 (unsupported).
   const files = [path.join(FIX, "base-01.jpg"), ...["cr3", "nef", "dng"].map((e) => path.join(RAW, `sample.${e}`)), path.join(RAW, "sample-a7m3.arw")];
-  const page = await newLoggedIn(browser, "owner", "/admin/albums");
+  const page = await newLoggedIn(browser, "owner", "/admin/albums/new"); // «ألبوم جديد» on its own page
   const form = page.getByTestId("album-create");
   await form.locator('input[name="title"]').fill(`ألبوم رفع جديد ${STAMP}`);
   await form.locator('input[name="slug"]').fill(`e2e-v2-new-${STAMP}`);

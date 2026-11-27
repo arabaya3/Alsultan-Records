@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import type { ActionResult } from "@/features/admin/result";
+import { ModalCancel } from "@/features/admin/Modal";
 
 type Action = (prev: ActionResult, fd: FormData) => Promise<ActionResult>;
 export type Intent = { intent: string; label: string; kind?: "primary" | "secondary" | "ghost" | "danger" };
@@ -118,6 +119,8 @@ export function CmsForm({
         dirtyForms.delete(key);
         setDirty(false);
         if (resetOnSuccess) ref.current?.reset();
+        // A dialog around this form clears its «unsaved» flag (Modal).
+        ref.current?.dispatchEvent(new CustomEvent("admin-saved", { bubbles: true }));
       }
       return r;
     },
@@ -155,7 +158,13 @@ export function CmsForm({
             {pending ? "جارٍ الحفظ…" : i.label}
           </button>
         ))}
-        {dirty && !pending ? <span className="text-xs text-on-cream-muted">تغييرات غير محفوظة</span> : null}
+        <ModalCancel />
+        {dirty && !pending ? (
+          <span className="inline-flex items-center gap-1.5 text-xs text-on-cream-muted">
+            <span aria-hidden="true" className="size-2 rounded-full bg-gold" />
+            توجد تغييرات غير محفوظة
+          </span>
+        ) : null}
         {state.message ? (
           <p role={state.ok ? "status" : "alert"} data-testid="action-msg" data-ok={state.ok ? "1" : "0"} className={`basis-full text-sm ${state.ok ? "text-success" : "text-danger"}`}>
             {state.message}

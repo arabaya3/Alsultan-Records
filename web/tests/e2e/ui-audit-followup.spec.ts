@@ -238,7 +238,7 @@ test("UA4 viewer: visible loading, error + retry recovers, fast arrows show the 
 });
 
 test("UA5 admin categories + album: visible labels; slug suggested for a NEW item, never changed for an existing one", async ({ browser }) => {
-  const page = await newLoggedIn(browser, "admin", "/admin/albums");
+  const page = await newLoggedIn(browser, "admin", "/admin/albums?view=categories"); // categories have their own tab
   const create = page.getByTestId("album-category-create");
   await create.getByLabel("عنوان التصنيف").fill("حفلات تخرج");
   await expect(create.getByTestId("album-category-slug")).toHaveValue("hflat-tkhrj");
