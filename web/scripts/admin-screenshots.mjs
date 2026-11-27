@@ -30,7 +30,7 @@ const PAGES = [
 ];
 let uid = null; const browser = await chromium.launch();
 try {
-  const { data, error } = await db.auth.admin.createUser({ email: EMAIL, password: PW, email_confirm: true, user_metadata: { full_name: "[STAGING-TEST] screenshots" } });
+  const { data, error } = await db.auth.admin.createUser({ email: EMAIL, password: PW, email_confirm: true, app_metadata: { test_fixture: true }, user_metadata: { full_name: "[STAGING-TEST] screenshots" } });
   if (error) throw error; uid = data.user.id;
   await db.from("profiles").update({ role: "admin", mfa_required: true }).eq("id", uid);
   for (const [w, h, dev] of [[1440, 1000, "desktop"], [390, 844, "mobile"]]) {

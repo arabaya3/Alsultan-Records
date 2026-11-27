@@ -39,7 +39,7 @@ mkdirSync(SHOTS, { recursive: true });
 const browser = await chromium.launch();
 let userId = null;
 try {
-  const { data: u, error } = await db.auth.admin.createUser({ email: EMAIL, password: PW, email_confirm: true, user_metadata: { full_name: `${TAG} admin` } });
+  const { data: u, error } = await db.auth.admin.createUser({ email: EMAIL, password: PW, email_confirm: true, app_metadata: { test_fixture: true }, user_metadata: { full_name: `${TAG} admin` } });
   if (error) throw error;
   userId = u.user.id;
   await db.from("profiles").update({ role: "admin", mfa_required: true }).eq("id", userId);

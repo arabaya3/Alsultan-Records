@@ -12,6 +12,8 @@
 // set with `supabase secrets set`). Plain fetch only: no third-party imports.
 
 const BUCKETS = new Set(["public-media", "private-media"]);
+// The event buckets only under events/<event uuid>/… (0038); mirrors src/features/publishing/cleanup-guard.ts.
+const EVENT_PATH = /^events\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+$/i;
 // album-media only for album photo objects (albums/<album uuid>/...); queued solely by the
 // album_photos AFTER DELETE trigger (photo delete / album purge). Mirrors src/features/publishing/cleanup.ts.
 const ALBUM_BUCKET = "album-media";
@@ -70,6 +72,7 @@ Deno.serve(async (req) => {
     try {
       if (!BUCKETS.has(it.bucket) && it.bucket !== ALBUM_BUCKET && it.bucket !== SITE_BUCKET) throw new Error(`invalid bucket ${it.bucket}`);
       if (!it.path || it.path.includes("..") || it.path.startsWith("/") || it.path.includes("\\")) throw new Error("invalid path");
+      if (BUCKETS.has(it.bucket) && !EVENT_PATH.test(it.path)) throw new Error("invalid path");
       if (it.bucket === ALBUM_BUCKET && !ALBUM_PATH.test(it.path)) throw new Error("invalid path");
       if (it.bucket === SITE_BUCKET && !SITE_PATH.test(it.path)) throw new Error("invalid path");
       // Same endpoint supabase-js storage.remove() uses; absent objects are not an error.

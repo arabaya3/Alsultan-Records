@@ -206,7 +206,7 @@ const commands = {
     const out = { created_at: new Date().toISOString(), project: STAGING_REF };
     for (const k of ["a", "b"]) {
       const u = mk(k);
-      const { data, error } = await sb.auth.admin.createUser({ email: u.email, password: u.password, email_confirm: true, user_metadata: { full_name: u.full_name } });
+      const { data, error } = await sb.auth.admin.createUser({ email: u.email, password: u.password, email_confirm: true, app_metadata: { test_fixture: true }, user_metadata: { full_name: u.full_name } });
       if (error) throw new StepError(`createUser ${k}: ${error.message}`);
       out[k] = { ...u, id: data.user.id };
       writeIgnored(TEST_USERS_FILE, JSON.stringify(out, null, 2) + "\n");

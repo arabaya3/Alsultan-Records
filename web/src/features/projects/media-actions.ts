@@ -9,6 +9,7 @@ import { dbMessage, fail, FORBIDDEN, isUuid, ok, str, uuid, type ActionResult } 
 import { expirePublicProjects } from "@/features/publishing/public-cache";
 import { cleanupPublicMedia, PRIVATE_BUCKET, PUBLIC_BUCKET } from "@/features/publishing/server";
 import { checkFile, MAX_FILES_PER_BATCH, MIME_RULES } from "./media-rules";
+import { matchesDeclaredType, SNIFF_BYTES } from "./media-sniff";
 
 export type PreparedUpload =
   | { ok: true; name: string; assetId: string; path: string; token: string }
@@ -68,6 +69,18 @@ export async function prepareUploads(
 
 export type FinalizeResult = { assetId: string; ok: boolean; variants: boolean; message: string };
 
+async function storedMatchesType(sb: Awaited<ReturnType<typeof createClient>>, path: string, mime: string): Promise<boolean> {
+  try {
+    const signed = await sb.storage.from(PRIVATE_BUCKET).createSignedUrl(path, 60);
+    if (signed.error || !signed.data?.signedUrl) return false;
+    const r = await fetch(signed.data.signedUrl, { headers: { Range: `bytes=0-${SNIFF_BYTES - 1}` }, cache: "no-store", signal: AbortSignal.timeout(10_000) });
+    if (!r.ok) return false;
+    return matchesDeclaredType(mime, new Uint8Array(await r.arrayBuffer()).subarray(0, SNIFF_BYTES));
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Step 2 (per file): confirm the object exists, and for images generate
  * thumb (~480px) and display (~1600px) WebP variants with sharp. The asset is
@@ -92,6 +105,14 @@ export async function finalizeUpload(assetId: string): Promise<FinalizeResult> {
     await sb.storage.from(PRIVATE_BUCKET).remove([asset.path]);
     await sb.from("media_assets").update({ upload_status: "failed" }).eq("id", assetId);
     return fail_("الملف المرفوع تجاوز الحد المسموح أو نوعه غير مدعوم.");
+  }
+
+  // The stored bytes must be the declared type (the browser only declares it): first bytes over a 60 s signed range
+  // read with the caller's own client, so the storage policy applies; nothing large is downloaded for the check.
+  if (!(await storedMatchesType(sb, asset.path, asset.mime))) {
+    await sb.storage.from(PRIVATE_BUCKET).remove([asset.path]);
+    await sb.from("media_assets").update({ upload_status: "failed" }).eq("id", assetId);
+    return fail_("محتوى الملف لا يطابق نوعه المعلن، فلم يُقبل.");
   }
 
   if (asset.kind !== "image") {

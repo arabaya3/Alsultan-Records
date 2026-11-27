@@ -9,6 +9,12 @@ describe("storage cleanup target guard", () => {
     expect(cleanupTargetError("private-media", `events/${U}/a.jpg`)).toBeNull();
     expect(cleanupTargetError("public-media", `events/${U}/a.jpg`)).toBeNull();
   });
+  it("allows the event buckets only under events/<uuid>/ (a path written into another event's folder is refused)", () => {
+    expect(cleanupTargetError("private-media", `events/${U}/${U}/original.jpg`)).toBeNull();
+    expect(cleanupTargetError("private-media", "events/not-a-uuid/a.jpg")).toBe("invalid path");
+    expect(cleanupTargetError("public-media", `other/${U}/a.jpg`)).toBe("invalid path");
+    expect(cleanupTargetError("private-media", "original.jpg")).toBe("invalid path");
+  });
   it("allows album-media only under albums/<uuid>/", () => {
     expect(cleanupTargetError("album-media", `albums/${U}/display/a.webp`)).toBeNull();
     expect(cleanupTargetError("album-media", "albums/not-a-uuid/a.webp")).toBe("invalid path");
@@ -31,7 +37,7 @@ describe("storage cleanup target guard", () => {
   it("the edge function uses the same allow-list patterns (kept in sync)", () => {
     const app = readFileSync("src/features/publishing/cleanup-guard.ts", "utf8");
     const edge = readFileSync("supabase/functions/storage-cleanup/index.ts", "utf8");
-    for (const name of ["ALBUM_PATH", "SITE_PATH", "SITE_BUCKET", "ALBUM_BUCKET", "BUCKETS"]) {
+    for (const name of ["EVENT_PATH", "ALBUM_PATH", "SITE_PATH", "SITE_BUCKET", "ALBUM_BUCKET", "BUCKETS"]) {
       const re = new RegExp(`const ${name} = (.+);`);
       expect(edge.match(re)?.[1], name).toBe(app.match(re)?.[1]);
     }
