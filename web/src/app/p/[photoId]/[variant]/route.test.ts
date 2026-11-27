@@ -4,18 +4,24 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  * /p route outcomes with a simulated database and storage (no network): 404 vs 503 vs 504, 304 revalidation,
  * and the cache headers. The real stack is covered by the e2e specs (photos, album-covers, album-publishing-reels).
  */
-type Db = { row: "yes" | "no" | "error" | "hang"; path?: "ok" | "error" | "hang"; provider?: "supabase" | "s3" };
-let dbState: Db = { row: "yes", path: "ok" };
+/**
+ * One simulated database: `published` is what both the anon RLS policy and public.album_photo_object_ref decide on
+ * (the pgTAP test 98l_album_photo_ref_matches_rls.sql pins that they agree), `db` how the database answers.
+ */
+type Db = { published: boolean; db?: "ok" | "error" | "hang"; provider?: "supabase" | "s3" };
+let dbState: Db = { published: true };
+const calls = { from: 0, rpc: 0 };
 
 function query(kind: "row" | "path") {
   let signal: AbortSignal | undefined;
   const settle = (): Promise<{ data: unknown; error: unknown }> => {
-    const mode = kind === "row" ? dbState.row : (dbState.path ?? "ok");
+    const mode = dbState.db ?? "ok";
     if (mode === "hang")
       return new Promise((res) => signal?.addEventListener("abort", () => res({ data: null, error: { message: "AbortError: The operation was aborted." } })));
     if (mode === "error") return Promise.resolve({ data: null, error: { message: "connection refused", code: "PGRST000" } });
-    if (kind === "row") return Promise.resolve({ data: mode === "yes" ? { id: PHOTO } : null, error: null });
-    return Promise.resolve({ data: [{ provider: dbState.provider ?? "supabase", path: "albums/a/b/thumb.webp" }], error: null });
+    if (kind === "row") return Promise.resolve({ data: dbState.published ? { id: PHOTO } : null, error: null });
+    // Like the SQL function: no row unless the photo and its album are published.
+    return Promise.resolve({ data: dbState.published ? [{ provider: dbState.provider ?? "supabase", path: "albums/a/b/thumb.webp" }] : [], error: null });
   };
   const b = {
     select: () => b,
@@ -31,7 +37,16 @@ function query(kind: "row" | "path") {
 }
 
 vi.mock("@/features/public-content/client", () => ({
-  getPublicClient: () => ({ from: () => query("row"), rpc: () => query("path") }),
+  getPublicClient: () => ({
+    from: () => {
+      calls.from++;
+      return query("row");
+    },
+    rpc: () => {
+      calls.rpc++;
+      return query("path");
+    },
+  }),
 }));
 
 const s3Read = vi.fn();
@@ -48,7 +63,9 @@ const img = (status = 200, extra: Record<string, string> = {}) =>
 beforeEach(() => {
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_URL", "http://supabase.test");
   vi.stubEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY", "anon");
-  dbState = { row: "yes", path: "ok" };
+  dbState = { published: true };
+  calls.from = 0;
+  calls.rpc = 0;
 });
 afterEach(() => {
   vi.unstubAllEnvs();
@@ -66,6 +83,12 @@ describe("/p/[photoId]/[variant]", () => {
     expect(r.headers.get("etag")).toBe('"v1"');
   });
 
+  it("one database round trip per request: the publication-checking RPC, no separate row read", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => img()));
+    expect((await call()).status).toBe(200);
+    expect(calls).toEqual({ from: 0, rpc: 1 });
+  });
+
   it("304: an unchanged photo is revalidated without the bytes — still only after the publication checks", async () => {
     const f = vi.fn(async () => new Response(null, { status: 304, headers: { etag: '"v1"' } }));
     vi.stubGlobal("fetch", f);
@@ -76,7 +99,7 @@ describe("/p/[photoId]/[variant]", () => {
   });
 
   it("withdrawn photo → 404 no-store even with the browser's ETag (no stale copy served)", async () => {
-    dbState.row = "no";
+    dbState.published = false;
     const f = vi.fn();
     vi.stubGlobal("fetch", f);
     const r = await call({ "if-none-match": '"v1"' });
@@ -99,16 +122,16 @@ describe("/p/[photoId]/[variant]", () => {
   });
 
   it("database error → 503; storage network error → 503", async () => {
-    dbState.row = "error";
+    dbState.db = "error";
     expect((await call()).status).toBe(503);
-    dbState.row = "yes";
+    dbState.db = "ok";
     vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("fetch failed"))));
     expect((await call()).status).toBe(503);
   });
 
   it("database hangs → 504 at the deadline (no endless request)", async () => {
     vi.useFakeTimers();
-    dbState.row = "hang";
+    dbState.db = "hang";
     const p = call();
     await vi.advanceTimersByTimeAsync(8001);
     const r = await p;
@@ -146,7 +169,7 @@ describe("/p on S3", () => {
   const body = () => new Blob([new Uint8Array([1, 2, 3])]).stream();
   beforeEach(() => {
     s3Read.mockReset();
-    dbState = { row: "yes", path: "ok", provider: "s3" };
+    dbState = { published: true, provider: "s3" };
     vi.stubGlobal("fetch", vi.fn(async () => { throw new Error("Supabase must not be asked"); }));
   });
 
@@ -165,7 +188,7 @@ describe("/p on S3", () => {
     expect(s3Read.mock.calls[0][1]).toMatchObject({ ifNoneMatch: '"v1"' });
   });
   it("withdrawn: storage is not even asked, and an ETag cannot earn a 304", async () => {
-    dbState = { row: "no", provider: "s3" };
+    dbState = { published: false, provider: "s3" };
     const r = await call({ "if-none-match": '"v1"' });
     expect(r.status).toBe(404);
     expect(s3Read).not.toHaveBeenCalled();

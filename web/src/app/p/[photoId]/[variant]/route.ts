@@ -7,18 +7,19 @@ import { s3Read } from "@/lib/album-storage/s3";
  * Published album photos: GET /p/{photoId}/{thumb|display}. The original is NEVER served.
  *
  * `album-media` is a private bucket. Every request:
- *   1. reads the album_photos row with the ANONYMOUS key — RLS returns it only while the photo AND its
- *      album are published. No row → 404. This is the authorization step.
- *   2. resolves the object with the anon RPC public.album_photo_object_ref(id, variant) (migration 0032, SECURITY
- *      DEFINER): it returns the store and variant path only while photo + album are published.
- *      Paths are not anon-selectable columns, so no secret key is needed anywhere on this route. The
- *      variant is whitelisted to thumb|display BEFORE the call — "original" is never requested.
- *   3. downloads the object: on Supabase with the ANONYMOUS key (the storage policy re-checks publication in the
- *      database); on S3 with the server's keys, which is why steps 1 and 2 must have passed first.
- *   4. streams the bytes.
+ *   1. Authorization, in ONE database round trip: the anon RPC public.album_photo_object_ref(id, variant) (migration
+ *      0032, SECURITY DEFINER) returns the store and variant path only while the photo is published, ready and not
+ *      deleted AND its album is published, not archived and not deleted. No row → 404. Its conditions are the anon
+ *      RLS policy album_photos_public_read's (+ the variant), so a separate RLS read of the row added nothing; the
+ *      pgTAP test 98l_album_photo_ref_matches_rls.sql fails if the two ever disagree. Paths are not anon-selectable
+ *      columns, so no secret key is needed for the check. The variant is whitelisted to thumb|display BEFORE the
+ *      call (and again inside the function) — "original" is never requested.
+ *   2. downloads the object: on Supabase with the ANONYMOUS key (the storage policy re-checks publication in the
+ *      database); on S3 with the server's keys, which is why step 1 must have passed first.
+ *   3. streams the bytes.
  *
  * Cache (owner requirement: a withdrawn photo must stop loading): `private, no-cache` + the object's ETag. The
- * browser may keep a copy but must ask again before reusing it, and every ask runs steps 1–3, so after
+ * browser may keep a copy but must ask again before reusing it, and every ask runs steps 1–2, so after
  * unpublishing, the next request or page reload gets 404 (no 5-minute window). An unchanged photo costs a 304
  * without the bytes. Shared/CDN caches never store it. A picture already on a visitor's screen, or a copy they
  * saved, cannot be taken back — no cache policy can do that.
@@ -69,16 +70,11 @@ export async function GET(req: Request, ctx: { params: Promise<{ photoId: string
   const deadline = new AbortController();
   const timer = setTimeout(() => deadline.abort(), DEADLINE_MS);
   try {
-    // 1. Authorization: RLS proves publication.
-    const { data: visible, error } = await anon.from("album_photos").select("id").eq("id", photoId).abortSignal(deadline.signal).maybeSingle();
-    if (error) return fail(abortedError(error, deadline.signal) ? 504 : 503);
-    if (!visible) return fail(404);
-
-    // 2. Path for the authorized id + whitelisted variant (RPC re-checks publication).
-    const { data: refs, error: pathError } = await anon
-      .rpc("album_photo_object_ref", { p_photo_id: visible.id, p_variant: variant })
+    // 1. Authorization + path in one call: no row unless the photo and its album are published (see above).
+    const { data: refs, error: refError } = await anon
+      .rpc("album_photo_object_ref", { p_photo_id: photoId, p_variant: variant })
       .abortSignal(deadline.signal);
-    if (pathError) return fail(abortedError(pathError, deadline.signal) ? 504 : 503);
+    if (refError) return fail(abortedError(refError, deadline.signal) ? 504 : 503);
     const path = refs?.[0]?.path;
     if (typeof path !== "string" || !path || path.includes("..") || path.startsWith("/")) return fail(404);
 
@@ -108,7 +104,7 @@ export async function GET(req: Request, ctx: { params: Promise<{ photoId: string
       return new Response(got.body, { status: 200, headers });
     }
 
-    // 3. Bytes with the anonymous key (storage policy re-checks). A conditional request lets storage answer 304.
+    // 2. Bytes with the anonymous key (storage policy re-checks). A conditional request lets storage answer 304.
     const objectUrl = `${url.replace(/\/$/, "")}/storage/v1/object/authenticated/${BUCKET}/${path.split("/").map(encodeURIComponent).join("/")}`;
     let upstream: Response;
     try {
