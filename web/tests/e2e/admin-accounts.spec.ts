@@ -95,6 +95,9 @@ test("A3: change own password — wrong current refused; new one works, old one 
 test("A4: owner sets another account's password (audited); admin cannot", async ({ browser }) => {
   const NEW_PW = `OwnerSet!${STAMP}q`;
   // A session of the target account that is open before the reset (0039: it must end at once, not when its token expires).
+  // A3 left this account on its new password: put the seeded one back so the session can be opened.
+  const before = (await db.auth.admin.listUsers({ perPage: 1000 })).data.users.find((x) => x.email === USERS.admin.email)!;
+  await db.auth.admin.updateUserById(before.id, { password: USERS.admin.password });
   const victim = await newLoggedIn(browser, "admin", "/admin/overview");
   await expect(victim).toHaveURL(/\/admin\/overview/);
   const page = await newLoggedIn(browser, "owner", "/admin/users");
