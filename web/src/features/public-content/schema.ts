@@ -30,6 +30,10 @@ export const businessSettingsRow = z.object({
   hero_cover_source: z.enum(["manual", "latest_album"]).nullable().optional().catch(null).transform((v) => v ?? "manual"),
   hero_promo_source: z.enum(["site", "youtube"]).nullable().optional().catch(null).transform((v) => v ?? "site"),
   hero_promo_video_id: nullableText,
+  /** Migration 0036: owner-typed hero counters. Absent column / invalid → null (not shown). */
+  hero_stat_videos: z.number().int().min(1).nullable().optional().catch(null).transform((v) => v ?? null),
+  hero_stat_photos: z.number().int().min(1).nullable().optional().catch(null).transform((v) => v ?? null),
+  hero_stat_events: z.number().int().min(1).nullable().optional().catch(null).transform((v) => v ?? null),
   active_logo_id: nullableText,
 });
 export type BusinessSettings = z.infer<typeof businessSettingsRow>;

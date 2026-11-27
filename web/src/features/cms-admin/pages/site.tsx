@@ -227,6 +227,9 @@ type Home = {
   hero_subtitle: string | null;
   hero_primary_label: string | null;
   hero_secondary_label: string | null;
+  hero_stat_videos: number | null;
+  hero_stat_photos: number | null;
+  hero_stat_events: number | null;
   booking_message: string | null;
   hero_cover_photo_id: string | null;
   hero_cover_source: "manual" | "latest_album" | null;
@@ -355,7 +358,7 @@ export async function HomeContentPage({ searchParams }: { searchParams?: SP } = 
   const [biz, photos] = await Promise.all([
     sb
       .from("business_settings")
-      .select("hero_title, hero_subtitle, hero_primary_label, hero_secondary_label, booking_message, hero_cover_photo_id, hero_cover_source, hero_promo_source, hero_promo_video_id")
+      .select("hero_title, hero_subtitle, hero_primary_label, hero_secondary_label, booking_message, hero_cover_photo_id, hero_cover_source, hero_promo_source, hero_promo_video_id, hero_stat_videos, hero_stat_photos, hero_stat_events")
       .eq("id", 1)
       .maybeSingle(),
     pickPhotos(sb),
@@ -399,6 +402,21 @@ export async function HomeContentPage({ searchParams }: { searchParams?: SP } = 
                 <p className="text-xs text-on-cream-muted" data-testid="hero-slideshow-note">
                   هاي الصورة بتظهر أول ما تفتح الرئيسية، وبعدها الواجهة بتتنقل لحالها بين صور الألبومات المنشورة، من الأحدث للأقدم.
                 </p>
+              </fieldset>
+              <fieldset className="sm:col-span-2" data-testid="hero-stats">
+                <legend className="mb-1 text-sm font-medium">أرقام الواجهة</legend>
+                <p className="mb-3 text-xs text-on-cream-muted">تظهر بجانب العنوان. اكتب أرقامكم الحقيقية؛ الخانة الفارغة لا تظهر، وإذا كانت الثلاث فارغة لا يظهر شيء.</p>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <Field label="عدد الفيديوهات">
+                    <input name="hero_stat_videos" type="number" inputMode="numeric" min={1} max={10000000} step={1} defaultValue={h.hero_stat_videos ?? ""} className={inputCls} data-testid="hero-stat-videos" />
+                  </Field>
+                  <Field label="عدد الصور">
+                    <input name="hero_stat_photos" type="number" inputMode="numeric" min={1} max={10000000} step={1} defaultValue={h.hero_stat_photos ?? ""} className={inputCls} data-testid="hero-stat-photos" />
+                  </Field>
+                  <Field label="عدد المناسبات">
+                    <input name="hero_stat_events" type="number" inputMode="numeric" min={1} max={10000000} step={1} defaultValue={h.hero_stat_events ?? ""} className={inputCls} data-testid="hero-stat-events" />
+                  </Field>
+                </div>
               </fieldset>
               <div className="sm:col-span-2">
                 <PhotoPicker name="hero_cover_photo_id" label="الصورة المختارة يدوياً (اختياري)" photos={photos} defaultValue={h.hero_cover_photo_id} />

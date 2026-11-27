@@ -147,7 +147,10 @@ export function PosterHero({
   sub,
   ctaLabel,
   photoSlot,
+  stats = [],
 }: {
+  /** Owner-typed counters (videos, photos, events); only the filled ones. Empty → no block. */
+  stats?: { value: number; label: string; key: string }[];
   photo: HeroPhoto | null;
   /** Replaces the single photo (the home slideshow); `photo` is then only its fallback. */
   photoSlot?: React.ReactNode;
@@ -161,7 +164,8 @@ export function PosterHero({
     <section aria-labelledby="hero-title" data-home-hero className="relative isolate overflow-hidden bg-navy text-ivory">
       <div className="flex flex-col lg:grid lg:min-h-[clamp(26.875rem,31vw,28.75rem)] lg:grid-cols-2">
         {/* First in the DOM = right-hand column in RTL; on phones the photo is shown above it. */}
-        <div className="order-2 flex min-w-0 flex-col items-center justify-center px-[var(--gutter)] pt-6 pb-10 text-center lg:order-1 lg:py-7">
+        <div className="order-2 flex min-w-0 flex-col items-center justify-center gap-8 px-[var(--gutter)] pt-6 pb-10 text-center lg:order-1 lg:flex-row lg:gap-10 lg:py-7 xl:gap-14">
+        <div className="flex min-w-0 flex-col items-center">
           <Logo height={132} asLink={false} priority src={logoSrc} className="!h-24 lg:!h-[5.5rem]" sizes="116px" />
           <h1 id="hero-title" className="relative mt-5 max-w-full text-[clamp(1.875rem,1.2rem+3.4vw,3.5rem)] leading-[1.3] font-bold tracking-tight break-words lg:mt-4 lg:text-[clamp(2.25rem,2.9vw,3rem)] lg:leading-[1.25]">
             <span aria-hidden="true" className="absolute -top-5 -right-6 font-display text-[1.4em] leading-none text-gold max-sm:-top-4 max-sm:-right-2">
@@ -193,6 +197,21 @@ export function PosterHero({
             </p>
           )}
           <ContactCta href={whatsappHref} label={ctaLabel ?? HOME_POSTER.cta} className="mt-6 min-w-64 sm:min-w-80 lg:mt-5" />
+        </div>
+        {stats.length ? (
+          // Beside the title on wide screens (the empty side of the panel), a row under the button on phones.
+          <ul data-hero-stats aria-label="أرقامنا" className="flex w-full max-w-md justify-center gap-6 sm:gap-10 lg:w-auto lg:shrink-0 lg:flex-col lg:gap-5">
+            {stats.map((s, i) => (
+              <li key={s.key} data-hero-stat={s.key} className="flex flex-col items-center">
+                {i > 0 ? <span aria-hidden="true" className="mb-5 hidden h-px w-12 bg-gold/60 lg:block" /> : null}
+                <span className="font-display text-[clamp(1.75rem,1.2rem+2.2vw,2.75rem)] leading-none font-bold tracking-tight text-gold" dir="ltr">
+                  {s.value.toLocaleString("en-US")}
+                </span>
+                <span className="mt-2 text-sm font-bold text-ivory sm:text-base">{s.label}</span>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         </div>
 
         <div data-home-hero-photo className="home-hero-photo relative order-1 aspect-[4/3] bg-navy-deep sm:aspect-[16/9] lg:order-2 lg:aspect-auto">

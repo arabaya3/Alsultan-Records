@@ -134,6 +134,10 @@ export const homeSchema = z
     hero_cover_source: z.preprocess((v) => (v === "" || v == null ? "manual" : v), z.enum(["manual", "latest_album"], { message: "مصدر صورة الواجهة غير صالح" })),
     hero_promo_source: z.enum(["site", "youtube"], { message: "مصدر الفيديو غير صالح" }),
     hero_promo_video_id: optUuid,
+    // Hero counters (migration 0036): typed by the owner; empty = not shown.
+    hero_stat_videos: optInt(1, 10_000_000, "عدد الفيديوهات"),
+    hero_stat_photos: optInt(1, 10_000_000, "عدد الصور"),
+    hero_stat_events: optInt(1, 10_000_000, "عدد المناسبات"),
   })
   .refine((v) => v.hero_promo_source !== "youtube" || v.hero_promo_video_id, {
     message: "اختر فيديو يوتيوب للبرومو أو اختر ملف الموقع.",
