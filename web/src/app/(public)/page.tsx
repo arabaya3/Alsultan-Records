@@ -90,6 +90,8 @@ export default async function HomePage() {
       title: cleanVideoTitle(v.title),
       // An owner-chosen cover is an album photo (shown whole); otherwise the video's own 16:9 thumbnail.
       src: v.custom_cover_photo_id ? photoUrl(v.custom_cover_photo_id, "display") : youTubeThumbUrl(v.youtube_id),
+      // Same candidates as the album cards below: the browser takes the small file only where it is sharp enough.
+      srcSet: v.custom_cover_photo_id ? `${photoUrl(v.custom_cover_photo_id, "thumb")} 320w, ${photoUrl(v.custom_cover_photo_id, "display")} 1066w` : undefined,
       fit: v.custom_cover_photo_id ? "contain" : "cover",
       video: true,
     }));
@@ -278,7 +280,8 @@ export default async function HomePage() {
       .find(Boolean) ??
     null;
   const carousel: CarouselOffer[] = offers.status === "ok"
-    ? offers.data.map((o) => ({ slug: o.slug, href: offerPath(o.slug), title: o.title, sub: firstLine(o.description), image: o.image_photo_id ? photoUrl(o.image_photo_id, "display") : null }))
+    ? // The offer image is a 56 px icon in the carousel: the small variant (480 px) stays sharp at every pixel density.
+      offers.data.map((o) => ({ slug: o.slug, href: offerPath(o.slug), title: o.title, sub: firstLine(o.description), image: o.image_photo_id ? photoUrl(o.image_photo_id, "thumb") : null }))
     : [];
 
   return (

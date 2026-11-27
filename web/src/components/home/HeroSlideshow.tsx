@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { useAmbientMotion } from "@/components/motion/useAmbientMotion";
 
 type Album = { slug: string; title: string };
 /** album/n/total are kept for the slide order; nothing about the album is shown on the photo (owner request). */
@@ -25,12 +26,15 @@ async function getJson<T>(url: string): Promise<T | null> {
  * in album order, then the next album, then round again. The album list is read again at the start of each round, so a
  * newly published album joins the next round without cutting the current photo. Only one album's ids are held at a time
  * and only the current and the next photo are loaded. A photo that no longer loads (hidden, deleted) is skipped.
- * Cross-fade with a very slight zoom; stops while the tab is hidden and never moves under reduced motion. The first
+ * Cross-fade with a very slight zoom. It never moves under reduced motion or Save-Data, and pauses (no photo is
+ * loaded) while the tab is hidden, while the hero is scrolled off screen, and after AMBIENT_IDLE_STEPS photos with no
+ * visitor activity; it resumes on the next activity or when the hero comes back on screen (useAmbientMotion). The first
  * photo is the one the server rendered, so the first paint is unchanged; with no album photo the hero keeps `fallback`.
  */
 export function HeroSlideshow({ albums: initialAlbums, first, fallback }: { albums: Album[]; first: Slide | null; fallback: React.ReactNode }) {
   const [layers, setLayers] = useState<{ a: Slide | null; b: Slide | null; on: "a" | "b" }>({ a: first, b: null, on: "a" });
-  const [running, setRunning] = useState(false);
+  const area = useRef<HTMLDivElement>(null);
+  const { running, stepped } = useAmbientMotion(area, Boolean(first) && initialAlbums.length > 0);
   const state = useRef<{ albums: Album[]; ai: number; ids: string[]; pi: number }>({
     albums: initialAlbums,
     ai: 0,
@@ -39,20 +43,6 @@ export function HeroSlideshow({ albums: initialAlbums, first, fallback }: { albu
   });
   const loadedFirstAlbum = useRef(false);
   const shown = useRef<string | null>(first?.id ?? null);
-
-  // Motion only when allowed and the tab is visible.
-  useEffect(() => {
-    if (!first || initialAlbums.length === 0) return;
-    const m = window.matchMedia("(prefers-reduced-motion: reduce)");
-    const update = () => setRunning(!m.matches && document.visibilityState === "visible");
-    update();
-    m.addEventListener("change", update);
-    document.addEventListener("visibilitychange", update);
-    return () => {
-      m.removeEventListener("change", update);
-      document.removeEventListener("visibilitychange", update);
-    };
-  }, [first, initialAlbums.length]);
 
   useEffect(() => {
     if (!running) return;
@@ -106,6 +96,7 @@ export function HeroSlideshow({ albums: initialAlbums, first, fallback }: { albu
       if (next) {
         shown.current = next.id;
         setLayers((l) => (l.on === "a" ? { ...l, b: next, on: "b" } : { ...l, a: next, on: "a" }));
+        stepped();
       }
       timer = window.setTimeout(step, HOLD);
     };
@@ -114,7 +105,7 @@ export function HeroSlideshow({ albums: initialAlbums, first, fallback }: { albu
       cancelled = true;
       window.clearTimeout(timer);
     };
-  }, [running, first]);
+  }, [running, first, stepped]);
 
   if (!first) return <>{fallback}</>;
 
@@ -140,7 +131,7 @@ export function HeroSlideshow({ albums: initialAlbums, first, fallback }: { albu
 
   return (
     // One child of the photo panel: the panel's slanted clip then cuts the panel as a whole.
-    <div data-hero-slideshow className="absolute inset-0">
+    <div ref={area} data-hero-slideshow data-running={running ? "1" : "0"} className="absolute inset-0">
       {layer(layers.a, "a")}
       {layer(layers.b, "b")}
     </div>
