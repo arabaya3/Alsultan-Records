@@ -90,3 +90,56 @@ test("HS5: shortened hero: 430–460 px on a 1440 desktop; at 390 nothing is cut
     expect(b.y + b.height, sel).toBeLessThanOrEqual(hero.y + hero.height);
   }
 });
+
+/** Hero photos the page asked for (preloads included), counted from the moment it is called. */
+function heroRequests(page: Page, ids: Set<string>) {
+  const seen: string[] = [];
+  page.on("request", (r) => {
+    const m = /\/p\/([0-9a-f-]{36})\/display$/.exec(r.url());
+    if (m && ids.has(m[1])) seen.push(m[1]);
+  });
+  return seen;
+}
+
+test("HS6: scrolled off screen the slideshow loads no photo; back on screen it moves on again", async ({ page }) => {
+  await skipSiteIntro(page);
+  await page.setViewportSize({ width: 1440, height: 900 });
+  const { albums } = await api<{ albums: Album[] }>();
+  const ids = new Set((await Promise.all(albums.map((a) => api<{ ids: string[] }>(`?album=${a.slug}`)))).flatMap((r) => r.ids));
+  await page.goto(`${BASE}/`);
+  await expect(sharp(page)).toBeVisible();
+  await expect(page.locator("[data-hero-slideshow]")).toHaveAttribute("data-running", "1");
+  // Off screen before the first step (7 s): nothing may load while the visitor reads further down.
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(page.locator("[data-hero-slideshow]")).toHaveAttribute("data-running", "0");
+  const src = await onLayer(page).getAttribute("src");
+  const asked = heroRequests(page, ids);
+  await page.waitForTimeout(16_000); // more than two steps
+  // Below the fold, album cards may show covers that are also hero photos: only the hero's own layers count.
+  expect(await onLayer(page).getAttribute("src")).toBe(src);
+  await expect(page.locator("[data-home-hero-photo] .hero-slide")).toHaveCount(1);
+  const whileAway = asked.length;
+  // Back on screen: it resumes and the photo changes within one step.
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await expect(page.locator("[data-hero-slideshow]")).toHaveAttribute("data-running", "1");
+  await expect.poll(async () => onLayer(page).getAttribute("src"), { timeout: 15_000 }).not.toBe(src);
+  expect(asked.length).toBeGreaterThan(whileAway);
+});
+
+test("HS7: Save-Data: the photo never changes on its own and no other hero photo is loaded", async ({ browser }) => {
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  await ctx.addInitScript(() => {
+    Object.defineProperty(Navigator.prototype, "connection", {
+      configurable: true,
+      get: () => ({ saveData: true, addEventListener() {}, removeEventListener() {} }),
+    });
+  });
+  const page = await ctx.newPage();
+  await skipSiteIntro(page);
+  await page.goto(`${BASE}/`);
+  await expect(sharp(page)).toBeVisible();
+  await expect(page.locator("[data-hero-slideshow]")).toHaveAttribute("data-running", "0");
+  await page.waitForTimeout(9_000);
+  await expect(page.locator("[data-home-hero-photo] .hero-slide")).toHaveCount(1);
+  await ctx.close();
+});

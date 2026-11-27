@@ -91,6 +91,30 @@ test("home: active offers as a carousel under the hero (no top bar there): name,
   await expect(page).toHaveURL(new RegExp(`/offers/${A.slug}$`));
 });
 
+test("home carousel: an offer's own image is the 56 px icon from the small variant, still sharp on a 2× screen", async ({ browser }) => {
+  // A published album photo (the hero-slides API lists only published albums and photos).
+  const albums = ((await (await fetch(`${BASE}/api/hero-slides`)).json()) as { albums: { slug: string }[] }).albums;
+  const ids = ((await (await fetch(`${BASE}/api/hero-slides?album=${albums[0].slug}`)).json()) as { ids: string[] }).ids;
+  expect(ids.length).toBeGreaterThan(0);
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 2 });
+  try {
+    expect((await db.from("offers").update({ image_photo_id: ids[0] }).eq("slug", A.slug)).error).toBeNull();
+    await refreshPublicCache(browser);
+    const page = await ctx.newPage();
+    await skipSiteIntro(page);
+    await page.goto(`${BASE}/`);
+    const icon = page.locator(`[data-offer-carousel] [data-offer-slide="${A.slug}"] img`);
+    await expect(icon).toHaveAttribute("src", `/p/${ids[0]}/thumb`);
+    await expect.poll(() => icon.evaluate((i: HTMLImageElement) => i.complete && i.naturalWidth > 0), { timeout: 15_000 }).toBe(true);
+    const { natural, shown } = await icon.evaluate((i: HTMLImageElement) => ({ natural: Math.min(i.naturalWidth, i.naturalHeight), shown: i.getBoundingClientRect().width * devicePixelRatio }));
+    expect(natural).toBeGreaterThanOrEqual(shown); // not upscaled: sharp
+  } finally {
+    await db.from("offers").update({ image_photo_id: null }).eq("slug", A.slug);
+    await refreshPublicCache(browser);
+    await ctx.close();
+  }
+});
+
 test("header «العروض» link is shown while an offer is active (desktop and mobile menu)", async ({ page, browser }) => {
   await skipSiteIntro(page);
   await page.goto(`${BASE}/`);
