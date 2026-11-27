@@ -154,6 +154,25 @@ export async function runPhotoJobs(opts: { limit?: number; budgetMs?: number } =
   }
 }
 
+/** For the per-file `after()` hand-off of an upload: start a run only when none is active in this instance, instead
+ *  of queuing behind it. A 100-file upload used to stack 100 waiting tasks (memory, billed duration, a timeout risk
+ *  inside maxDuration). Calls that arrive during a run only leave a note; the caller that started the run then runs
+ *  again (coalesced) until no note is left or `totalMs` is used up; pg_cron picks up anything after that. */
+let again = false;
+export async function runPhotoJobsIfIdle(opts: { limit?: number; budgetMs?: number; totalMs?: number } = {}): Promise<RunSummary | null> {
+  if (running) {
+    again = true;
+    return null;
+  }
+  const until = Date.now() + (opts.totalMs ?? 40_000);
+  let last = await runPhotoJobs(opts);
+  while (again && Date.now() < until) {
+    again = false;
+    last = await runPhotoJobs({ ...opts, budgetMs: Math.min(opts.budgetMs ?? JOB_TIME_BUDGET_MS, Math.max(1_000, until - Date.now())) });
+  }
+  return last;
+}
+
 async function runPhotoJobsOnce(opts: { limit?: number; budgetMs?: number }): Promise<RunSummary> {
   const started = Date.now();
   const limit = Math.max(1, Math.min(opts.limit ?? JOB_BATCH, JOB_BATCH));
