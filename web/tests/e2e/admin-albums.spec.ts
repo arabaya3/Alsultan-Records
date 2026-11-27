@@ -39,8 +39,12 @@ async function anonObject(path: string) {
 }
 
 test("A1: nav entry, create album (hidden by default)", async ({ browser }) => {
+  // «ألبوم جديد» has its own short page (admin redesign); the list links to it.
   const page = await newLoggedIn(browser, "admin", "/admin/albums");
   await expect(page.getByRole("heading", { level: 1, name: "ألبومات الموقع" })).toBeVisible();
+  await page.getByTestId("album-new-link").click();
+  await page.waitForURL((u) => u.pathname === "/admin/albums/new");
+  await expect(page.getByRole("heading", { level: 1, name: "ألبوم جديد" })).toBeVisible();
   await expect(page.getByRole("link", { name: "ألبومات الموقع" }).first()).toBeVisible();
   const form = page.getByTestId("album-create");
   await form.locator('input[name="title"]').fill("ألبوم اختبار");

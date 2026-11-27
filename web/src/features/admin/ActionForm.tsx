@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, useId, useRef, type FormEvent, type ReactNode } from "react";
 import type { ActionResult } from "./result";
+import { ModalCancel } from "./Modal";
 
 type Action = (prev: ActionResult, fd: FormData) => Promise<ActionResult>;
 
@@ -32,6 +33,8 @@ export function ActionForm({
   testId,
   inline = false,
   id,
+  variant = "button",
+  icon,
 }: {
   action: Action;
   children?: ReactNode;
@@ -44,6 +47,9 @@ export function ActionForm({
   testId?: string;
   inline?: boolean;
   id?: string;
+  /** "menu": a full-width row inside a RowMenu (icon + label), its result message under it. */
+  variant?: "button" | "menu";
+  icon?: ReactNode;
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const dialogRef = useRef<HTMLDialogElement>(null);
@@ -52,6 +58,8 @@ export function ActionForm({
   const [state, formAction, pending] = useActionState<ActionResult, FormData>(async (prev, fd) => {
     const r = await action(prev, fd);
     if (r.ok && resetOnSuccess) formRef.current?.reset();
+    // A dialog around this form clears its «unsaved» flag (Modal).
+    if (r.ok) formRef.current?.dispatchEvent(new CustomEvent("admin-saved", { bubbles: true }));
     return r;
   }, { ok: true, message: "" });
 
@@ -63,38 +71,49 @@ export function ActionForm({
     startTransition(() => formAction(fd));
   }
 
+  const menu = variant === "menu";
+  const btnCls = menu
+    ? `flex min-h-11 w-full items-center gap-3 rounded-lg px-3 text-start disabled:opacity-50 ${kind === "danger" ? "text-danger hover:bg-danger/10" : "hover:bg-cream-2 focus-visible:bg-cream-2"}`
+    : `${btnBase} ${KIND[kind]}`;
+  const label = (
+    <>
+      {menu && icon ? <span aria-hidden="true" className={kind === "danger" ? "" : "text-on-cream-muted"}>{icon}</span> : null}
+      <span className={menu ? "flex-1" : undefined}>{pending ? "جارٍ التنفيذ…" : submitLabel}</span>
+    </>
+  );
   return (
     <form
       ref={formRef}
       id={id}
       onSubmit={onSubmit}
       data-testid={testId}
-      className={inline ? `inline-flex flex-wrap items-center gap-2 ${className}` : `space-y-3 ${className}`}
+      className={menu ? `block ${className}` : inline ? `inline-flex flex-wrap items-center gap-2 ${className}` : `space-y-3 ${className}`}
     >
       {children}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className={menu ? "block" : "flex flex-wrap items-center gap-3"}>
         {confirm ? (
           <button
             type="button"
             disabled={pending || disabled}
-            className={`${btnBase} ${KIND[kind]}`}
+            className={btnCls}
             onClick={() => {
               if (formRef.current?.reportValidity()) dialogRef.current?.showModal();
             }}
           >
-            {pending ? "جارٍ التنفيذ…" : submitLabel}
+            {label}
           </button>
         ) : (
-          <button type="submit" disabled={pending || disabled} className={`${btnBase} ${KIND[kind]}`}>
-            {pending ? "جارٍ التنفيذ…" : submitLabel}
+          <button type="submit" disabled={pending || disabled} className={btnCls}>
+            {label}
           </button>
         )}
+        {menu ? null : <ModalCancel />}
         {state.message ? (
           <p
             role={state.ok ? "status" : "alert"}
             data-testid="action-msg"
             data-ok={state.ok ? "1" : "0"}
-            className={`text-sm ${state.ok ? "text-success" : "text-danger"}`}
+            className={`text-sm ${menu ? "px-3 pb-1 text-xs" : ""} ${state.ok ? "text-success" : "text-danger"}`}
           >
             {state.message}
           </p>

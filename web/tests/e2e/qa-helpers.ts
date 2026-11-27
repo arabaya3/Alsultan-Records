@@ -196,7 +196,7 @@ export async function refreshPublicCache(browser: Browser) {
       ["/admin/content/home", "home-form"],
     ]) {
       await page.goto(`${BASE}${url}`);
-      const form = page.getByTestId(id);
+      const form = await reveal(page, id);
       await form.getByRole("button", { name: "حفظ" }).click();
       await expect(form.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
     }
@@ -253,4 +253,29 @@ export async function lockTable(table: string): Promise<{ release: () => Promise
         ),
       ),
   };
+}
+
+/**
+ * Admin redesign: some forms open in a centred dialog («إضافة فيديو», «عنوان قسم العروض», «تعديل» of a menu link…).
+ * Opens the dialog that holds the form `formTestId` (its opener is `${dialogTestId}-open`) when the form is not visible
+ * yet, and returns the form. Pages without a dialog are unaffected.
+ */
+export async function reveal(page: Page, formTestId: string, dialogTestId = `${formTestId}-modal`) {
+  const form = page.getByTestId(formTestId);
+  const opener = page.getByTestId(`${dialogTestId}-open`).first();
+  // A click that lands before hydration does nothing, so retry until the dialog shows the form.
+  await expect(async () => {
+    if (!(await form.isVisible()) && (await opener.count())) await opener.click();
+    await expect(form).toBeVisible({ timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
+  return form;
+}
+
+/** Opens a row's «⋯» actions menu (RowMenu) inside `row` (retried until it reports open: a pre-hydration click is lost). */
+export async function openRowMenu(row: import("@playwright/test").Locator) {
+  const button = row.locator("[data-testid$='-button'][aria-expanded], [data-testid='row-menu-button']").first();
+  await expect(async () => {
+    if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
+    await expect(button).toHaveAttribute("aria-expanded", "true", { timeout: 2_000 });
+  }).toPass({ timeout: 20_000 });
 }

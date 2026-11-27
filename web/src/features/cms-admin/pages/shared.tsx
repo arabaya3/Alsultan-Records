@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Card, Field, inputCls, LoadError } from "@/features/admin/ui";
+import { Card, Field, inputCls, LoadError, Segmented } from "@/features/admin/ui";
 import { CmsForm } from "../CmsForm";
 import { saveSectionIntro } from "../actions";
 import type { Opt, SectionRow } from "../data";
@@ -53,6 +53,15 @@ export function CheckList({ name, legend, options, selected, max }: { name: stri
 export function SectionIntroCard({ section, sectionKey, note }: { section: SectionRow | null; sectionKey: string; note?: ReactNode }) {
   return (
     <Card title="عنوان القسم ومقدمته">
+      <SectionIntroForm section={section} sectionKey={sectionKey} note={note} />
+    </Card>
+  );
+}
+
+/** The heading/intro form alone (inside a Card, or inside a Modal). */
+export function SectionIntroForm({ section, sectionKey, note }: { section: SectionRow | null; sectionKey: string; note?: ReactNode }) {
+  return (
+    <>
       {note ? <p className="mb-3 text-sm text-on-cream-muted">{note}</p> : null}
       <CmsForm action={saveSectionIntro} testId={`section-intro-${sectionKey}`}>
         <input type="hidden" name="key" value={sectionKey} />
@@ -65,8 +74,16 @@ export function SectionIntroCard({ section, sectionKey, note }: { section: Secti
           </Field>
         </div>
       </CmsForm>
-    </Card>
+    </>
   );
+}
+
+/** «10 أكتوبر 2026» (Western digits, as in the designs); dates are plain YYYY-MM-DD calendar days. */
+export function dayAr(d: string | null): string | null {
+  if (!d) return null;
+  const t = Date.parse(`${d.slice(0, 10)}T00:00:00Z`);
+  if (Number.isNaN(t)) return d;
+  return new Intl.DateTimeFormat("ar", { day: "numeric", month: "long", year: "numeric", numberingSystem: "latn", timeZone: "UTC" }).format(t);
 }
 
 export const today = (d: string) => `اليوم حسب توقيت الخليل/فلسطين: ${d}`;
@@ -74,6 +91,11 @@ export const DATE_HELP = "التواريخ تُحسب بتوقيت فلسطين 
 
 /** In-page tab row linking a parent page and its sub-pages (replaces separate sidebar entries). */
 export function PageTabs({ label, tabs, current }: { label: string; tabs: { href: string; label: string }[]; current: string }) {
+  return <Segmented label={label} tabs={tabs} current={current} />;
+}
+
+/** Previous look (kept for pages not redesigned yet). */
+export function PageTabsPlain({ label, tabs, current }: { label: string; tabs: { href: string; label: string }[]; current: string }) {
   return (
     <nav aria-label={label} className="-mt-2 mb-4 flex flex-wrap gap-2 border-b border-ink/10 pb-2" data-testid="page-tabs">
       {tabs.map((t) => {

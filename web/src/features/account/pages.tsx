@@ -1,7 +1,7 @@
-import { SettingsTabs } from "@/features/admin/SettingsTabs";
+import { SettingsFrame } from "@/features/admin/SettingsTabs";
 import { ALL_STAFF, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import { Card, DL, Field, inputCls, PageHeader } from "@/features/admin/ui";
+import { Card, DL, Field, inputCls } from "@/features/admin/ui";
 import { ROLE_LABEL } from "@/features/admin/labels";
 import { changeOwnPassword } from "@/features/users/actions";
 
@@ -10,8 +10,7 @@ export async function AccountPage() {
   if (!session) return <Forbidden />;
   return (
     <>
-      <PageHeader title="حسابي" lead="بياناتك وكلمة السر." />
-      <SettingsTabs current="/admin/account" />
+      <SettingsFrame current="/admin/account" title="حسابي" lead="بياناتك وكلمة السر.">
       <div className="grid gap-4 lg:grid-cols-2">
         <Card title="بيانات الحساب">
           <DL
@@ -38,6 +37,7 @@ export async function AccountPage() {
           </ActionForm>
         </Card>
       </div>
+      </SettingsFrame>
     </>
   );
 }

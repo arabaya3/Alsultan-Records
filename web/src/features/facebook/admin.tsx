@@ -1,8 +1,8 @@
-import { SettingsTabs } from "@/features/admin/SettingsTabs";
+import { SettingsFrame } from "@/features/admin/SettingsTabs";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { Forbidden, guard, OWNER_ONLY } from "@/features/admin/guard";
-import { Badge, Card, Notice, PageHeader, Table } from "@/features/admin/ui";
+import { Badge, Card, Notice, Table } from "@/features/admin/ui";
 import { dateAr } from "@/features/portal/format";
 import { FAILURE_TEXT, metaEnv } from "./oauth";
 
@@ -37,8 +37,7 @@ export async function FacebookSettingsPage({ result }: { result?: string } = {})
   const connected = c?.status === "connected";
   return (
     <>
-      <PageHeader title="صفحة فيسبوك" back={{ href: "/admin/settings", label: "الإعدادات" }} lead="نشر مقاطع الريلز على صفحة السلطان في فيسبوك — اختياري لكل مقطع، ومش مفعّل افتراضياً." />
-      <SettingsTabs current="/admin/settings/facebook" />
+      <SettingsFrame current="/admin/settings/facebook" title="فيسبوك" lead="نشر مقاطع الريلز على صفحة السلطان في فيسبوك — اختياري لكل مقطع، ومش مفعّل افتراضياً.">
       <Card title="حالة الربط">
         <div data-testid="facebook-connection" data-status={c?.status ?? "none"} className="space-y-2 text-sm">
           {connected ? (
@@ -83,6 +82,7 @@ export async function FacebookSettingsPage({ result }: { result?: string } = {})
           ))}
         </Table>
       </Card>
+      </SettingsFrame>
     </>
   );
 }

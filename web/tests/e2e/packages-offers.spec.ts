@@ -1,5 +1,5 @@
 import { expect, test, type Browser, type Page } from "@playwright/test";
-import { BASE, db, newLoggedIn } from "./qa-helpers";
+import { BASE, db, newLoggedIn, openRowMenu } from "./qa-helpers";
 
 /**
  * Packages (permanent bundles) vs offers (time-limited): separate admin + pages, optional offer→package link that
@@ -147,7 +147,10 @@ test("K3: linked offer shows the package; editing and expiring the offer never c
 test("K4: hiding the package removes it from /packages but keeps the offers", async ({ browser }) => {
   const page = await adminPage(browser);
   await page.goto(`${BASE}/admin/content/packages`);
-  await page.getByTestId("package-row").filter({ hasText: PKG.title }).getByRole("button", { name: "إخفاء" }).click();
+  // the row's actions are in its «⋯» menu (admin redesign)
+  const pkgRow = page.getByTestId("sort-row").filter({ has: page.getByTestId("package-row").filter({ hasText: PKG.title }) });
+  await openRowMenu(pkgRow);
+  await pkgRow.getByRole("button", { name: "إخفاء" }).click();
   await expect.poll(async () => (await db.from("packages").select("status").eq("id", pkgId).single()).data?.status).toBe("hidden");
   await expect.poll(async () => (await html("/packages")).includes(PKG.title), { timeout: 15_000 }).toBe(false);
   expect(await html("/offers")).toContain(slugOf("sep27"));

@@ -88,11 +88,12 @@ test("N2: owner enables finance; admin and staff menus follow the flags", async 
 });
 
 test("N3: settings are one entry with role-filtered tabs; the studio details card is not repeated; home sections live on «الصفحة الرئيسية»", async ({ browser }) => {
-  const TABS_ALL = ["عام", "بيانات النشاط والشعار", "حسابي وكلمة السر", "المستخدمون والصلاحيات", "فيسبوك", "النسخ الاحتياطي"];
+  // Settings inner menu (admin redesign): grouped, «هوية النشاط» first.
+  const TABS_ALL = ["هوية النشاط", "القائمة والأقسام", "حسابي", "المستخدمون والصلاحيات", "فيسبوك", "النسخ الاحتياطي"];
   const owner = await newLoggedIn(browser, "owner", "/admin/settings");
   await expect(owner.getByTestId("page-tabs").getByRole("link")).toHaveText(TABS_ALL);
-  await expect(owner.getByTestId("settings-business-summary")).toHaveCount(0); // edited only in «بيانات النشاط والشعار»
-  for (const [href, label] of [["/admin/content/identity", "بيانات النشاط والشعار"], ["/admin/account", "حسابي وكلمة السر"], ["/admin/backups", "النسخ الاحتياطي"], ["/admin/settings/facebook", "فيسبوك"]] as const) {
+  await expect(owner.getByTestId("settings-business-summary")).toHaveCount(0); // edited only in «هوية النشاط»
+  for (const [href, label] of [["/admin/content/identity", "هوية النشاط"], ["/admin/account", "حسابي"], ["/admin/backups", "النسخ الاحتياطي"], ["/admin/settings/facebook", "فيسبوك"]] as const) {
     await owner.goto(`${BASE}${href}`);
     await expect(owner.getByTestId("page-tabs").getByRole("link", { name: label, exact: true })).toHaveAttribute("aria-current", "page");
     await expect(owner.getByRole("navigation", { name: NAV }).getByRole("link", { name: "الإعدادات", exact: true })).toHaveAttribute("aria-current", "page");
@@ -103,14 +104,19 @@ test("N3: settings are one entry with role-filtered tabs; the studio details car
   await owner.context().close();
 
   const admin = await newLoggedIn(browser, "admin", "/admin/settings");
-  await expect(admin.getByTestId("page-tabs").getByRole("link")).toHaveText(["عام", "بيانات النشاط والشعار", "حسابي وكلمة السر"]);
-  // Home: hero form, the sections list and every section card on one page; the nav page keeps the header links only.
+  await expect(admin.getByTestId("page-tabs").getByRole("link")).toHaveText(["هوية النشاط", "القائمة والأقسام", "حسابي"]);
+  // Home: one editor with tabs — the hero, the sections list, each section's content, the booking steps; the nav page
+  // keeps the header links only.
   await admin.goto(`${BASE}/admin/content/home`);
   await expect(admin.getByTestId("home-form")).toBeVisible();
+  await expect(admin.getByTestId("home-tabs").getByRole("link")).toHaveText(["الواجهة", "الأقسام", "محتوى الأقسام", "خطوات الحجز"]);
+  await admin.getByTestId("home-tabs").getByRole("link", { name: "الأقسام", exact: true }).click();
   await expect(admin.getByTestId("sections-order")).toBeVisible();
+  await expect(admin.getByTestId("home-form")).toHaveCount(0); // one form per tab
+  await admin.goto(`${BASE}/admin/content/home?tab=content&s=about`);
   await expect(admin.getByTestId("section-about")).toBeVisible();
-  await expect(admin.getByTestId("home-process-link")).toHaveAttribute("href", "/admin/content/process");
-  await expect(admin.getByTestId("home-sections-jump")).toHaveAttribute("href", "#home-sections");
+  await admin.goto(`${BASE}/admin/content/home?tab=steps`);
+  await expect(admin.getByTestId("steps-list").or(admin.getByText("لا توجد خطوات"))).toBeVisible();
   await admin.goto(`${BASE}/admin/content/nav`);
   await expect(admin.getByTestId("nav-list")).toBeVisible();
   await expect(admin.getByTestId("sections-order")).toHaveCount(0);

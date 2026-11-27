@@ -31,7 +31,8 @@ function StepFields({ s, photos }: { s?: Step; photos: Awaited<ReturnType<typeof
   );
 }
 
-export async function ProcessPage() {
+/** embedded: inside the home editor's «خطوات الحجز» tab (no page title of its own). */
+export async function ProcessPage({ embedded = false }: { embedded?: boolean } = {}) {
   if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
   const sb = await cms();
   const [{ data, error }, section, photos] = await Promise.all([
@@ -43,7 +44,9 @@ export async function ProcessPage() {
   const steps = (data ?? []) as Step[];
   return (
     <>
-      <PageHeader title="طريقة شغلنا" back={{ href: "/admin/content/home", label: "الصفحة الرئيسية" }} lead="هون بتكتب خطوات الشغل مع العميل؛ بتظهر بالترتيب في الرئيسية." />
+      {embedded ? null : (
+  <PageHeader title="طريقة شغلنا" back={{ href: "/admin/content/home", label: "الصفحة الرئيسية" }} lead="هون بتكتب خطوات الشغل مع العميل؛ بتظهر بالترتيب في الرئيسية." />
+      )}
       <div className="space-y-4">
         {steps.length ? (
           <SortableList

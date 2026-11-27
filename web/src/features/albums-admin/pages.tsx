@@ -6,7 +6,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { ADMIN_ROLES, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import { Badge, btn, Card, Field, inputCls, LoadError, Notice, PageHeader, Table } from "@/features/admin/ui";
+import { Badge, btn, Card, EmptyState, Field, FilterChips, inputCls, LoadError, Notice, PageHeader, SearchBox, Segmented } from "@/features/admin/ui";
+import { StatusPill } from "@/features/admin/StatusPill";
+import { IconArchive, IconCheck, IconFolder, IconGear, IconImage, IconPlus, IconTrash } from "@/features/admin/icons";
 import { isUuid } from "@/features/admin/result";
 import { one, pick, type IdParams, type SP } from "@/features/admin/query";
 import { AlbumGallery } from "@/components/media/gallery/AlbumGallery";
@@ -131,12 +133,13 @@ function AlbumFields({ a, categories }: { a?: Album; categories: Category[] }) {
   );
 }
 
-const VIEWS = ["active", "archived", "trash"] as const;
-const VIEW_LABEL: Record<(typeof VIEWS)[number], string> = { active: "الألبومات", archived: "الأرشيف", trash: "سلة المحذوفات" };
+const VIEWS = ["active", "categories", "archived", "trash"] as const;
+const VIEW_LABEL: Record<(typeof VIEWS)[number], string> = { active: "الألبومات", categories: "التصنيفات", archived: "الأرشيف", trash: "سلة المحذوفات" };
+const VIEW_ICON: Record<(typeof VIEWS)[number], React.ReactNode> = { active: <IconImage />, categories: <IconFolder />, archived: <IconArchive />, trash: <IconTrash /> };
 
 function CategoriesCard({ categories }: { categories: Category[] }) {
   return (
-    <Card title="تصنيفات الألبومات">
+    <Card title="تصنيفات الألبومات" className="!rounded-2xl">
       <div className="space-y-3" data-testid="album-categories">
         {categories.length ? (
           categories.map((c) => (
@@ -194,11 +197,47 @@ function CategoriesCard({ categories }: { categories: Category[] }) {
   );
 }
 
+function AlbumsTabs({ view }: { view: (typeof VIEWS)[number] }) {
+  return (
+    <Segmented
+      label="أقسام الألبومات"
+      current={view}
+      tabs={VIEWS.map((v) => ({ key: v, href: v === "active" ? "/admin/albums" : `/admin/albums?view=${v}`, label: VIEW_LABEL[v], icon: VIEW_ICON[v] }))}
+    />
+  );
+}
+
+const NEW_ALBUM = (
+  <Link href="/admin/albums/new" className={btn("primary", "px-6 text-base")} data-testid="album-new-link">
+    <IconPlus /> ألبوم جديد
+  </Link>
+);
+
 export async function AlbumsPage({ searchParams }: { searchParams: SP }) {
   if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
   const sp = await searchParams;
   const view = pick(one(sp.view), VIEWS) ?? "active";
+  const status = pick(one(sp.status), ["published", "draft"] as const) ?? "";
+  const search = one(sp.q).trim();
   const sb = await db();
+  const header = (
+    <PageHeader
+      title="ألبومات الموقع"
+      lead="ألبومات الصور المنشورة على الموقع"
+      actions={NEW_ALBUM}
+    />
+  );
+  if (view === "categories") {
+    const cats = await sb.from("album_categories").select("id, slug, title, sort_order, is_published").order("sort_order").order("title");
+    if (cats.error) return <LoadError what="التصنيفات" />;
+    return (
+      <>
+        {header}
+        <AlbumsTabs view={view} />
+        <CategoriesCard categories={(cats.data ?? []) as Category[]} />
+      </>
+    );
+  }
   // Same order as the public list (migration 0026): newest published first; drafts by creation time.
   let q = sb.from("photo_albums").select(ALBUM_COLS).order("listed_at", { ascending: false }).order("id", { ascending: false });
   q = view === "trash" ? q.not("deleted_at", "is", null) : view === "archived" ? q.is("deleted_at", null).not("archived_at", "is", null) : q.is("deleted_at", null).is("archived_at", null);
@@ -208,7 +247,13 @@ export async function AlbumsPage({ searchParams }: { searchParams: SP }) {
     sb.from("album_categories").select("id, slug, title, sort_order, is_published").order("sort_order").order("title"),
   ]);
   if (error) return <LoadError what="الألبومات" />;
-  const rows = (data ?? []) as Album[];
+  const all = (data ?? []) as Album[];
+  const needle = search.toLocaleLowerCase("ar");
+  const rows = all.filter(
+    (a) =>
+      (!status || (status === "published" ? a.is_published : !a.is_published)) &&
+      (!needle || `${a.title} ${a.slug}`.toLocaleLowerCase("ar").includes(needle)),
+  );
   const categories = (cats.data ?? []) as Category[];
   const catTitle = new Map(categories.map((c) => [c.id, c.title]));
   const counts = new Map<string, { all: number; visible: number; open: number }>();
@@ -219,67 +264,123 @@ export async function AlbumsPage({ searchParams }: { searchParams: SP }) {
     if (p.upload_status !== "ready") c.open++;
     counts.set(p.album_id, c);
   }
+  const params = { ...(view !== "active" ? { view } : {}), ...(status ? { status } : {}), ...(search ? { q: search } : {}) };
+  const cols = "md:grid-cols-[minmax(0,2.2fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1fr)_6.5rem]";
   return (
     <>
-      <PageHeader title="ألبومات الموقع" lead="ألبومات صور تُعرض في الموقع العام بعد النشر. الأصول في تخزين خاص ولا يرى الزائر إلا نسخ العرض." />
-      <nav className="mb-3 flex flex-wrap gap-2" aria-label="عرض">
-        {VIEWS.map((v) => (
-          <Link
-            key={v}
-            href={v === "active" ? "/admin/albums" : `/admin/albums?view=${v}`}
-            aria-current={view === v ? "true" : undefined}
-            className={`rounded-sm border px-3 py-1 text-sm ${view === v ? "border-ink bg-ink text-on-dark" : "border-cream-line bg-[#fffdf8] hover:border-on-cream-muted"}`}
-          >
-            {VIEW_LABEL[v]}
-          </Link>
-        ))}
-      </nav>
-      <div className="space-y-4">
-        <Table head={["الألبوم", "التصنيف", "الصور", "الحالة", ""]} empty={!rows.length} label="قائمة الألبومات">
-          {rows.map((a) => {
-            const c = counts.get(a.id) ?? { all: 0, visible: 0, open: 0 };
-            return (
-              <tr key={a.id} data-testid="album-row" data-slug={a.slug}>
-                <td className="px-3 py-2">
-                  <Link href={`/admin/albums/${a.id}`} className="font-medium underline-offset-2 hover:underline">
-                    {a.title}
-                  </Link>
-                  <p className="text-xs text-on-cream-muted" dir="ltr">
-                    {a.slug}
-                  </p>
-                </td>
-                <td className="px-3 py-2 text-sm">{(a.category_id && catTitle.get(a.category_id)) || "—"}</td>
-                <td className="px-3 py-2 text-sm">
-                  {c.visible} ظاهرة من {c.all}
-                  {c.open ? <span className="block text-xs text-on-cream-muted">{c.open} غير مكتملة</span> : null}
-                </td>
-                <td className="px-3 py-2">
-                  {albumState(a)}
-                  {a.published_at ? <span className="block text-xs text-on-cream-muted">نُشر {dateAr(a.published_at)}</span> : null}
-                </td>
-                <td className="px-3 py-2">
-                  <Link href={`/admin/albums/${a.id}`} className={btn("ghost")}>
-                    إدارة
-                  </Link>
-                </td>
-              </tr>
-            );
-          })}
-        </Table>
-        {view === "active" ? (
-          <>
-            <Card title="ألبوم جديد">
-              <NewAlbumForm>
-                <AlbumFields categories={categories} />
-              </NewAlbumForm>
-              <p className="mt-2 text-xs text-on-cream-muted">يُنشأ الألبوم مسودة (ما بينشر تلقائياً). الصور المختارة تبلّش ترفع فوراً بصفحة الألبوم، وبتقدر تضيف صور لاحقاً من نفس الصفحة.</p>
-            </Card>
-            <CategoriesCard categories={categories} />
-          </>
-        ) : view === "trash" ? (
-          <Notice>الألبومات في السلة مخفية عن الموقع ويمكن استرجاعها. الحذف النهائي من صفحة الألبوم ويتطلب كتابة معرّفه.</Notice>
-        ) : null}
+      {header}
+      <AlbumsTabs view={view} />
+      <div className="mb-5 flex flex-wrap items-center gap-3 rounded-2xl border border-cream-line bg-[#fffdf8] p-3">
+        <p className="ms-1 font-display text-base font-bold" data-testid="albums-count">
+          {rows.length.toLocaleString("en-US")} {rows.length === 1 ? "ألبوم" : "ألبومات"}
+        </p>
+        <span aria-hidden="true" className="h-8 w-px bg-cream-line" />
+        <FilterChips
+          base="/admin/albums"
+          param="status"
+          current={status}
+          params={params}
+          options={[
+            { value: "published", label: "منشور" },
+            { value: "draft", label: "مسودة" },
+          ]}
+        />
+        <div className="ms-auto w-full max-w-md">
+          <SearchBox base="/admin/albums" q={search} params={params} placeholder="ابحث عن ألبوم" />
+        </div>
       </div>
+      {view === "trash" ? (
+        <div className="mb-4">
+          <Notice>الألبومات في السلة مخفية عن الموقع ويمكن استرجاعها. الحذف النهائي من صفحة الألبوم ويتطلب كتابة معرّفه.</Notice>
+        </div>
+      ) : null}
+      {rows.length ? (
+        <div className="overflow-hidden rounded-2xl border border-cream-line bg-[#fffdf8] shadow-[0_8px_24px_-20px_rgb(60_45_20/0.4)]">
+          <div aria-hidden="true" className={`hidden gap-3 bg-cream-2 px-5 py-3 text-sm font-semibold text-on-cream-muted md:grid ${cols}`}>
+            <span>الألبوم</span>
+            <span>التصنيف</span>
+            <span>الصور</span>
+            <span>حالة النشر</span>
+            <span />
+          </div>
+          <ul aria-label="قائمة الألبومات" className="divide-y divide-cream-line">
+            {rows.map((a) => {
+              const c = counts.get(a.id) ?? { all: 0, visible: 0, open: 0 };
+              return (
+                <li key={a.id} data-testid="album-row" data-slug={a.slug} className={`grid items-center gap-x-3 gap-y-2 px-5 py-3 ${cols}`}>
+                  <span className="flex min-w-0 items-center gap-3">
+                    <span aria-hidden="true" className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg bg-gold/15 text-gold-press">
+                      <IconImage size={20} />
+                    </span>
+                    <span className="min-w-0">
+                      <Link href={`/admin/albums/${a.id}`} className="font-display font-bold break-words underline-offset-2 hover:underline">
+                        <bdi dir={bidiDir(a.title)}>{a.title}</bdi>
+                      </Link>
+                      <span className="block truncate text-xs text-on-cream-muted" dir="ltr" style={{ textAlign: "end" }}>
+                        {a.slug}
+                      </span>
+                    </span>
+                  </span>
+                  <span className="text-sm break-words">{(a.category_id && catTitle.get(a.category_id)) || "—"}</span>
+                  <span className="text-sm">
+                    <span className="font-bold">{c.visible.toLocaleString("en-US")}</span> من {c.all.toLocaleString("en-US")} ظاهرة
+                    {c.open ? (
+                      <span className="mt-1 flex w-fit items-center gap-1.5 rounded-md bg-gold/20 px-2 py-0.5 text-xs font-semibold text-gold-text" data-testid="album-open-photos">
+                        <span aria-hidden="true" className="size-1.5 rounded-full bg-gold-press" />
+                        {c.open.toLocaleString("en-US")} غير مكتملة
+                      </span>
+                    ) : null}
+                  </span>
+                  <span>
+                    {a.deleted_at ? (
+                      <StatusPill tone="danger" label="في سلة المحذوفات" icon={null} />
+                    ) : a.archived_at ? (
+                      <StatusPill label="مؤرشف" icon={null} />
+                    ) : a.is_published ? (
+                      <StatusPill tone="success" label="منشور" icon={<IconCheck size={14} />} />
+                    ) : (
+                      <StatusPill label="مسودة" icon={null} />
+                    )}
+                    {a.published_at ? <span className="mt-1 block text-xs text-on-cream-muted">نُشر في {dateAr(a.published_at)}</span> : null}
+                  </span>
+                  <span className="md:justify-self-end">
+                    <Link href={`/admin/albums/${a.id}`} className={btn("ghost", "gap-2")}>
+                      <IconGear size={16} /> إدارة
+                    </Link>
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-cream-line bg-[#fffdf8]">
+          <EmptyState
+            icon={<IconImage size={40} />}
+            title={status || search ? "لا توجد ألبومات مطابقة" : view === "trash" ? "سلة المحذوفات فارغة" : view === "archived" ? "لا توجد ألبومات مؤرشفة" : "لا توجد ألبومات بعد"}
+            body={view === "active" && !status && !search ? "أنشئ أول ألبوم من «ألبوم جديد»." : undefined}
+          />
+        </div>
+      )}
+    </>
+  );
+}
+
+/** «ألبوم جديد» on its own short page: details + photos → «إنشاء ورفع» (created as a draft, as before). */
+export async function AlbumNewPage() {
+  if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
+  const sb = await db();
+  const cats = await sb.from("album_categories").select("id, slug, title, sort_order, is_published").order("sort_order").order("title");
+  const categories = (cats.data ?? []) as Category[];
+  return (
+    <>
+      <PageHeader title="ألبوم جديد" back={{ href: "/admin/albums", label: "ألبومات الموقع" }} lead="يُنشأ الألبوم مسودة، ثم تفتح صفحته وتبدأ الصور المختارة بالرفع هناك." />
+      <Card className="!rounded-2xl">
+        <NewAlbumForm>
+          <AlbumFields categories={categories} />
+        </NewAlbumForm>
+        <p className="mt-2 text-xs text-on-cream-muted">يُنشأ الألبوم مسودة (ما بينشر تلقائياً). الصور المختارة تبلّش ترفع فوراً بصفحة الألبوم، وبتقدر تضيف صور لاحقاً من نفس الصفحة.</p>
+      </Card>
     </>
   );
 }

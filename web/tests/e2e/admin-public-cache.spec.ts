@@ -1,5 +1,5 @@
 import { expect, test, type APIRequestContext } from "@playwright/test";
-import { BASE, db, lockTable, newLoggedIn, refreshAlbumsCache } from "./qa-helpers";
+import { BASE, db, lockTable, newLoggedIn, refreshAlbumsCache, reveal } from "./qa-helpers";
 
 /**
  * Editing a PUBLISHED event in the admin updates its public page at once (updateEvent expires the "projects"
@@ -131,7 +131,7 @@ test("PC3: a video title saved while the home page is being rebuilt is on the ho
     // The home page also reads the active offers: expire that read (an unchanged save of the offers heading), then
     // hold it. Saving a video never touches offers.
     const owner = await newLoggedIn(browser, "owner", "/admin/content/offers");
-    const heading = owner.getByTestId("section-intro-offers");
+    const heading = await reveal(owner, "section-intro-offers");
     await heading.getByRole("button", { name: "حفظ" }).click();
     await expect(heading.getByTestId("action-msg")).toHaveAttribute("data-ok", "1");
     await owner.context().close();

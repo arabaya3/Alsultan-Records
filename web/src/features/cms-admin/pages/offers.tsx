@@ -1,7 +1,11 @@
 import Link from "next/link";
 import { ADMIN_ROLES, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
-import { Badge, btn, Card, Field, FilterChips, inputCls, Notice, PageHeader } from "@/features/admin/ui";
+import { Badge, btn, Card, EmptyState, Field, FilterChips, inputCls, Notice, PageHeader, SearchBox } from "@/features/admin/ui";
+import { MenuLink, RowMenu } from "@/features/admin/RowMenu";
+import { Modal } from "@/features/admin/Modal";
+import { StatusPill } from "@/features/admin/StatusPill";
+import { IconCalendar, IconDiamond, IconEdit, IconEye, IconEyeOff, IconGear, IconLayers, IconPin, IconPlus } from "@/features/admin/icons";
 import { isUuid } from "@/features/admin/result";
 import { one, type IdParams, type SP } from "@/features/admin/query";
 import { OfferCard } from "@/components/offers/OfferCard";
@@ -15,7 +19,7 @@ import { offerBadge, visibleBadge, type OfferStatus } from "../status";
 import { defaultOfferMessage } from "../schema";
 import { PAGE_TARGET_LABEL, PAGE_TARGETS } from "../targets";
 import { deleteRow, saveAnnouncement, saveOffer, saveOrder, setOfferPinned, setOfferStatus, setVisible } from "../actions";
-import { CmsLoadError, DATE_HELP, OFFERS_TABS, PageTabs, SectionIntroCard, today as todayLine } from "./shared";
+import { CmsLoadError, DATE_HELP, dayAr, OFFERS_TABS, PageTabs, SectionIntroForm, today as todayLine } from "./shared";
 import { LONG_TEXT, LONG_TEXT_HINT } from "@/lib/text-limits";
 import { bidiDir } from "@/lib/bidi";
 
@@ -44,94 +48,150 @@ const OFFER_COLS =
 
 export async function OffersPage({ searchParams }: { searchParams: SP }) {
   if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
-  const filter = one((await searchParams).filter);
+  const sp = await searchParams;
+  const filter = one(sp.filter);
+  const q = one(sp.q).trim();
   const sb = await cms();
   const [{ data, error }, section] = await Promise.all([sb.from("offers").select(OFFER_COLS).order("sort_order").order("created_at"), loadSection(sb, "offers")]);
   if (error) return <CmsLoadError error={error} what="العروض" />;
   const today = hebronToday();
   const all = (data ?? []) as OfferDb[];
-  const rows = filter ? all.filter((o) => offerBadge(o, today).key === filter) : all;
+  const needle = q.toLocaleLowerCase("ar");
+  const rows = all.filter((o) => (!filter || offerBadge(o, today).key === filter) && (!needle || o.title.toLocaleLowerCase("ar").includes(needle)));
+  const params = { ...(filter ? { filter } : {}), ...(q ? { q } : {}) };
   return (
     <>
       <PageHeader
         title="العروض"
-        lead={`هون بتضيف عروض مؤقتة بتاريخ بداية ونهاية. ${todayLine(today)}`}
+        lead="إدارة عروض الباقات وتوقيت ظهورها بسهولة."
         actions={
-          <Link href="/admin/content/offers/new" className={btn("primary")}>
-            + عرض جديد
+          <Link href="/admin/content/offers/new" className={btn("primary", "px-6 text-base")}>
+            <IconPlus /> عرض جديد
           </Link>
         }
       />
       <PageTabs label="أقسام العروض" tabs={OFFERS_TABS} current="/admin/content/offers" />
-      <FilterChips
-        base="/admin/content/offers"
-        param="filter"
-        current={filter}
-        params={filter ? { filter } : {}}
-        options={[
-          { value: "active", label: "ساري" },
-          { value: "scheduled", label: "مجدول" },
-          { value: "expired", label: "منتهي" },
-          { value: "draft", label: "مسودة" },
-          { value: "archived", label: "مؤرشف" },
-        ]}
-      />
-      <div className="space-y-4">
-        <p className="text-sm text-on-cream-muted" data-testid="offers-order-help">
-          الترتيب في الموقع: المثبّتة أولاً بترتيب السحب هنا، ثم السارية حسب الشهر المستهدف (الأحدث أولاً)، ثم البقية بترتيب السحب.
-        </p>
-        {rows.length ? (
-          filter ? (
-            <ul className="space-y-2">
-              {rows.map((o) => (
-                <li key={o.id} className="rounded-md border border-cream-line bg-[#fffdf8] p-2">
-                  <OfferRowView o={o} today={today} />
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <SortableList label="ترتيب العروض" table="offers" action={saveOrder} testId="offers-list" items={rows.map((o) => ({ id: o.id, content: <OfferRowView o={o} today={today} /> }))} />
-          )
-        ) : (
-          <Notice>لا توجد عروض{filter ? " بهذه الحالة" : ""}.</Notice>
-        )}
-        <SectionIntroCard section={section} sectionKey="offers" note="يظهر قسم العروض في الرئيسية فقط عند وجود عرض ساري وتفعيل القسم من «القائمة والأقسام»." />
+      <div className="mb-5 flex flex-wrap items-center gap-3">
+        <div className="me-auto">
+          <FilterChips
+            base="/admin/content/offers"
+            param="filter"
+            current={filter}
+            params={params}
+            options={[
+              { value: "active", label: "ساري" },
+              { value: "scheduled", label: "مجدول" },
+              { value: "expired", label: "منتهي" },
+              { value: "draft", label: "مسودة" },
+              { value: "archived", label: "مؤرشف" },
+            ]}
+          />
+        </div>
+        <SearchBox base="/admin/content/offers" q={q} params={params} placeholder="بحث في العروض..." />
+        <Modal
+          title="عنوان قسم العروض"
+          size="sm"
+          testId="section-intro-offers-modal"
+          trigger={
+            <>
+              <IconGear /> عنوان قسم العروض
+            </>
+          }
+          triggerClassName="inline-flex min-h-11 items-center gap-2 rounded-full border border-cream-line bg-[#fffdf8] px-4 text-sm font-semibold hover:border-on-cream-muted"
+        >
+          <SectionIntroForm section={section} sectionKey="offers" note="يظهر قسم العروض في الرئيسية فقط عند وجود عرض ساري وتفعيل القسم من «القائمة والأقسام»." />
+        </Modal>
       </div>
+      {rows.length ? (
+        filter || q ? (
+          <ul className="space-y-2" data-testid="offers-list">
+            {rows.map((o) => (
+              <li key={o.id} className="flex items-center gap-3 rounded-xl border border-cream-line bg-[#fffdf8] px-3 py-3 md:px-4">
+                <div className="min-w-0 flex-1">
+                  <OfferRowView o={o} today={today} />
+                </div>
+                <RowMenu label={`إجراءات: ${o.title}`}>
+                  <OfferMenu o={o} />
+                </RowMenu>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <SortableList
+            label="ترتيب العروض"
+            table="offers"
+            action={saveOrder}
+            testId="offers-list"
+            items={rows.map((o) => ({ id: o.id, content: <OfferRowView o={o} today={today} />, menu: <OfferMenu o={o} />, menuLabel: o.title }))}
+          />
+        )
+      ) : (
+        <div className="rounded-2xl border border-cream-line bg-[#fffdf8]">
+          <EmptyState icon={<IconLayers size={40} />} title={filter || q ? "لا توجد عروض مطابقة" : "لا توجد عروض بعد"} body={filter || q ? "جرّب حالة أخرى أو كلمة بحث مختلفة." : "أضف عرضاً بتاريخ بداية ونهاية من «عرض جديد»."} />
+        </div>
+      )}
+      <p className="mt-4 text-sm text-on-cream-muted" data-testid="offers-order-help">
+        الترتيب في الموقع: المثبّتة أولاً بترتيب السحب هنا، ثم السارية حسب الشهر المستهدف (الأحدث أولاً)، ثم البقية بترتيب السحب. {todayLine(today)}
+      </p>
     </>
   );
 }
 
 function OfferRowView({ o, today }: { o: OfferDb; today: string }) {
   const b = offerBadge(o, today);
+  const from = dayAr(o.starts_on);
+  const to = dayAr(o.ends_on);
+  const period = from && to ? `${from} إلى ${to}` : from ? `من ${from}` : to ? `حتى ${to}` : "بدون تاريخ";
   return (
-    <div className="flex flex-wrap items-center gap-2" data-testid="offer-row" data-slug={o.slug}>
-      <Link href={`/admin/content/offers/${o.id}`} className="min-w-0 flex-1 break-words font-medium underline-offset-4 hover:underline">
-        {o.title}
-      </Link>
-      <span data-testid="offer-status">
-        <Badge tone={b.tone}>{b.label}</Badge>
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-2" data-testid="offer-row" data-slug={o.slug}>
+      <span aria-hidden="true" className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg border border-gold/40 bg-gold/10 text-gold-press">
+        {o.pinned_home ? <IconDiamond /> : <IconLayers />}
       </span>
-      {o.pinned_home ? <Badge tone="gold">مثبّت</Badge> : null}
-      {offerPeriodLabel(o) ? <span className="text-xs" data-testid="offer-period">{offerPeriodLabel(o)}</span> : null}
-      <span className="text-xs text-on-cream-muted" dir="ltr">
-        {o.starts_on ?? "…"} → {o.ends_on ?? "…"}
+      <div className="min-w-0 flex-1 basis-56">
+        <Link href={`/admin/content/offers/${o.id}`} className="font-display text-base font-bold break-words underline-offset-4 hover:underline md:text-lg">
+          {o.title}
+        </Link>
+        {offerPeriodLabel(o) ? (
+          <p className="text-xs text-on-cream-muted" data-testid="offer-period">
+            {offerPeriodLabel(o)}
+          </p>
+        ) : null}
+      </div>
+      <span className="inline-flex items-center gap-2 text-sm text-on-cream" data-testid="offer-dates">
+        <IconCalendar /> {period}
       </span>
-      <ActionForm action={setOfferPinned} submitLabel={o.pinned_home ? "إلغاء التثبيت" : "تثبيت"} kind="ghost" inline>
+      <span className="flex min-w-36 flex-wrap items-center gap-2">
+        <span data-testid="offer-status">
+          <StatusPill tone={b.tone} label={b.label} />
+        </span>
+        {o.pinned_home ? <StatusPill tone="gold" label="مثبّت" icon={<IconPin size={14} />} /> : null}
+      </span>
+    </div>
+  );
+}
+
+function OfferMenu({ o }: { o: OfferDb }) {
+  return (
+    <>
+      <MenuLink href={`/admin/content/offers/${o.id}`} icon={<IconEdit />}>
+        تعديل العرض
+      </MenuLink>
+      <ActionForm action={setOfferPinned} submitLabel={o.pinned_home ? "إلغاء التثبيت" : "تثبيت"} variant="menu" icon={<IconPin />}>
         <input type="hidden" name="id" value={o.id} />
         <input type="hidden" name="value" value={o.pinned_home ? "0" : "1"} />
       </ActionForm>
       {o.status === "published" ? (
-        <ActionForm action={setOfferStatus} submitLabel="إخفاء" kind="ghost" inline>
+        <ActionForm action={setOfferStatus} submitLabel="إخفاء" variant="menu" icon={<IconEyeOff />}>
           <input type="hidden" name="id" value={o.id} />
           <input type="hidden" name="status" value="draft" />
         </ActionForm>
       ) : (
-        <ActionForm action={setOfferStatus} submitLabel="نشر" kind="ghost" inline>
+        <ActionForm action={setOfferStatus} submitLabel="نشر" variant="menu" icon={<IconEye />}>
           <input type="hidden" name="id" value={o.id} />
           <input type="hidden" name="status" value="published" />
         </ActionForm>
       )}
-    </div>
+    </>
   );
 }
 
