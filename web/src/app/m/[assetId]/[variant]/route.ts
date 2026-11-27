@@ -16,6 +16,8 @@ import { getPublicClient, MEDIA_VARIANTS, type MediaVariant } from "@/features/p
  * most MAX_AGE seconds. Shared caches (Vercel CDN, proxies) never store these responses ("private" +
  * CDN-Cache-Control/Vercel-CDN-Cache-Control: no-store), so the next request anywhere reaches this route. next/image is not in the path
  * (media is rendered `unoptimized`); images.minimumCacheTTL is pinned to the same value.
+ * After MAX_AGE the browser revalidates with its ETag: still published and unchanged → 304 without the bytes (the
+ * check above runs first, so withdrawal still wins).
  */
 const MAX_AGE = 60;
 const CACHE_OK = `private, max-age=${MAX_AGE}, stale-while-revalidate=0, stale-if-error=0`;
@@ -56,14 +58,13 @@ export async function GET(request: Request, ctx: { params: Promise<{ assetId: st
     .split("/")
     .map(encodeURIComponent)
     .join("/")}`;
+  // A browser revalidating its copy (after MAX_AGE) sends its ETag: storage may answer 304 without the bytes. Only
+  // reached after the publication check above, so a withdrawn asset still gets 404, never a 304.
+  const inm = request.headers.get("if-none-match");
   const upstream = await fetch(objectUrl, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, ...(range ? { Range: range } : {}) },
+    headers: { apikey: key, Authorization: `Bearer ${key}`, ...(range ? { Range: range } : {}), ...(inm ? { "If-None-Match": inm } : {}) },
     cache: "no-store",
   });
-  if (!upstream.ok || !upstream.body) {
-    await upstream.body?.cancel();
-    return gone();
-  }
 
   const headers = new Headers({
     "Cache-Control": CACHE_OK,
@@ -71,6 +72,16 @@ export async function GET(request: Request, ctx: { params: Promise<{ assetId: st
     "Vercel-CDN-Cache-Control": "no-store",
     "Accept-Ranges": "bytes",
   });
+  if (upstream.status === 304) {
+    void upstream.body?.cancel().catch(() => {});
+    const etag = upstream.headers.get("etag");
+    if (etag) headers.set("etag", etag);
+    return new Response(null, { status: 304, headers });
+  }
+  if (!upstream.ok || !upstream.body) {
+    await upstream.body?.cancel();
+    return gone();
+  }
   for (const h of ["content-type", "content-length", "content-range", "etag", "last-modified"]) {
     const val = upstream.headers.get(h);
     if (val) headers.set(h, val);
