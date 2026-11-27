@@ -29,7 +29,15 @@ export async function SettingsPage() {
           <Card title="إعدادات النظام (المالك فقط)">
             <ActionForm action={saveAppSettings} submitLabel="حفظ الإعدادات" confirm={{ title: "حفظ إعدادات النظام؟", body: "تؤثر على أمان الدخول ونماذج الحجز لكل المستخدمين." }}>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="require_staff_mfa" defaultChecked={app.data.require_staff_mfa} /> إلزام الطاقم والإدارة بالتحقق بخطوتين</label>
-              <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="turnstile_enabled" defaultChecked={app.data.turnstile_enabled} /> حماية النماذج العامة من الرسائل الآلية</label>
+              {/* Shown disabled with its reason: the server's Turnstile keys decide the protection, not this switch. Not submitted, not overwritten. */}
+              <div data-testid="turnstile-setting">
+                <label className="flex items-center gap-2 text-sm text-on-cream-muted">
+                  <input type="checkbox" disabled aria-describedby="turnstile-setting-why" defaultChecked={app.data.turnstile_enabled} /> حماية النماذج العامة من الرسائل الآلية
+                </label>
+                <p id="turnstile-setting-why" className="ms-6 mt-1 text-xs text-on-cream-muted">
+                  هذا الخيار ما بيغيّر شي حالياً: حماية النماذج بتشتغل تلقائياً لما تنضاف مفاتيح Turnstile للخادم، وبدونها النماذج العامة موقّفة.
+                </p>
+              </div>
             </ActionForm>
           </Card>
         ) : null}
