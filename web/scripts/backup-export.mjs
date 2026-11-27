@@ -8,6 +8,8 @@
  *   auth/users.json          auth users via the Admin API (ids, emails, metadata — NOT password hashes)
  *   storage/<bucket>/<path>  ALL objects of ALL buckets — album-media originals + variants, site-media, private
  *                            media, backups — streamed to disk while hashing (never held in memory as a whole)
+ *   storage/s3/<key>         every object of the external S3 store (S3_* in the env file): album photos and reel
+ *                            files whose row says storage_provider = 's3' live only there
  *   promo-files.json         list (+ sha256) of the self-hosted promo files shipped in web/public/promo
  *   manifest.json            counts, bytes, sha256 per file, status complete|partial, error list
  *
@@ -46,9 +48,9 @@ export const EXPORT_TABLES = [
   // gallery + CMS (0013–0018)
   "video_categories", "showcase_videos", "showcase_video_categories", "album_categories", "photo_albums", "album_photos",
   "import_items", "brand_assets", "site_sections", "nav_items", "slug_redirects", "service_links", "process_steps",
-  "offers", "offer_items", "announcements",
-  // reels + Facebook queue (0027–0031); the Page token lives in Vault and is never exported
-  "reel_videos", "meta_page_connection", "facebook_reel_posts",
+  "packages", "package_items", "offers", "offer_items", "announcements",
+  // reels + Facebook (0027–0035); the Page token lives in Vault and is never exported
+  "reel_videos", "meta_page_connection", "facebook_reel_posts", "facebook_album_posts",
 ];
 
 const parse = (p) => Object.fromEntries(fs.readFileSync(p, "utf8").split(/\r?\n/).filter((l) => l.includes("=") && !l.startsWith("#")).map((l) => [l.slice(0, l.indexOf("=")).trim(), l.slice(l.indexOf("=") + 1).trim()]));
@@ -219,7 +221,65 @@ if (!TABLES_ONLY) {
   }
   await Promise.all(Array.from({ length: CONC }, worker));
 }
+
+// ------------------------------------------------------------------ S3 (album photos and reel files on the external store)
+// Rows with storage_provider = 's3' have their bytes ONLY there (docs/hetzner-storage.md), so they must be copied too:
+// every object of S3_BUCKET → storage/s3/<key>, with the same skip-unchanged rule (size + ETag + local sha256).
+// Rows on S3 but no S3_* in the env file → error (manifest "partial"), never a silent "complete".
+let s3Downloaded = 0, s3Skipped = 0;
+if (!TABLES_ONLY) {
+  const onS3 = async (table) => (await sb.from(table).select("id", { count: "exact", head: true }).eq("storage_provider", "s3")).count ?? 0;
+  const needed = (await onS3("album_photos")) + (await onS3("reel_videos"));
+  const S3 = env.S3_ENDPOINT && env.S3_REGION && env.S3_BUCKET && env.S3_ACCESS_KEY_ID && env.S3_SECRET_ACCESS_KEY ? env : null;
+  if (!S3) {
+    if (needed) errors.push({ what: "s3", error: `${needed} rows are stored on S3 but S3_* is not set in the env file: their files were not copied` });
+  } else {
+    const { S3Client, ListObjectsV2Command, GetObjectCommand } = await import("@aws-sdk/client-s3");
+    const client = new S3Client({
+      endpoint: S3.S3_ENDPOINT, region: S3.S3_REGION, forcePathStyle: S3.S3_FORCE_PATH_STYLE === "1",
+      credentials: { accessKeyId: S3.S3_ACCESS_KEY_ID, secretAccessKey: S3.S3_SECRET_ACCESS_KEY },
+      requestChecksumCalculation: "WHEN_REQUIRED", responseChecksumValidation: "WHEN_REQUIRED",
+    });
+    const list = [];
+    for (let token; ;) {
+      const page = await client.send(new ListObjectsV2Command({ Bucket: S3.S3_BUCKET, ContinuationToken: token }));
+      for (const o of page.Contents ?? []) if (o.Key && !o.Key.endsWith("/")) list.push({ key: o.Key, size: o.Size ?? null, etag: o.ETag ?? null });
+      if (!page.IsTruncated) break;
+      token = page.NextContinuationToken;
+    }
+    console.log(`s3: ${list.length} objects`);
+    const q = [...list];
+    async function s3worker() {
+      for (let o = q.shift(); o; o = q.shift()) {
+        if (o.key.split("/").includes("..")) { errors.push({ what: `s3 ${o.key}`, error: "unsafe key" }); continue; }
+        const local = path.join(OUT, "storage", "s3", ...o.key.split("/"));
+        const relp = rel(local);
+        const prev = prevFiles.get(relp);
+        try {
+          if (prev && fs.existsSync(local) && prev.bytes === o.size && (prev.etag ?? null) === o.etag && fs.statSync(local).size === o.size && (await sha256File(local)) === prev.sha256) {
+            files.push(prev);
+            s3Skipped++;
+            continue;
+          }
+          fs.mkdirSync(path.dirname(local), { recursive: true });
+          const got = await client.send(new GetObjectCommand({ Bucket: S3.S3_BUCKET, Key: o.key }));
+          const h = createHash("sha256");
+          let bytes = 0;
+          const tap = new Transform({ transform(chunk, _e, cb) { h.update(chunk); bytes += chunk.length; cb(null, chunk); } });
+          const tmp = `${local}.part`;
+          await pipeline(got.Body, tap, fs.createWriteStream(tmp));
+          fs.renameSync(tmp, local);
+          files.push({ path: relp, bytes, sha256: h.digest("hex"), etag: o.etag, content_type: got.ContentType ?? null });
+          s3Downloaded++;
+        } catch (e) {
+          errors.push({ what: `s3 ${o.key}`, error: String(e.message ?? e) });
+        }
+      }
+    }
+    await Promise.all(Array.from({ length: CONC }, s3worker));
+  }
+}
 files.sort((a, b) => a.path.localeCompare(b.path));
 const m = writeManifest(errors.length || TABLES_ONLY ? "partial" : "complete");
-console.log(JSON.stringify({ status: m.status, out: OUT, tables: Object.keys(tables).length, storage: m.storage, downloaded, skipped_unchanged: skipped, totals: m.totals, errors: errors.length, duration_s: Math.round(m.duration_ms / 1000) }, null, 1));
+console.log(JSON.stringify({ status: m.status, out: OUT, tables: Object.keys(tables).length, storage: m.storage, downloaded, skipped_unchanged: skipped, s3_downloaded: s3Downloaded, s3_skipped_unchanged: s3Skipped, totals: m.totals, errors: errors.length, duration_s: Math.round(m.duration_ms / 1000) }, null, 1));
 if (errors.length) { console.log(errors.slice(0, 10)); process.exit(1); }

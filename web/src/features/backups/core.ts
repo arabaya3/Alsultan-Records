@@ -15,8 +15,16 @@ export const BACKUP_TABLES = [
   "album_selection_snapshots", "quotes", "quote_items", "contracts", "contract_versions", "payments",
   "expenses", "event_staff_assignments", "equipment", "equipment_assignments", "equipment_maintenance",
   "support_requests", "support_messages", "reviews", "notifications", "audit_events", "backup_runs",
+  // gallery + CMS (0013–0020), same order as scripts/backup-export.mjs (restore runs in replica mode, so the cover-photo
+  // cycles are fine)
+  "video_categories", "showcase_videos", "showcase_video_categories", "album_categories", "photo_albums", "album_photos",
+  "import_items", "brand_assets", "site_sections", "nav_items", "slug_redirects", "service_links", "process_steps",
+  "packages", "package_items", "offers", "offer_items", "announcements",
+  // reels + Facebook (0027–0035); the Page token lives in Vault and is never exported
+  "reel_videos", "meta_page_connection", "facebook_reel_posts", "facebook_album_posts",
 ] as const;
-export const BACKUP_BUCKETS = ["public-media", "private-media"] as const;
+/** Buckets listed in the storage manifest (paths only, never bytes; S3 objects are added by the caller). */
+export const BACKUP_BUCKETS = ["public-media", "private-media", "album-media", "site-media", "reel-media"] as const;
 export const BACKUP_BUCKET = "backups"; // owner-only bucket (migration 0008)
 const PAGE = 1000;
 

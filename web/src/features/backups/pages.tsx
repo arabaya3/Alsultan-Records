@@ -17,7 +17,7 @@ export async function BackupsPage() {
     .limit(30);
   return (
     <>
-      <SettingsFrame current="/admin/backups" title="النسخ الاحتياطي" lead="نسخة من كل الجداول + قائمة بملفات التخزين. الملفات نفسها (الصور والفيديو) تُنسخ بشكل منفصل — راجع دليل الاسترجاع.">
+      <SettingsFrame current="/admin/backups" title="النسخ الاحتياطي" lead="نسخة من كل الجداول + قائمة بملفات التخزين. الملفات نفسها (الصور والفيديو) وحسابات الدخول تُنسخ بشكل منفصل — راجع دليل الاسترجاع.">
       <Card title="نسخة جديدة" className="mb-4">
         <ActionForm action={runBackup} submitLabel="بدء النسخ الآن" kind="primary" testId="backup-form">
           <p className="text-sm text-on-cream-muted">قد تستغرق دقيقة. تُحفظ في مكان خاص لا يصل إليه العامة.</p>
