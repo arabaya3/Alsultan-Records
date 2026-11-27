@@ -1,10 +1,9 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 
 type Album = { slug: string; title: string };
-/** album/n/total are null for the owner-chosen first photo when it is not taken from a known album. */
+/** album/n/total are kept for the slide order; nothing about the album is shown on the photo (owner request). */
 type Slide = { id: string; album: Album | null; n: number | null; total: number | null };
 
 /** Time each photo stays on screen. Longer than the offer strip's 6 s, so the two never change at the same moment. */
@@ -118,7 +117,6 @@ export function HeroSlideshow({ albums: initialAlbums, first, fallback }: { albu
   }, [running, first]);
 
   if (!first) return <>{fallback}</>;
-  const current = layers.on === "a" ? layers.a : layers.b;
 
   const layer = (s: Slide | null, key: "a" | "b") =>
     s ? (
@@ -141,23 +139,10 @@ export function HeroSlideshow({ albums: initialAlbums, first, fallback }: { albu
     ) : null;
 
   return (
-    // One child of the photo panel: the panel's slanted clip then cuts the panel as a whole, never the album chip.
+    // One child of the photo panel: the panel's slanted clip then cuts the panel as a whole.
     <div data-hero-slideshow className="absolute inset-0">
       {layer(layers.a, "a")}
       {layer(layers.b, "b")}
-      {current?.album ? (
-        // Album name (opens the album) and progress, in the bottom corner away from the faces.
-        <div data-hero-album className="absolute bottom-3 left-3 z-10 flex max-w-[70%] items-center gap-3 rounded-full bg-navy-deep px-4 text-base text-ivory lg:bottom-5 lg:left-5">
-          <Link href={`/work/albums/${current.album.slug}`} className="inline-flex min-h-11 min-w-0 items-center truncate underline-offset-4 hover:text-gold hover:underline">
-            <span className="truncate">{current.album.title}</span>
-          </Link>
-          {current.n && current.total ? (
-            <span dir="ltr" className="shrink-0 text-sm text-ivory/80" aria-label={`صورة ${current.n} من ${current.total}`}>
-              {current.n}/{current.total}
-            </span>
-          ) : null}
-        </div>
-      ) : null}
     </div>
   );
 }

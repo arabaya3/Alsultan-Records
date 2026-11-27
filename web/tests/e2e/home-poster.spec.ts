@@ -312,7 +312,7 @@ test("HP6: 390px — hero stacked (photo, then text), text legible, touch target
   expect(small).toEqual([]);
 
   const targets = await page.locator("main a").evaluateAll((els) => els.map((e) => ({ t: (e.textContent ?? "").trim().slice(0, 30), h: e.getBoundingClientRect().height, w: e.getBoundingClientRect().width })));
-  expect(targets.length).toBe(6); // 2 WhatsApp, phone, 2 works, the hero slideshow's album name
+  expect(targets.length).toBe(5); // 2 WhatsApp, phone, 2 works (no album label on the hero photo)
   for (const t of targets) {
     expect(t.h, t.t).toBeGreaterThanOrEqual(44);
     expect(t.w, t.t).toBeGreaterThanOrEqual(44);
@@ -333,7 +333,7 @@ test("HP7: axe clean at 390 and 1440; one h1; headings in order", async ({ page 
   expect(levels).toEqual([1, 2, 2, 3, 3, 2, 2]);
 });
 
-// Owner change (2026-11): the hero photo is now an album slideshow (soft cross-fade, its album named as a link); the rest
+// Owner change (2026-11): the hero photo is now an album slideshow (soft cross-fade, no label on it); the rest
 // of the page stays still: no 3D, nothing waiting on an animation, keyboard order as the page reads.
 test("HP8: keyboard order follows the page; reduced motion and normal motion leave the page still at load (no 3D)", async ({ browser }) => {
   for (const reducedMotion of ["reduce", "no-preference"] as const) {
@@ -354,10 +354,8 @@ test("HP8: keyboard order follows the page; reduced motion and normal motion lea
       const order = await main.locator("a").evaluateAll((els) =>
         els.map((e) => (e.closest("[data-hero-album]") ? "album" : e.getAttribute("data-home-work") ? "work" : e.hasAttribute("data-home-phone") ? "phone" : "wa")),
       );
-      expect(order).toEqual(["wa", "album", "work", "work", "phone", "wa"]);
+      expect(order).toEqual(["wa", "work", "work", "phone", "wa"]);
       await main.locator("a").first().focus();
-      await page.keyboard.press("Tab");
-      await expect(page.locator("[data-hero-album] a")).toBeFocused();
       await page.keyboard.press("Tab");
       await expect(page.locator("[data-home-work]").first()).toBeFocused();
     }

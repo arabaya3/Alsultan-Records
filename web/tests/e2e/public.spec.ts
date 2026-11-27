@@ -91,3 +91,17 @@ test("/book is a WhatsApp page, not a form", async ({ page }) => {
   expect(await page.locator("main form, main input").count()).toBe(0);
   await expect(page.locator("main a[data-whatsapp-cta]")).toHaveAttribute("href", /^https:\/\/wa\.me\/\d+\?text=/);
 });
+
+test("desktop header has no WhatsApp/contact button (owner request); login stays; the phone menu keeps its booking button", async ({ browser }) => {
+  const desk = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+  await desk.goto(`${BASE}/`);
+  const header = desk.locator("header.site-header-flow");
+  await expect(header.locator("a[data-whatsapp-cta]:visible, a[href='/contact']:visible")).toHaveCount(0);
+  await expect(header.locator("[data-login-link]:visible")).toHaveCount(1);
+  await desk.close();
+  const phone = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  await phone.goto(`${BASE}/`);
+  await phone.getByRole("button", { name: "فتح القائمة" }).click();
+  await expect(phone.getByRole("dialog", { name: "القائمة" }).locator("a[href^='https://wa.me/'], a[href='/contact']").first()).toBeVisible();
+  await phone.close();
+});

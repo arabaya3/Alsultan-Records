@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@/components/brand/Logo";
 import { BrandEntrance } from "@/components/motion/Reveal";
-import { WhatsAppLink } from "@/components/ui/WhatsAppCta";
-import { buttonClasses } from "@/components/ui/Button";
 import { bookingHref } from "@/features/public-content/contact";
 import { getBusinessSettings } from "@/features/public-content/queries";
 import { getActiveOffers, getSiteNav } from "@/features/public-content/cms-queries";
@@ -50,13 +48,7 @@ export async function Header() {
             <UserIcon />
             تسجيل الدخول
           </Link>
-          {book ? (
-            <WhatsAppLink href={book} />
-          ) : (
-            <Link href="/contact" className={buttonClasses({ variant: "outline" })}>
-              تواصل معنا
-            </Link>
-          )}
+          {/* No WhatsApp button here (owner request): the hero, the contact bar and the footer carry it. */}
         </div>
 
         <div className="ms-auto flex items-center gap-1 lg:hidden">

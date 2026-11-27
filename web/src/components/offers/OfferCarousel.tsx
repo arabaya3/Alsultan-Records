@@ -47,8 +47,8 @@ type Move = { from: number; dir: "next" | "prev" } | null;
 
 /**
  * Active offers as one compact strip under the home hero (owner design). Several offers: every 6 s the current one
- * slides out sideways while the next slides in from the other side (600 ms, title and icon a beat later), with a thin
- * progress line, arrows and touch swipe. Hover, keyboard focus inside the strip or a touch pauses it; it resumes when the
+ * slides out sideways while the next slides in from the other side (600 ms, title and icon a beat later), with
+ * arrows, dots and touch swipe. Hover, keyboard focus inside the strip or a touch pauses it; it resumes when the
  * interaction ends. Reduced motion: a short fade, no sliding. One offer: no arrows, dots or motion. None: nothing.
  * Both slides share one grid cell, so the strip never changes height while it moves.
  */
@@ -59,8 +59,7 @@ export function OfferCarousel({ offers }: { offers: CarouselOffer[] }) {
   const [focus, setFocus] = useState(false);
   const [touch, setTouch] = useState(false);
   const [reduced, setReduced] = useState(false);
-  const [cycle, setCycle] = useState(0); // restarts the timer and the progress line
-  const [fill, setFill] = useState(false);
+  const [cycle, setCycle] = useState(0); // restarts the timer after a manual change
   const root = useRef<HTMLElement>(null);
   const startX = useRef<number | null>(null);
   const many = offers.length > 1;
@@ -93,21 +92,11 @@ export function OfferCarousel({ offers }: { offers: CarouselOffer[] }) {
     return () => window.clearTimeout(t);
   }, [move, reduced]);
 
-  // Autoplay + progress line (empty at the start of a slide, then a CSS transition fills it over the slide's time).
+  // Autoplay (no progress line: owner request).
   useEffect(() => {
-    if (!many || paused) {
-      window.requestAnimationFrame(() => setFill(false));
-      return;
-    }
-    const r = window.requestAnimationFrame(() => {
-      setFill(false);
-      window.requestAnimationFrame(() => setFill(true));
-    });
+    if (!many || paused) return;
     const t = window.setTimeout(() => go(i + 1, "next"), INTERVAL);
-    return () => {
-      window.cancelAnimationFrame(r);
-      window.clearTimeout(t);
-    };
+    return () => window.clearTimeout(t);
   }, [i, many, paused, go, cycle]);
 
   if (!offers.length) return null;
@@ -225,13 +214,6 @@ export function OfferCarousel({ offers }: { offers: CarouselOffer[] }) {
               </button>
             ))}
           </div>
-          <span aria-hidden="true" className="absolute inset-x-0 bottom-0 h-0.5 bg-ivory/10">
-            <span
-              data-offer-progress
-              className="absolute inset-y-0 start-0 bg-gold ease-linear"
-              style={{ width: fill ? "100%" : "0%", transitionProperty: "width", transitionDuration: fill ? `${INTERVAL}ms` : "0ms" }}
-            />
-          </span>
         </>
       ) : null}
     </section>
