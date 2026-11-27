@@ -3,7 +3,7 @@
 import sharp from "sharp";
 import { refresh } from "next/cache";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { ADMIN_ROLES, guard } from "@/features/admin/guard";
+import { OWNER_ONLY, guard } from "@/features/admin/guard";
 import { fail, FORBIDDEN, isUuid, ok, uuid, type ActionResult } from "@/features/admin/result";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { albumStore } from "@/lib/album-storage";
@@ -16,11 +16,12 @@ const MAX_PHOTOS = 100;
 
 /**
  * «نشر على فيسبوك»: creates a real album on the connected Page and adds the chosen photos (album-core.ts). Separate
- * from «نشر الألبوم» on the site: neither one changes the other. Owners/admins only. The Page token is read on the
+ * from «نشر الألبوم» on the site: neither one changes the other. Owner only, like the reel posts (0027,
+ * app.is_owner()): a public post on the studio's Page is the owner's decision. The Page token is read on the
  * server from Vault and never reaches the browser. One Facebook album per site album (unique row, migration 0035).
  */
 export async function publishAlbumToFacebook(_p: ActionResult, fd: FormData): Promise<ActionResult> {
-  const me = await guard(ADMIN_ROLES);
+  const me = await guard(OWNER_ONLY);
   if (!me) return FORBIDDEN;
   const albumId = uuid(fd, "album_id");
   if (!albumId) return fail("سجل غير صالح.");

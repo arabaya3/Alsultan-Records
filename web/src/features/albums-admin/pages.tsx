@@ -397,7 +397,11 @@ export async function signedMap(sb: SupabaseClient, photos: Photo[], variants: (
 }
 
 export async function AlbumEditPage({ params, searchParams }: { params: IdParams; searchParams?: SP }) {
-  if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
+  const me = await guard(ADMIN_ROLES);
+  if (!me) return <Forbidden />;
+  // A Facebook post is the owner's decision (CLAUDE.md): the link is only offered to the owner (the page and the
+  // action check the role again on the server).
+  const canFacebook = me.role === "owner";
   const { id } = await params;
   // One photo list, two views of it: «التفاصيل» (cover, visibility, status, alt texts, trash) or «الترتيب» (order).
   const view = one((await searchParams)?.view) === "order" ? "order" : "details";
@@ -449,7 +453,7 @@ export async function AlbumEditPage({ params, searchParams }: { params: IdParams
               معاينة
             </Link>
             {/* Facebook is its own action: publishing on the site and on the Page never imply each other. */}
-            {locked ? null : (
+            {locked || !canFacebook ? null : (
               <Link href={`/admin/albums/${a.id}/facebook`} className={btn("ghost")} data-testid="album-facebook-link">
                 نشر على فيسبوك
               </Link>

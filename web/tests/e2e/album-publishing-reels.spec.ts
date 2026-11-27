@@ -481,6 +481,10 @@ test("RL1: promos — launch gate off by default; when on: vertical reels, nothi
       await expect(page.locator("[data-promo-grid] li").first()).toBeVisible();
       await expect(page.locator("[data-reels-viewer]")).toHaveCount(0);
       await expect(page.locator("iframe")).toHaveCount(0);
+      // The gate holds on the server too: no reel file can be fetched while the viewer is off.
+      const r = await fetch(`${BASE}/r/${id}`, { redirect: "manual" });
+      expect(r.status).toBe(404);
+      expect(r.headers.get("cache-control")).toBe("no-store");
       return;
     }
     await expect(page.locator("[data-reels-viewer]")).toHaveCount(0);
