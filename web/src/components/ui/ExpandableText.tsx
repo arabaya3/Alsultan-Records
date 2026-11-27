@@ -7,7 +7,7 @@ import { useId, useState } from "react";
  * place (aria-expanded). Short texts render as a plain paragraph with no button. The full text is always in the DOM
  * (search engines, screen readers, find-in-page); only its visible height is clamped.
  */
-export function ExpandableText({ text, className = "", threshold = 280 }: { text: string; className?: string; threshold?: number }) {
+export function ExpandableText({ text, className = "", threshold = 280, buttonClassName = "text-gold hover:text-ivory" }: { text: string; className?: string; threshold?: number; buttonClassName?: string }) {
   const [open, setOpen] = useState(false);
   const id = useId();
   const long = text.length > threshold;
@@ -22,7 +22,7 @@ export function ExpandableText({ text, className = "", threshold = 280 }: { text
           aria-expanded={open}
           aria-controls={id}
           onClick={() => setOpen((v) => !v)}
-          className="mt-1 inline-flex min-h-11 items-center self-start text-sm font-medium text-gold underline underline-offset-4 hover:text-ivory"
+          className={`mt-1 inline-flex min-h-11 items-center self-start text-sm font-medium underline underline-offset-4 ${buttonClassName}`}
         >
           {open ? "عرض أقل" : "اقرأ المزيد"}
         </button>

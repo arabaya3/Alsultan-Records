@@ -32,7 +32,10 @@ export async function PageHero({
   align = "center",
   children,
   titleAs = "h1",
+  compact = false,
 }: {
+  /** Short intro band (packages): less padding, for a page whose content starts right under it. */
+  compact?: boolean;
   titleAs?: "h1" | "p";
   title: ReactNode;
   lead?: ReactNode;
@@ -62,7 +65,7 @@ export async function PageHero({
         </>
       ) : null}
       <div
-        className={`mx-auto flex w-full max-w-[var(--content-max)] flex-col px-[var(--gutter)] pt-10 pb-8 sm:pt-16 md:pt-24 md:pb-12 ${center ? "items-center text-center" : "items-start"}`}
+        className={`mx-auto flex w-full max-w-[var(--content-max)] flex-col px-[var(--gutter)] ${compact ? "pt-8 pb-8 md:pt-10 md:pb-10" : "pt-10 pb-8 sm:pt-16 md:pt-24 md:pb-12"} ${center ? "items-center text-center" : "items-start"}`}
       >
         {breadcrumb?.length ? (
           <nav aria-label="مسار التنقل" className="mb-5 text-sm text-ivory-muted">

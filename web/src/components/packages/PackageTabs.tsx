@@ -54,9 +54,9 @@ export function PackageTabs({ tabs }: { tabs: PackageTab[] }) {
 
   return (
     <>
-      <div className="sticky top-0 z-20 border-b border-hairline bg-night/90 backdrop-blur">
-        <div className="mx-auto w-full max-w-[var(--content-max)] px-[var(--gutter)]">
-          <div role="tablist" aria-label="أنواع البكجات" data-package-tabs className="-mx-1 flex gap-2 overflow-x-auto px-1 py-3 [scrollbar-width:none]">
+      <div className="sticky top-0 z-20 bg-ivory-band/95 backdrop-blur">
+        <div className="mx-auto w-full max-w-[76rem] px-[var(--gutter)]">
+          <div role="tablist" aria-label="أنواع البكجات" data-package-tabs className="-mx-1 flex gap-2.5 overflow-x-auto px-1 pt-5 pb-2 [scrollbar-width:none] md:pt-8">
             {tabs.map((t, i) => {
               const on = i === active;
               return (
@@ -74,12 +74,12 @@ export function PackageTabs({ tabs }: { tabs: PackageTab[] }) {
                   data-package-tab={t.label}
                   onClick={() => select(i, false)}
                   onKeyDown={onKey}
-                  className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-5 text-sm font-medium whitespace-nowrap transition-colors ${
-                    on ? "border-gold bg-gold text-ink" : "border-hairline-gold text-ivory hover:border-gold"
+                  className={`inline-flex min-h-11 shrink-0 items-center gap-2 rounded-full border px-5 text-sm font-semibold whitespace-nowrap transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-on-cream ${
+                    on ? "border-gold bg-gold text-ink shadow-[0_6px_16px_-10px_rgb(160_115_20/0.8)]" : "border-cream-line bg-white/80 text-on-cream hover:border-gold"
                   }`}
                 >
                   {t.label}
-                  <span aria-hidden="true" className={on ? "text-ink/70" : "text-ivory-muted"}>
+                  <span aria-hidden="true" className={on ? "text-ink/70" : "text-on-cream-muted"}>
                     {t.count.toLocaleString("ar-PS")}
                   </span>
                 </button>

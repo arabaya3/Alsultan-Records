@@ -18,7 +18,7 @@ export const metadata = pageMetadata({
 
 function Grid({ items, offers, group }: { items: Package[]; offers: Map<string, PackageOffer>; group: string }) {
   return (
-    <ul data-package-grid data-package-group={group} className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+    <ul data-package-grid data-package-group={group} className="grid items-stretch gap-5 sm:grid-cols-2 lg:grid-cols-3 lg:gap-6">
       {items.map((p, i) => (
         <FadeRise as="li" key={p.id} delay={(i % 3) * 80} className="h-full">
           <PackageCard pkg={p} offer={offers.get(p.id) ?? null} />
@@ -41,6 +41,7 @@ export default async function PackagesPage() {
   return (
     <>
       <PageHero
+        compact
         eyebrow={<span aria-hidden="true">البكجات</span>}
         title={
           <>
@@ -50,11 +51,11 @@ export default async function PackagesPage() {
         lead="خدمات واضحة وأسعار بالشيكل. للعروض المؤقتة شوف صفحة العروض، وللتفاصيل حسب مناسبتك راسلنا على واتساب."
       />
       {res.status === "unavailable" ? (
-        <Section>
+        <Section tone="ivory" containerClassName="max-w-[76rem]">
           <ErrorState title="تعذّر تحميل البكجات الآن" action={<WhatsAppCta />} />
         </Section>
       ) : res.data.length === 0 ? (
-        <Section>
+        <Section tone="ivory" containerClassName="max-w-[76rem]">
           <EmptyState
             title="لا توجد بكجات منشورة حالياً"
             body="راسلنا على واتساب ونحكي معك عن مناسبتك والخدمات اللي بتناسبك."
@@ -62,21 +63,24 @@ export default async function PackagesPage() {
           />
         </Section>
       ) : tabbed ? (
-        <PackageTabs
+        // Ivory content band (owner design): the sticky tab row and the cards share it.
+        <div data-tone="ivory" className="tone-ivory bg-ivory-band text-on-cream">
+          <PackageTabs
           tabs={groups.map((g, gi) => ({
             key: g.label ?? `other-${gi}`,
             label: g.label ?? "بكجات أخرى",
             count: g.items.length,
             panel: (
-              <Section>
+              <Section tone="ivory" className="!pt-6 md:!pt-8" containerClassName="max-w-[76rem]">
                 <h2 className="sr-only">{g.label ?? "بكجات أخرى"}</h2>
                 <Grid items={g.items} offers={offers} group={g.label ?? ""} />
               </Section>
             ),
           }))}
-        />
+          />
+        </div>
       ) : (
-        <Section>
+        <Section tone="ivory" containerClassName="max-w-[76rem]">
           <h2 className="sr-only">{groups[0]?.label ?? "البكجات"}</h2>
           <Grid items={res.data} offers={offers} group={groups[0]?.label ?? ""} />
         </Section>

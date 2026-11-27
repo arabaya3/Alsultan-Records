@@ -220,6 +220,16 @@ export function offerPriceLabel(o: Pick<OfferRow, "show_price" | "display_price_
   }
 }
 
+/**
+ * A package card's price line. A stored 0 means the owner has not set the price: it is never shown as «0 شيكل»
+ * ("ask" → «السعر عند الاستفسار»). Hidden price (show_price off / no price) → null, as before. Prices are not changed.
+ */
+export function packagePriceLine(p: Pick<OfferRow, "show_price" | "display_price_minor" | "currency">): { kind: "price"; label: string } | { kind: "ask" } | null {
+  if (p.show_price && p.display_price_minor === 0) return { kind: "ask" };
+  const label = offerPriceLabel(p);
+  return label ? { kind: "price", label } : null;
+}
+
 /** "حتى ١٥ تشرين الثاني ٢٠٢٦" etc. Dates are calendar dates (no timezone shift). */
 export function formatDayAr(iso: string): string {
   const [y, m, d] = iso.split("-").map(Number);
