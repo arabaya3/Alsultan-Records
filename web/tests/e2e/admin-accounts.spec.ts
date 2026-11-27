@@ -94,6 +94,9 @@ test("A3: change own password — wrong current refused; new one works, old one 
 
 test("A4: owner sets another account's password (audited); admin cannot", async ({ browser }) => {
   const NEW_PW = `OwnerSet!${STAMP}q`;
+  // A session of the target account that is open before the reset (0039: it must end at once, not when its token expires).
+  const victim = await newLoggedIn(browser, "admin", "/admin/overview");
+  await expect(victim).toHaveURL(/\/admin\/overview/);
   const page = await newLoggedIn(browser, "owner", "/admin/users");
   const row = page.locator("tr", { hasText: "[DEV] Admin" });
   await row.getByTestId("set-password").locator("summary").click();
@@ -111,6 +114,10 @@ test("A4: owner sets another account's password (audited); admin cannot", async 
   const target = (await db.auth.admin.listUsers({ perPage: 1000 })).data.users.find((x) => x.email === USERS.admin.email)!;
   expect(Number(psql(`select count(*) from auth.sessions where user_id = '${target.id}'`).trim())).toBe(0);
   expect((await db.from("audit_events").select("id").eq("action", "sessions_revoked").eq("entity_id", target.id)).data!.length).toBeGreaterThan(0);
+  // The session that was open is signed out on its very next request, although its access token has not expired.
+  await victim.goto(victim.url());
+  await expect(victim).toHaveURL(/\/login/);
+  await victim.context().close();
   expect(await passwordLogin(browser, USERS.admin.email, NEW_PW)).toBe(true);
   const u = (await db.auth.admin.listUsers({ perPage: 1000 })).data.users.find((x) => x.email === USERS.admin.email)!;
   const audit = (await db.from("audit_events").select("action, after").eq("entity_id", u.id).eq("action", "password_set_by_owner")).data!;
