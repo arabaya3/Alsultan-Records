@@ -297,7 +297,13 @@ export default async function HomePage() {
             />
           ) : undefined
         }
-        logoSrc={activeLogoSrc(s?.active_logo_id)} whatsappHref={book} title={s?.hero_title ?? null} sub={s?.hero_subtitle ?? null} ctaLabel={ctaLabel} />
+        logoSrc={activeLogoSrc(s?.active_logo_id)} whatsappHref={book} title={s?.hero_title ?? null} sub={s?.hero_subtitle ?? null} ctaLabel={ctaLabel}
+        stats={[
+          { key: "videos", value: s?.hero_stat_videos ?? null, label: "فيديو" },
+          { key: "photos", value: s?.hero_stat_photos ?? null, label: "صورة" },
+          { key: "events", value: s?.hero_stat_events ?? null, label: "مناسبة" },
+        ].filter((x): x is { key: string; value: number; label: string } => x.value != null)}
+      />
       {carousel.length ? (
         // Active offers between the hero and the first section (owner design); the top offer bar is hidden on this page.
         <div className="bg-navy px-[var(--gutter)] pt-5 pb-6 sm:pt-6 sm:pb-8">
