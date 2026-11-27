@@ -15,11 +15,20 @@
 
 Issue found and fixed during deployment: Vercel's CDN honoured `s-maxage=60` on `/m/…` media, so a withdrawn image stayed public for up to 60 s for everyone. The route now sends `private, max-age=60` + `CDN-Cache-Control: no-store` + `Vercel-CDN-Cache-Control: no-store`; verified on the live URL: the same URL returns 404 `no-store` immediately after withdrawal (only a browser that already loaded the image may reuse its own copy ≤60 s).
 
+## Deploying with provenance (2026-11-28)
+
+Earlier production deployments were CLI uploads without git metadata (the Vercel API shows an empty `meta`), so the live commit could not be proven, and whatever was on the operator's disk was uploaded. From now on:
+
+- **Each production deploy needs the owner's approval.** Then run `node web/scripts/deploy-prod.mjs` from a checkout of `master`. It refuses on another branch, with uncommitted or untracked files, or when `HEAD` is not `origin/master` (so CI ran on exactly this commit). It prints the command. `--go` deploys with `--meta gitCommitSha=<sha> --meta gitCommitRef=master`.
+- **Which commit is live:** `npx vercel inspect <production-url>`, or the deployment's metadata in the dashboard.
+- **Better still (owner setting, not changed here):** connect the Vercel project to the GitHub repository with production branch `master`, so every production deploy is built from a pushed commit.
+- **Errors:** every server error is one redacted JSON line in Vercel → Logs (filter `"source":"next"`, or the digest shown on an error page). See `web/src/instrumentation.ts`. No third-party service and no new dependency.
+
 ## Rollback
 
 - **Instant:** Vercel dashboard → sultan-records → Deployments → pick an earlier production deployment → "Promote to Production" (or `npx vercel rollback <deployment-url>` / `npx vercel promote <deployment-url>` from the repo root). No rebuild, no DB change.
 - **Take the site offline:** Project → Settings → Deployment Protection → enable Vercel Authentication for all deployments, or remove the `sultan-records.vercel.app` alias.
-- **Code:** `git revert` on `rebuild/nextjs`, then `npx vercel deploy --prod` from the repo root.
+- **Code:** `git revert` on `master`, then `node web/scripts/deploy-prod.mjs --go` (with the owner's approval).
 - Database changes are not tied to deploys (forward-only migrations; restore procedure in `docs/backup-restore.md`).
 - The old site and old Supabase project were never changed.
 
