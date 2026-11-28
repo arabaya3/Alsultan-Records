@@ -275,13 +275,13 @@ test("owner backup run completes with counts", async ({ browser }) => {
   const { data } = await db.from("backup_runs").select("id, status, table_counts, object_counts, errors, location").order("started_at", { ascending: false }).limit(1).single();
   expect(data?.status).toBe("completed");
   const counts = data?.table_counts as Record<string, number>;
-  expect(Object.keys(counts).length).toBe(33);
+  expect(Object.keys(counts).length).toBe(55); // every public table (BACKUP_TABLES; kept complete by src/features/backups/coverage.test.ts)
   expect(counts.media_assets).toBeGreaterThanOrEqual(202);
   expect(counts.events).toBe(4);
   expect((data?.object_counts as Record<string, number>)["private-media"]).toBeGreaterThanOrEqual(6);
   expect(data?.location).toBe(`backups/${data!.id}/`);
   const files = await db.storage.from("backups").list(`${data!.id}/tables`, { limit: 100 });
-  expect(files.data?.length).toBe(33);
+  expect(files.data?.length).toBe(55);
   await page.screenshot({ path: path.join(SHOTS, "admin-backups-1440.png"), fullPage: true });
   await page.context().close();
 });

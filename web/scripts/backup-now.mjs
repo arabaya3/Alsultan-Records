@@ -2,7 +2,7 @@
 /**
  * One command: dated independent backup + completeness check.
  *   npm run backup                       (= node scripts/backup-now.mjs --target staging)
- *   node scripts/backup-now.mjs --target staging [--root <dir>]
+ *   node scripts/backup-now.mjs --target staging [--root <dir>] [--full]
  *
  * 1. Runs backup-export.mjs into <root>/sultan-backup-<YYYYMMDD-HHMM> (default root: web/backups-local/, gitignored).
  * 2. Verifies the folder ON DISK: manifest status "complete", 0 errors, every file in the manifest exists with
@@ -36,6 +36,47 @@ if (repoTop && path.resolve(out).toLowerCase().startsWith(path.resolve(repoTop).
 }
 
 console.log(`backup → ${out}`);
+
+// Incremental: start the new dated folder from the newest COMPLETE earlier snapshot in <root>. Its storage files are
+// hard-linked (no copy, no extra disk) and its manifest is reused, so backup-export downloads only objects that are new
+// or changed (size/ETag/sha256), instead of the whole of storage again. A changed object is written to a new file and
+// renamed into place, which replaces the link and never alters the earlier snapshot. --full skips this.
+if (!argv.includes("--full") && fs.existsSync(root) && !fs.existsSync(path.join(out, "manifest.json"))) {
+  const prev = fs
+    .readdirSync(root)
+    .filter((n) => /^sultan-backup-\d{8}-\d{4}$/.test(n) && path.join(root, n) !== out)
+    .sort()
+    .reverse()
+    .map((n) => path.join(root, n))
+    .find((d) => {
+      try {
+        return JSON.parse(fs.readFileSync(path.join(d, "manifest.json"), "utf8")).status === "complete";
+      } catch {
+        return false;
+      }
+    });
+  if (prev) {
+    const pm = JSON.parse(fs.readFileSync(path.join(prev, "manifest.json"), "utf8"));
+    let linked = 0;
+    for (const f of pm.files ?? []) {
+      if (!f.path.startsWith("storage/")) continue;
+      const from = path.join(prev, f.path);
+      const to = path.join(out, f.path);
+      if (!fs.existsSync(from)) continue;
+      fs.mkdirSync(path.dirname(to), { recursive: true });
+      try {
+        fs.linkSync(from, to);
+      } catch {
+        fs.copyFileSync(from, to); // another drive: copy instead
+      }
+      linked++;
+    }
+    fs.mkdirSync(out, { recursive: true });
+    fs.writeFileSync(path.join(out, "manifest.json"), JSON.stringify({ ...pm, status: "partial", seeded_from: path.basename(prev) }, null, 1) + "\n");
+    console.log(`incremental: ${linked} unchanged-candidate files linked from ${path.basename(prev)} (only new or changed objects are downloaded)`);
+  }
+}
+
 const exp = spawnSync(process.execPath, [path.join(WEB, "scripts/backup-export.mjs"), "--target", target, "--out", out], { cwd: WEB, stdio: "inherit" });
 if (exp.status !== 0) { console.error("export failed — run the same command again to resume"); process.exit(1); }
 
@@ -62,8 +103,10 @@ for (const t of ["photo_albums", "album_photos", "showcase_videos", "offers", "s
   const exported = typeof m.tables[t] === "object" ? m.tables[t].rows : m.tables[t];
   if (!error && count !== exported) problems.push(`${t}: source ${count}, backup ${exported}`);
 }
-const photos = (await db.from("album_photos").select("storage_path_original")).data ?? [];
-const originals = photos.filter((r) => r.storage_path_original && !fs.existsSync(path.join(out, "storage", "album-media", r.storage_path_original))).length;
+// Originals live in album-media, or on the external S3 store (storage_provider 's3' → storage/s3/<key>).
+const photos = (await db.from("album_photos").select("storage_path_original, storage_provider")).data ?? [];
+const originalAt = (r) => path.join(out, "storage", r.storage_provider === "s3" ? "s3" : "album-media", r.storage_path_original);
+const originals = photos.filter((r) => r.storage_path_original && !fs.existsSync(originalAt(r))).length;
 if (originals) problems.push(`${originals} photo originals missing`);
 
 const summary = [

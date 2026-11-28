@@ -18,7 +18,7 @@ All of them refuse a non-local target unless `--target-url <url> --i-understand-
 
 | Data | In-app run (`/admin/backups`) | Operator `pg_dump` | `backup-storage.mjs` |
 | --- | --- | --- | --- |
-| 33 `public` tables | yes (JSON in ZIP) | yes | no |
+| every `public` table (55; `web/src/features/backups/coverage.test.ts` fails if a new table is not listed) | yes (JSON in ZIP) | yes | no |
 | `auth.users`, `auth.identities`, `auth.mfa_factors` | **no** (PostgREST cannot read `auth.*`) | yes | no |
 | Storage binaries (`public-media`, `private-media`, `backups`) | manifest only (paths, no bytes) | no (`storage.objects` is metadata only) | yes, with sha256 |
 | `private.*` (rate limits, bootstrap token, storage cleanup queue) | no | only if dumped explicitly (not recommended) | no |
@@ -39,7 +39,7 @@ When the owner clicks **بدء النسخ الآن**, `runBackup` (in `actions.t
 
 1. It re-checks the owner role (`requireRole('owner')`, plus aal2 when MFA is required).
 2. It inserts a `backup_runs` row (`running`) through the owner's own client.
-3. It exports each of the 33 `public` tables, 1,000 rows per page ordered by `id`, with the secret-key client. RLS hides some data even from the owner (`customers.notes`, internal event notes, other users' notifications).
+3. It exports every `public` table (`BACKUP_TABLES`; kept complete by `coverage.test.ts`), 1,000 rows per page ordered by `id`, with the secret-key client. RLS hides some data even from the owner (`customers.notes`, internal event notes, other users' notifications).
 4. It writes `backups/{run_id}/tables/{table}.zip`. Each archive holds `{table}.json` = `{ table, exported_at, count, rows }`. Writes use the owner's client into the owner-only `backups` bucket.
 5. It writes `backups/{run_id}/storage-manifest.zip`, which lists every object in `public-media` and `private-media` (no bytes).
 6. It records the status. `completed` means every table **and** the manifest succeeded. `partial` means at least one table succeeded but something failed. `failed` means no table succeeded. The UI reports anything other than `completed` as a failure. This behaviour is covered by `core.test.ts`, which injects an unknown table name through the test-only `tables` option. Production always passes `BACKUP_TABLES`.
@@ -47,6 +47,12 @@ When the owner clicks **بدء النسخ الآن**, `runBackup` (in `actions.t
 Known quirks:
 - The export is not one transaction: each table is read separately while the app is live, so take runs in a quiet window.
 - The `backup_runs` table is exported while its own run row still says `running`.
+
+## Operator backup (`npm run backup`): S3 and incremental runs
+
+- **S3 / Hetzner:** album photos and reel files whose row says `storage_provider = 's3'` exist only on the external store. `backup-export.mjs` copies every object of `S3_BUCKET` to `storage/s3/<key>` (sha256 per file) when `S3_ENDPOINT`, `S3_REGION`, `S3_BUCKET`, `S3_ACCESS_KEY_ID` and `S3_SECRET_ACCESS_KEY` are in the env file. If rows are on S3 and those are missing, the run records an error and the manifest stays `partial`. `backup-now.mjs` checks each original in `storage/album-media/` or `storage/s3/` according to its row.
+- **Incremental:** each dated run starts from the newest **complete** earlier snapshot in the same root. Its storage files are hard-linked (no extra disk) and its manifest reused, so only new or changed objects (size, ETag, sha256) are downloaded, not the whole of storage again. A changed object is written to a new file and renamed, so the earlier snapshot is never altered. `--full` downloads everything.
+- The cloud restore rehearsal is still **pending**: it needs the owner's approval for a second project (see below).
 
 ## Procedure A: local (proven)
 
