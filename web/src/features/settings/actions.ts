@@ -8,13 +8,16 @@ import { dbMessage, fail, FORBIDDEN, ok, type ActionResult } from "@/features/ad
 import { MODULES } from "@/features/admin/nav";
 
 /** Owner-only system switches. app_settings.booking_rules is no longer edited here: nothing in the app reads it
- *  (docs/ui-audit-followup.md §9), so it is left exactly as stored — never overwritten from this form. */
+ *  (docs/ui-audit-followup.md §9), so it is left exactly as stored — never overwritten from this form.
+ *  turnstile_enabled is not written either: form protection is decided by the server's Turnstile keys
+ *  (features/bookings/public/turnstile-policy.ts), not by this value, so the page shows it disabled with that reason and
+ *  saving keeps whatever is stored. */
 export async function saveAppSettings(_p: ActionResult, fd: FormData): Promise<ActionResult> {
   if (!(await guard(OWNER_ONLY))) return FORBIDDEN;
   const sb = await createClient();
   const { error } = await sb
     .from("app_settings")
-    .update({ require_staff_mfa: fd.get("require_staff_mfa") === "on", turnstile_enabled: fd.get("turnstile_enabled") === "on" })
+    .update({ require_staff_mfa: fd.get("require_staff_mfa") === "on" })
     .eq("id", 1);
   if (error) return fail(dbMessage(error));
   refresh();
