@@ -38,7 +38,7 @@ let userId = null; let albumId = null;
 const browser = await chromium.launch();
 try {
   // Temp admin
-  const { data: u, error: ue } = await db.auth.admin.createUser({ email: EMAIL, password: PW, email_confirm: true, user_metadata: { full_name: `${TAG} admin` } });
+  const { data: u, error: ue } = await db.auth.admin.createUser({ email: EMAIL, password: PW, email_confirm: true, app_metadata: { test_fixture: true }, user_metadata: { full_name: `${TAG} admin` } });
   if (ue) throw ue; userId = u.user.id;
   await db.from("profiles").update({ role: "admin", mfa_required: true }).eq("id", userId);
   const ctx = await browser.newContext({ locale: "ar", viewport: { width: 1440, height: 1000 } });

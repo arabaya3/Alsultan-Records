@@ -101,7 +101,7 @@ const PNG = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR
 
 async function mkUser(key) {
   const email = `staging-test-${RUN}-${key}@example.com`;
-  const r = await db.auth.admin.createUser({ email, password: PW, email_confirm: true, user_metadata: { full_name: `${TAG} ${key}` } });
+  const r = await db.auth.admin.createUser({ email, password: PW, email_confirm: true, app_metadata: { test_fixture: true }, user_metadata: { full_name: `${TAG} ${key}` } });
   const id = must(r, `create user ${key}`).user.id;
   created.users[key] = { id, email };
   return id;

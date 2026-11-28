@@ -248,6 +248,23 @@ test("media upload of 2 images creates thumb + display variants", async ({ brows
   await admin.context().close();
 });
 
+test("media upload whose bytes are not its declared type is refused and its object removed", async ({ browser }) => {
+  const page = await login(browser, "admin");
+  await page.goto(`${BASE}/admin/events/${EVENT_B1}/media`);
+  await expect(page.getByTestId("uploader")).toBeVisible({ timeout: 60_000 });
+  const startedAt = new Date().toISOString();
+  await page.getByTestId("upload-input").setInputFiles([{ name: "not-really.pdf", mimeType: "application/pdf", buffer: Buffer.from("<html><body>not a pdf</body></html>") }]);
+  await page.getByTestId("upload-start").click();
+  const row = page.locator('[data-testid="upload-row"]').filter({ hasText: "not-really.pdf" });
+  await expect(row).toHaveAttribute("data-state", "failed", { timeout: 60_000 });
+  await expect(row).toContainText("لا يطابق نوعه");
+  const { data } = await db.from("media_assets").select("path, upload_status").eq("event_id", EVENT_B1).eq("mime", "application/pdf").gte("created_at", startedAt);
+  expect(data).toHaveLength(1);
+  expect(data![0].upload_status).toBe("failed");
+  expect((await db.storage.from("private-media").exists(data![0].path)).data).toBe(false);
+  await page.context().close();
+});
+
 test("owner backup run completes with counts", async ({ browser }) => {
   const page = await login(browser, "owner");
   await page.goto(`${BASE}/admin/backups`);

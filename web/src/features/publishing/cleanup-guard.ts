@@ -1,5 +1,8 @@
 /** Storage-cleanup allow-list (pure; shared by the app worker and mirrored in supabase/functions/storage-cleanup). */
 export const BUCKETS = new Set(["public-media", "private-media"]);
+/** The event buckets only under events/<event uuid>/… (media_assets paths; 0038 keeps new rows inside their event).
+ *  Defence in depth for rows written before 0038: a path outside any event folder is never deleted. */
+export const EVENT_PATH = /^events\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\/(?:[A-Za-z0-9._-]+\/)*[A-Za-z0-9._-]+$/i;
 /** album-media is allowed ONLY for album photo objects: albums/<album uuid>/<file path>. The queue gets
  *  these rows solely from the album_photos AFTER DELETE trigger (photo delete / album purge), so they
  *  never point at a live photo. Keep in sync with supabase/functions/storage-cleanup/index.ts. */
@@ -14,6 +17,7 @@ export const SITE_PATH = /^brand\/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4
 export function cleanupTargetError(bucket: string, path: string | null | undefined): string | null {
   if (!BUCKETS.has(bucket) && bucket !== ALBUM_BUCKET && bucket !== SITE_BUCKET) return `invalid bucket ${bucket}`;
   if (!path || path.includes("..") || path.startsWith("/") || path.includes("\\")) return "invalid path";
+  if (BUCKETS.has(bucket) && !EVENT_PATH.test(path)) return "invalid path";
   if (bucket === ALBUM_BUCKET && !ALBUM_PATH.test(path)) return "invalid path";
   if (bucket === SITE_BUCKET && !SITE_PATH.test(path)) return "invalid path";
   return null;

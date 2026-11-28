@@ -21,7 +21,7 @@ try {
   // Customer + event + published media
   const email = `staging-test-app-${stamp}@example.com`;
   const password = `Tmp-${crypto.randomUUID()}`;
-  const { data: u } = await sk.auth.admin.createUser({ email, password, email_confirm: true, user_metadata: { full_name: "[STAGING-TEST] app" } });
+  const { data: u } = await sk.auth.admin.createUser({ email, password, email_confirm: true, app_metadata: { test_fixture: true }, user_metadata: { full_name: "[STAGING-TEST] app" } });
   cleanup.push(() => sk.auth.admin.deleteUser(u.user.id));
   const { data: cust } = await sk.from("customers").select("id").eq("user_id", u.user.id).maybeSingle();
   let customerId = cust?.id;

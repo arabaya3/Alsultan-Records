@@ -121,7 +121,7 @@ const D = plusDays(12); // all test events share this date (same-day conflict ch
 
 async function mkUser(key, role) {
   const email = `staging-test-admin-${RUN}-${key}@example.com`;
-  const r = await db.auth.admin.createUser({ email, password: PW, email_confirm: true, user_metadata: { full_name: `${TAG} ${key}` } });
+  const r = await db.auth.admin.createUser({ email, password: PW, email_confirm: true, app_metadata: { test_fixture: true }, user_metadata: { full_name: `${TAG} ${key}` } });
   const id = must(r, `create user ${key}`).user.id;
   created.users[key] = { id, email };
   const c = await db.from("customers").select("id").eq("user_id", id).maybeSingle();

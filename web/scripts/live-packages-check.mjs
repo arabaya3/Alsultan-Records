@@ -56,7 +56,7 @@ const waTexts = (html) =>
   [...html.matchAll(/href="(https:\/\/wa\.me\/[^"]+)"/g)].map((m) => new URL(m[1].replace(/&amp;/g, "&")).searchParams.get("text") ?? "");
 
 try {
-  const { data: u, error: ue } = await db.auth.admin.createUser({ email: EMAIL, password: PW, email_confirm: true, user_metadata: { full_name: `${TAG} admin` } });
+  const { data: u, error: ue } = await db.auth.admin.createUser({ email: EMAIL, password: PW, email_confirm: true, app_metadata: { test_fixture: true }, user_metadata: { full_name: `${TAG} admin` } });
   if (ue) throw ue;
   userId = u.user.id;
   await db.from("profiles").update({ role: "admin", mfa_required: true }).eq("id", userId);
