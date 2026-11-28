@@ -62,3 +62,26 @@ jobs:
           node-version: 22
       - name: Production dependency audit
         run: npm audit --omit=dev --audit-level=high
+
+  # Database tests (pgTAP) on a throwaway Supabase stack inside the runner: every migration from scratch, the dev
+  # seed, then supabase/tests. Nothing here can reach production (no secrets, no link; config.toml is the local stack).
+  db:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - run: npm ci
+      - name: Start a local Supabase stack (database, auth and storage only)
+        run: npx supabase start -x realtime,imgproxy,kong,mailpit,postgrest,postgres-meta,studio,edge-runtime,logflare,vector,supavisor
+      - name: pgTAP
+        run: npx supabase test db
+      - name: Stop
+        if: always()
+        run: npx supabase stop --no-backup
