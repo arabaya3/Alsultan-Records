@@ -78,7 +78,7 @@ test.afterAll(async () => {
 });
 
 test("FA1 shows the Page name and the chosen photos, then creates ONE real album and adds both photos (as JPEG)", async ({ browser }) => {
-  const page = await newLoggedIn(browser, "admin", `/admin/albums/${ALBUM.id}`);
+  const page = await newLoggedIn(browser, "owner", `/admin/albums/${ALBUM.id}`);
   await page.getByTestId("album-facebook-link").click();
   await expect(page.getByTestId("fb-album-page-name")).toHaveText("صفحة اختبار");
   await expect(page.getByTestId("fb-album-photo")).toHaveCount(2);
@@ -107,8 +107,20 @@ test("FA1 shows the Page name and the chosen photos, then creates ONE real album
 
 test("FA2 no duplicate: a published album offers no second publish, and nothing more is sent to Facebook", async ({ browser }) => {
   const before = seen.length;
-  const page = await newLoggedIn(browser, "admin", `/admin/albums/${ALBUM.id}/facebook`);
+  const page = await newLoggedIn(browser, "owner", `/admin/albums/${ALBUM.id}/facebook`);
   await expect(page.getByTestId("fb-album-published")).toBeVisible();
+  await expect(page.getByTestId("fb-album-submit")).toHaveCount(0);
+  expect(seen.length).toBe(before);
+  await page.context().close();
+});
+
+test("FA3 owner only: an admin sees no «نشر على فيسبوك», the page is forbidden, and nothing is sent to Facebook", async ({ browser }) => {
+  const before = seen.length;
+  const page = await newLoggedIn(browser, "admin", `/admin/albums/${ALBUM.id}`);
+  await expect(page.getByTestId("album-preview-link")).toBeVisible();
+  await expect(page.getByTestId("album-facebook-link")).toHaveCount(0);
+  await page.goto(page.url().replace(/\/admin\/albums\/.*/, `/admin/albums/${ALBUM.id}/facebook`));
+  await expect(page.getByTestId("forbidden")).toBeVisible();
   await expect(page.getByTestId("fb-album-submit")).toHaveCount(0);
   expect(seen.length).toBe(before);
   await page.context().close();

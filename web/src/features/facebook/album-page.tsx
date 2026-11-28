@@ -1,7 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ADMIN_ROLES, Forbidden, guard } from "@/features/admin/guard";
+import { OWNER_ONLY, Forbidden, guard } from "@/features/admin/guard";
 import { ActionForm } from "@/features/admin/ActionForm";
 import { Badge, Card, LoadError, Notice, PageHeader } from "@/features/admin/ui";
 import { isUuid } from "@/features/admin/result";
@@ -17,12 +17,12 @@ type Post = { status: string; page_name: string; photo_ids: string[]; done: Reco
  * sent, then creates a real Facebook album (never a multi-photo post). Separate from «نشر الألبوم» on the site.
  */
 export async function AlbumFacebookPage({ params }: { params: IdParams }) {
-  if (!(await guard(ADMIN_ROLES))) return <Forbidden />;
+  // Owner only, like the action: a public post on the studio's Page is the owner's decision.
+  if (!(await guard(OWNER_ONLY))) return <Forbidden />;
   const { id } = await params;
   if (!isUuid(id)) return <LoadError what="الألبوم" />;
   const sb = (await createClient()) as unknown as SupabaseClient;
-  // The connection row is owner-readable under RLS; admins who may publish still need the Page NAME and status (only
-  // those two columns, read on the server — never the token).
+  // Only the Page NAME and status are read (on the server, never the token).
   const service = createAdminClient() as unknown as SupabaseClient | null;
   const [albumRes, photosRes, connRes, postRes] = await Promise.all([
     sb.from("photo_albums").select("id, title, archived_at, deleted_at").eq("id", id).maybeSingle(),
