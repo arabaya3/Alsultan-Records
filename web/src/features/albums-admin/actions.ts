@@ -10,7 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { TAGS } from "@/lib/cache-tags";
 import { guard, ADMIN_ROLES } from "@/features/admin/guard";
 import { dbMessage, fail, FORBIDDEN, isUuid, ok, str, uuid, type ActionResult } from "@/features/admin/result";
-import { runPhotoJobs } from "@/features/photo-processing/runner";
+import { runPhotoJobs, runPhotoJobsIfIdle } from "@/features/photo-processing/runner";
 import { readAlbumForm, altTextSchema, readCategoryForm } from "./schema";
 import { after } from "next/server";
 import { ALBUM_MAX_FILES_PER_BATCH, albumObjectPath, FORMATS, fmtMb, maxBytesFor, SHA256_RE, type FormatId } from "./rules";
@@ -327,7 +327,8 @@ export async function completeAlbumUpload(photoId: string, client?: { width: num
 function scheduleWorker() {
   after(async () => {
     try {
-      const r = await runPhotoJobs({ limit: 2, budgetMs: 40_000 });
+      const r = await runPhotoJobsIfIdle({ limit: 2, budgetMs: 40_000, totalMs: 40_000 });
+      if (!r) return; // a run is already active in this instance: it runs again for this file (coalesced)
       console.info(`[album-upload] after-complete worker: claimed ${r.claimed}, ready ${r.ready}, failed ${r.failed}, ${r.ms} ms`);
     } catch (e) {
       console.error("[album-upload] after-complete worker error (the cron worker retries):", e instanceof Error ? e.message : e);
